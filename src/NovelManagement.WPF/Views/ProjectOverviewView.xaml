@@ -1,0 +1,307 @@
+<UserControl x:Class="NovelManagement.WPF.Views.ProjectOverviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1000">
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 项目标题 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                <TextBlock x:Name="ProjectTitleTextBlock"
+                         Text="项目名称"
+                         FontSize="32"
+                         FontWeight="Bold"
+                         Margin="0,0,0,8"/>
+                <TextBlock Text="项目概览"
+                         FontSize="18"
+                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            </StackPanel>
+
+            <!-- 项目基本信息和进度统计 -->
+            <Grid Grid.Row="1" Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 项目基本信息 -->
+                <materialDesign:Card Grid.Column="0" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="项目信息" 
+                                 FontSize="20" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="类型：" FontWeight="Medium" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ProjectTypeTextBlock" Text="未设置" Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="状态：" FontWeight="Medium" Margin="0,0,16,8"/>
+                            <materialDesign:Chip Grid.Row="1" Grid.Column="1" x:Name="ProjectStatusChip" Content="未设置"
+                                               Background="{DynamicResource PrimaryHueMidBrush}"
+                                               Foreground="White"
+                                               HorizontalAlignment="Left"
+                                               Margin="0,0,0,8"
+                                               Click="ProjectStatus_Click"
+                                               Cursor="Hand"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="创建时间：" FontWeight="Medium" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ProjectCreatedTextBlock" Text="未设置" Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="最后更新：" FontWeight="Medium" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ProjectUpdatedTextBlock" Text="未设置" Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="作者：" FontWeight="Medium" Margin="0,0,16,8"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ProjectAuthorTextBlock" Text="未设置" Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="目标字数：" FontWeight="Medium" Margin="0,0,16,0"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="ProjectTargetWordsTextBlock" Text="未设置" Margin="0,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 进度统计 -->
+                <materialDesign:Card Grid.Column="2" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="进度统计" 
+                                 FontSize="20" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 字数进度 -->
+                        <StackPanel Margin="0,0,0,16">
+                            <Grid Margin="0,0,0,8">
+                                <TextBlock Text="总字数" FontWeight="Medium"/>
+                                <TextBlock x:Name="WordCountProgressTextBlock" Text="0 / 0" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <ProgressBar x:Name="WordCountProgressBar" Value="0" Maximum="100" Height="8"/>
+                            <TextBlock x:Name="WordCountPercentTextBlock" Text="0% 完成"
+                                     FontSize="12"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     HorizontalAlignment="Right"
+                                     Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <!-- 章节进度 -->
+                        <StackPanel Margin="0,0,0,16">
+                            <Grid Margin="0,0,0,8">
+                                <TextBlock Text="章节数" FontWeight="Medium"/>
+                                <TextBlock x:Name="ChapterCountProgressTextBlock" Text="0 / 0" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <ProgressBar x:Name="ChapterCountProgressBar" Value="0" Maximum="100" Height="8"/>
+                            <TextBlock x:Name="ChapterCountPercentTextBlock" Text="0% 完成"
+                                     FontSize="12"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     HorizontalAlignment="Right"
+                                     Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <!-- 角色数量 -->
+                        <Grid Margin="0,0,0,8">
+                            <TextBlock Text="角色数量" FontWeight="Medium"/>
+                            <TextBlock x:Name="CharacterCountTextBlock" Text="0个" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <!-- 设定完成度 -->
+                        <Grid Margin="0,0,0,0">
+                            <TextBlock Text="设定完成度" FontWeight="Medium"/>
+                            <TextBlock x:Name="SettingCompletionTextBlock" Text="0%" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+
+            <!-- 快速操作 -->
+            <materialDesign:Card Grid.Row="2" Padding="24" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="快速操作" 
+                             FontSize="20" 
+                             FontWeight="Medium" 
+                             Margin="0,0,0,16"/>
+                    
+                    <WrapPanel>
+                        <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                Margin="0,0,12,8"
+                                Click="WriteChapter_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Pencil" Margin="0,0,8,0"/>
+                                <TextBlock Text="写作新章节"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ManageCharacters_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Account" Margin="0,0,8,0"/>
+                                <TextBlock Text="管理角色"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="PlotOutline_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileTree" Margin="0,0,8,0"/>
+                                <TextBlock Text="剧情大纲"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="AIAssistant_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Robot" Margin="0,0,8,0"/>
+                                <TextBlock Text="AI助手"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="WorldSettings_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Earth" Margin="0,0,8,0"/>
+                                <TextBlock Text="世界设定"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ImportExport_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
+                                <TextBlock Text="导入导出"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ProjectSettings_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Settings" Margin="0,0,8,0"/>
+                                <TextBlock Text="项目设置"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="Statistics_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ChartLine" Margin="0,0,8,0"/>
+                                <TextBlock Text="统计分析"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="Backup_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Backup" Margin="0,0,8,0"/>
+                                <TextBlock Text="备份项目"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 详细内容区域 -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 角色概览 -->
+                <materialDesign:Card Grid.Column="0" Padding="24">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,16">
+                            <TextBlock Text="主要角色" 
+                                     FontSize="20" 
+                                     FontWeight="Medium" 
+                                     DockPanel.Dock="Left"/>
+                            <Button Content="查看全部" 
+                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                  DockPanel.Dock="Right"
+                                  Click="ViewAllCharacters_Click"/>
+                        </DockPanel>
+
+                        <!-- 角色列表区域 -->
+                        <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                              CornerRadius="4"
+                              Padding="16"
+                              MinHeight="200">
+                            <TextBlock x:Name="CharacterListTextBlock"
+                                     Text="暂无角色信息，请前往角色管理界面创建角色。"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     TextWrapping="Wrap"
+                                     LineHeight="20"/>
+                        </Border>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 剧情大纲 -->
+                <materialDesign:Card Grid.Column="2" Padding="24">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,16">
+                            <TextBlock Text="剧情大纲"
+                                     FontSize="20"
+                                     FontWeight="Medium"
+                                     DockPanel.Dock="Left"/>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                <Button Content="AI生成大纲"
+                                      Style="{StaticResource MaterialDesignRaisedButton}"
+                                      Background="{DynamicResource PrimaryHueMidBrush}"
+                                      Foreground="White"
+                                      Margin="0,0,8,0"
+                                      Click="GenerateOutline_Click"/>
+                                <Button Content="编辑大纲"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      Click="EditOutline_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- 大纲内容区域 -->
+                        <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                              CornerRadius="4"
+                              Padding="16"
+                              MinHeight="200">
+                            <TextBlock x:Name="OutlineContentTextBlock"
+                                     Text="暂无大纲内容，请点击AI生成大纲按钮创建大纲，或点击编辑大纲手动编辑。"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     TextWrapping="Wrap"
+                                     LineHeight="20"/>
+                        </Border>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

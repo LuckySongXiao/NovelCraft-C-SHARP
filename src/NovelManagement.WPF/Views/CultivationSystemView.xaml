@@ -1,0 +1,210 @@
+<UserControl x:Class="NovelManagement.WPF.Views.CultivationSystemView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <materialDesign:Card Grid.Row="0" Margin="24,24,24,12">
+            <Grid Margin="24,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Meditation" 
+                                           Width="32" Height="32" 
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                    <TextBlock Text="修炼体系管理" 
+                             Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                             VerticalAlignment="Center" 
+                             Margin="16,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="AddCultivationBtn"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="8,0"
+                            Click="AddCultivation_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Width="16" Height="16"/>
+                            <TextBlock Text="添加修炼体系" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="ImportBtn"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="8,0"
+                            Click="Import_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Import" Width="16" Height="16"/>
+                            <TextBlock Text="导入" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="ExportBtn"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="8,0"
+                            Click="Export_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Export" Width="16" Height="16"/>
+                            <TextBlock Text="导出" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="AIAssistantBtn"
+                            Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                            Margin="8,0"
+                            Click="AIAssistant_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Robot" Width="16" Height="16"/>
+                            <TextBlock Text="AI助手" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：修炼体系列表 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 搜索栏 -->
+                    <Border Grid.Row="0" Padding="16,16,16,8">
+                        <TextBox x:Name="SearchTextBox"
+                                materialDesign:HintAssist.Hint="搜索修炼体系..."
+                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                TextChanged="SearchTextBox_TextChanged"/>
+                    </Border>
+
+                    <!-- 筛选器 -->
+                    <Border Grid.Row="1" Padding="16,0,16,8">
+                        <StackPanel>
+                            <ComboBox x:Name="CategoryFilterComboBox"
+                                     materialDesign:HintAssist.Hint="体系类型"
+                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                     SelectionChanged="CategoryFilter_SelectionChanged">
+                                <ComboBoxItem Content="全部类型"/>
+                                <ComboBoxItem Content="内功心法"/>
+                                <ComboBoxItem Content="外功招式"/>
+                                <ComboBoxItem Content="身法轻功"/>
+                                <ComboBoxItem Content="炼体功法"/>
+                                <ComboBoxItem Content="神识功法"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 修炼体系列表 -->
+                    <Border Grid.Row="2" Padding="8">
+                        <ListView x:Name="CultivationListControl"
+                                 SelectionMode="Single"
+                                 SelectionChanged="CultivationList_SelectionChanged">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <materialDesign:Card Margin="4" Padding="12">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0" 
+                                                     Text="{Binding Name}" 
+                                                     Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                                     FontWeight="Bold"/>
+                                            
+                                            <TextBlock Grid.Row="1" 
+                                                     Text="{Binding Category}" 
+                                                     Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                     Margin="0,4,0,0"/>
+                                            
+                                            <TextBlock Grid.Row="2" 
+                                                     Text="{Binding Description}" 
+                                                     Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                                     TextWrapping="Wrap"
+                                                     MaxHeight="40"
+                                                     Margin="0,4,0,0"/>
+                                            
+                                            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                                                <materialDesign:Chip Content="{Binding Grade}" 
+                                                                   Margin="0,0,4,0"/>
+                                                <materialDesign:Chip Content="{Binding LevelCount, StringFormat='{}共{0}层'}" 
+                                                                   Margin="4,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </materialDesign:Card>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+
+                    <!-- 统计信息 -->
+                    <Border Grid.Row="3" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="统计信息" 
+                                     Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
+                                     Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="总数量" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                                    <TextBlock x:Name="TotalCountText" Text="0" Style="{StaticResource MaterialDesignSubtitle1TextBlock}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="已选择" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                                    <TextBlock x:Name="SelectedCountText" Text="0" Style="{StaticResource MaterialDesignSubtitle1TextBlock}"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 右侧：修炼体系详情 -->
+            <materialDesign:Card Grid.Column="1">
+                <ScrollViewer>
+                    <StackPanel x:Name="DetailsPanel" Margin="20">
+                        <!-- 修炼体系详情将在代码中动态生成 -->
+                        <TextBlock Text="请选择一个修炼体系查看详情" 
+                                   Style="{StaticResource MaterialDesignBody1TextBlock}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

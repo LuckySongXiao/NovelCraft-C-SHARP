@@ -1,0 +1,226 @@
+<Window x:Class="NovelManagement.WPF.Views.AIContinueWriteDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="AI章节续写" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题区域 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="AI章节续写" 
+                     FontSize="24" 
+                     FontWeight="Bold" 
+                     Margin="0,0,0,8"/>
+            <TextBlock Text="AI将基于已有内容和章节设定，智能续写剩余章节内容" 
+                     FontSize="14" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：现有内容和设置 -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 现有内容 -->
+                <materialDesign:Card Grid.Row="0" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                            <TextBlock Text="现有内容" 
+                                     FontSize="16" 
+                                     FontWeight="Medium" 
+                                     DockPanel.Dock="Left"/>
+                            <TextBlock x:Name="ExistingWordCountLabel"
+                                     Text="(0字)"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     DockPanel.Dock="Right"/>
+                        </DockPanel>
+
+                        <TextBox x:Name="ExistingContentTextBox"
+                               Grid.Row="1"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               VerticalScrollBarVisibility="Auto"
+                               IsReadOnly="True"
+                               Background="{DynamicResource MaterialDesignTextFieldBoxDisabledBackground}"/>
+                    </Grid>
+                </materialDesign:Card>
+
+                <!-- 续写设置 -->
+                <materialDesign:Card Grid.Row="2" Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="续写设置" 
+                                 FontSize="16" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 续写长度 -->
+                        <ComboBox x:Name="ContinueLengthComboBox"
+                                materialDesign:HintAssist.Hint="续写长度"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Margin="0,0,0,12">
+                            <ComboBoxItem Content="短续写 (500-800字)"/>
+                            <ComboBoxItem Content="中续写 (800-1500字)" IsSelected="True"/>
+                            <ComboBoxItem Content="长续写 (1500-2500字)"/>
+                            <ComboBoxItem Content="自定义长度"/>
+                        </ComboBox>
+
+                        <!-- 自定义字数 -->
+                        <TextBox x:Name="CustomWordCountTextBox"
+                               materialDesign:HintAssist.Hint="自定义字数"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Text="1200"
+                               Margin="0,0,0,12"/>
+
+                        <!-- 续写方向 -->
+                        <TextBox x:Name="ContinueDirectionTextBox"
+                               materialDesign:HintAssist.Hint="续写方向提示（可选）"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               MinHeight="60"
+                               MaxHeight="100"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 续写按钮 -->
+                        <Button x:Name="ContinueButton"
+                              Style="{StaticResource MaterialDesignRaisedButton}"
+                              Click="Continue_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="RobotLove" Margin="0,0,8,0"/>
+                                <TextBlock Text="开始续写"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+
+            <!-- 右侧：续写结果 -->
+            <materialDesign:Card Grid.Column="2" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 结果标题 -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="续写结果" 
+                                 FontSize="16" 
+                                 FontWeight="Medium" 
+                                 DockPanel.Dock="Left"/>
+                        <TextBlock x:Name="ContinuedWordCountLabel"
+                                 Text="(0字)"
+                                 FontSize="14"
+                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                 DockPanel.Dock="Right"/>
+                    </DockPanel>
+
+                    <!-- 续写内容 -->
+                    <TextBox x:Name="ContinuedContentTextBox"
+                           Grid.Row="1"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                           TextWrapping="Wrap"
+                           AcceptsReturn="True"
+                           VerticalScrollBarVisibility="Auto"
+                           IsReadOnly="False"
+                           materialDesign:HintAssist.Hint="AI续写的内容将显示在这里..."
+                           TextChanged="ContinuedContentTextBox_TextChanged"/>
+
+                    <!-- 操作按钮 -->
+                    <StackPanel Grid.Row="2" 
+                              Orientation="Horizontal" 
+                              HorizontalAlignment="Right"
+                              Margin="0,16,0,0">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                              Margin="0,0,8,0"
+                              Click="RegenerateContinue_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
+                                <TextBlock Text="续写"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                              Margin="0,0,8,0"
+                              Click="CopyToClipboard_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,4,0"/>
+                                <TextBlock Text="复制"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                              Margin="0,0,8,0"
+                              Click="PreviewMerged_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Eye" Margin="0,0,4,0"/>
+                                <TextBlock Text="预览合并"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+        </Grid>
+
+        <!-- 底部按钮 -->
+        <StackPanel Grid.Row="2" 
+                  Orientation="Horizontal" 
+                  HorizontalAlignment="Right"
+                  Margin="0,24,0,0">
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                  Margin="0,0,8,0"
+                  Click="Cancel_Click">
+                <TextBlock Text="取消"/>
+            </Button>
+            
+            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                  Click="Apply_Click"
+                  x:Name="ApplyButton">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
+                    <TextBlock Text="应用续写"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+
+    <Window.Resources>
+    </Window.Resources>
+</Window>

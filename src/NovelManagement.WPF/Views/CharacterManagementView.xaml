@@ -1,0 +1,459 @@
+<UserControl x:Class="NovelManagement.WPF.Views.CharacterManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 页面标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="人物管理" 
+                     FontSize="32" 
+                     FontWeight="Bold" 
+                     Margin="0,0,0,8"/>
+            <TextBlock Text="管理小说中的角色信息和关系" 
+                     FontSize="16" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 操作工具栏 -->
+        <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,12,0"
+                            Click="NewCharacter_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
+                            <TextBlock Text="新建角色"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="ImportCharacters_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
+                            <TextBlock Text="导入角色"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="ExportCharacters_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
+                            <TextBlock Text="导出角色"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- AI辅助功能分隔符 -->
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                             Margin="12,0"/>
+
+                    <!-- AI辅助按钮组 -->
+                    <Button Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                            Margin="0,0,8,0"
+                            Click="AIGenerateCharacter_Click"
+                            ToolTip="使用AI生成角色">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Brain" Margin="0,0,8,0"/>
+                            <TextBlock Text="AI生成角色"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="AIOptimizeCharacter_Click"
+                            ToolTip="使用AI优化选中角色">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
+                            <TextBlock Text="AI优化"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="AIAnalyzeRelationships_Click"
+                            ToolTip="使用AI分析角色关系">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="GraphOutline" Margin="0,0,8,0"/>
+                            <TextBlock Text="关系分析"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- 筛选和搜索 -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <ComboBox x:Name="CharacterTypeFilter"
+                            materialDesign:HintAssist.Hint="角色类型"
+                            Width="120"
+                            Margin="0,0,12,0"
+                            SelectionChanged="CharacterTypeFilter_SelectionChanged">
+                        <ComboBoxItem Content="全部"/>
+                        <ComboBoxItem Content="主角"/>
+                        <ComboBoxItem Content="主配角"/>
+                        <ComboBoxItem Content="次配角"/>
+                        <ComboBoxItem Content="反派"/>
+                        <ComboBoxItem Content="路人"/>
+                    </ComboBox>
+                    
+                    <TextBox x:Name="SearchTextBox"
+                           materialDesign:HintAssist.Hint="搜索角色..."
+                           materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                           materialDesign:TextFieldAssist.LeadingIcon="Search"
+                           Width="200"
+                           TextChanged="SearchTextBox_TextChanged"/>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:Card>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：角色列表 -->
+            <materialDesign:Card Grid.Column="0" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 列表标题 -->
+                    <Border Grid.Row="0" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,12">
+                        <TextBlock Text="角色列表" FontWeight="Medium"/>
+                    </Border>
+
+                    <!-- 角色列表 -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="CharacterListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                          BorderThickness="0,0,0,1" 
+                                          Padding="16,12"
+                                          Background="Transparent"
+                                          Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" 
+                                                        Command="{Binding DataContext.SelectCharacterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 角色头像/图标 -->
+                                            <Border Grid.Column="0" 
+                                                  Background="{DynamicResource PrimaryHueLightBrush}"
+                                                  CornerRadius="20"
+                                                  Width="40" Height="40"
+                                                  Margin="0,0,12,0">
+                                                <materialDesign:PackIcon Kind="Account" 
+                                                                       Width="24" Height="24"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="White"/>
+                                            </Border>
+
+                                            <!-- 角色信息 -->
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Name}" 
+                                                         FontWeight="Medium" 
+                                                         FontSize="14"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <materialDesign:Chip Content="{Binding Type}" 
+                                                                       FontSize="10"
+                                                                       Height="20"
+                                                                       Margin="0,0,4,0"/>
+                                                    <TextBlock Text="{Binding Faction}" 
+                                                             FontSize="12"
+                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                             VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- 状态指示 -->
+                                            <materialDesign:PackIcon Grid.Column="2" 
+                                                                   Kind="ChevronRight"
+                                                                   Width="16" Height="16"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 分隔符 -->
+            <GridSplitter Grid.Column="1" 
+                          HorizontalAlignment="Stretch" 
+                          Background="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- 右侧：角色详细信息 -->
+            <Grid Grid.Column="2" x:Name="DetailArea">
+                <!-- 默认显示角色统计信息 -->
+                <materialDesign:Card Padding="24" x:Name="DefaultCard">
+                    <StackPanel>
+                        <TextBlock Text="角色统计" 
+                                 FontSize="24" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,24"/>
+
+                        <!-- 统计卡片 -->
+                        <UniformGrid Columns="2" Margin="0,0,0,24">
+                            <materialDesign:Card Margin="0,0,8,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="总角色数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="23" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,0,0,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="主要角色" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="8" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="0,8,8,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="势力数量" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="5" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,8,0,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="关系数量" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="15" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </UniformGrid>
+
+                        <!-- 角色类型分布 -->
+                        <TextBlock Text="角色类型分布" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <ItemsControl>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="主角" Margin="0,0,12,0"/>
+                                <ProgressBar Grid.Column="1" Value="4" Maximum="23" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="4" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="主配角" Margin="0,0,12,0"/>
+                                <ProgressBar Grid.Column="1" Value="6" Maximum="23" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="6" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="反派" Margin="0,0,12,0"/>
+                                <ProgressBar Grid.Column="1" Value="3" Maximum="23" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="3" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+                        </ItemsControl>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 角色详细信息界面 -->
+                <materialDesign:Card Padding="24" x:Name="CharacterDetailCard" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- 角色基本信息 -->
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 角色头像 -->
+                                <Border Grid.Column="0"
+                                      Background="{DynamicResource PrimaryHueLightBrush}"
+                                      CornerRadius="40"
+                                      Width="80" Height="80"
+                                      Margin="0,0,24,0">
+                                    <materialDesign:PackIcon Kind="Account"
+                                                           Width="48" Height="48"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="White"/>
+                                </Border>
+
+                                <!-- 角色基本信息 -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="CharacterNameText"
+                                             Text="角色姓名"
+                                             FontSize="28"
+                                             FontWeight="Bold"
+                                             Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <materialDesign:Chip x:Name="CharacterTypeChip"
+                                                           Content="主角"
+                                                           Margin="0,0,8,0"/>
+                                        <materialDesign:Chip x:Name="CharacterFactionChip"
+                                                           Content="玄天宗"
+                                                           Background="{DynamicResource SecondaryHueLightBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="CharacterCultivationText"
+                                             Text="筑基期"
+                                             FontSize="14"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                </StackPanel>
+
+                                <!-- 操作按钮 -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                          Margin="0,0,0,8"
+                                          Click="EditCharacter_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Edit" Margin="0,0,8,0"/>
+                                            <TextBlock Text="编辑"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                          Click="DeleteCharacter_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Delete" Margin="0,0,8,0"/>
+                                            <TextBlock Text="删除"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 角色描述 -->
+                            <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="角色描述"
+                                             FontSize="16"
+                                             FontWeight="Medium"
+                                             Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="CharacterDescriptionText"
+                                             Text="角色描述内容..."
+                                             TextWrapping="Wrap"
+                                             LineHeight="20"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <!-- 详细信息选项卡 -->
+                            <materialDesign:Card Padding="0" Margin="0,0,0,16">
+                                <TabControl Style="{StaticResource MaterialDesignTabControl}">
+                                    <!-- 外貌特征 -->
+                                    <TabItem Header="外貌特征">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterAppearanceText"
+                                                     Text="外貌特征描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+
+                                    <!-- 性格特点 -->
+                                    <TabItem Header="性格特点">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterPersonalityText"
+                                                     Text="性格特点描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+
+                                    <!-- 背景故事 -->
+                                    <TabItem Header="背景故事">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterBackgroundText"
+                                                     Text="背景故事描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+
+                                    <!-- 能力技能 -->
+                                    <TabItem Header="能力技能">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterAbilitiesText"
+                                                     Text="能力技能描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+                                </TabControl>
+                            </materialDesign:Card>
+
+                            <!-- 返回按钮 -->
+                            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                  HorizontalAlignment="Left"
+                                  Click="BackToOverview_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ArrowLeft" Margin="0,0,8,0"/>
+                                    <TextBlock Text="返回概览"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

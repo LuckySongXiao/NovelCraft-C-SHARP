@@ -1,0 +1,195 @@
+<Window x:Class="NovelManagement.WPF.Views.NewChapterDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="新建章节" Height="650" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <materialDesign:PackIcon Kind="FileDocumentPlus" 
+                                   Width="48" Height="48" 
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+            <TextBlock Text="新建章节" 
+                     FontSize="24" 
+                     FontWeight="Bold" 
+                     HorizontalAlignment="Center"
+                     Margin="0,8,0,0"/>
+            <TextBlock Text="为选定的卷宗创建新章节" 
+                     FontSize="14" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                     HorizontalAlignment="Center"
+                     Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- 表单内容 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 所属卷宗 -->
+                <ComboBox x:Name="VolumeComboBox"
+                        materialDesign:HintAssist.Hint="所属卷宗"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        Margin="0,0,0,16">
+                    <ComboBoxItem Content="第一卷：面具觉醒"/>
+                    <ComboBoxItem Content="第二卷：力量觉醒"/>
+                    <ComboBoxItem Content="第三卷：天劫降临" IsSelected="True"/>
+                </ComboBox>
+
+                <!-- 章节标题 -->
+                <TextBox x:Name="ChapterTitleTextBox"
+                       materialDesign:HintAssist.Hint="章节标题"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,0,0,16"
+                       MaxLength="100"/>
+
+                <!-- 章节编号 -->
+                <TextBox x:Name="ChapterNumberTextBox"
+                       materialDesign:HintAssist.Hint="章节编号"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,0,0,16"
+                       PreviewTextInput="NumberOnly_PreviewTextInput"/>
+
+                <!-- 章节类型 -->
+                <ComboBox x:Name="ChapterTypeComboBox"
+                        materialDesign:HintAssist.Hint="章节类型"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        Margin="0,0,0,16">
+                    <ComboBoxItem Content="正文章节" IsSelected="True"/>
+                    <ComboBoxItem Content="过渡章节"/>
+                    <ComboBoxItem Content="高潮章节"/>
+                    <ComboBoxItem Content="回忆章节"/>
+                    <ComboBoxItem Content="番外章节"/>
+                </ComboBox>
+
+                <!-- 章节摘要 -->
+                <TextBox x:Name="ChapterSummaryTextBox"
+                       materialDesign:HintAssist.Hint="章节摘要"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       TextWrapping="Wrap"
+                       AcceptsReturn="True"
+                       MinHeight="80"
+                       MaxHeight="120"
+                       VerticalScrollBarVisibility="Auto"
+                       Margin="0,0,0,16"
+                       MaxLength="500"/>
+
+                <!-- 目标字数 -->
+                <TextBox x:Name="TargetWordCountTextBox"
+                       materialDesign:HintAssist.Hint="目标字数"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,0,0,16"
+                       PreviewTextInput="NumberOnly_PreviewTextInput"/>
+
+                <!-- 重要性等级 -->
+                <ComboBox x:Name="ImportanceLevelComboBox"
+                        materialDesign:HintAssist.Hint="重要性等级"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        Margin="0,0,0,16">
+                    <ComboBoxItem Content="1 - 普通"/>
+                    <ComboBoxItem Content="2 - 重要" IsSelected="True"/>
+                    <ComboBoxItem Content="3 - 关键"/>
+                    <ComboBoxItem Content="4 - 核心"/>
+                    <ComboBoxItem Content="5 - 转折点"/>
+                </ComboBox>
+
+                <!-- 难度等级 -->
+                <ComboBox x:Name="DifficultyLevelComboBox"
+                        materialDesign:HintAssist.Hint="写作难度"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        Margin="0,0,0,16">
+                    <ComboBoxItem Content="1 - 简单"/>
+                    <ComboBoxItem Content="2 - 普通" IsSelected="True"/>
+                    <ComboBoxItem Content="3 - 中等"/>
+                    <ComboBoxItem Content="4 - 困难"/>
+                    <ComboBoxItem Content="5 - 极难"/>
+                </ComboBox>
+
+                <!-- 相关角色 -->
+                <TextBox x:Name="RelatedCharactersTextBox"
+                       materialDesign:HintAssist.Hint="相关角色（用逗号分隔）"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,0,0,16"
+                       MaxLength="300"/>
+
+                <!-- 关键事件 -->
+                <TextBox x:Name="KeyEventsTextBox"
+                       materialDesign:HintAssist.Hint="关键事件"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       TextWrapping="Wrap"
+                       AcceptsReturn="True"
+                       MinHeight="60"
+                       MaxHeight="100"
+                       VerticalScrollBarVisibility="Auto"
+                       Margin="0,0,0,16"
+                       MaxLength="500"/>
+
+                <!-- 章节状态 -->
+                <ComboBox x:Name="ChapterStatusComboBox"
+                        materialDesign:HintAssist.Hint="章节状态"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        Margin="0,0,0,16">
+                    <ComboBoxItem Content="计划中" IsSelected="True"/>
+                    <ComboBoxItem Content="大纲中"/>
+                    <ComboBoxItem Content="写作中"/>
+                    <ComboBoxItem Content="初稿完成"/>
+                    <ComboBoxItem Content="修改中"/>
+                    <ComboBoxItem Content="已完成"/>
+                </ComboBox>
+
+                <!-- 标签 -->
+                <TextBox x:Name="ChapterTagsTextBox"
+                       materialDesign:HintAssist.Hint="标签（用逗号分隔）"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,0,0,16"
+                       MaxLength="200"/>
+
+                <!-- 备注 -->
+                <TextBox x:Name="ChapterNotesTextBox"
+                       materialDesign:HintAssist.Hint="备注"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       TextWrapping="Wrap"
+                       AcceptsReturn="True"
+                       MinHeight="60"
+                       MaxHeight="100"
+                       VerticalScrollBarVisibility="Auto"
+                       Margin="0,0,0,0"
+                       MaxLength="500"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 按钮区域 -->
+        <StackPanel Grid.Row="2" 
+                  Orientation="Horizontal" 
+                  HorizontalAlignment="Right" 
+                  Margin="0,24,0,0">
+            <Button Content="取消" 
+                  Style="{StaticResource MaterialDesignOutlinedButton}"
+                  Margin="0,0,12,0"
+                  Width="80"
+                  Click="Cancel_Click"/>
+            <Button Content="创建" 
+                  Style="{StaticResource MaterialDesignRaisedButton}"
+                  Width="80"
+                  Click="Create_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

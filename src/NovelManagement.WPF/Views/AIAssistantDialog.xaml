@@ -1,0 +1,232 @@
+<Window x:Class="NovelManagement.WPF.Views.AIAssistantDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:NovelManagement.WPF.Views"
+        mc:Ignorable="d"
+        Title="AI助手" Height="600" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Style="{StaticResource MaterialDesignWindow}">
+
+    <Window.Resources>
+        <!-- 大于零转换器 -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+    </Window.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <materialDesign:Card Grid.Row="0" Margin="16,16,16,8">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Robot" 
+                                           Width="24" Height="24" 
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                    <TextBlock x:Name="TitleTextBlock"
+                             Text="AI助手 - 设定管理" 
+                             Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                             VerticalAlignment="Center" 
+                             Margin="12,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ComboBox x:Name="ModelComboBox"
+                             materialDesign:HintAssist.Hint="选择AI模型"
+                             Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                             Width="150"
+                             Margin="0,0,8,0"
+                             SelectionChanged="ModelComboBox_SelectionChanged">
+                        <ComboBoxItem Content="DeepSeek-V3" Tag="deepseek-chat"/>
+                        <ComboBoxItem Content="Qwen2.5:7b" Tag="qwen2.5:7b"/>
+                        <ComboBoxItem Content="Llama3.2:3b" Tag="llama3.2:3b"/>
+                    </ComboBox>
+                    
+                    <Button x:Name="SettingsButton"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="设置"
+                            Click="Settings_Click">
+                        <materialDesign:PackIcon Kind="Settings"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="16,0,16,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：功能面板 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,8,0">
+                <StackPanel Margin="12">
+                    <TextBlock Text="快速操作" 
+                             Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
+                             Margin="0,0,0,12"/>
+                    
+                    <Button x:Name="GenerateSettingBtn"
+                            Content="生成设定"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,0,8"
+                            Click="GenerateSetting_Click"/>
+                    
+                    <Button x:Name="AnalyzeSettingBtn"
+                            Content="分析设定"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,0,8"
+                            Click="AnalyzeSetting_Click"/>
+                    
+                    <Button x:Name="OptimizeSettingBtn"
+                            Content="优化建议"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,0,8"
+                            Click="OptimizeSetting_Click"/>
+                    
+                    <Button x:Name="CheckConsistencyBtn"
+                            Content="一致性检查"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,0,8"
+                            Click="CheckConsistency_Click"/>
+                    
+                    <Separator Margin="0,12"/>
+                    
+                    <TextBlock Text="上下文信息" 
+                             Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
+                             Margin="0,0,0,8"/>
+                    
+                    <TextBlock x:Name="ContextTextBlock"
+                             Text="当前上下文信息将显示在这里"
+                             Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 右侧：对话区域 -->
+            <materialDesign:Card Grid.Column="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 对话历史 -->
+                    <ScrollViewer Grid.Row="0" 
+                                 x:Name="ChatScrollViewer"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Padding="16">
+                        <StackPanel x:Name="ChatPanel">
+                            <!-- 欢迎消息 -->
+                            <Border Background="{DynamicResource MaterialDesignCardBackground}"
+                                   CornerRadius="8"
+                                   Padding="12"
+                                   Margin="0,0,0,8">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <materialDesign:PackIcon Kind="Robot" 
+                                                               Width="16" Height="16"
+                                                               Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                        <TextBlock Text="AI助手" 
+                                                 Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                 Margin="4,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Text="您好！我是您的AI助手，专门帮助您管理小说设定。我可以帮您生成新设定、分析现有设定、提供优化建议等。请告诉我您需要什么帮助？"
+                                             TextWrapping="Wrap"
+                                             Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- 输入区域 -->
+                    <Border Grid.Row="1" 
+                           Background="{DynamicResource MaterialDesignCardBackground}"
+                           BorderBrush="{DynamicResource MaterialDesignDivider}"
+                           BorderThickness="0,1,0,0"
+                           Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="InputTextBox"
+                                    Grid.Column="0"
+                                    materialDesign:HintAssist.Hint="输入您的问题或需求..."
+                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MaxHeight="100"
+                                    VerticalScrollBarVisibility="Auto"
+                                    KeyDown="InputTextBox_KeyDown"/>
+
+                            <Button x:Name="SendButton"
+                                   Grid.Column="1"
+                                   Style="{StaticResource MaterialDesignRaisedButton}"
+                                   Margin="8,0,0,0"
+                                   Click="Send_Click"
+                                   IsEnabled="{Binding ElementName=InputTextBox, Path=Text.Length, Converter={StaticResource GreaterThanZeroConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Send" Width="16" Height="16"/>
+                                    <TextBlock Text="发送" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+        </Grid>
+
+        <!-- 状态栏 -->
+        <materialDesign:Card Grid.Row="2" Margin="16,0,16,16">
+            <Grid Margin="12,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon x:Name="StatusIcon" 
+                                           Kind="CheckCircle" 
+                                           Width="16" Height="16"
+                                           Foreground="Green"
+                                           VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusTextBlock"
+                             Text="就绪"
+                             Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             VerticalAlignment="Center"
+                             Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="清空对话"
+                           Style="{StaticResource MaterialDesignFlatButton}"
+                           Click="ClearChat_Click"/>
+                    <Button Content="关闭"
+                           Style="{StaticResource MaterialDesignFlatButton}"
+                           Click="Close_Click"/>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</Window>

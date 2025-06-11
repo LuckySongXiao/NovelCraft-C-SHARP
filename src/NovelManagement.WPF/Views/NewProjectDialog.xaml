@@ -1,0 +1,165 @@
+<Window x:Class="NovelManagement.WPF.Views.NewProjectDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="新建项目" Height="600" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <materialDesign:ColorZone Grid.Row="0" 
+                                  Mode="PrimaryMid" 
+                                  Padding="16">
+            <DockPanel>
+                <materialDesign:PackIcon Kind="Plus"
+                                       DockPanel.Dock="Left"
+                                       Width="24" Height="24"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,16,0"/>
+                <TextBlock Text="新建项目" 
+                         FontSize="20" 
+                         FontWeight="Medium" 
+                         VerticalAlignment="Center"/>
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <!-- 表单内容 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24">
+            <StackPanel>
+                <!-- 项目基本信息 -->
+                <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="项目基本信息" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 项目名称 -->
+                        <TextBox x:Name="ProjectNameTextBox"
+                               materialDesign:HintAssist.Hint="项目名称 *"
+                               materialDesign:HintAssist.IsFloating="True"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 项目描述 -->
+                        <TextBox x:Name="ProjectDescriptionTextBox"
+                               materialDesign:HintAssist.Hint="项目描述"
+                               materialDesign:HintAssist.IsFloating="True"
+                               AcceptsReturn="True"
+                               TextWrapping="Wrap"
+                               Height="80"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 项目类型 -->
+                        <ComboBox x:Name="ProjectTypeComboBox"
+                                materialDesign:HintAssist.Hint="项目类型 *"
+                                materialDesign:HintAssist.IsFloating="True"
+                                Margin="0,0,0,16">
+                            <ComboBoxItem Content="修仙小说"/>
+                            <ComboBoxItem Content="都市小说"/>
+                            <ComboBoxItem Content="科幻小说"/>
+                            <ComboBoxItem Content="奇幻小说"/>
+                            <ComboBoxItem Content="历史小说"/>
+                            <ComboBoxItem Content="军事小说"/>
+                            <ComboBoxItem Content="悬疑小说"/>
+                            <ComboBoxItem Content="言情小说"/>
+                            <ComboBoxItem Content="其他"/>
+                        </ComboBox>
+
+                        <!-- 目标字数 -->
+                        <TextBox x:Name="TargetWordCountTextBox"
+                               materialDesign:HintAssist.Hint="目标字数"
+                               materialDesign:HintAssist.IsFloating="True"
+                               Margin="0,0,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 项目设置 -->
+                <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="项目设置" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 启用AI协作 -->
+                        <CheckBox x:Name="EnableAICheckBox"
+                                Content="启用AI协作创作"
+                                IsChecked="True"
+                                Margin="0,0,0,8"/>
+
+                        <!-- 自动保存 -->
+                        <CheckBox x:Name="AutoSaveCheckBox"
+                                Content="启用自动保存"
+                                IsChecked="True"
+                                Margin="0,0,0,8"/>
+
+                        <!-- 版本控制 -->
+                        <CheckBox x:Name="VersionControlCheckBox"
+                                Content="启用版本控制"
+                                IsChecked="False"
+                                Margin="0,0,0,0"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 模板选择 -->
+                <materialDesign:Card Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="项目模板" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <ComboBox x:Name="ProjectTemplateComboBox"
+                                materialDesign:HintAssist.Hint="选择项目模板"
+                                materialDesign:HintAssist.IsFloating="True">
+                            <ComboBoxItem Content="空白项目" IsSelected="True"/>
+                            <ComboBoxItem Content="修仙小说模板"/>
+                            <ComboBoxItem Content="都市小说模板"/>
+                            <ComboBoxItem Content="科幻小说模板"/>
+                            <ComboBoxItem Content="奇幻小说模板"/>
+                        </ComboBox>
+
+                        <TextBlock Text="选择模板可以快速创建包含预设结构和设定的项目" 
+                                 FontSize="12" 
+                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                 Margin="0,8,0,0"
+                                 TextWrapping="Wrap"/>
+                    </StackPanel>
+                </materialDesign:Card>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 按钮栏 -->
+        <Border Grid.Row="2" 
+              Background="{DynamicResource MaterialDesignDivider}" 
+              Padding="24,16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="取消" 
+                      Style="{StaticResource MaterialDesignFlatButton}"
+                      Margin="0,0,8,0"
+                      Click="Cancel_Click"/>
+                <Button Content="创建项目" 
+                      Style="{StaticResource MaterialDesignRaisedButton}"
+                      Click="CreateProject_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

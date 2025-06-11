@@ -1,0 +1,184 @@
+<Window x:Class="NovelManagement.WPF.Views.AIOutlineGeneratorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="AI大纲生成器" 
+        Height="700" 
+        Width="900"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <materialDesign:Card Grid.Row="0" Margin="16,16,16,8" Padding="24">
+            <StackPanel>
+                <TextBlock Text="AI大纲生成器" 
+                         FontSize="24" 
+                         FontWeight="Bold" 
+                         Margin="0,0,0,8"/>
+                <TextBlock Text="通过AI智能生成小说大纲，让创作更轻松" 
+                         FontSize="14" 
+                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            </StackPanel>
+        </materialDesign:Card>
+
+        <!-- 主要内容 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="16,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧：输入参数 -->
+                <materialDesign:Card Grid.Column="0" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="生成参数" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 小说主题 -->
+                        <TextBox x:Name="ThemeTextBox"
+                               materialDesign:HintAssist.Hint="小说主题（如：修仙、都市、玄幻等）"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 小说类型 -->
+                        <ComboBox x:Name="NovelTypeComboBox"
+                                materialDesign:HintAssist.Hint="小说类型"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Margin="0,0,0,16">
+                            <ComboBoxItem Content="修仙小说"/>
+                            <ComboBoxItem Content="都市小说"/>
+                            <ComboBoxItem Content="玄幻小说"/>
+                            <ComboBoxItem Content="科幻小说"/>
+                            <ComboBoxItem Content="历史小说"/>
+                            <ComboBoxItem Content="武侠小说"/>
+                            <ComboBoxItem Content="言情小说"/>
+                            <ComboBoxItem Content="悬疑小说"/>
+                        </ComboBox>
+
+                        <!-- 目标长度 -->
+                        <ComboBox x:Name="TargetLengthComboBox"
+                                materialDesign:HintAssist.Hint="目标长度"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Margin="0,0,0,16">
+                            <ComboBoxItem Content="短篇（5-10万字）"/>
+                            <ComboBoxItem Content="中篇（10-30万字）"/>
+                            <ComboBoxItem Content="长篇（30-100万字）"/>
+                            <ComboBoxItem Content="超长篇（100万字以上）"/>
+                        </ComboBox>
+
+                        <!-- 主角设定 -->
+                        <TextBox x:Name="MainCharacterTextBox"
+                               materialDesign:HintAssist.Hint="主角设定（姓名、性格、背景等）"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Height="80"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 背景设定 -->
+                        <TextBox x:Name="SettingTextBox"
+                               materialDesign:HintAssist.Hint="背景设定（世界观、时代背景等）"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Height="80"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 特殊要求 -->
+                        <TextBox x:Name="RequirementsTextBox"
+                               materialDesign:HintAssist.Hint="特殊要求（情节偏好、风格要求等）"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Height="100"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"/>
+
+                        <!-- 生成按钮 -->
+                        <Button x:Name="GenerateButton"
+                              Content="开始生成"
+                              Style="{StaticResource MaterialDesignRaisedButton}"
+                              Background="{DynamicResource PrimaryHueMidBrush}"
+                              Foreground="White"
+                              Height="40"
+                              Click="GenerateButton_Click"/>
+
+                        <!-- 进度条 -->
+                        <ProgressBar x:Name="ProgressBar"
+                                   Visibility="Collapsed"
+                                   Margin="0,16,0,0"
+                                   Height="4"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 右侧：生成结果 -->
+                <materialDesign:Card Grid.Column="2" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="生成结果" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 结果显示区域 -->
+                        <ScrollViewer Height="400" VerticalScrollBarVisibility="Auto">
+                            <TextBox x:Name="ResultTextBox"
+                                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                   TextWrapping="Wrap"
+                                   AcceptsReturn="True"
+                                   IsReadOnly="True"
+                                   Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                   materialDesign:HintAssist.Hint="AI生成的大纲将显示在这里"/>
+                        </ScrollViewer>
+
+                        <!-- 操作按钮 -->
+                        <StackPanel Orientation="Horizontal" 
+                                  HorizontalAlignment="Right" 
+                                  Margin="0,16,0,0">
+                            <Button Content="重新生成"
+                                  Style="{StaticResource MaterialDesignOutlinedButton}"
+                                  Margin="0,0,8,0"
+                                  Click="RegenerateButton_Click"/>
+                            <Button Content="保存大纲"
+                                  Style="{StaticResource MaterialDesignRaisedButton}"
+                                  Background="{DynamicResource SecondaryHueMidBrush}"
+                                  Foreground="White"
+                                  Click="SaveButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- 底部按钮 -->
+        <StackPanel Grid.Row="2" 
+                  Orientation="Horizontal" 
+                  HorizontalAlignment="Right" 
+                  Margin="16">
+            <Button Content="取消" 
+                  Style="{StaticResource MaterialDesignFlatButton}"
+                  Margin="0,0,8,0"
+                  Click="CancelButton_Click"/>
+            <Button Content="确定" 
+                  Style="{StaticResource MaterialDesignRaisedButton}"
+                  Background="{DynamicResource PrimaryHueMidBrush}"
+                  Foreground="White"
+                  Click="OkButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

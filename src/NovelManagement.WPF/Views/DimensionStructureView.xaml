@@ -1,0 +1,502 @@
+<UserControl x:Class="NovelManagement.WPF.Views.DimensionStructureView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             Background="{DynamicResource MaterialDesignPaper}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource PrimaryHueMidBrush}" 
+                Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="CubeOutline" 
+                                           Foreground="White" 
+                                           Width="32" 
+                                           Height="32" 
+                                           VerticalAlignment="Center"/>
+                    <TextBlock Text="维度结构管理" 
+                             Foreground="White" 
+                             FontSize="24" 
+                             FontWeight="Medium" 
+                             VerticalAlignment="Center" 
+                             Margin="16,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                            Foreground="White" 
+                            Margin="8,0"
+                            Click="AddDimension_Click"
+                            ToolTip="新建维度">
+                        <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                            Foreground="White" 
+                            Margin="8,0"
+                            Click="ImportDimension_Click"
+                            ToolTip="导入维度数据">
+                        <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
+                            Foreground="White"
+                            Margin="8,0"
+                            Click="ExportDimension_Click"
+                            ToolTip="导出维度数据">
+                        <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
+                            Foreground="White"
+                            Margin="8,0"
+                            Click="AIAssistant_Click"
+                            ToolTip="AI助手">
+                        <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：维度列表 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 搜索栏 -->
+                    <Border Grid.Row="0" Padding="16,16,16,8">
+                        <TextBox x:Name="SearchTextBox"
+                                materialDesign:HintAssist.Hint="搜索维度..."
+                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                TextChanged="SearchTextBox_TextChanged"/>
+                    </Border>
+
+                    <!-- 筛选器 -->
+                    <Border Grid.Row="1" Padding="16,0,16,8">
+                        <StackPanel>
+                            <ComboBox x:Name="DimensionTypeFilterComboBox"
+                                     materialDesign:HintAssist.Hint="维度类型"
+                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                     SelectionChanged="DimensionTypeFilter_SelectionChanged"
+                                     Margin="0,0,0,8">
+                                <ComboBoxItem Content="全部类型"/>
+                                <ComboBoxItem Content="物质维度"/>
+                                <ComboBoxItem Content="精神维度"/>
+                                <ComboBoxItem Content="能量维度"/>
+                                <ComboBoxItem Content="时间维度"/>
+                                <ComboBoxItem Content="空间维度"/>
+                                <ComboBoxItem Content="混合维度"/>
+                            </ComboBox>
+                            <ComboBox x:Name="StabilityFilterComboBox"
+                                     materialDesign:HintAssist.Hint="稳定性"
+                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                     SelectionChanged="StabilityFilter_SelectionChanged">
+                                <ComboBoxItem Content="全部稳定性"/>
+                                <ComboBoxItem Content="极稳定"/>
+                                <ComboBoxItem Content="稳定"/>
+                                <ComboBoxItem Content="不稳定"/>
+                                <ComboBoxItem Content="极不稳定"/>
+                                <ComboBoxItem Content="崩塌中"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 维度列表 -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="DimensionListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                          BorderThickness="0,0,0,1" 
+                                          Padding="16,12"
+                                          Background="Transparent"
+                                          Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" 
+                                                        Command="{Binding DataContext.SelectDimensionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <Grid Grid.Row="0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <materialDesign:PackIcon Grid.Column="0" 
+                                                                       Kind="CubeOutline" 
+                                                                       Width="20" 
+                                                                       Height="20" 
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                                
+                                                <TextBlock Grid.Column="1" 
+                                                         Text="{Binding Name}" 
+                                                         FontWeight="Medium" 
+                                                         FontSize="14"
+                                                         Margin="8,0,0,0"
+                                                         VerticalAlignment="Center"/>
+
+                                                <Border Grid.Column="2" 
+                                                      Background="{DynamicResource PrimaryHueLightBrush}"
+                                                      CornerRadius="8"
+                                                      Padding="6,2">
+                                                    <TextBlock Text="{Binding Stability}" 
+                                                             Foreground="White" 
+                                                             FontSize="10"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <TextBlock Grid.Row="1" 
+                                                     Text="{Binding Description}" 
+                                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                     FontSize="12"
+                                                     Margin="28,4,0,0"
+                                                     TextWrapping="Wrap"/>
+
+                                            <StackPanel Grid.Row="2" 
+                                                      Orientation="Horizontal" 
+                                                      Margin="28,4,0,0">
+                                                <TextBlock Text="类型: " 
+                                                         FontSize="11" 
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                                <TextBlock Text="{Binding Type}" 
+                                                         FontSize="11" 
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                         FontWeight="Medium"/>
+                                                <TextBlock Text=" | 访问等级: " 
+                                                         FontSize="11" 
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         Margin="8,0,0,0"/>
+                                                <TextBlock Text="{Binding AccessLevel}" 
+                                                         FontSize="11" 
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                         FontWeight="Medium"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 统计信息 -->
+                    <Border Grid.Row="3" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,8">
+                        <StackPanel>
+                            <TextBlock Text="维度统计" 
+                                     FontWeight="Medium" 
+                                     FontSize="12" 
+                                     Margin="0,0,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="总数量: "/>
+                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="物质维度: "/>
+                                        <Run Text="{Binding MaterialCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="精神维度: "/>
+                                        <Run Text="{Binding SpiritualCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="稳定维度: "/>
+                                        <Run Text="{Binding StableCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 右侧：维度详情编辑区域 -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DetailPanel" Margin="24">
+                        <!-- 默认提示 -->
+                        <StackPanel x:Name="EmptyStatePanel" 
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Center"
+                                  Visibility="Visible">
+                            <materialDesign:PackIcon Kind="CubeOutline" 
+                                                   Width="64" 
+                                                   Height="64" 
+                                                   Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                   HorizontalAlignment="Center"/>
+                            <TextBlock Text="选择一个维度查看详情" 
+                                     FontSize="16" 
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     HorizontalAlignment="Center" 
+                                     Margin="0,16,0,0"/>
+                            <TextBlock Text="或点击上方的 + 按钮创建新的维度" 
+                                     FontSize="14" 
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     HorizontalAlignment="Center" 
+                                     Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                        <!-- 维度详情编辑面板 -->
+                        <StackPanel x:Name="EditPanel" Visibility="Collapsed">
+                            <!-- 基本信息 -->
+                            <TextBlock Text="基本信息" 
+                                     FontSize="18" 
+                                     FontWeight="Medium" 
+                                     Margin="0,0,0,16"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                        x:Name="DimensionNameTextBox"
+                                        materialDesign:HintAssist.Hint="维度名称"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                        Margin="0,0,0,16"/>
+
+                                <ComboBox Grid.Column="2"
+                                         x:Name="DimensionTypeComboBox"
+                                         materialDesign:HintAssist.Hint="维度类型"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="物质维度"/>
+                                    <ComboBoxItem Content="精神维度"/>
+                                    <ComboBoxItem Content="能量维度"/>
+                                    <ComboBoxItem Content="时间维度"/>
+                                    <ComboBoxItem Content="空间维度"/>
+                                    <ComboBoxItem Content="混合维度"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0"
+                                         x:Name="StabilityComboBox"
+                                         materialDesign:HintAssist.Hint="稳定性"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="极稳定"/>
+                                    <ComboBoxItem Content="稳定"/>
+                                    <ComboBoxItem Content="不稳定"/>
+                                    <ComboBoxItem Content="极不稳定"/>
+                                    <ComboBoxItem Content="崩塌中"/>
+                                </ComboBox>
+
+                                <ComboBox Grid.Column="2"
+                                         x:Name="AccessLevelComboBox"
+                                         materialDesign:HintAssist.Hint="访问等级"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="公开"/>
+                                    <ComboBoxItem Content="限制"/>
+                                    <ComboBoxItem Content="机密"/>
+                                    <ComboBoxItem Content="禁止"/>
+                                    <ComboBoxItem Content="未知"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <TextBox x:Name="DimensionDescriptionTextBox"
+                                    materialDesign:HintAssist.Hint="维度描述"
+                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MinLines="3"
+                                    MaxLines="5"
+                                    Margin="0,0,0,24"/>
+
+                            <!-- 环境特征 -->
+                            <TextBlock Text="环境特征" 
+                                     FontSize="18" 
+                                     FontWeight="Medium" 
+                                     Margin="0,0,0,16"/>
+
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                        x:Name="EnvironmentTypeTextBox"
+                                        materialDesign:HintAssist.Hint="环境类型"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                                <TextBox Grid.Column="2"
+                                        x:Name="ClimateTextBox"
+                                        materialDesign:HintAssist.Hint="气候特征"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                        x:Name="EnergyLevelTextBox"
+                                        materialDesign:HintAssist.Hint="能量等级"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                                <TextBox Grid.Column="2"
+                                        x:Name="DangerLevelTextBox"
+                                        materialDesign:HintAssist.Hint="危险等级"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+
+                            <!-- 连接传送 -->
+                            <TextBlock Text="连接传送" 
+                                     FontSize="18" 
+                                     FontWeight="Medium" 
+                                     Margin="0,0,0,16"/>
+
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                  BorderThickness="1" 
+                                  CornerRadius="4" 
+                                  Padding="16"
+                                  Margin="0,0,0,24">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBlock Grid.Column="0" 
+                                                 Text="传送门列表" 
+                                                 FontWeight="Medium"/>
+                                        
+                                        <Button Grid.Column="1" 
+                                              Style="{StaticResource MaterialDesignIconButton}"
+                                              Click="AddPortal_Click"
+                                              ToolTip="添加传送门">
+                                            <materialDesign:PackIcon Kind="Plus"/>
+                                        </Button>
+                                    </Grid>
+
+                                    <ItemsControl x:Name="PortalListControl" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                                      BorderThickness="0,0,0,1" 
+                                                      Padding="0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBox Grid.Column="0" 
+                                                               Text="{Binding Name}" 
+                                                               materialDesign:HintAssist.Hint="传送门名称"
+                                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                               Margin="0,0,8,0"/>
+                                                        
+                                                        <TextBox Grid.Column="1" 
+                                                               Text="{Binding TargetDimension}" 
+                                                               materialDesign:HintAssist.Hint="目标维度"
+                                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                               Margin="0,0,8,0"/>
+                                                        
+                                                        <ComboBox Grid.Column="2" 
+                                                                SelectedItem="{Binding Status}" 
+                                                                materialDesign:HintAssist.Hint="状态"
+                                                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                                                Margin="0,0,8,0">
+                                                            <ComboBoxItem Content="正常"/>
+                                                            <ComboBoxItem Content="不稳定"/>
+                                                            <ComboBoxItem Content="关闭"/>
+                                                            <ComboBoxItem Content="损坏"/>
+                                                        </ComboBox>
+
+                                                        <Button Grid.Column="3" 
+                                                              Style="{StaticResource MaterialDesignIconButton}"
+                                                              Click="RemovePortal_Click"
+                                                              CommandParameter="{Binding}"
+                                                              ToolTip="删除传送门">
+                                                            <materialDesign:PackIcon Kind="Delete" 
+                                                                                   Foreground="{DynamicResource ValidationErrorBrush}"/>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 操作按钮 -->
+                            <StackPanel Orientation="Horizontal" 
+                                      HorizontalAlignment="Right" 
+                                      Margin="0,16,0,0">
+                                <Button Content="保存" 
+                                      Style="{StaticResource MaterialDesignRaisedButton}"
+                                      Click="SaveDimension_Click"
+                                      Margin="0,0,8,0"/>
+                                <Button Content="取消" 
+                                      Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Click="CancelEdit_Click"
+                                      Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,430 @@
+<UserControl x:Class="NovelManagement.WPF.Views.PlotManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 页面标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="剧情管理" 
+                     FontSize="32" 
+                     FontWeight="Bold" 
+                     Margin="0,0,0,8"/>
+            <TextBlock Text="管理主线、支线剧情和时间线" 
+                     FontSize="16" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 操作工具栏 -->
+        <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,12,0"
+                            Click="NewPlot_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
+                            <TextBlock Text="新建剧情"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="ViewTimeline_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Timeline" Margin="0,0,8,0"/>
+                            <TextBlock Text="时间线视图"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="PlotAnalysis_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ChartLine" Margin="0,0,8,0"/>
+                            <TextBlock Text="剧情分析"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="ExportPlots_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
+                            <TextBlock Text="导出剧情"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- AI辅助功能分隔符 -->
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                             Margin="12,0"/>
+
+                    <!-- AI辅助按钮组 -->
+                    <Button Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                            Margin="0,0,8,0"
+                            Click="AIGeneratePlot_Click"
+                            ToolTip="使用AI生成剧情">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Brain" Margin="0,0,8,0"/>
+                            <TextBlock Text="AI生成剧情"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="AIOptimizePlot_Click"
+                            ToolTip="使用AI优化选中剧情">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
+                            <TextBlock Text="AI优化"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="AIPlotContinuity_Click"
+                            ToolTip="使用AI检查剧情连贯性">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CheckboxMarkedCircleOutline" Margin="0,0,8,0"/>
+                            <TextBlock Text="连贯性检查"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="AIPlotSuggestions_Click"
+                            ToolTip="使用AI获取剧情建议">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Lightbulb" Margin="0,0,8,0"/>
+                            <TextBlock Text="剧情建议"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- 筛选和搜索 -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <ComboBox x:Name="PlotTypeFilter"
+                            materialDesign:HintAssist.Hint="剧情类型"
+                            Width="120"
+                            Margin="0,0,12,0"
+                            SelectionChanged="PlotTypeFilter_SelectionChanged">
+                        <ComboBoxItem Content="全部"/>
+                        <ComboBoxItem Content="主线"/>
+                        <ComboBoxItem Content="支线"/>
+                        <ComboBoxItem Content="伏笔"/>
+                        <ComboBoxItem Content="回忆"/>
+                        <ComboBoxItem Content="番外"/>
+                    </ComboBox>
+                    
+                    <ComboBox x:Name="PlotStatusFilter"
+                            materialDesign:HintAssist.Hint="剧情状态"
+                            Width="120"
+                            Margin="0,0,12,0"
+                            SelectionChanged="PlotStatusFilter_SelectionChanged">
+                        <ComboBoxItem Content="全部"/>
+                        <ComboBoxItem Content="规划中"/>
+                        <ComboBoxItem Content="进行中"/>
+                        <ComboBoxItem Content="已完成"/>
+                        <ComboBoxItem Content="暂停"/>
+                    </ComboBox>
+                    
+                    <TextBox x:Name="SearchTextBox"
+                           materialDesign:HintAssist.Hint="搜索剧情..."
+                           materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                           materialDesign:TextFieldAssist.LeadingIcon="Search"
+                           Width="200"
+                           TextChanged="SearchTextBox_TextChanged"/>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:Card>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：剧情列表 -->
+            <materialDesign:Card Grid.Column="0" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 列表标题 -->
+                    <Border Grid.Row="0" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,12">
+                        <DockPanel>
+                            <TextBlock Text="剧情列表" FontWeight="Medium" DockPanel.Dock="Left"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <ToggleButton x:Name="GroupByTypeToggle"
+                                            Style="{StaticResource MaterialDesignActionToggleButton}"
+                                            ToolTip="按类型分组"
+                                            IsChecked="False"
+                                            Checked="GroupBy_Changed"
+                                            Unchecked="GroupBy_Changed">
+                                    <materialDesign:PackIcon Kind="Group"/>
+                                </ToggleButton>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- 剧情列表 -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="PlotListControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                          BorderThickness="0,0,0,1" 
+                                          Padding="16,12"
+                                          Background="Transparent"
+                                          Cursor="Hand">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" 
+                                                        Command="{Binding DataContext.SelectPlotCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 剧情标题和状态 -->
+                                            <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                                                <materialDesign:PackIcon DockPanel.Dock="Right"
+                                                                       Kind="ChevronRight"
+                                                                       Width="16" Height="16"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                                <TextBlock Text="{Binding Title}" 
+                                                         FontWeight="Medium" 
+                                                         FontSize="14"
+                                                         TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+
+                                            <!-- 剧情类型和状态标签 -->
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
+                                                <materialDesign:Chip Content="{Binding Type}" 
+                                                                   FontSize="10"
+                                                                   Height="20"
+                                                                   Background="{Binding TypeColor}"
+                                                                   Margin="0,0,4,0"/>
+                                                <materialDesign:Chip Content="{Binding Status}" 
+                                                                   FontSize="10"
+                                                                   Height="20"
+                                                                   Background="{Binding StatusColor}"/>
+                                            </StackPanel>
+
+                                            <!-- 剧情描述和进度 -->
+                                            <StackPanel Grid.Row="2">
+                                                <TextBlock Text="{Binding Description}" 
+                                                         FontSize="12"
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         TextWrapping="Wrap"
+                                                         MaxHeight="40"
+                                                         TextTrimming="CharacterEllipsis"
+                                                         Margin="0,0,0,4"/>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right"
+                                                             Text="{Binding Progress, StringFormat='{}{0}%'}"
+                                                             FontSize="12"
+                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                                    <ProgressBar Value="{Binding Progress}" 
+                                                               Maximum="100"
+                                                               Height="4"
+                                                               VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 分隔符 -->
+            <GridSplitter Grid.Column="1" 
+                          HorizontalAlignment="Stretch" 
+                          Background="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- 右侧：剧情详细信息 -->
+            <Grid Grid.Column="2" x:Name="DetailArea">
+                <!-- 默认显示剧情统计信息 -->
+                <materialDesign:Card Padding="24" x:Name="DefaultCard">
+                    <StackPanel>
+                        <TextBlock Text="剧情统计" 
+                                 FontSize="24" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,24"/>
+
+                        <!-- 统计卡片 -->
+                        <UniformGrid Columns="2" Margin="0,0,0,24">
+                            <materialDesign:Card Margin="0,0,8,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="总剧情数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="18" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,0,0,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="主线剧情" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="5" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="0,8,8,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="支线剧情" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="10" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,8,0,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="完成进度" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="65%" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </UniformGrid>
+
+                        <!-- 剧情状态分布 -->
+                        <TextBlock Text="剧情状态分布" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <ItemsControl>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="已完成" Margin="0,0,12,0" Background="#4CAF50"/>
+                                <ProgressBar Grid.Column="1" Value="8" Maximum="18" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="8" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="进行中" Margin="0,0,12,0" Background="#2196F3"/>
+                                <ProgressBar Grid.Column="1" Value="6" Maximum="18" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="6" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:Chip Grid.Column="0" Content="规划中" Margin="0,0,12,0" Background="#FF9800"/>
+                                <ProgressBar Grid.Column="1" Value="4" Maximum="18" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="4" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+                        </ItemsControl>
+
+                        <!-- 最近更新的剧情 -->
+                        <TextBlock Text="最近更新" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,24,0,16"/>
+
+                        <ItemsControl>
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                  BorderThickness="0,0,0,1" 
+                                  Padding="0,0,0,8" 
+                                  Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="主线：天劫降临" FontWeight="Medium"/>
+                                        <TextBlock Text="林轩面临天劫考验的关键剧情" 
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                 FontSize="12"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                             Text="2小时前" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                  BorderThickness="0,0,0,1" 
+                                  Padding="0,0,0,8" 
+                                  Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="支线：苏雨薇的秘密" FontWeight="Medium"/>
+                                        <TextBlock Text="揭示苏雨薇身世之谜的支线剧情" 
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                 FontSize="12"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                             Text="1天前" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </ItemsControl>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,399 @@
+<UserControl x:Class="NovelManagement.WPF.Views.AIConfigurationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <UserControl.Resources>
+        <Style x:Key="ConfigCardStyle" TargetType="materialDesign:Card">
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+        </Style>
+        
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <materialDesign:Card Grid.Row="0" Style="{StaticResource ConfigCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="AI模型配置" Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+                    <TextBlock Text="配置和管理AI模型提供者" 
+                               Style="{StaticResource MaterialDesignBody2TextBlock}"
+                               Opacity="0.68"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="TestConnectionButton"
+                            Content="测试连接"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="8,0"
+                            Click="TestConnectionButton_Click"/>
+                    <Button x:Name="SaveConfigButton"
+                            Content="保存配置"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Click="SaveConfigButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="8">
+                
+                <!-- Provider Selection -->
+                <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="默认AI提供者" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox x:Name="DefaultProviderComboBox"
+                                  materialDesign:HintAssist.Hint="选择默认AI提供者"
+                                  Style="{StaticResource MaterialDesignComboBox}"
+                                  SelectionChanged="DefaultProviderComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
+                            <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
+                            <ComboBoxItem Content="MCP (协议模型)" Tag="MCP"/>
+                        </ComboBox>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- Ollama Configuration -->
+                <materialDesign:Card x:Name="OllamaConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Ollama 本地模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle" 
+                                                       x:Name="OllamaStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Orange"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="OllamaStatusText" 
+                                         Text="检查中..."
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBox x:Name="OllamaBaseUrlTextBox"
+                                     Grid.Row="0" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="服务器地址"
+                                     Text="http://localhost:11434"
+                                     Margin="0,0,8,8"/>
+                            
+                            <ComboBox x:Name="OllamaModelComboBox"
+                                      Grid.Row="0" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="默认模型"
+                                      Margin="8,0,0,8"/>
+                            
+                            <TextBox x:Name="OllamaTimeoutTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     Text="120"
+                                     Margin="0,0,8,8"/>
+                            
+                            <TextBox x:Name="OllamaMaxRetriesTextBox"
+                                     Grid.Row="1" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     Text="3"
+                                     Margin="8,0,0,8"/>
+                            
+                            <CheckBox x:Name="OllamaEnableGPUCheckBox"
+                                      Grid.Row="2" Grid.Column="0"
+                                      Content="启用GPU加速"
+                                      IsChecked="True"
+                                      Margin="0,0,8,8"/>
+                            
+                            <TextBox x:Name="OllamaGPUDeviceIdTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="GPU设备ID (-1为自动)"
+                                     Text="-1"
+                                     Margin="8,0,0,8"/>
+                            
+                            <CheckBox x:Name="OllamaVerboseLoggingCheckBox"
+                                      Grid.Row="3" Grid.Column="0"
+                                      Content="启用详细日志"
+                                      Margin="0,0,8,8"/>
+                            
+                            <Button x:Name="RefreshModelsButton"
+                                    Grid.Row="3" Grid.Column="1"
+                                    Content="刷新模型列表"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="RefreshModelsButton_Click"
+                                    Margin="8,0,0,8"/>
+                        </Grid>
+                        
+                        <!-- Model Management -->
+                        <Expander Header="模型管理" Margin="0,16,0,0">
+                            <StackPanel Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBox x:Name="ModelNameTextBox"
+                                             Grid.Column="0"
+                                             materialDesign:HintAssist.Hint="模型名称 (例如: llama2, qwq:latest)"
+                                             Margin="0,0,8,0"/>
+                                    
+                                    <Button x:Name="PullModelButton"
+                                            Grid.Column="1"
+                                            Content="下载模型"
+                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                            Click="PullModelButton_Click"/>
+                                </Grid>
+                                
+                                <ProgressBar x:Name="ModelDownloadProgressBar"
+                                             Margin="0,8,0,0"
+                                             Visibility="Collapsed"/>
+                                
+                                <TextBlock x:Name="ModelDownloadStatusText"
+                                           Margin="0,4,0,0"
+                                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                           Visibility="Collapsed"/>
+                                
+                                <DataGrid x:Name="ModelsDataGrid"
+                                          Margin="0,16,0,0"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          IsReadOnly="True"
+                                          materialDesign:DataGridAssist.CellPadding="8"
+                                          materialDesign:DataGridAssist.ColumnHeaderPadding="8">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="模型名称" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeFormatted}" Width="100"/>
+                                        <DataGridTextColumn Header="修改时间" Binding="{Binding ModifiedAt, StringFormat=yyyy-MM-dd}" Width="120"/>
+                                        <DataGridTemplateColumn Header="操作" Width="120">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="删除"
+                                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                            Foreground="Red"
+                                                            Click="DeleteModelButton_Click"
+                                                            Tag="{Binding Name}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- DeepSeek Configuration -->
+                <materialDesign:Card x:Name="DeepSeekConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="DeepSeek 云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle" 
+                                                       x:Name="DeepSeekStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="DeepSeekStatusText" 
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <PasswordBox x:Name="DeepSeekApiKeyPasswordBox"
+                                         Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                         materialDesign:HintAssist.Hint="API密钥 (sk-...)"
+                                         Margin="0,0,0,8"/>
+                            
+                            <TextBox x:Name="DeepSeekBaseUrlTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="API地址"
+                                     Text="https://api.deepseek.com"
+                                     Margin="0,0,8,8"/>
+                            
+                            <ComboBox x:Name="DeepSeekModelComboBox"
+                                      Grid.Row="1" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="模型"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="deepseek-chat" IsSelected="True"/>
+                                <ComboBoxItem Content="deepseek-coder"/>
+                                <ComboBoxItem Content="deepseek-reasoner"/>
+                            </ComboBox>
+                            
+                            <CheckBox x:Name="DeepSeekEnableThinkingChainCheckBox"
+                                      Grid.Row="2" Grid.Column="0"
+                                      Content="启用思维链"
+                                      IsChecked="True"
+                                      Margin="0,0,8,8"/>
+                            
+                            <TextBox x:Name="DeepSeekTimeoutTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     Text="60"
+                                     Margin="8,0,0,8"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- MCP Configuration -->
+                <materialDesign:Card x:Name="MCPConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="MCP 协议模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle" 
+                                                       x:Name="MCPStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="MCPStatusText" 
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBox x:Name="MCPServerUrlTextBox"
+                                     Grid.Row="0" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="服务器地址"
+                                     Text="ws://localhost:8080/mcp"
+                                     Margin="0,0,8,8"/>
+                            
+                            <ComboBox x:Name="MCPConnectionTypeComboBox"
+                                      Grid.Row="0" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="连接类型"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="WebSocket" IsSelected="True"/>
+                                <ComboBoxItem Content="HTTP"/>
+                                <ComboBoxItem Content="TCP"/>
+                            </ComboBox>
+                            
+                            <ComboBox x:Name="MCPAuthTypeComboBox"
+                                      Grid.Row="1" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="认证类型"
+                                      Margin="0,0,8,8">
+                                <ComboBoxItem Content="None" IsSelected="True"/>
+                                <ComboBoxItem Content="ApiKey"/>
+                                <ComboBoxItem Content="Basic"/>
+                                <ComboBoxItem Content="Certificate"/>
+                            </ComboBox>
+                            
+                            <TextBox x:Name="MCPTimeoutTextBox"
+                                     Grid.Row="1" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="连接超时(秒)"
+                                     Text="30"
+                                     Margin="8,0,0,8"/>
+                            
+                            <CheckBox x:Name="MCPAutoReconnectCheckBox"
+                                      Grid.Row="2" Grid.Column="0"
+                                      Content="自动重连"
+                                      IsChecked="True"
+                                      Margin="0,0,8,8"/>
+                            
+                            <CheckBox x:Name="MCPCompressionCheckBox"
+                                      Grid.Row="2" Grid.Column="1"
+                                      Content="启用压缩"
+                                      IsChecked="True"
+                                      Margin="8,0,0,8"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <materialDesign:Card Grid.Row="2" Style="{StaticResource ConfigCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock x:Name="StatusTextBlock" 
+                           Grid.Column="0"
+                           Text="就绪"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="当前提供者: " 
+                               VerticalAlignment="Center"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                    <TextBlock x:Name="CurrentProviderTextBlock" 
+                               Text="Ollama"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</UserControl>

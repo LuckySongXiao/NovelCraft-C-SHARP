@@ -1,0 +1,258 @@
+<UserControl x:Class="NovelManagement.WPF.Views.VolumeManagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 页面标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="卷宗管理" 
+                     FontSize="32" 
+                     FontWeight="Bold" 
+                     Margin="0,0,0,8"/>
+            <TextBlock Text="管理项目的卷宗和章节结构" 
+                     FontSize="16" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 操作工具栏 -->
+        <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,12,0"
+                            Click="NewVolume_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
+                            <TextBlock Text="新建卷宗"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="NewChapter_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileDocument" Margin="0,0,8,0"/>
+                            <TextBlock Text="新建章节"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0"
+                            Click="ExportVolume_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
+                            <TextBlock Text="导出卷宗"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- 视图切换 -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <ToggleButton x:Name="TreeViewToggle"
+                                Style="{StaticResource MaterialDesignActionToggleButton}"
+                                ToolTip="树形视图"
+                                IsChecked="True"
+                                Checked="ViewMode_Changed"
+                                Unchecked="ViewMode_Changed">
+                        <materialDesign:PackIcon Kind="FileTree"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="ListViewToggle"
+                                Style="{StaticResource MaterialDesignActionToggleButton}"
+                                ToolTip="列表视图"
+                                Margin="8,0,0,0"
+                                Checked="ViewMode_Changed"
+                                Unchecked="ViewMode_Changed">
+                        <materialDesign:PackIcon Kind="ViewList"/>
+                    </ToggleButton>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:Card>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：卷宗和章节树形结构 -->
+            <materialDesign:Card Grid.Column="0" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 树形视图标题 -->
+                    <Border Grid.Row="0" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,12">
+                        <TextBlock Text="项目结构" FontWeight="Medium"/>
+                    </Border>
+
+                    <!-- 树形控件 -->
+                    <TreeView Grid.Row="1" 
+                            x:Name="VolumeTreeView"
+                            Padding="8"
+                            SelectedItemChanged="VolumeTreeView_SelectedItemChanged">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                                <Setter Property="IsExpanded" Value="True"/>
+                                <Setter Property="Padding" Value="4"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="{Binding IconKind}" 
+                                                           Width="16" Height="16" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Info}" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"
+                                             Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 分隔符 -->
+            <GridSplitter Grid.Column="1" 
+                          HorizontalAlignment="Stretch" 
+                          Background="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- 右侧：详细信息和编辑区域 -->
+            <Grid Grid.Column="2" x:Name="DetailArea">
+                <!-- 默认显示项目统计信息 -->
+                <materialDesign:Card Padding="24" x:Name="DefaultCard">
+                    <StackPanel>
+                        <TextBlock Text="项目统计" 
+                                 FontSize="24" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,24"/>
+
+                        <!-- 统计卡片 -->
+                        <UniformGrid Columns="2" Margin="0,0,0,24">
+                            <materialDesign:Card Margin="0,0,8,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="总卷数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="3" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,0,0,8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="总章节数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="45" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="0,8,8,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="总字数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="125,000" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+
+                            <materialDesign:Card Margin="8,8,0,0" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="平均章节字数" 
+                                             FontSize="14" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <TextBlock Text="2,778" 
+                                             FontSize="32" 
+                                             FontWeight="Bold"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </UniformGrid>
+
+                        <!-- 最近更新 -->
+                        <TextBlock Text="最近更新" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <ItemsControl>
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                  BorderThickness="0,0,0,1" 
+                                  Padding="0,0,0,8" 
+                                  Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="第45章：天劫降临" FontWeight="Medium"/>
+                                        <TextBlock Text="第三卷：天劫降临" 
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                 FontSize="12"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                             Text="2小时前" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                  BorderThickness="0,0,0,1" 
+                                  Padding="0,0,0,8" 
+                                  Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="第44章：血魔宗主" FontWeight="Medium"/>
+                                        <TextBlock Text="第三卷：天劫降临" 
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                 FontSize="12"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                             Text="1天前" 
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </ItemsControl>
+                    </StackPanel>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

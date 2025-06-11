@@ -1,0 +1,336 @@
+<Window x:Class="NovelManagement.WPF.Views.ChapterEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="章节编辑器" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,8">
+            <DockPanel>
+                <!-- 左侧：章节信息 -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileDocument" 
+                                           Width="24" Height="24" 
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                    <TextBlock x:Name="ChapterTitleLabel"
+                             Text="第45章：天劫降临" 
+                             FontSize="18" 
+                             FontWeight="Medium"
+                             VerticalAlignment="Center"
+                             Margin="8,0,0,0"/>
+                    <TextBlock x:Name="WordCountLabel"
+                             Text="(2,800字)" 
+                             FontSize="14" 
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             VerticalAlignment="Center"
+                             Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <!-- 右侧：操作按钮 -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <!-- AI功能按钮组 -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,4,0"
+                                Click="AIWrite_Click"
+                                ToolTip="AI根据大纲和设定自动编写章节">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="RobotExcited" Margin="0,0,4,0"/>
+                                <TextBlock Text="AI编写"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,4,0"
+                                Click="AIContinue_Click"
+                                ToolTip="AI基于已有内容续写章节">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="RobotLove" Margin="0,0,4,0"/>
+                                <TextBlock Text="AI续写"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,4,0"
+                                Click="AIPolish_Click"
+                                ToolTip="AI优化文笔和措辞">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,4,0"/>
+                                <TextBlock Text="AI润色"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,8,0"
+                                Click="ConsistencyCheck_Click"
+                                ToolTip="检查章节内容与设定的一致性">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CheckCircle" Margin="0,0,4,0"/>
+                                <TextBlock Text="一致性检查"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 基础功能按钮组 -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,8,0"
+                                Click="SaveDraft_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ContentSave" Margin="0,0,4,0"/>
+                                <TextBlock Text="保存草稿"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,8,0"
+                                Click="Preview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Eye" Margin="0,0,4,0"/>
+                                <TextBlock Text="预览"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                Click="SaveAndClose_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
+                                <TextBlock Text="保存并关闭"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:Card>
+
+        <!-- 主编辑区域 -->
+        <Grid Grid.Row="1" Margin="16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：文本编辑器 -->
+            <materialDesign:Card Grid.Column="0" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 编辑器标题栏 -->
+                    <Border Grid.Row="0" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left"
+                                     Text="章节内容" 
+                                     FontWeight="Medium"/>
+                            <StackPanel DockPanel.Dock="Right" 
+                                      Orientation="Horizontal">
+                                <TextBlock x:Name="CurrentWordCount"
+                                         Text="当前字数: 0" 
+                                         FontSize="12"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                <TextBlock Text=" / " 
+                                         FontSize="12"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                <TextBlock x:Name="TargetWordCount"
+                                         Text="目标: 2,800" 
+                                         FontSize="12"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- 文本编辑器 -->
+                    <TextBox x:Name="ContentTextBox"
+                           Grid.Row="1"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                           TextWrapping="Wrap"
+                           AcceptsReturn="True"
+                           VerticalScrollBarVisibility="Auto"
+                           HorizontalScrollBarVisibility="Auto"
+                           FontFamily="Consolas, Microsoft YaHei"
+                           FontSize="14"
+                           Padding="16"
+                           BorderThickness="0"
+                           TextChanged="ContentTextBox_TextChanged"/>
+
+                    <!-- 状态栏 -->
+                    <Border Grid.Row="2" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left"
+                                     x:Name="StatusLabel"
+                                     Text="状态: 编辑中" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                            <TextBlock DockPanel.Dock="Right"
+                                     x:Name="LastSavedLabel"
+                                     Text="最后保存: 从未保存" 
+                                     FontSize="12"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 分隔符 -->
+            <GridSplitter Grid.Column="1" 
+                          HorizontalAlignment="Stretch" 
+                          Background="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- 右侧：章节信息面板 -->
+            <materialDesign:Card Grid.Column="2" Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- 章节信息 -->
+                        <TextBlock Text="章节信息" 
+                                 FontSize="16" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <!-- 章节标题 -->
+                        <TextBox x:Name="TitleTextBox"
+                               materialDesign:HintAssist.Hint="章节标题"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Margin="0,0,0,12"
+                               MaxLength="100"/>
+
+                        <!-- 章节摘要 -->
+                        <TextBox x:Name="SummaryTextBox"
+                               materialDesign:HintAssist.Hint="章节摘要"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               MinHeight="60"
+                               MaxHeight="100"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,12"
+                               MaxLength="500"/>
+
+                        <!-- 章节状态 -->
+                        <ComboBox x:Name="StatusComboBox"
+                                materialDesign:HintAssist.Hint="章节状态"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Margin="0,0,0,12">
+                            <ComboBoxItem Content="计划中"/>
+                            <ComboBoxItem Content="大纲中"/>
+                            <ComboBoxItem Content="写作中" IsSelected="True"/>
+                            <ComboBoxItem Content="初稿完成"/>
+                            <ComboBoxItem Content="修改中"/>
+                            <ComboBoxItem Content="已完成"/>
+                        </ComboBox>
+
+                        <!-- 重要性等级 -->
+                        <ComboBox x:Name="ImportanceComboBox"
+                                materialDesign:HintAssist.Hint="重要性等级"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Margin="0,0,0,12">
+                            <ComboBoxItem Content="1 - 普通"/>
+                            <ComboBoxItem Content="2 - 重要" IsSelected="True"/>
+                            <ComboBoxItem Content="3 - 关键"/>
+                            <ComboBoxItem Content="4 - 核心"/>
+                            <ComboBoxItem Content="5 - 转折点"/>
+                        </ComboBox>
+
+                        <!-- 相关角色 -->
+                        <TextBox x:Name="CharactersTextBox"
+                               materialDesign:HintAssist.Hint="相关角色"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Margin="0,0,0,12"
+                               MaxLength="300"/>
+
+                        <!-- 标签 -->
+                        <TextBox x:Name="TagsTextBox"
+                               materialDesign:HintAssist.Hint="标签"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               Margin="0,0,0,12"
+                               MaxLength="200"/>
+
+                        <!-- 备注 -->
+                        <TextBox x:Name="NotesTextBox"
+                               materialDesign:HintAssist.Hint="备注"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               MinHeight="60"
+                               MaxHeight="100"
+                               VerticalScrollBarVisibility="Auto"
+                               Margin="0,0,0,16"
+                               MaxLength="500"/>
+
+                        <!-- 写作统计 -->
+                        <Separator Margin="0,0,0,16"/>
+                        
+                        <TextBlock Text="写作统计" 
+                                 FontSize="14" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,12"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="字数:" FontSize="12"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="StatsWordCount" Text="0" FontSize="12" HorizontalAlignment="Right"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="段落:" FontSize="12"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="StatsParagraphs" Text="0" FontSize="12" HorizontalAlignment="Right"/>
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="行数:" FontSize="12"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="StatsLines" Text="0" FontSize="12" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </materialDesign:Card>
+        </Grid>
+
+        <!-- 底部状态栏 -->
+        <Border Grid.Row="2" 
+              Background="{DynamicResource MaterialDesignDivider}" 
+              Padding="16,8">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left"
+                         Text="提示: Ctrl+S 快速保存，Ctrl+P 预览" 
+                         FontSize="12"
+                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                <TextBlock DockPanel.Dock="Right"
+                         x:Name="AutoSaveLabel"
+                         Text="自动保存: 开启" 
+                         FontSize="12"
+                         Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

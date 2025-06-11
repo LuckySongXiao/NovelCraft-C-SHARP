@@ -1,0 +1,541 @@
+<Window x:Class="NovelManagement.WPF.Views.AIPolishDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="AI文本润色" Height="700" Width="1000"
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题区域 -->
+        <materialDesign:Card Grid.Row="0" Margin="0,0,0,16" Padding="16">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock Text="AI文本润色"
+                             FontSize="24"
+                             FontWeight="Bold"
+                             DockPanel.Dock="Left"/>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <!-- AI模型选择 -->
+                        <ComboBox x:Name="AIModelComboBox"
+                                materialDesign:HintAssist.Hint="AI模型"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                Width="120"
+                                Margin="0,0,8,0">
+                            <ComboBoxItem Content="DeepSeek" IsSelected="True"/>
+                            <ComboBoxItem Content="Ollama"/>
+                            <ComboBoxItem Content="GPT-4"/>
+                        </ComboBox>
+                        <!-- 润色历史 -->
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                              Click="ShowHistory_Click"
+                              ToolTip="润色历史记录">
+                            <materialDesign:PackIcon Kind="History"/>
+                        </Button>
+                        <!-- 批量润色 -->
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                              Click="BatchPolish_Click"
+                              ToolTip="批量润色"
+                              Margin="4,0,0,0">
+                            <materialDesign:PackIcon Kind="FormatListBulleted"/>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+
+                <TextBlock Text="AI将优化文笔、措辞和表达，提升文本质量和可读性"
+                         FontSize="14"
+                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                         Margin="0,8,0,0"/>
+
+                <!-- 进度指示器 -->
+                <ProgressBar x:Name="PolishProgressBar"
+                           Height="4"
+                           Margin="0,12,0,0"
+                           Visibility="Collapsed"
+                           Style="{StaticResource MaterialDesignLinearProgressBar}"/>
+
+                <!-- 状态显示 -->
+                <TextBlock x:Name="PolishStatusTextBlock"
+                         Text=""
+                         Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                         Margin="0,4,0,0"
+                         Visibility="Collapsed"/>
+            </StackPanel>
+        </materialDesign:Card>
+
+        <!-- 润色设置 -->
+        <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="润色设置" 
+                         FontSize="16" 
+                         FontWeight="Medium" 
+                         Margin="0,0,0,16"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 目标风格 -->
+                    <ComboBox x:Name="TargetStyleComboBox"
+                            Grid.Column="0"
+                            materialDesign:HintAssist.Hint="目标风格"
+                            Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                        <ComboBoxItem Content="古典雅致" IsSelected="True"/>
+                        <ComboBoxItem Content="现代简洁"/>
+                        <ComboBoxItem Content="诗意优美"/>
+                        <ComboBoxItem Content="生动活泼"/>
+                        <ComboBoxItem Content="庄重严肃"/>
+                        <ComboBoxItem Content="幽默风趣"/>
+                    </ComboBox>
+
+                    <!-- 润色强度 -->
+                    <ComboBox x:Name="PolishIntensityComboBox"
+                            Grid.Column="2"
+                            materialDesign:HintAssist.Hint="润色强度"
+                            Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                        <ComboBoxItem Content="轻度润色"/>
+                        <ComboBoxItem Content="中度润色" IsSelected="True"/>
+                        <ComboBoxItem Content="深度润色"/>
+                    </ComboBox>
+
+                    <!-- 保持要素 -->
+                    <ComboBox x:Name="PreserveElementsComboBox"
+                            Grid.Column="4"
+                            materialDesign:HintAssist.Hint="保持要素"
+                            Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                        <ComboBoxItem Content="保持原意" IsSelected="True"/>
+                        <ComboBoxItem Content="保持结构"/>
+                        <ComboBoxItem Content="保持风格"/>
+                        <ComboBoxItem Content="全面优化"/>
+                    </ComboBox>
+
+                    <!-- 润色按钮 -->
+                    <Button x:Name="PolishButton"
+                          Grid.Column="6"
+                          Style="{StaticResource MaterialDesignRaisedButton}"
+                          Click="Polish_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
+                            <TextBlock Text="开始润色"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- 高级润色选项 -->
+                <Expander Header="高级润色选项" Margin="0,16,0,0">
+                    <Grid Margin="0,8,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 润色重点 -->
+                        <ComboBox x:Name="PolishFocusComboBox"
+                                Grid.Row="0" Grid.Column="0"
+                                materialDesign:HintAssist.Hint="润色重点"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                            <ComboBoxItem Content="词汇优化"/>
+                            <ComboBoxItem Content="句式调整"/>
+                            <ComboBoxItem Content="语法修正"/>
+                            <ComboBoxItem Content="风格统一" IsSelected="True"/>
+                            <ComboBoxItem Content="全面润色"/>
+                        </ComboBox>
+
+                        <!-- 情感基调 -->
+                        <ComboBox x:Name="EmotionalToneComboBox"
+                                Grid.Row="0" Grid.Column="2"
+                                materialDesign:HintAssist.Hint="情感基调"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                            <ComboBoxItem Content="保持原有"/>
+                            <ComboBoxItem Content="温和平静"/>
+                            <ComboBoxItem Content="激昂热烈"/>
+                            <ComboBoxItem Content="深沉内敛"/>
+                            <ComboBoxItem Content="轻松愉快"/>
+                        </ComboBox>
+
+                        <!-- 目标读者 -->
+                        <ComboBox x:Name="TargetAudienceComboBox"
+                                Grid.Row="0" Grid.Column="4"
+                                materialDesign:HintAssist.Hint="目标读者"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                            <ComboBoxItem Content="通用读者" IsSelected="True"/>
+                            <ComboBoxItem Content="青少年"/>
+                            <ComboBoxItem Content="成年读者"/>
+                            <ComboBoxItem Content="专业读者"/>
+                        </ComboBox>
+
+                        <!-- 智能选项 -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,12,0,0">
+                            <CheckBox x:Name="AutoCorrectCheckBox" Content="自动纠错" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="EnhanceDescriptionCheckBox" Content="增强描写" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="OptimizeDialogueCheckBox" Content="优化对话" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="PreserveStyleCheckBox" Content="保持原风格" IsChecked="True"/>
+                        </StackPanel>
+                    </Grid>
+                </Expander>
+
+                <!-- 特殊要求 -->
+                <TextBox x:Name="SpecialRequirementsTextBox"
+                       materialDesign:HintAssist.Hint="特殊要求（如特定词汇偏好、避免的表达等）"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Margin="0,12,0,0"/>
+            </StackPanel>
+        </materialDesign:Card>
+
+        <!-- 对比区域 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 原文 -->
+            <materialDesign:Card Grid.Column="0" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                        <TextBlock Text="原文"
+                                 FontSize="16"
+                                 FontWeight="Medium"
+                                 DockPanel.Dock="Left"/>
+                        <TextBlock x:Name="OriginalWordCountLabel"
+                                 Text="(0字)"
+                                 FontSize="14"
+                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                 DockPanel.Dock="Right"/>
+                    </DockPanel>
+
+                    <TextBox x:Name="OriginalContentTextBox"
+                           Grid.Row="1"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                           TextWrapping="Wrap"
+                           AcceptsReturn="True"
+                           VerticalScrollBarVisibility="Auto"
+                           IsReadOnly="True"
+                           Background="{DynamicResource MaterialDesignTextFieldBoxDisabledBackground}"/>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 润色结果和替换项 -->
+            <materialDesign:Card Grid.Column="2" Padding="16">
+                <TabControl Style="{StaticResource MaterialDesignTabControl}">
+                    <!-- 润色预览 -->
+                    <TabItem Header="润色预览">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                                <TextBlock Text="润色结果"
+                                         FontSize="16"
+                                         FontWeight="Medium"
+                                         DockPanel.Dock="Left"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="PolishedWordCountLabel"
+                                             Text="(0字)"
+                                             FontSize="14"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Margin="0,0,8,0"/>
+                                    <TextBlock x:Name="ImprovementLabel"
+                                             Text=""
+                                             FontSize="12"
+                                             Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <TextBox x:Name="PolishedContentTextBox"
+                                   Grid.Row="1"
+                                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                   TextWrapping="Wrap"
+                                   AcceptsReturn="True"
+                                   VerticalScrollBarVisibility="Auto"
+                                   IsReadOnly="False"
+                                   materialDesign:HintAssist.Hint="润色后的内容将显示在这里..."
+                                   TextChanged="PolishedContentTextBox_TextChanged"/>
+
+                            <!-- 操作按钮 -->
+                            <StackPanel Grid.Row="2"
+                                      Orientation="Horizontal"
+                                      HorizontalAlignment="Right"
+                                      Margin="0,16,0,0">
+                                <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Margin="0,0,8,0"
+                                      Click="RePolish_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
+                                        <TextBlock Text="重新润色"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Margin="0,0,8,0"
+                                      Click="CopyToClipboard_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,4,0"/>
+                                        <TextBlock Text="复制"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Margin="0,0,8,0"
+                                      Click="ShowDifferences_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Compare" Margin="0,0,4,0"/>
+                                        <TextBlock Text="对比差异"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- 替换项列表 -->
+                    <TabItem Header="替换项">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 替换项统计 -->
+                            <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                                <TextBlock Text="替换项列表"
+                                         FontSize="16"
+                                         FontWeight="Medium"
+                                         DockPanel.Dock="Left"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock x:Name="ReplacementStatsLabel"
+                                             Text="共0项替换建议"
+                                             FontSize="12"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             VerticalAlignment="Center"
+                                             Margin="0,0,16,0"/>
+                                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                          Margin="0,0,8,0"
+                                          Click="SelectAll_Click">
+                                        <TextBlock Text="全选"/>
+                                    </Button>
+                                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                          Click="DeselectAll_Click">
+                                        <TextBlock Text="全不选"/>
+                                    </Button>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <!-- 替换项列表 -->
+                            <ListView x:Name="ReplacementsListView"
+                                    Grid.Row="1"
+                                    Style="{StaticResource MaterialDesignListView}"
+                                    SelectionChanged="ReplacementsListView_SelectionChanged">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Width="40">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                            Checked="ReplacementCheckBox_Changed"
+                                                            Unchecked="ReplacementCheckBox_Changed"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <GridViewColumn Header="原文" Width="120">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding OriginalText}"
+                                                             TextWrapping="Wrap"
+                                                             MaxWidth="120"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <GridViewColumn Header="替换为" Width="120">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ReplacementText}"
+                                                             TextWrapping="Wrap"
+                                                             MaxWidth="120"
+                                                             Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <GridViewColumn Header="类型" Width="80">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding ReplacementType}"
+                                                             FontSize="12"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <GridViewColumn Header="上下文" Width="200">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Context}"
+                                                             TextWrapping="Wrap"
+                                                             MaxWidth="200"
+                                                             FontSize="11"
+                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+
+                            <!-- 应用选择按钮 -->
+                            <StackPanel Grid.Row="2"
+                                      Orientation="Horizontal"
+                                      HorizontalAlignment="Right"
+                                      Margin="0,16,0,0">
+                                <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                      Click="ApplySelectedReplacements_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
+                                        <TextBlock Text="应用选中项"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- 智能建议 -->
+                    <TabItem Header="智能建议">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 建议标题 -->
+                            <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                                <TextBlock Text="AI智能建议"
+                                         FontSize="16"
+                                         FontWeight="Medium"
+                                         DockPanel.Dock="Left"/>
+                                <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      DockPanel.Dock="Right"
+                                      Click="RefreshSuggestions_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
+                                        <TextBlock Text="刷新建议"/>
+                                    </StackPanel>
+                                </Button>
+                            </DockPanel>
+
+                            <!-- 建议列表 -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="SuggestionsPanel">
+                                    <!-- 动态添加建议项 -->
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- 应用建议按钮 -->
+                            <StackPanel Grid.Row="2"
+                                      Orientation="Horizontal"
+                                      HorizontalAlignment="Right"
+                                      Margin="0,16,0,0">
+                                <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                      Click="ApplyAllSuggestions_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CheckAll" Margin="0,0,4,0"/>
+                                        <TextBlock Text="应用所有建议"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- 质量分析 -->
+                    <TabItem Header="质量分析">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 分析标题 -->
+                            <TextBlock Grid.Row="0"
+                                     Text="文本质量分析"
+                                     FontSize="16"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- 分析内容 -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="QualityAnalysisPanel">
+                                    <!-- 动态添加分析项 -->
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </materialDesign:Card>
+        </Grid>
+
+        <!-- 底部按钮 -->
+        <StackPanel Grid.Row="3" 
+                  Orientation="Horizontal" 
+                  HorizontalAlignment="Right"
+                  Margin="0,24,0,0">
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                  Margin="0,0,8,0"
+                  Click="Cancel_Click">
+                <TextBlock Text="取消"/>
+            </Button>
+            
+            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                  Click="Apply_Click"
+                  x:Name="ApplyButton">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
+                    <TextBlock Text="应用润色"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+
+    <Window.Resources>
+    </Window.Resources>
+</Window>

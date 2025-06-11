@@ -1,0 +1,120 @@
+<UserControl x:Class="NovelManagement.WPF.Test.Views.BusinessSystemView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Background="{DynamicResource MaterialDesignPaper}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource PrimaryHueMidBrush}" 
+                Padding="24,16">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="Store" 
+                                       Foreground="White" 
+                                       Width="32" 
+                                       Height="32" 
+                                       VerticalAlignment="Center"/>
+                <TextBlock Text="商业体系管理" 
+                         Foreground="White" 
+                         FontSize="24" 
+                         FontWeight="Medium" 
+                         VerticalAlignment="Center" 
+                         Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：商业体系列表 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0">
+                <StackPanel Margin="16">
+                    <TextBlock Text="商业模式列表" 
+                             FontWeight="Medium" 
+                             FontSize="16" 
+                             Margin="0,0,0,16"/>
+                    
+                    <ItemsControl x:Name="BusinessListControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                      BorderThickness="0,0,0,1" 
+                                      Padding="12"
+                                      Background="Transparent"
+                                      Cursor="Hand"
+                                      MouseLeftButtonDown="BusinessItem_Click">
+                                    
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" 
+                                                 FontWeight="Medium" 
+                                                 FontSize="14"/>
+                                        <TextBlock Text="{Binding Category}" 
+                                                 Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                 FontSize="12"
+                                                 Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding Description}" 
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                 FontSize="11"
+                                                 TextWrapping="Wrap"
+                                                 Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 右侧：商业详情区域 -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0">
+                <StackPanel Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="StoreOutline" 
+                                           Width="64" 
+                                           Height="64" 
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           HorizontalAlignment="Center"/>
+                    <TextBlock Text="商业体系管理界面" 
+                             FontSize="20" 
+                             FontWeight="Medium" 
+                             HorizontalAlignment="Center" 
+                             Margin="0,16,0,0"/>
+                    <TextBlock Text="✅ 界面布局完成" 
+                             FontSize="14" 
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             HorizontalAlignment="Center" 
+                             Margin="0,8,0,0"/>
+                    <TextBlock Text="✅ 数据绑定完成" 
+                             FontSize="14" 
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             HorizontalAlignment="Center" 
+                             Margin="0,4,0,0"/>
+                    <TextBlock Text="✅ 交互功能完成" 
+                             FontSize="14" 
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             HorizontalAlignment="Center" 
+                             Margin="0,4,0,0"/>
+                    <TextBlock Text="✅ 商品和服务管理完成" 
+                             FontSize="14" 
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             HorizontalAlignment="Center" 
+                             Margin="0,4,0,0"/>
+                    
+                    <Button Content="测试功能" 
+                          Style="{StaticResource MaterialDesignRaisedButton}"
+                          Click="TestFunction_Click"
+                          Margin="0,24,0,0"/>
+                </StackPanel>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

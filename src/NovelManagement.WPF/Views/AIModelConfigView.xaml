@@ -1,0 +1,314 @@
+<UserControl x:Class="NovelManagement.WPF.Views.AIModelConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1000">
+    
+    <UserControl.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}"/>
+            <Setter Property="Margin" Value="0,20,0,10"/>
+        </Style>
+        
+        <Style x:Key="ModelCardStyle" TargetType="materialDesign:Card">
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="materialDesign:ShadowAssist.ShadowDepth" Value="Depth2"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <materialDesign:Card Grid.Row="0" Margin="20" Padding="20" materialDesign:ShadowAssist.ShadowDepth="Depth2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Cog" Width="32" Height="32" 
+                                           Foreground="{DynamicResource PrimaryHueMidBrush}" 
+                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="AI模型配置" FontSize="24" FontWeight="Bold"/>
+                        <TextBlock Text="为不同功能选择最适合的AI模型" 
+                                 FontSize="14" Opacity="0.7"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="TestConnectionButton" Content="测试连接" 
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="5" Click="TestConnection_Click"/>
+                    <Button x:Name="SaveConfigButton" Content="保存配置" 
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="5" Click="SaveConfig_Click"/>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 主要内容区域 -->
+        <ScrollViewer Grid.Row="1" Margin="20,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 全局设置 -->
+                <TextBlock Text="🌐 全局设置" Style="{StaticResource SectionHeaderStyle}"/>
+                <materialDesign:Card Style="{StaticResource ModelCardStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                            <TextBlock Text="默认AI模型" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <ComboBox x:Name="DefaultModelComboBox" 
+                                    materialDesign:HintAssist.Hint="选择默认模型"
+                                    Margin="0,0,0,15">
+                                <ComboBoxItem Content="DeepSeek-V3"/>
+                                <ComboBoxItem Content="GPT-4"/>
+                                <ComboBoxItem Content="Claude-3"/>
+                                <ComboBoxItem Content="Gemini-Pro"/>
+                            </ComboBox>
+                            
+                            <TextBlock Text="API密钥" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <PasswordBox x:Name="ApiKeyPasswordBox" 
+                                       materialDesign:HintAssist.Hint="输入API密钥"
+                                       Margin="0,0,0,15"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="请求超时时间" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <Slider x:Name="TimeoutSlider" 
+                                  Minimum="10" Maximum="120" Value="30" 
+                                  TickFrequency="10" IsSnapToTickEnabled="True"
+                                  Margin="0,0,0,5"/>
+                            <TextBlock x:Name="TimeoutLabel" Text="30秒" 
+                                     HorizontalAlignment="Center" FontSize="12" Opacity="0.7"
+                                     Margin="0,0,0,15"/>
+                            
+                            <CheckBox x:Name="EnableCacheCheckBox" Content="启用智能缓存" 
+                                    IsChecked="True" Margin="0,0,0,10"/>
+                            <CheckBox x:Name="EnableLoggingCheckBox" Content="启用详细日志" 
+                                    IsChecked="False"/>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:Card>
+
+                <!-- 功能特定配置 -->
+                <TextBlock Text="🎯 功能特定配置" Style="{StaticResource SectionHeaderStyle}"/>
+                
+                <!-- 对话生成 -->
+                <materialDesign:Card Style="{StaticResource ModelCardStyle}">
+                    <Expander Header="💬 对话生成" IsExpanded="True">
+                        <Grid Margin="20,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="推荐模型" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="DialogueModelComboBox" 
+                                        materialDesign:HintAssist.Hint="选择对话生成模型"
+                                        SelectedIndex="0">
+                                    <ComboBoxItem Content="DeepSeek-V3 (推荐)"/>
+                                    <ComboBoxItem Content="GPT-4"/>
+                                    <ComboBoxItem Content="Claude-3"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                                <TextBlock Text="创造性" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <Slider x:Name="DialogueCreativitySlider" 
+                                      Minimum="0" Maximum="1" Value="0.7" 
+                                      TickFrequency="0.1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="0.7 (平衡)" HorizontalAlignment="Center" FontSize="12" Opacity="0.7"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="最大长度" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <Slider x:Name="DialogueMaxLengthSlider" 
+                                      Minimum="100" Maximum="2000" Value="800" 
+                                      TickFrequency="100" IsSnapToTickEnabled="True"/>
+                                <TextBlock Text="800字符" HorizontalAlignment="Center" FontSize="12" Opacity="0.7"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+                </materialDesign:Card>
+
+                <!-- 世界设定分析 -->
+                <materialDesign:Card Style="{StaticResource ModelCardStyle}">
+                    <Expander Header="🌍 世界设定分析" IsExpanded="False">
+                        <Grid Margin="20,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="分析模型" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="AnalysisModelComboBox" 
+                                        materialDesign:HintAssist.Hint="选择分析模型"
+                                        SelectedIndex="1">
+                                    <ComboBoxItem Content="DeepSeek-V3"/>
+                                    <ComboBoxItem Content="GPT-4 (推荐)"/>
+                                    <ComboBoxItem Content="Claude-3"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                                <TextBlock Text="分析深度" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="AnalysisDepthComboBox" SelectedIndex="1">
+                                    <ComboBoxItem Content="快速分析"/>
+                                    <ComboBoxItem Content="标准分析"/>
+                                    <ComboBoxItem Content="深度分析"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <CheckBox Content="启用一致性检查" IsChecked="True" Margin="0,0,0,5"/>
+                                <CheckBox Content="启用逻辑验证" IsChecked="True" Margin="0,0,0,5"/>
+                                <CheckBox Content="生成改进建议" IsChecked="True"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+                </materialDesign:Card>
+
+                <!-- 势力关系分析 -->
+                <materialDesign:Card Style="{StaticResource ModelCardStyle}">
+                    <Expander Header="⚔️ 势力关系分析" IsExpanded="False">
+                        <Grid Margin="20,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                <TextBlock Text="关系分析模型" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="FactionModelComboBox" 
+                                        materialDesign:HintAssist.Hint="选择关系分析模型"
+                                        SelectedIndex="0">
+                                    <ComboBoxItem Content="Claude-3 (推荐)"/>
+                                    <ComboBoxItem Content="GPT-4"/>
+                                    <ComboBoxItem Content="DeepSeek-V3"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                                <TextBlock Text="预测范围" FontWeight="Bold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="PredictionRangeComboBox" SelectedIndex="1">
+                                    <ComboBoxItem Content="短期 (1-3章)"/>
+                                    <ComboBoxItem Content="中期 (3-10章)"/>
+                                    <ComboBoxItem Content="长期 (10+章)"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <CheckBox Content="冲突预测" IsChecked="True" Margin="0,0,0,5"/>
+                                <CheckBox Content="联盟分析" IsChecked="True" Margin="0,0,0,5"/>
+                                <CheckBox Content="权力平衡" IsChecked="False"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+                </materialDesign:Card>
+
+                <!-- 性能监控 -->
+                <TextBlock Text="📊 性能监控" Style="{StaticResource SectionHeaderStyle}"/>
+                <materialDesign:Card Style="{StaticResource ModelCardStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- 响应时间 -->
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="平均响应时间" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <materialDesign:Card Background="{DynamicResource PrimaryHueMidBrush}" 
+                                               Width="80" Height="80" Margin="0,10">
+                                <TextBlock x:Name="ResponseTimeText" Text="2.3s" 
+                                         Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                         Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </materialDesign:Card>
+                        </StackPanel>
+                        
+                        <!-- 成功率 -->
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock Text="成功率" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <materialDesign:Card Background="{DynamicResource SecondaryHueMidBrush}" 
+                                               Width="80" Height="80" Margin="0,10">
+                                <TextBlock x:Name="SuccessRateText" Text="98.5%" 
+                                         Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                         Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </materialDesign:Card>
+                        </StackPanel>
+                        
+                        <!-- 缓存命中率 -->
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock Text="缓存命中率" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <materialDesign:Card Background="#4CAF50" 
+                                               Width="80" Height="80" Margin="0,10">
+                                <TextBlock x:Name="CacheHitRateText" Text="76%" 
+                                         Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                         Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </materialDesign:Card>
+                        </StackPanel>
+                        
+                        <!-- 今日请求数 -->
+                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                            <TextBlock Text="今日请求数" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <materialDesign:Card Background="#FF9800" 
+                                               Width="80" Height="80" Margin="0,10">
+                                <TextBlock x:Name="TodayRequestsText" Text="142" 
+                                         Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                         Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </materialDesign:Card>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:Card>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 底部状态栏 -->
+        <materialDesign:Card Grid.Row="2" Margin="20" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="CheckCircle" Foreground="Green" 
+                                           Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock x:Name="StatusText" Text="配置已保存，所有模型连接正常" VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="重置默认" Style="{StaticResource MaterialDesignOutlinedButton}" 
+                            Margin="5,0" Click="ResetDefaults_Click"/>
+                    <Button Content="导出配置" Style="{StaticResource MaterialDesignOutlinedButton}" 
+                            Margin="5,0" Click="ExportConfig_Click"/>
+                    <Button Content="导入配置" Style="{StaticResource MaterialDesignOutlinedButton}" 
+                            Margin="5,0" Click="ImportConfig_Click"/>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</UserControl>

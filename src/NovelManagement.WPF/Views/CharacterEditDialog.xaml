@@ -1,0 +1,212 @@
+<Window x:Class="NovelManagement.WPF.Views.CharacterEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="编辑角色"
+        Height="700" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        Style="{StaticResource MaterialDesignWindow}">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="编辑角色信息" 
+                     FontSize="24" 
+                     FontWeight="Bold" 
+                     Margin="0,0,0,8"/>
+            <TextBlock Text="修改角色的详细信息" 
+                     FontSize="14" 
+                     Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 编辑表单 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 基本信息 -->
+                <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="基本信息" 
+                                 FontSize="16" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 角色姓名 -->
+                            <TextBox x:Name="NameTextBox"
+                                   Grid.Column="0"
+                                   materialDesign:HintAssist.Hint="角色姓名"
+                                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                   Margin="0,0,0,16"/>
+
+                            <!-- 角色类型 -->
+                            <ComboBox x:Name="TypeComboBox"
+                                    Grid.Column="2"
+                                    materialDesign:HintAssist.Hint="角色类型"
+                                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                    Margin="0,0,0,16">
+                                <ComboBoxItem Content="主角"/>
+                                <ComboBoxItem Content="主配角"/>
+                                <ComboBoxItem Content="次配角"/>
+                                <ComboBoxItem Content="反派"/>
+                                <ComboBoxItem Content="路人"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 所属势力 -->
+                            <ComboBox x:Name="FactionComboBox"
+                                    Grid.Column="0"
+                                    materialDesign:HintAssist.Hint="所属势力"
+                                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                    IsEditable="True"
+                                    Margin="0,0,0,16">
+                                <ComboBoxItem Content="玄天宗"/>
+                                <ComboBoxItem Content="血魔宗"/>
+                                <ComboBoxItem Content="散修"/>
+                                <ComboBoxItem Content="皇室"/>
+                                <ComboBoxItem Content="魔道联盟"/>
+                                <ComboBoxItem Content="正道联盟"/>
+                            </ComboBox>
+
+                            <!-- 修为等级 -->
+                            <ComboBox x:Name="CultivationLevelComboBox"
+                                    Grid.Column="2"
+                                    materialDesign:HintAssist.Hint="修为等级"
+                                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                    IsEditable="True"
+                                    Margin="0,0,0,16">
+                                <ComboBoxItem Content="练气期"/>
+                                <ComboBoxItem Content="筑基期"/>
+                                <ComboBoxItem Content="金丹期"/>
+                                <ComboBoxItem Content="元婴期"/>
+                                <ComboBoxItem Content="化神期"/>
+                                <ComboBoxItem Content="炼虚期"/>
+                                <ComboBoxItem Content="合体期"/>
+                                <ComboBoxItem Content="大乘期"/>
+                                <ComboBoxItem Content="渡劫期"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 角色描述 -->
+                <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="角色描述" 
+                                 FontSize="16" 
+                                 FontWeight="Medium" 
+                                 Margin="0,0,0,16"/>
+
+                        <TextBox x:Name="DescriptionTextBox"
+                               materialDesign:HintAssist.Hint="角色的基本描述和背景介绍..."
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                               TextWrapping="Wrap"
+                               AcceptsReturn="True"
+                               MinHeight="80"
+                               MaxHeight="120"
+                               VerticalScrollBarVisibility="Auto"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- 详细信息选项卡 -->
+                <materialDesign:Card Padding="0" Margin="0,0,0,16">
+                    <TabControl Style="{StaticResource MaterialDesignTabControl}">
+                        <!-- 外貌特征 -->
+                        <TabItem Header="外貌特征">
+                            <Border Padding="16">
+                                <TextBox x:Name="AppearanceTextBox"
+                                       materialDesign:HintAssist.Hint="描述角色的外貌特征..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       MinHeight="100"
+                                       MaxHeight="150"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+
+                        <!-- 性格特点 -->
+                        <TabItem Header="性格特点">
+                            <Border Padding="16">
+                                <TextBox x:Name="PersonalityTextBox"
+                                       materialDesign:HintAssist.Hint="描述角色的性格特点..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       MinHeight="100"
+                                       MaxHeight="150"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+
+                        <!-- 背景故事 -->
+                        <TabItem Header="背景故事">
+                            <Border Padding="16">
+                                <TextBox x:Name="BackgroundTextBox"
+                                       materialDesign:HintAssist.Hint="描述角色的背景故事..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       MinHeight="100"
+                                       MaxHeight="150"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+
+                        <!-- 能力技能 -->
+                        <TabItem Header="能力技能">
+                            <Border Padding="16">
+                                <TextBox x:Name="AbilitiesTextBox"
+                                       materialDesign:HintAssist.Hint="描述角色的能力和技能..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       MinHeight="100"
+                                       MaxHeight="150"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+                    </TabControl>
+                </materialDesign:Card>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 操作按钮 -->
+        <StackPanel Grid.Row="2" 
+                  Orientation="Horizontal" 
+                  HorizontalAlignment="Right" 
+                  Margin="0,16,0,0">
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                  Content="取消"
+                  Margin="0,0,12,0"
+                  Click="Cancel_Click"
+                  IsCancel="True"/>
+            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                  Content="保存"
+                  Click="Save_Click"
+                  IsDefault="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

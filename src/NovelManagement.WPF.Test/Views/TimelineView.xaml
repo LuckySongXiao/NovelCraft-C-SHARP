@@ -1,0 +1,177 @@
+<UserControl x:Class="NovelManagement.WPF.Test.Views.TimelineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Background="{DynamicResource MaterialDesignPaper}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource PrimaryHueMidBrush}" 
+                Padding="24,16">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="Timeline" 
+                                       Foreground="White" 
+                                       Width="32" 
+                                       Height="32" 
+                                       VerticalAlignment="Center"/>
+                <TextBlock Text="时间线管理" 
+                         Foreground="White" 
+                         FontSize="24" 
+                         FontWeight="Medium" 
+                         VerticalAlignment="Center" 
+                         Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：时间线控制面板 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0">
+                <StackPanel Margin="16">
+                    <TextBlock Text="时间线控制" 
+                             FontWeight="Medium" 
+                             FontSize="16" 
+                             Margin="0,0,0,16"/>
+                    
+                    <ComboBox materialDesign:HintAssist.Hint="选择时间线"
+                            Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                            Margin="0,0,0,16">
+                        <ComboBoxItem Content="主线剧情"/>
+                        <ComboBoxItem Content="角色成长"/>
+                        <ComboBoxItem Content="势力发展"/>
+                        <ComboBoxItem Content="世界事件"/>
+                    </ComboBox>
+                    
+                    <Button Content="添加事件" 
+                          Style="{StaticResource MaterialDesignRaisedButton}"
+                          Click="AddEvent_Click"
+                          Margin="0,0,0,8"/>
+                    
+                    <Button Content="编辑时间线" 
+                          Style="{StaticResource MaterialDesignOutlinedButton}"
+                          Click="EditTimeline_Click"
+                          Margin="0,0,0,8"/>
+                    
+                    <Button Content="导出时间线" 
+                          Style="{StaticResource MaterialDesignOutlinedButton}"
+                          Click="ExportTimeline_Click"
+                          Margin="0,0,0,16"/>
+                    
+                    <Separator Margin="0,8"/>
+                    
+                    <TextBlock Text="时间线统计" 
+                             FontWeight="Medium" 
+                             FontSize="14" 
+                             Margin="0,16,0,8"/>
+                    
+                    <StackPanel>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                            <Run Text="总事件数: "/>
+                            <Run Text="24" FontWeight="Medium"/>
+                        </TextBlock>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                            <Run Text="时间跨度: "/>
+                            <Run Text="3年" FontWeight="Medium"/>
+                        </TextBlock>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                            <Run Text="关键节点: "/>
+                            <Run Text="8个" FontWeight="Medium"/>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 右侧：时间线可视化区域 -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24">
+                        <TextBlock Text="时间线可视化" 
+                                 FontSize="18" 
+                                 FontWeight="Medium" 
+                                 HorizontalAlignment="Center"
+                                 Margin="0,0,0,24"/>
+                        
+                        <!-- 时间线事件列表 -->
+                        <ItemsControl x:Name="TimelineEventsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- 时间 -->
+                                        <Border Grid.Column="0" 
+                                              Background="{DynamicResource PrimaryHueLightBrush}"
+                                              CornerRadius="4"
+                                              Padding="8,4">
+                                            <TextBlock Text="{Binding Time}" 
+                                                     Foreground="White" 
+                                                     FontSize="12"
+                                                     FontWeight="Medium"
+                                                     HorizontalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- 连接线 -->
+                                        <Ellipse Grid.Column="1" 
+                                               Width="12" 
+                                               Height="12" 
+                                               Fill="{DynamicResource PrimaryHueMidBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Top"
+                                               Margin="0,8,0,0"/>
+                                        
+                                        <!-- 事件内容 -->
+                                        <Border Grid.Column="2" 
+                                              BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                              BorderThickness="1"
+                                              CornerRadius="4"
+                                              Padding="16,12"
+                                              Background="{DynamicResource MaterialDesignCardBackground}"
+                                              Cursor="Hand"
+                                              MouseLeftButtonDown="TimelineEvent_Click">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" 
+                                                         FontWeight="Medium" 
+                                                         FontSize="14"/>
+                                                <TextBlock Text="{Binding Category}" 
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                         FontSize="12"
+                                                         Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding Description}" 
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         FontSize="12"
+                                                         TextWrapping="Wrap"
+                                                         Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- 测试按钮 -->
+                        <Button Content="测试时间线功能" 
+                              Style="{StaticResource MaterialDesignRaisedButton}"
+                              Click="TestTimelineFunction_Click"
+                              HorizontalAlignment="Center"
+                              Margin="0,32,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

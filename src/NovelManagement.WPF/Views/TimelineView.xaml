@@ -1,0 +1,669 @@
+<UserControl x:Class="NovelManagement.WPF.Views.TimelineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             Background="{DynamicResource MaterialDesignPaper}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏 -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource PrimaryHueMidBrush}" 
+                Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Timeline" 
+                                           Foreground="White" 
+                                           Width="32" 
+                                           Height="32" 
+                                           VerticalAlignment="Center"/>
+                    <TextBlock Text="时间线管理" 
+                             Foreground="White" 
+                             FontSize="24" 
+                             FontWeight="Medium" 
+                             VerticalAlignment="Center" 
+                             Margin="16,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                            Foreground="White" 
+                            Margin="8,0"
+                            Click="AddEvent_Click"
+                            ToolTip="新建事件">
+                        <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                            Foreground="White" 
+                            Margin="8,0"
+                            Click="ImportTimeline_Click"
+                            ToolTip="导入时间线数据">
+                        <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
+                            Foreground="White"
+                            Margin="8,0"
+                            Click="ExportTimeline_Click"
+                            ToolTip="导出时间线数据">
+                        <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
+                            Foreground="White"
+                            Margin="8,0"
+                            Click="AIAssistant_Click"
+                            ToolTip="AI助手">
+                        <materialDesign:PackIcon Kind="Robot" Width="24" Height="24"/>
+                    </Button>
+
+                    <!-- 测试按钮 -->
+                    <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
+                            Foreground="White"
+                            Margin="8,0"
+                            Click="TestSelect_Click"
+                            ToolTip="测试选择">
+                        <materialDesign:PackIcon Kind="TestTube" Width="24" Height="24"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 主内容区域 -->
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：时间线事件列表 -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 搜索栏 -->
+                    <Border Grid.Row="0" Padding="16,16,16,8">
+                        <TextBox x:Name="SearchTextBox"
+                                materialDesign:HintAssist.Hint="搜索事件..."
+                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                TextChanged="SearchTextBox_TextChanged"/>
+                    </Border>
+
+                    <!-- 筛选器 -->
+                    <Border Grid.Row="1" Padding="16,0,16,8">
+                        <StackPanel>
+                            <ComboBox x:Name="CategoryFilterComboBox"
+                                     materialDesign:HintAssist.Hint="事件类别"
+                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                     SelectionChanged="CategoryFilter_SelectionChanged">
+                                <ComboBoxItem Content="全部类别"/>
+                                <ComboBoxItem Content="历史事件"/>
+                                <ComboBoxItem Content="剧情事件"/>
+                                <ComboBoxItem Content="角色事件"/>
+                                <ComboBoxItem Content="势力事件"/>
+                                <ComboBoxItem Content="世界事件"/>
+                                <ComboBoxItem Content="修炼事件"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 时间线事件列表 -->
+                    <ListView x:Name="TimelineListControl"
+                            Grid.Row="2"
+                            SelectionMode="Single"
+                            SelectionChanged="TimelineList_SelectionChanged"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,8"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- 事件卡片容器 -->
+                                    <materialDesign:Card Margin="0,0,0,8"
+                                                       materialDesign:ShadowAssist.ShadowDepth="Depth1"
+                                                       materialDesign:ElevationAssist.Elevation="Dp2"
+                                                       x:Name="EventCard"
+                                                       MouseLeftButtonUp="EventCard_MouseLeftButtonUp">
+                                        <materialDesign:Card.Style>
+                                            <Style TargetType="materialDesign:Card">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp4"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </materialDesign:Card.Style>
+
+                                        <Grid Cursor="Hand">
+                                            <!-- 事件内容 -->
+                                                <!-- 左侧时间线指示器 -->
+                                                <Border Width="4"
+                                                      HorizontalAlignment="Left"
+                                                      Background="{DynamicResource PrimaryHueMidBrush}"/>
+
+                                                <!-- 主要内容区域 -->
+                                                <StackPanel Margin="16,12,16,12">
+                                                    <!-- 标题行 -->
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- 事件图标 -->
+                                                        <Border Grid.Column="0"
+                                                              Background="{DynamicResource PrimaryHueLightBrush}"
+                                                              CornerRadius="16"
+                                                              Width="32"
+                                                              Height="32"
+                                                              VerticalAlignment="Top">
+                                                            <materialDesign:PackIcon Kind="{Binding CategoryIcon}"
+                                                                                   Width="18"
+                                                                                   Height="18"
+                                                                                   Foreground="White"
+                                                                                   HorizontalAlignment="Center"
+                                                                                   VerticalAlignment="Center"/>
+                                                        </Border>
+
+                                                        <!-- 标题和时间 -->
+                                                        <StackPanel Grid.Column="1"
+                                                                  Margin="12,0,8,0"
+                                                                  VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                     FontWeight="SemiBold"
+                                                                     FontSize="15"
+                                                                     Foreground="{DynamicResource MaterialDesignBody}"
+                                                                     TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding TimeDisplay}"
+                                                                     FontSize="12"
+                                                                     FontWeight="Medium"
+                                                                     Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                                     Margin="0,2,0,0"/>
+                                                        </StackPanel>
+
+                                                        <!-- 类别标签 -->
+                                                        <Border Grid.Column="2"
+                                                              Background="{DynamicResource PrimaryHueLightBrush}"
+                                                              CornerRadius="12"
+                                                              Padding="8,4"
+                                                              VerticalAlignment="Top">
+                                                            <TextBlock Text="{Binding Category}"
+                                                                     Foreground="White"
+                                                                     FontSize="11"
+                                                                     FontWeight="Medium"/>
+                                                        </Border>
+                                                    </Grid>
+
+                                                    <!-- 描述文本 -->
+                                                    <TextBlock Text="{Binding Description}"
+                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                             FontSize="13"
+                                                             TextWrapping="Wrap"
+                                                             MaxHeight="40"
+                                                             TextTrimming="WordEllipsis"
+                                                             LineHeight="18"
+                                                             Margin="44,0,0,8"/>
+
+                                                    <!-- 底部信息栏 -->
+                                                    <Grid Margin="44,0,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- 左侧信息 -->
+                                                        <StackPanel Grid.Column="0"
+                                                                  Orientation="Horizontal"
+                                                                  VerticalAlignment="Center">
+                                                            <!-- 参与者信息 -->
+                                                            <Border Background="{DynamicResource MaterialDesignDivider}"
+                                                                  CornerRadius="8"
+                                                                  Padding="6,2"
+                                                                  Margin="0,0,8,0">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <materialDesign:PackIcon Kind="Account"
+                                                                                           Width="12"
+                                                                                           Height="12"
+                                                                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                                                           VerticalAlignment="Center"/>
+                                                                    <TextBlock Text="{Binding ParticipantCount}"
+                                                                             FontSize="11"
+                                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                                             Margin="4,0,0,0"
+                                                                             VerticalAlignment="Center"/>
+                                                                </StackPanel>
+                                                            </Border>
+
+                                                            <!-- 重要程度指示器 -->
+                                                            <Border CornerRadius="8"
+                                                                  Padding="6,2"
+                                                                  Background="{Binding ImportanceColor}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <materialDesign:PackIcon Kind="Star"
+                                                                                           Width="12"
+                                                                                           Height="12"
+                                                                                           Foreground="White"
+                                                                                           VerticalAlignment="Center"/>
+                                                                    <TextBlock Text="{Binding Importance}"
+                                                                             FontSize="11"
+                                                                             Foreground="White"
+                                                                             FontWeight="Medium"
+                                                                             Margin="4,0,0,0"
+                                                                             VerticalAlignment="Center"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </StackPanel>
+
+                                                        <!-- 右侧状态 -->
+                                                        <Border Grid.Column="1"
+                                                              CornerRadius="8"
+                                                              Padding="6,2"
+                                                              Background="{Binding StatusColor}">
+                                                            <TextBlock Text="{Binding Status}"
+                                                                     FontSize="11"
+                                                                     Foreground="White"
+                                                                     FontWeight="Medium"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </StackPanel>
+                                        </Grid>
+                                    </materialDesign:Card>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                    <!-- 统计信息 -->
+                    <Border Grid.Row="3" 
+                          Background="{DynamicResource MaterialDesignDivider}" 
+                          Padding="16,8">
+                        <StackPanel>
+                            <TextBlock Text="时间线统计" 
+                                     FontWeight="Medium" 
+                                     FontSize="12" 
+                                     Margin="0,0,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="总事件: "/>
+                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="历史事件: "/>
+                                        <Run Text="{Binding HistoryCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="剧情事件: "/>
+                                        <Run Text="{Binding PlotCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                        <Run Text="角色事件: "/>
+                                        <Run Text="{Binding CharacterCount}" FontWeight="Medium"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- 右侧：事件详情编辑区域 -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DetailPanel" Margin="24">
+                        <!-- 默认显示：时间线统计信息 -->
+                        <StackPanel x:Name="EmptyStatePanel" Visibility="Visible">
+                            <TextBlock Text="时间线统计"
+                                     FontSize="24"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,24"/>
+
+                            <!-- 统计卡片 -->
+                            <UniformGrid Columns="2" Margin="0,0,0,24">
+                                <materialDesign:Card Margin="0,0,8,8" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="总事件数"
+                                                 FontSize="14"
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                        <TextBlock x:Name="TotalEventsText"
+                                                 Text="0"
+                                                 FontSize="32"
+                                                 FontWeight="Bold"/>
+                                    </StackPanel>
+                                </materialDesign:Card>
+
+                                <materialDesign:Card Margin="8,0,0,8" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="历史事件"
+                                                 FontSize="14"
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                        <TextBlock x:Name="HistoryEventsText"
+                                                 Text="0"
+                                                 FontSize="32"
+                                                 FontWeight="Bold"/>
+                                    </StackPanel>
+                                </materialDesign:Card>
+
+                                <materialDesign:Card Margin="0,8,8,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="剧情事件"
+                                                 FontSize="14"
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                        <TextBlock x:Name="PlotEventsText"
+                                                 Text="0"
+                                                 FontSize="32"
+                                                 FontWeight="Bold"/>
+                                    </StackPanel>
+                                </materialDesign:Card>
+
+                                <materialDesign:Card Margin="8,8,0,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="角色事件"
+                                                 FontSize="14"
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                        <TextBlock x:Name="CharacterEventsText"
+                                                 Text="0"
+                                                 FontSize="32"
+                                                 FontWeight="Bold"/>
+                                    </StackPanel>
+                                </materialDesign:Card>
+                            </UniformGrid>
+
+                            <!-- 事件状态分布 -->
+                            <TextBlock Text="事件状态分布"
+                                     FontSize="18"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,16"/>
+
+                            <ItemsControl>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <materialDesign:Chip Grid.Column="0" Content="已完成" Margin="0,0,12,0" Background="#4CAF50"/>
+                                    <ProgressBar Grid.Column="1" x:Name="CompletedProgressBar" Maximum="100" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" x:Name="CompletedCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <materialDesign:Chip Grid.Column="0" Content="进行中" Margin="0,0,12,0" Background="#2196F3"/>
+                                    <ProgressBar Grid.Column="1" x:Name="InProgressProgressBar" Maximum="100" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" x:Name="InProgressCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <materialDesign:Chip Grid.Column="0" Content="计划中" Margin="0,0,12,0" Background="#FF9800"/>
+                                    <ProgressBar Grid.Column="1" x:Name="PlannedProgressBar" Maximum="100" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" x:Name="PlannedCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </ItemsControl>
+
+                            <!-- 最近事件 -->
+                            <TextBlock Text="最近事件"
+                                     FontSize="18"
+                                     FontWeight="Medium"
+                                     Margin="0,24,0,16"/>
+
+                            <StackPanel x:Name="RecentEventsPanel">
+                                <TextBlock Text="暂无事件数据"
+                                         FontSize="14"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         HorizontalAlignment="Center"
+                                         Margin="0,16,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 事件详情编辑面板 -->
+                        <StackPanel x:Name="EditPanel" Visibility="Collapsed">
+                            <!-- 基本信息 -->
+                            <TextBlock Text="基本信息"
+                                     FontSize="18"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,16"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                        x:Name="EventTitleTextBox"
+                                        materialDesign:HintAssist.Hint="事件标题"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                        Margin="0,0,0,16"/>
+
+                                <ComboBox Grid.Column="2"
+                                         x:Name="EventCategoryComboBox"
+                                         materialDesign:HintAssist.Hint="事件类别"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="历史事件"/>
+                                    <ComboBoxItem Content="剧情事件"/>
+                                    <ComboBoxItem Content="角色事件"/>
+                                    <ComboBoxItem Content="势力事件"/>
+                                    <ComboBoxItem Content="世界事件"/>
+                                    <ComboBoxItem Content="修炼事件"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <DatePicker Grid.Column="0"
+                                           x:Name="EventDatePicker"
+                                           materialDesign:HintAssist.Hint="事件日期"
+                                           Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                                           Margin="0,0,0,16"/>
+
+                                <TextBox Grid.Column="2"
+                                        x:Name="EventLocationTextBox"
+                                        materialDesign:HintAssist.Hint="事件地点"
+                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                        Margin="0,0,0,16"/>
+                            </Grid>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0"
+                                         x:Name="EventImportanceComboBox"
+                                         materialDesign:HintAssist.Hint="重要程度"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="低"/>
+                                    <ComboBoxItem Content="中"/>
+                                    <ComboBoxItem Content="高"/>
+                                    <ComboBoxItem Content="极高"/>
+                                </ComboBox>
+
+                                <ComboBox Grid.Column="2"
+                                         x:Name="EventStatusComboBox"
+                                         materialDesign:HintAssist.Hint="事件状态"
+                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                         Margin="0,0,0,16">
+                                    <ComboBoxItem Content="计划中"/>
+                                    <ComboBoxItem Content="进行中"/>
+                                    <ComboBoxItem Content="已完成"/>
+                                    <ComboBoxItem Content="已取消"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <TextBox x:Name="EventDescriptionTextBox"
+                                    materialDesign:HintAssist.Hint="事件描述"
+                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MinLines="3"
+                                    MaxLines="5"
+                                    Margin="0,0,0,24"/>
+
+                            <!-- 参与者管理 -->
+                            <TextBlock Text="参与者管理"
+                                     FontSize="18"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,16"/>
+
+                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                  BorderThickness="1"
+                                  CornerRadius="4"
+                                  Padding="16"
+                                  Margin="0,0,0,24">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0"
+                                                 Text="参与者列表"
+                                                 FontWeight="Medium"/>
+
+                                        <Button Grid.Column="1"
+                                              Style="{StaticResource MaterialDesignIconButton}"
+                                              Click="AddParticipant_Click"
+                                              ToolTip="添加参与者">
+                                            <materialDesign:PackIcon Kind="Plus"/>
+                                        </Button>
+                                    </Grid>
+
+                                    <ItemsControl x:Name="ParticipantListControl" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                                      BorderThickness="0,0,0,1"
+                                                      Padding="0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <TextBox Grid.Column="0"
+                                                               Text="{Binding Name}"
+                                                               materialDesign:HintAssist.Hint="参与者名称"
+                                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                               Margin="0,0,8,0"/>
+
+                                                        <ComboBox Grid.Column="1"
+                                                                 Text="{Binding Type}"
+                                                                 materialDesign:HintAssist.Hint="参与者类型"
+                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                                                 Margin="0,0,8,0">
+                                                            <ComboBoxItem Content="角色"/>
+                                                            <ComboBoxItem Content="势力"/>
+                                                            <ComboBoxItem Content="组织"/>
+                                                            <ComboBoxItem Content="其他"/>
+                                                        </ComboBox>
+
+                                                        <TextBox Grid.Column="2"
+                                                               Text="{Binding Role}"
+                                                               materialDesign:HintAssist.Hint="参与角色"
+                                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                               Margin="0,0,8,0"/>
+
+                                                        <Button Grid.Column="3"
+                                                              Style="{StaticResource MaterialDesignIconButton}"
+                                                              Click="RemoveParticipant_Click"
+                                                              CommandParameter="{Binding}"
+                                                              ToolTip="删除参与者">
+                                                            <materialDesign:PackIcon Kind="Delete"
+                                                                                   Foreground="{DynamicResource ValidationErrorBrush}"/>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 影响和结果 -->
+                            <TextBlock Text="影响和结果"
+                                     FontSize="18"
+                                     FontWeight="Medium"
+                                     Margin="0,0,0,16"/>
+
+                            <TextBox x:Name="EventImpactTextBox"
+                                    materialDesign:HintAssist.Hint="事件影响和结果"
+                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MinLines="3"
+                                    MaxLines="5"
+                                    Margin="0,0,0,24"/>
+
+                            <!-- 操作按钮 -->
+                            <StackPanel Orientation="Horizontal"
+                                      HorizontalAlignment="Right"
+                                      Margin="0,16,0,0">
+                                <Button Content="保存"
+                                      Style="{StaticResource MaterialDesignRaisedButton}"
+                                      Click="SaveEvent_Click"
+                                      Margin="0,0,8,0"/>
+                                <Button Content="取消"
+                                      Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Click="CancelEdit_Click"
+                                      Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

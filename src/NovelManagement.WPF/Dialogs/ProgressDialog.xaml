@@ -1,0 +1,47 @@
+<Window x:Class="NovelManagement.WPF.Services.ProgressDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="{Binding Title}" 
+        Height="200" Width="400"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+    
+    <materialDesign:Card Margin="20" materialDesign:ShadowAssist.ShadowDepth="Depth3">
+        <Grid Margin="30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- 标题 -->
+            <TextBlock Grid.Row="0" 
+                       x:Name="TitleTextBlock"
+                       Text="处理中..."
+                       Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                       HorizontalAlignment="Center"/>
+            
+            <!-- 进度条 -->
+            <ProgressBar Grid.Row="2" 
+                         Style="{StaticResource MaterialDesignCircularProgressBar}"
+                         Width="50" Height="50"
+                         IsIndeterminate="True"
+                         HorizontalAlignment="Center"/>
+            
+            <!-- 描述 -->
+            <TextBlock Grid.Row="4" 
+                       x:Name="MessageTextBlock"
+                       Text="请稍候..."
+                       Style="{StaticResource MaterialDesignBody2TextBlock}"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"/>
+        </Grid>
+    </materialDesign:Card>
+</Window>
