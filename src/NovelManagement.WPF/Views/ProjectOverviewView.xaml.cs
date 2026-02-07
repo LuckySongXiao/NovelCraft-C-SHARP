@@ -304,7 +304,7 @@ namespace NovelManagement.WPF.Views
                 // 创建当前项目的模拟数据
                 var currentProject = new ProjectManagementView.ProjectViewModel
                 {
-                    Id = 1,
+                    Id = Guid.NewGuid(), // Changed to Guid to match new ProjectViewModel
                     Name = "千面劫·宿命轮回",
                     Description = "一部修仙题材的长篇小说，讲述主角林轩在修仙世界中的成长历程",
                     Type = "修仙小说",

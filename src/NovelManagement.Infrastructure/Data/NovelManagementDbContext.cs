@@ -707,7 +707,7 @@ public class NovelManagementDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasMany(e => e.RelatedResources)
-                  .WithMany();
+                  .WithMany(r => r.SecretRealms);
 
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.Type);

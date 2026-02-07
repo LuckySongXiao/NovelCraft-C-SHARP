@@ -613,15 +613,16 @@ namespace NovelManagement.AI.Agents
 
                 string aiResponse;
 
-                // 优先使用ModelManager（OLLAMA）
+                // 优先使用ModelManager
                 if (_modelManager != null)
                 {
-                    _logger.LogInformation($"使用OLLAMA模型执行任务: {taskType}");
+                    _logger.LogInformation($"使用AI模型管理器执行任务: {taskType}");
 
                     // 构建聊天请求
                     var chatRequest = new NovelManagement.AI.Interfaces.ChatRequest
                     {
-                        Model = "qwen2.5:7b", // 默认模型，可以从配置中获取
+                        // Model留空，让Provider使用默认配置的模型
+                        Model = string.Empty, 
                         SystemPrompt = systemPrompt,
                         Messages = new List<NovelManagement.AI.Interfaces.ChatMessage>
                         {
@@ -636,19 +637,19 @@ namespace NovelManagement.AI.Agents
                         MaxTokens = 4000
                     };
 
-                    // 使用ModelManager调用OLLAMA模型
+                    // 使用ModelManager调用默认模型
                     var chatResponse = await _modelManager.ChatAsync(chatRequest);
 
                     if (!chatResponse.IsSuccess)
                     {
-                        throw new Exception($"OLLAMA模型调用失败: {chatResponse.ErrorMessage}");
+                        throw new Exception($"AI模型调用失败: {chatResponse.ErrorMessage}");
                     }
 
                     aiResponse = chatResponse.Content;
 
                     if (string.IsNullOrWhiteSpace(aiResponse))
                     {
-                        throw new Exception("OLLAMA模型返回空响应");
+                        throw new Exception("AI模型返回空响应");
                     }
                 }
                 else if (_deepSeekApiService != null)

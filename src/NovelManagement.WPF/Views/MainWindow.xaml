@@ -85,9 +85,11 @@
                                       Click="ImportProject_Click"/>
 
                                 <!-- 项目列表 -->
-                                <Expander Header="千面劫·宿命轮回" 
+                                <Expander x:Name="CurrentProjectNavExpander"
+                                        Header="项目名称" 
                                         Style="{StaticResource MaterialDesignExpander}"
                                         IsExpanded="True"
+                                        Visibility="Collapsed"
                                         Margin="0,8,0,0">
                                     <StackPanel Margin="16,8,0,8">
                                         <Button Content="项目概览" 
@@ -415,7 +417,7 @@
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <TextBlock Text="当前项目: 千面劫·宿命轮回"/>
+                <TextBlock x:Name="CurrentProjectStatusBarText" Text="当前项目: 未选择"/>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>

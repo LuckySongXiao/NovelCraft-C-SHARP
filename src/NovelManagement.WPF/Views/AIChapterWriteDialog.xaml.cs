@@ -646,7 +646,7 @@ namespace NovelManagement.WPF.Views
             if (paragraphs.Length > 6) score += 5;
 
             // 对话检测
-            if (content.Contains(""") && content.Contains(""")) score += 5;
+            if (content.Contains("\"") || (content.Contains("“") && content.Contains("”"))) score += 5;
 
             // 描写丰富度
             var descriptiveWords = new[] { "缓缓", "轻柔", "深深", "静静", "慢慢" };

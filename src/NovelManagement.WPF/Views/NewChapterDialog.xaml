@@ -57,6 +57,7 @@
                 <!-- 章节标题 -->
                 <TextBox x:Name="ChapterTitleTextBox"
                        materialDesign:HintAssist.Hint="章节标题"
+                       ToolTip="请输入章节的标题"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="100"/>
@@ -64,6 +65,7 @@
                 <!-- 章节编号 -->
                 <TextBox x:Name="ChapterNumberTextBox"
                        materialDesign:HintAssist.Hint="章节编号"
+                       ToolTip="请输入章节的排序序号（数字）"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
@@ -83,6 +85,7 @@
                 <!-- 章节摘要 -->
                 <TextBox x:Name="ChapterSummaryTextBox"
                        materialDesign:HintAssist.Hint="章节摘要"
+                       ToolTip="请输入章节的简要摘要或内容概括"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -95,6 +98,7 @@
                 <!-- 目标字数 -->
                 <TextBox x:Name="TargetWordCountTextBox"
                        materialDesign:HintAssist.Hint="目标字数"
+                       ToolTip="请输入本章预计的字数"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
@@ -126,6 +130,7 @@
                 <!-- 相关角色 -->
                 <TextBox x:Name="RelatedCharactersTextBox"
                        materialDesign:HintAssist.Hint="相关角色（用逗号分隔）"
+                       ToolTip="请输入本章涉及的相关角色，多个角色请用逗号分隔"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="300"/>
@@ -133,6 +138,7 @@
                 <!-- 关键事件 -->
                 <TextBox x:Name="KeyEventsTextBox"
                        materialDesign:HintAssist.Hint="关键事件"
+                       ToolTip="请简要描述本章发生的关键事件"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -158,6 +164,7 @@
                 <!-- 标签 -->
                 <TextBox x:Name="ChapterTagsTextBox"
                        materialDesign:HintAssist.Hint="标签（用逗号分隔）"
+                       ToolTip="请输入章节标签，用于分类和检索，多个标签请用逗号分隔"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>
@@ -165,6 +172,7 @@
                 <!-- 备注 -->
                 <TextBox x:Name="ChapterNotesTextBox"
                        materialDesign:HintAssist.Hint="备注"
+                       ToolTip="请输入关于本章的其他备注信息"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"

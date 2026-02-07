@@ -6,6 +6,8 @@ using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.DeepSeek.Models;
 using NovelManagement.AI.Services.Ollama;
 using NovelManagement.AI.Services.Ollama.Models;
+using NovelManagement.AI.Services.Zhipu;
+using NovelManagement.AI.Services.Zhipu.Models;
 using NovelManagement.AI.Services.MCP;
 using NovelManagement.AI.Services.MCP.Models;
 using NovelManagement.AI.Services.ThinkingChain;
@@ -30,6 +32,7 @@ namespace NovelManagement.AI.Extensions
             // 注册配置
             services.Configure<DeepSeekConfiguration>(configuration.GetSection("AI:Providers:DeepSeek"));
             services.Configure<OllamaConfiguration>(configuration.GetSection("AI:Providers:Ollama"));
+            services.Configure<ZhipuConfiguration>(configuration.GetSection("AI:Providers:Zhipu"));
             services.Configure<MCPConfiguration>(configuration.GetSection("AI:Providers:MCP"));
 
             // 注册HTTP客户端
@@ -62,6 +65,9 @@ namespace NovelManagement.AI.Extensions
 
             // 注册Ollama API服务
             services.AddSingleton<IOllamaApiService, OllamaApiService>();
+
+            // 注册Zhipu API服务
+            services.AddSingleton<IZhipuApiService, ZhipuApiService>();
 
             // 注册MCP服务
             // services.AddSingleton<IMCPService, MCPService>(); // 待实现

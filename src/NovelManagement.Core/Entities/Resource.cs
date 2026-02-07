@@ -130,4 +130,9 @@ public class Resource : BaseEntity
     /// 控制势力
     /// </summary>
     public virtual Faction? ControllingFaction { get; set; }
+
+    /// <summary>
+    /// 关联的秘境
+    /// </summary>
+    public virtual ICollection<SecretRealm> SecretRealms { get; set; } = new List<SecretRealm>();
 }

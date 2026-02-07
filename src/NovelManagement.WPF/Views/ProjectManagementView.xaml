@@ -121,6 +121,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <TextBox x:Name="SearchTextBox"
                            materialDesign:HintAssist.Hint="搜索项目..."
+                           ToolTip="输入关键词搜索项目"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="250"

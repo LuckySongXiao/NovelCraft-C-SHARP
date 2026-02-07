@@ -102,6 +102,7 @@
                         <!-- 自定义字数 -->
                         <TextBox x:Name="CustomWordCountTextBox"
                                materialDesign:HintAssist.Hint="自定义字数"
+                               ToolTip="请输入期望续写的字数（仅在选择自定义长度时生效）"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Text="1200"
                                Margin="0,0,0,12"/>
@@ -109,6 +110,7 @@
                         <!-- 续写方向 -->
                         <TextBox x:Name="ContinueDirectionTextBox"
                                materialDesign:HintAssist.Hint="续写方向提示（可选）"
+                               ToolTip="提示AI接下来的剧情走向或特定事件"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"

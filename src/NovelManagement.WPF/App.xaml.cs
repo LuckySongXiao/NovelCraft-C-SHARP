@@ -23,6 +23,7 @@ using NovelManagement.AI.Workflow;
 using NovelManagement.AI.Services;
 using NovelManagement.AI.Services.Ollama;
 using NovelManagement.AI.Services.DeepSeek;
+using NovelManagement.AI.Services.Zhipu;
 using NovelManagement.AI.Services.ThinkingChain;
 
 namespace NovelManagement.WPF;
@@ -208,6 +209,7 @@ public partial class App : System.Windows.Application
             // 注册AI API服务
             services.AddSingleton<IOllamaApiService, OllamaApiService>();
             services.AddSingleton<IDeepSeekApiService, DeepSeekApiService>();
+            services.AddSingleton<IZhipuApiService, ZhipuApiService>();
             services.AddSingleton<IThinkingChainProcessor, ThinkingChainProcessor>();
 
             // 注册模型管理器
@@ -252,6 +254,13 @@ public partial class App : System.Windows.Application
                     });
                 }
 
+                // 注册Zhipu提供者
+                var zhipuService = serviceProvider.GetService<IZhipuApiService>();
+                if (zhipuService != null)
+                {
+                    modelManager.RegisterProvider(zhipuService);
+                }
+
                 // TODO: 注册DeepSeek提供者（需要实现IModelProvider接口）
                 // var deepSeekService = serviceProvider.GetService<IDeepSeekApiService>();
                 // if (deepSeekService != null)
@@ -260,7 +269,8 @@ public partial class App : System.Windows.Application
                 // }
 
                 // 设置默认提供者
-                modelManager.SetDefaultProvider("Ollama");
+                var defaultProvider = configuration["AI:DefaultProvider"] ?? "Zhipu";
+                modelManager.SetDefaultProvider(defaultProvider);
 
                 return modelManager;
             });

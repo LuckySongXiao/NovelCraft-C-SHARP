@@ -54,12 +54,14 @@
                         <!-- 项目名称 -->
                         <TextBox x:Name="ProjectNameTextBox"
                                materialDesign:HintAssist.Hint="项目名称 *"
+                               ToolTip="请输入项目名称（必填）"
                                materialDesign:HintAssist.IsFloating="True"
                                Margin="0,0,0,16"/>
 
                         <!-- 项目描述 -->
                         <TextBox x:Name="ProjectDescriptionTextBox"
                                materialDesign:HintAssist.Hint="项目描述"
+                               ToolTip="请输入项目的简要描述或剧情大纲"
                                materialDesign:HintAssist.IsFloating="True"
                                AcceptsReturn="True"
                                TextWrapping="Wrap"

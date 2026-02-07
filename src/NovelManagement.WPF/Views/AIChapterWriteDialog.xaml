@@ -91,6 +91,7 @@
                         <!-- 章节标题 -->
                         <TextBox x:Name="ChapterTitleTextBox"
                                materialDesign:HintAssist.Hint="章节标题"
+                               ToolTip="请输入要生成的章节标题"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,12"/>
 
@@ -122,6 +123,7 @@
                         <!-- 目标字数 -->
                         <TextBox x:Name="TargetWordCountTextBox"
                                materialDesign:HintAssist.Hint="目标字数"
+                               ToolTip="请输入期望生成的字数（建议2000-5000字）"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Text="2800"
                                Margin="0,0,0,12"/>
@@ -129,6 +131,7 @@
                         <!-- 章节大纲 -->
                         <TextBox x:Name="ChapterOutlineTextBox"
                                materialDesign:HintAssist.Hint="章节大纲（简要描述章节要点）"
+                               ToolTip="请简要描述本章的主要剧情流程和核心事件"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -140,6 +143,7 @@
                         <!-- 关键情节 -->
                         <TextBox x:Name="KeyPlotsTextBox"
                                materialDesign:HintAssist.Hint="关键情节（必须包含的重要情节点）"
+                               ToolTip="请列出必须包含的具体情节细节，AI将确保这些内容被写入"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -151,6 +155,7 @@
                         <!-- 出场角色 -->
                         <TextBox x:Name="CharactersTextBox"
                                materialDesign:HintAssist.Hint="出场角色（用逗号分隔）"
+                               ToolTip="请输入本章出场的角色，AI会根据角色设定调整对话风格"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,12"/>
 
@@ -193,6 +198,7 @@
                         <!-- 特殊要求 -->
                         <TextBox x:Name="SpecialRequirementsTextBox"
                                materialDesign:HintAssist.Hint="特殊要求（如特定描写重点、情感基调等）"
+                               ToolTip="请输入任何额外的写作要求，如文风偏好、特定伏笔等"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"

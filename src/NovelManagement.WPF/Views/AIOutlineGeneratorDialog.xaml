@@ -51,6 +51,7 @@
                         <!-- 小说主题 -->
                         <TextBox x:Name="ThemeTextBox"
                                materialDesign:HintAssist.Hint="小说主题（如：修仙、都市、玄幻等）"
+                               ToolTip="请输入小说的核心主题或类型标签"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,16"/>
 
@@ -83,6 +84,7 @@
                         <!-- 主角设定 -->
                         <TextBox x:Name="MainCharacterTextBox"
                                materialDesign:HintAssist.Hint="主角设定（姓名、性格、背景等）"
+                               ToolTip="请输入主角的简要设定，包括姓名、性格特征和身份背景"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="80"
                                TextWrapping="Wrap"
@@ -93,6 +95,7 @@
                         <!-- 背景设定 -->
                         <TextBox x:Name="SettingTextBox"
                                materialDesign:HintAssist.Hint="背景设定（世界观、时代背景等）"
+                               ToolTip="请输入故事发生的世界背景、时代特征或修炼体系"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="80"
                                TextWrapping="Wrap"
@@ -103,6 +106,7 @@
                         <!-- 特殊要求 -->
                         <TextBox x:Name="RequirementsTextBox"
                                materialDesign:HintAssist.Hint="特殊要求（情节偏好、风格要求等）"
+                               ToolTip="请输入关于大纲结构的特殊要求，如“黄金三章”、“双线叙事”等"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="100"
                                TextWrapping="Wrap"

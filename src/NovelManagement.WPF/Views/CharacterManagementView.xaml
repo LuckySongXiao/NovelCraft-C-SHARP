@@ -109,6 +109,7 @@
                     
                     <TextBox x:Name="SearchTextBox"
                            materialDesign:HintAssist.Hint="搜索角色..."
+                           ToolTip="输入关键词搜索角色"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="200"

@@ -51,6 +51,7 @@
                             <TextBox x:Name="NameTextBox"
                                    Grid.Column="0"
                                    materialDesign:HintAssist.Hint="角色姓名"
+                                   ToolTip="请输入角色的姓名"
                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                    Margin="0,0,0,16"/>
 
@@ -121,6 +122,7 @@
 
                         <TextBox x:Name="DescriptionTextBox"
                                materialDesign:HintAssist.Hint="角色的基本描述和背景介绍..."
+                               ToolTip="请输入角色的基本描述、性格特征和背景介绍"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -138,6 +140,7 @@
                             <Border Padding="16">
                                 <TextBox x:Name="AppearanceTextBox"
                                        materialDesign:HintAssist.Hint="描述角色的外貌特征..."
+                                       ToolTip="请输入角色的外貌特征，如发色、瞳色、身高等"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -152,6 +155,7 @@
                             <Border Padding="16">
                                 <TextBox x:Name="PersonalityTextBox"
                                        materialDesign:HintAssist.Hint="描述角色的性格特点..."
+                                       ToolTip="请输入角色的性格特点，如开朗、内向、冷酷等"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -166,6 +170,7 @@
                             <Border Padding="16">
                                 <TextBox x:Name="BackgroundTextBox"
                                        materialDesign:HintAssist.Hint="描述角色的背景故事..."
+                                       ToolTip="请输入角色的背景故事、身世来历等"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -180,6 +185,7 @@
                             <Border Padding="16">
                                 <TextBox x:Name="AbilitiesTextBox"
                                        materialDesign:HintAssist.Hint="描述角色的能力和技能..."
+                                       ToolTip="请输入角色的特殊能力、功法技能等"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"

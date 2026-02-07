@@ -47,6 +47,7 @@
                 <!-- 卷宗名称 -->
                 <TextBox x:Name="VolumeNameTextBox"
                        materialDesign:HintAssist.Hint="卷宗名称"
+                       ToolTip="请输入卷宗的名称"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="100"/>
@@ -54,6 +55,7 @@
                 <!-- 卷宗描述 -->
                 <TextBox x:Name="VolumeDescriptionTextBox"
                        materialDesign:HintAssist.Hint="卷宗描述"
+                       ToolTip="请输入卷宗的简要描述或剧情概括"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -79,6 +81,7 @@
                 <!-- 卷宗顺序 -->
                 <TextBox x:Name="VolumeOrderTextBox"
                        materialDesign:HintAssist.Hint="卷宗顺序"
+                       ToolTip="请输入卷宗的排序序号（数字）"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
@@ -86,6 +89,7 @@
                 <!-- 目标章节数 -->
                 <TextBox x:Name="TargetChapterCountTextBox"
                        materialDesign:HintAssist.Hint="目标章节数"
+                       ToolTip="请输入本卷预计包含的章节数量"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
@@ -93,6 +97,7 @@
                 <!-- 预计字数 -->
                 <TextBox x:Name="EstimatedWordCountTextBox"
                        materialDesign:HintAssist.Hint="预计字数"
+                       ToolTip="请输入本卷预计的总字数"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
@@ -100,6 +105,7 @@
                 <!-- 卷宗主题 -->
                 <TextBox x:Name="VolumeThemeTextBox"
                        materialDesign:HintAssist.Hint="卷宗主题"
+                       ToolTip="请输入本卷的核心主题或中心思想"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>
@@ -107,6 +113,7 @@
                 <!-- 关键角色 -->
                 <TextBox x:Name="KeyCharactersTextBox"
                        materialDesign:HintAssist.Hint="关键角色（用逗号分隔）"
+                       ToolTip="请输入本卷涉及的关键角色，多个角色请用逗号分隔"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="300"/>
@@ -114,6 +121,7 @@
                 <!-- 重要事件 -->
                 <TextBox x:Name="ImportantEventsTextBox"
                        materialDesign:HintAssist.Hint="重要事件概述"
+                       ToolTip="请简要描述本卷将发生的重要事件"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -138,6 +146,7 @@
                 <!-- 标签 -->
                 <TextBox x:Name="VolumeTagsTextBox"
                        materialDesign:HintAssist.Hint="标签（用逗号分隔）"
+                       ToolTip="请输入卷宗标签，用于分类和检索，多个标签请用逗号分隔"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>

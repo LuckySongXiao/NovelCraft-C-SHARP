@@ -208,6 +208,7 @@
                 <!-- 特殊要求 -->
                 <TextBox x:Name="SpecialRequirementsTextBox"
                        materialDesign:HintAssist.Hint="特殊要求（如特定词汇偏好、避免的表达等）"
+                       ToolTip="请输入任何特定的润色要求，例如需要避讳的词汇或强调的表达方式"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,12,0,0"/>
             </StackPanel>

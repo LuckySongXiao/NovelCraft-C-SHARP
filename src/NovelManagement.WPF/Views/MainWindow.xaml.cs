@@ -1,5 +1,8 @@
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Events;
+using NovelManagement.WPF.Services;
+using NovelManagement.Core.Entities;
 
 namespace NovelManagement.WPF.Views;
 
@@ -13,6 +16,9 @@ public partial class MainWindow : Window
     // 保持对各个界面的引用，以便进行数据同步
     private CharacterManagementView? _characterManagementView;
     private RelationshipNetworkView? _relationshipNetworkView;
+    
+    // 服务
+    private readonly ProjectContextService? _projectContextService;
 
     #endregion
 
@@ -23,8 +29,63 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // 获取服务
+        _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+
+        // 订阅项目变更事件
+        if (_projectContextService != null)
+        {
+            _projectContextService.ProjectChanged += OnProjectChanged;
+            
+            // 初始化导航状态
+            UpdateNavigation(_projectContextService.CurrentProjectName);
+        }
+
         // 订阅窗口关闭事件
         this.Closing += MainWindow_Closing;
+    }
+
+    /// <summary>
+    /// 项目变更事件处理
+    /// </summary>
+    private void OnProjectChanged(object? sender, ProjectChangedEventArgs e)
+    {
+        UpdateNavigation(e.NewProjectName);
+    }
+
+    /// <summary>
+    /// 更新导航栏和状态栏
+    /// </summary>
+    private void UpdateNavigation(string? projectName)
+    {
+        if (string.IsNullOrEmpty(projectName))
+        {
+            // 没有选中的项目
+            if (CurrentProjectNavExpander != null)
+            {
+                CurrentProjectNavExpander.Visibility = Visibility.Collapsed;
+            }
+            
+            if (CurrentProjectStatusBarText != null)
+            {
+                CurrentProjectStatusBarText.Text = "当前项目: 未选择";
+            }
+        }
+        else
+        {
+            // 有选中的项目
+            if (CurrentProjectNavExpander != null)
+            {
+                CurrentProjectNavExpander.Header = projectName;
+                CurrentProjectNavExpander.Visibility = Visibility.Visible;
+                CurrentProjectNavExpander.IsExpanded = true;
+            }
+            
+            if (CurrentProjectStatusBarText != null)
+            {
+                CurrentProjectStatusBarText.Text = $"当前项目: {projectName}";
+            }
+        }
     }
 
     /// <summary>
