@@ -18,6 +18,7 @@ public class UnitOfWork : IUnitOfWork
     private ICharacterRepository? _characters;
     private IFactionRepository? _factions;
     private ICharacterRelationshipRepository? _characterRelationships;
+    private ICharacterEventRepository? _characterEvents;
     private IFactionRelationshipRepository? _factionRelationships;
     private IWorldSettingRepository? _worldSettings;
     private ICultivationSystemRepository? _cultivationSystems;
@@ -71,6 +72,12 @@ public class UnitOfWork : IUnitOfWork
     /// </summary>
     public ICharacterRelationshipRepository CharacterRelationships => 
         _characterRelationships ??= new CharacterRelationshipRepository(_context);
+
+    /// <summary>
+    /// 角色事件/履历记录仓储
+    /// </summary>
+    public ICharacterEventRepository CharacterEvents =>
+        _characterEvents ??= new NovelManagement.Infrastructure.Repositories.CharacterEventRepository(_context);
 
     /// <summary>
     /// 势力关系仓储

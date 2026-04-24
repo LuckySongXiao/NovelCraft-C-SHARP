@@ -12,38 +12,100 @@ using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// FactionManagementView.xaml 的交互逻辑
     /// </summary>
-    public partial class FactionManagementView : UserControl
+    public partial class FactionManagementView : UserControl, INavigationRefreshableView
     {
         /// <summary>
         /// 势力数据模型
         /// </summary>
         public class FactionViewModel
         {
+            /// <summary>
+            /// 势力显示编号。
+            /// </summary>
             public int Id { get; set; }
+
+            /// <summary>
+            /// 势力名称。
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力类型。
+            /// </summary>
             public string Type { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力实力等级文本。
+            /// </summary>
             public string PowerLevel { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力描述。
+            /// </summary>
             public string Description { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力领地。
+            /// </summary>
             public string Territory { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 成员数量。
+            /// </summary>
             public int MemberCount { get; set; }
+
+            /// <summary>
+            /// 势力领袖名称。
+            /// </summary>
             public string Leader { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力理念。
+            /// </summary>
             public string Ideology { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力资源概况。
+            /// </summary>
             public string Resources { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 势力图标类型。
+            /// </summary>
             public PackIconKind IconKind { get; set; }
+
+            /// <summary>
+            /// 图标颜色。
+            /// </summary>
             public Brush IconColor { get; set; } = Brushes.Gray;
+
+            /// <summary>
+            /// 势力等级对应颜色。
+            /// </summary>
             public Brush PowerLevelColor { get; set; } = Brushes.Gray;
+
+            /// <summary>
+            /// 盟友列表。
+            /// </summary>
             public List<string> Allies { get; set; } = new();
+
+            /// <summary>
+            /// 敌对势力列表。
+            /// </summary>
             public List<string> Enemies { get; set; } = new();
         }
 
         private readonly FactionService _factionService;
         private readonly ILogger<FactionManagementView> _logger;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
         private Guid _currentProjectId;
 
         private List<FactionViewModel> _allFactions = new();
@@ -57,14 +119,18 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 构造函数
         /// </summary>
+        /// <summary>
+        /// 初始化势力管理视图。
+        /// </summary>
         public FactionManagementView()
         {
             // 从依赖注入容器获取服务
             var serviceProvider = App.ServiceProvider;
             _factionService = serviceProvider.GetRequiredService<FactionService>();
             _logger = serviceProvider.GetRequiredService<ILogger<FactionManagementView>>();
+            _projectContextService = serviceProvider.GetService<ProjectContextService>();
+            _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
 
-            // 获取当前项目ID（暂时使用固定值，后续可以从上下文获取）
             _currentProjectId = GetCurrentProjectId();
 
             InitializeComponent();
@@ -77,9 +143,18 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private Guid GetCurrentProjectId()
         {
-            // TODO: 从应用程序上下文或用户选择中获取当前项目ID
-            // 暂时返回一个固定的项目ID
-            return Guid.Parse("12345678-1234-1234-1234-123456789012");
+            return _projectContextService?.CurrentProjectId ?? Guid.Empty;
+        }
+
+        private bool EnsureCurrentProject(string featureName, out Guid projectId)
+        {
+            if (_currentProjectGuard != null)
+            {
+                return _currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), featureName, out projectId);
+            }
+
+            projectId = GetCurrentProjectId();
+            return projectId != Guid.Empty;
         }
 
         #region 初始化
@@ -99,6 +174,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_currentProjectId == Guid.Empty)
+                {
+                    _allFactions = new List<FactionViewModel>();
+                    _filteredFactions = new List<FactionViewModel>();
+                    UpdateFactionList();
+                    EnsureCurrentProject("势力管理", out _);
+                    return;
+                }
+
                 _logger?.LogInformation("开始加载势力数据，项目ID: {ProjectId}", _currentProjectId);
 
                 // 从数据库加载势力数据
@@ -132,6 +216,17 @@ namespace NovelManagement.WPF.Views
                 _filteredFactions = new List<FactionViewModel>();
                 UpdateFactionList();
             }
+        }
+
+        /// <summary>
+        /// 在项目切换后刷新势力数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadFactionsAsync();
         }
 
         /// <summary>

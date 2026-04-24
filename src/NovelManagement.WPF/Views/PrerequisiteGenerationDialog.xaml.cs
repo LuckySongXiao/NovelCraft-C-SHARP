@@ -20,6 +20,10 @@ namespace NovelManagement.WPF.Views
         private PrerequisiteGenerationService? _prerequisiteService;
         private bool _isGenerating;
 
+        /// <summary>
+        /// 初始化前置条件生成对话框。
+        /// </summary>
+        /// <param name="projectId">所属项目标识。</param>
         public PrerequisiteGenerationDialog(Guid projectId)
         {
             InitializeComponent();

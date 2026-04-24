@@ -53,6 +53,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化维度结构管理视图。
+        /// </summary>
         public DimensionStructureView()
         {
             InitializeComponent();
@@ -594,16 +597,59 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class DimensionViewModel
     {
+        /// <summary>
+        /// 维度标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 维度名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 维度类型。
+        /// </summary>
         public string Type { get; set; }
+
+        /// <summary>
+        /// 维度稳定性。
+        /// </summary>
         public string Stability { get; set; }
+
+        /// <summary>
+        /// 访问权限等级。
+        /// </summary>
         public string AccessLevel { get; set; }
+
+        /// <summary>
+        /// 维度描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 环境类型。
+        /// </summary>
         public string EnvironmentType { get; set; }
+
+        /// <summary>
+        /// 气候特征。
+        /// </summary>
         public string Climate { get; set; }
+
+        /// <summary>
+        /// 能量等级。
+        /// </summary>
         public string EnergyLevel { get; set; }
+
+        /// <summary>
+        /// 危险等级。
+        /// </summary>
         public string DangerLevel { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -612,8 +658,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PortalViewModel
     {
+        /// <summary>
+        /// 传送门名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 目标维度名称。
+        /// </summary>
         public string TargetDimension { get; set; }
+
+        /// <summary>
+        /// 传送门状态。
+        /// </summary>
         public string Status { get; set; }
     }
 

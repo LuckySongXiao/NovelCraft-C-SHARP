@@ -1,0 +1,32 @@
+<Project>
+  <!-- 全局编译设置 -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    全局警告抑制说明：
+    CS1591 - 缺少 XML 文档注释（保留 GenerateDocumentationFile 以生成文档，但不强制要求注释）
+    CS8618 - 退出构造函数时非空属性为 null（DI 注入模式常见）
+    CS8604 - 可能的 null 引用参数
+    CS8601 - 可能的 null 引用赋值
+    CS8602 - 可能的 null 解引用
+    CS8600 - 可能的 null 属性赋值
+    CS8625 - 可能的 null 引用字面量
+    CS8767 - 可空类型引用不匹配
+    CS8612 - 仅含可空类型的参数不匹配
+    CS8603 - 可能的 null 引用返回
+    CS8714 - 可空类型不能用作泛型类型参数
+    CS8622 - 委托参数可空性不匹配
+    CS8621 - 返回类型可空性不匹配
+    CS8620 - 参数可空性不匹配
+    CS0108 - 隐藏继承成员
+    CS0067 - 未使用的事件
+    CS8892 - 方法将使用默认接口实现
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;CS8618;CS8604;CS8601;CS8602;CS8600;CS8625;CS8767;CS8612;CS8603;CS8714;CS8622;CS8621;CS8620;CS0108;CS0067;CS8892</NoWarn>
+  </PropertyGroup>
+</Project>

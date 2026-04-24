@@ -1,20 +1,160 @@
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.Application.Services;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// ProjectOverviewView.xaml 的交互逻辑
     /// </summary>
-    public partial class ProjectOverviewView : UserControl
+    public partial class ProjectOverviewView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
+        private NavigationContext? _navigationContext;
+        private readonly ProjectReadModelService? _projectReadModelService;
+
+        private MainWindow? GetMainWindow() => Window.GetWindow(this) as MainWindow;
+
+        private bool EnsureCurrentProject(string featureName)
+        {
+            return TryGetCurrentProjectId(featureName, out _);
+        }
+
+        private bool TryNavigateToMainWindow(
+            string featureName,
+            NavigationTarget target,
+            bool requireProject = true,
+            object? payload = null,
+            string? source = null)
+        {
+            Guid? projectId = null;
+            string? projectName = null;
+            if (requireProject)
+            {
+                if (!TryGetCurrentProjectId(featureName, out var currentProjectId))
+                {
+                    return false;
+                }
+
+                projectId = currentProjectId;
+                projectName = _navigationContext?.ProjectName;
+            }
+
+            var mainWindow = GetMainWindow();
+            if (mainWindow == null)
+            {
+                MessageBox.Show("无法获取主窗口", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            mainWindow.NavigateTo(target, new NavigationContext
+            {
+                ProjectId = projectId,
+                ProjectName = projectName,
+                Source = source ?? "ProjectOverview",
+                Payload = payload
+            });
+            return true;
+        }
+
+        private bool TryGetCurrentProjectId(string featureName, out Guid projectId)
+        {
+            var mainWindow = GetMainWindow();
+            var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+            if (guard == null)
+            {
+                MessageBox.Show("项目校验服务未初始化", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                projectId = Guid.Empty;
+                return false;
+            }
+
+            return guard.TryGetCurrentProjectId(mainWindow, featureName, out projectId, () => mainWindow?.ShowProjectManagement());
+        }
+
         /// <summary>
         /// 构造函数
         /// </summary>
         public ProjectOverviewView()
         {
             InitializeComponent();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
+            Loaded += ProjectOverviewView_Loaded;
+        }
+
+        /// <summary>
+        /// 在项目切换后刷新项目概览数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _navigationContext = new NavigationContext
+            {
+                ProjectId = projectId,
+                ProjectName = projectName,
+                Source = "ProjectChanged"
+            };
+
+            await RefreshWorkspaceAsync(projectId);
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时应用导航上下文并刷新工作区。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _navigationContext = context;
+            _ = RefreshWorkspaceAsync(context.ProjectId);
+        }
+
+        private async void ProjectOverviewView_Loaded(object sender, RoutedEventArgs e)
+        {
+            var projectId = _navigationContext?.ProjectId;
+            if (projectId == null && TryGetCurrentProjectId("项目概览", out var currentProjectId))
+            {
+                projectId = currentProjectId;
+            }
+
+            await RefreshWorkspaceAsync(projectId);
+        }
+
+        private async Task RefreshWorkspaceAsync(Guid? projectId)
+        {
+            if (projectId == null || projectId == Guid.Empty || _projectReadModelService == null)
+            {
+                return;
+            }
+
+            var workspace = await _projectReadModelService.GetWorkspaceAsync(projectId.Value);
+            if (workspace == null)
+            {
+                return;
+            }
+
+            ProjectTitleTextBlock.Text = workspace.ProjectName;
+            ProjectTypeTextBlock.Text = workspace.ProjectType;
+            ProjectStatusChip.Content = workspace.ProjectStatus;
+            ProjectCreatedTextBlock.Text = workspace.ProjectCreatedAtText;
+            ProjectUpdatedTextBlock.Text = workspace.ProjectUpdatedAtText;
+            ProjectAuthorTextBlock.Text = workspace.ProjectAuthorText;
+            ProjectTargetWordsTextBlock.Text = workspace.ProjectTargetWordsText;
+            WordCountProgressTextBlock.Text = workspace.WordCountProgressText;
+            WordCountProgressBar.Value = workspace.WordCountProgressPercent;
+            WordCountPercentTextBlock.Text = workspace.WordCountPercentText;
+            ChapterCountProgressTextBlock.Text = workspace.ChapterCountProgressText;
+            ChapterCountProgressBar.Value = workspace.ChapterCountProgressPercent;
+            ChapterCountPercentTextBlock.Text = workspace.ChapterCountPercentText;
+            CharacterCountTextBlock.Text = workspace.CharacterCountText;
+            SettingCompletionTextBlock.Text = workspace.SettingCompletionText;
+            CharacterListTextBlock.Text = workspace.CharacterOverviewText;
+            OutlineContentTextBlock.Text = workspace.OutlineOverviewText;
         }
 
         #region 事件处理
@@ -26,21 +166,9 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到卷章管理界面
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 切换到卷章管理界面，用户可以在那里创建新章节
-                    mainWindow.ShowVolumeManagement();
-
-                    MessageBox.Show("已切换到卷章管理界面，您可以在此创建新章节", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("新建章节", NavigationTarget.VolumeManagement,
+                    payload: new VolumeNavigationPayload { Action = "CreateChapter" },
+                    source: "ProjectOverview.WriteChapter");
             }
             catch (Exception ex)
             {
@@ -56,21 +184,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到角色管理界面
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 直接调用公有方法ShowCharacterManagement
-                    mainWindow.ShowCharacterManagement();
-
-                    MessageBox.Show("已切换到角色管理界面", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("角色管理", NavigationTarget.CharacterManagement);
             }
             catch (Exception ex)
             {
@@ -86,21 +200,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到剧情管理界面
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 直接调用公有方法ShowPlotManagement
-                    mainWindow.ShowPlotManagement();
-
-                    MessageBox.Show("已切换到剧情管理界面", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("剧情管理", NavigationTarget.PlotManagement);
             }
             catch (Exception ex)
             {
@@ -116,16 +216,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 创建AI协作界面窗口
-                var aiWindow = new Window
-                {
-                    Title = "AI协作助手",
-                    Width = 1200,
-                    Height = 800,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    Content = new AICollaborationView()
-                };
-                aiWindow.Show();
+                TryNavigateToMainWindow("AI协作", NavigationTarget.AICollaboration);
             }
             catch (Exception ex)
             {
@@ -140,21 +231,9 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到卷章管理界面（项目主页）
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 切换到卷章管理界面作为项目主页
-                    mainWindow.ShowVolumeManagement();
-
-                    MessageBox.Show("已进入项目主页 - 卷章管理界面", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("项目主页", NavigationTarget.VolumeManagement,
+                    payload: new VolumeNavigationPayload { Action = "ProjectHome" },
+                    source: "ProjectOverview.ProjectStatus");
             }
             catch (Exception ex)
             {
@@ -168,16 +247,17 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void WorldSettings_Click(object sender, RoutedEventArgs e)
         {
-            // 创建一个新窗口来显示世界设定管理
-            var window = new Window
+            try
             {
-                Title = "世界设定管理",
-                Width = 1200,
-                Height = 800,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                Content = new WorldSettingManagementView()
-            };
-            window.Show();
+                TryNavigateToMainWindow("世界设定", NavigationTarget.WorldSettingManagement,
+                    payload: new WorldSettingNavigationPayload { Action = "WorldSettingsHome" },
+                    source: "ProjectOverview.WorldSettings");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开世界设定管理失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
@@ -187,21 +267,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到角色管理界面
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 直接调用公有方法ShowCharacterManagement
-                    mainWindow.ShowCharacterManagement();
-
-                    MessageBox.Show("已切换到角色管理界面，您可以查看和管理所有角色", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("角色管理", NavigationTarget.CharacterManagement);
             }
             catch (Exception ex)
             {
@@ -217,8 +283,10 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取当前项目ID（这里使用模拟ID，实际应该从当前项目上下文获取）
-                var currentProjectId = Guid.NewGuid(); // TODO: 从实际项目上下文获取
+                if (!TryGetCurrentProjectId("AI大纲生成", out var currentProjectId))
+                {
+                    return;
+                }
 
                 // 创建AI大纲生成对话框
                 var dialog = new AIOutlineGeneratorDialog(currentProjectId);
@@ -246,21 +314,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取主窗口并切换到剧情管理界面
-                var mainWindow = Window.GetWindow(this) as MainWindow;
-                if (mainWindow != null)
-                {
-                    // 直接调用公有方法ShowPlotManagement
-                    mainWindow.ShowPlotManagement();
-
-                    MessageBox.Show("已切换到剧情管理界面，您可以在此编辑剧情大纲", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("无法获取主窗口", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                TryNavigateToMainWindow("剧情管理", NavigationTarget.PlotManagement);
             }
             catch (Exception ex)
             {
@@ -276,16 +330,12 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 创建导入导出界面窗口
-                var importExportWindow = new Window
+                if (!TryNavigateToMainWindow("导入导出", NavigationTarget.ImportExport,
+                    payload: new ImportExportNavigationPayload { Action = "EntireProjectExport" },
+                    source: "ProjectOverview.ImportExport"))
                 {
-                    Title = "导入导出管理",
-                    Width = 1000,
-                    Height = 700,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    Content = new ImportExportView()
-                };
-                importExportWindow.Show();
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -297,19 +347,39 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 项目设置按钮点击事件
         /// </summary>
-        private void ProjectSettings_Click(object sender, RoutedEventArgs e)
+        private async void ProjectSettings_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 创建当前项目的模拟数据
+                if (!TryGetCurrentProjectId("项目设置", out var currentProjectId))
+                {
+                    return;
+                }
+
+                var readModelService = _projectReadModelService;
+                if (readModelService == null)
+                {
+                    MessageBox.Show("项目读模型服务未初始化", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var workspace = await readModelService.GetWorkspaceAsync(currentProjectId);
+                if (workspace == null)
+                {
+                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 var currentProject = new ProjectManagementView.ProjectViewModel
                 {
-                    Id = 1,
-                    Name = "千面劫·宿命轮回",
-                    Description = "一部修仙题材的长篇小说，讲述主角林轩在修仙世界中的成长历程",
-                    Type = "修仙小说",
-                    Status = "进行中",
-                    LastUpdated = "刚刚"
+                    Id = 0,
+                    Name = workspace.ProjectName,
+                    Description = workspace.ProjectDescription,
+                    Type = workspace.ProjectType,
+                    Status = workspace.ProjectStatus,
+                    LastUpdated = workspace.ProjectUpdatedAtText
                 };
 
                 // 创建项目设置对话框
@@ -334,68 +404,34 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 统计分析按钮点击事件
         /// </summary>
-        private void Statistics_Click(object sender, RoutedEventArgs e)
+        private async void Statistics_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 创建统计分析窗口
-                var statisticsWindow = new Window
+                if (!TryGetCurrentProjectId("统计分析", out var currentProjectId))
                 {
-                    Title = "项目统计分析",
-                    Width = 1200,
-                    Height = 800,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen
-                };
+                    return;
+                }
 
-                // 创建统计分析内容
-                var statisticsContent = new StackPanel
+                var statisticsService = App.ServiceProvider?.GetService<ProjectStatisticsService>();
+                if (statisticsService == null)
                 {
-                    Margin = new Thickness(24)
-                };
+                    MessageBox.Show("项目统计服务未初始化", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
-                // 添加标题
-                var titleBlock = new TextBlock
+                var summary = await statisticsService.GetProjectStatisticsAsync(currentProjectId);
+                if (summary == null)
                 {
-                    Text = "项目统计分析",
-                    FontSize = 24,
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 0, 0, 20)
-                };
-                statisticsContent.Children.Add(titleBlock);
+                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
-                // 添加统计信息
-                var statsText = new TextBlock
-                {
-                    Text = "📊 项目统计信息\n\n" +
-                           "• 总字数：125,000字\n" +
-                           "• 章节数：45章\n" +
-                           "• 角色数：23个\n" +
-                           "• 创作天数：120天\n" +
-                           "• 平均日更：1,042字\n" +
-                           "• 设定完成度：85%\n\n" +
-                           "📈 写作趋势\n\n" +
-                           "• 本周写作：8,500字\n" +
-                           "• 本月写作：32,000字\n" +
-                           "• 最高日更：3,200字\n" +
-                           "• 连续写作：15天\n\n" +
-                           "🎯 目标进度\n\n" +
-                           "• 目标字数：500,000字\n" +
-                           "• 完成进度：25%\n" +
-                           "• 预计完成：还需380天\n" +
-                           "• 建议日更：1,500字",
-                    FontSize = 14,
-                    LineHeight = 20
-                };
-                statisticsContent.Children.Add(statsText);
-
-                var scrollViewer = new ScrollViewer
-                {
-                    Content = statisticsContent,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-                };
-
-                statisticsWindow.Content = scrollViewer;
-                statisticsWindow.Show();
+                var statisticsWindow = statisticsService.CreateStatisticsWindow(summary);
+                statisticsWindow.Owner = Window.GetWindow(this);
+                statisticsWindow.ShowDialog();
             }
             catch (Exception ex)
             {
@@ -411,20 +447,38 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (!TryGetCurrentProjectId("项目备份", out var currentProjectId))
+                {
+                    return;
+                }
+
+                var projectService = App.ServiceProvider?.GetService<ProjectService>();
+                if (projectService == null)
+                {
+                    MessageBox.Show("项目服务未初始化", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var project = projectService.GetProjectByIdAsync(currentProjectId).GetAwaiter().GetResult();
+                if (project == null)
+                {
+                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 var result = MessageBox.Show(
-                    "确定要备份当前项目吗？\n\n备份将包含：\n• 所有文本内容\n• 角色设定\n• 剧情大纲\n• 世界设定\n• 项目配置",
+                    $"确定要备份当前项目“{project.Name}”吗？\n\n备份将包含：\n• 所有文本内容\n• 角色设定\n• 剧情大纲\n• 世界设定\n• 项目配置",
                     "备份确认",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    // 模拟备份过程
-                    var backupPath = $"千面劫·宿命轮回_备份_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
-
                     MessageBox.Show(
-                        $"项目备份成功！\n\n备份文件：{backupPath}\n保存位置：项目根目录/Backups/\n\n备份包含了所有项目数据，可用于恢复或迁移项目。",
-                        "备份完成",
+                        $"当前项目：{project.Name}\n\n真实备份链路尚未接入，本入口已完成项目上下文收口。\n后续将统一接入导出/备份服务，避免继续使用演示数据。",
+                        "功能待完善",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }

@@ -29,13 +29,44 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class DialogGenerationResult
         {
+            /// <summary>
+            /// 生成的对话内容。
+            /// </summary>
             public string Content { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 对话质量评分。
+            /// </summary>
             public double QualityScore { get; set; }
+
+            /// <summary>
+            /// 参与角色。
+            /// </summary>
             public string Characters { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 对话发生情境。
+            /// </summary>
             public string Situation { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 情绪基调。
+            /// </summary>
             public string Emotion { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 对话风格。
+            /// </summary>
             public string Style { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 生成时间。
+            /// </summary>
             public DateTime GeneratedAt { get; set; }
+
+            /// <summary>
+            /// 关联的思维链标识。
+            /// </summary>
             public string? ThinkingChainId { get; set; }
         }
 
@@ -43,6 +74,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化对话生成视图。
+        /// </summary>
         public DialogGenerationView()
         {
             InitializeComponent();

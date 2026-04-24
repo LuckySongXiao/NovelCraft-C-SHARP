@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,7 +17,7 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 装备体系管理视图
     /// </summary>
-    public partial class EquipmentSystemView : UserControl
+    public partial class EquipmentSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -54,10 +56,38 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private readonly IAIAssistantService? _aiAssistantService;
 
+        private readonly EquipmentDataService? _equipmentDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
+        /// <summary>
+        /// 获取当前装备体系总数。
+        /// </summary>
+        public int TotalCount => EquipmentSystems.Count;
+
+        /// <summary>
+        /// 获取武器类装备数量。
+        /// </summary>
+        public int WeaponCount => EquipmentSystems.Count(e => e.Category == "武器");
+
+        /// <summary>
+        /// 获取防具类装备数量。
+        /// </summary>
+        public int ArmorCount => EquipmentSystems.Count(e => e.Category == "防具");
+
+        /// <summary>
+        /// 获取法宝类装备数量。
+        /// </summary>
+        public int TreasureCount => EquipmentSystems.Count(e => e.Category == "法宝");
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化装备体系管理视图。
+        /// </summary>
         public EquipmentSystemView()
         {
             InitializeComponent();
@@ -68,6 +98,9 @@ namespace NovelManagement.WPF.Views
                 var serviceProvider = App.ServiceProvider;
                 _logger = serviceProvider?.GetService<ILogger<EquipmentSystemView>>();
                 _aiAssistantService = serviceProvider?.GetService<IAIAssistantService>();
+                _equipmentDataService = serviceProvider?.GetService<EquipmentDataService>();
+                _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
             }
             catch (Exception ex)
             {
@@ -77,7 +110,7 @@ namespace NovelManagement.WPF.Views
 
             InitializeData();
             InitializeCommands();
-            LoadEquipmentSystems();
+            _ = LoadEquipmentSystemsAsync();
         }
 
         #endregion
@@ -108,58 +141,32 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载装备体系数据
         /// </summary>
-        private void LoadEquipmentSystems()
+        private async Task LoadEquipmentSystemsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var equipments = new List<EquipmentSystemViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new EquipmentSystemViewModel
-                    {
-                        Id = 1,
-                        Name = "仙剑系列",
-                        Category = "武器",
-                        Description = "修仙者使用的各种仙剑，具有强大的攻击力和特殊效果",
-                        LevelCount = 10,
-                        AttributeCount = 8,
-                        CreatedAt = DateTime.Now.AddDays(-30)
-                    },
-                    new EquipmentSystemViewModel
-                    {
-                        Id = 2,
-                        Name = "护甲系列",
-                        Category = "防具",
-                        Description = "各种防护装备，能够抵御物理和法术攻击",
-                        LevelCount = 8,
-                        AttributeCount = 6,
-                        CreatedAt = DateTime.Now.AddDays(-25)
-                    },
-                    new EquipmentSystemViewModel
-                    {
-                        Id = 3,
-                        Name = "灵宝系列",
-                        Category = "法宝",
-                        Description = "蕴含天地灵气的宝物，具有神奇的功效",
-                        LevelCount = 12,
-                        AttributeCount = 10,
-                        CreatedAt = DateTime.Now.AddDays(-20)
-                    },
-                    new EquipmentSystemViewModel
-                    {
-                        Id = 4,
-                        Name = "丹药系列",
-                        Category = "丹药",
-                        Description = "炼丹师炼制的各种丹药，能够提升修为和治疗伤势",
-                        LevelCount = 9,
-                        AttributeCount = 5,
-                        CreatedAt = DateTime.Now.AddDays(-15)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "装备体系管理", out _);
+                    EquipmentSystems.Clear();
+                    EquipmentListControl.ItemsSource = EquipmentSystems;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var equipments = _equipmentDataService == null
+                    ? new List<EquipmentSystemViewModel>()
+                    : await _equipmentDataService.LoadEquipmentSystemsAsync(_currentProjectId);
 
                 EquipmentSystems.Clear();
                 foreach (var equipment in equipments)
                 {
+                    equipment.Levels ??= new List<EquipmentLevelViewModel>();
+                    equipment.Attributes ??= new List<EquipmentAttributeViewModel>();
+                    equipment.LevelCount = equipment.Levels.Count;
+                    equipment.AttributeCount = equipment.Attributes.Count;
                     EquipmentSystems.Add(equipment);
                 }
 
@@ -180,8 +187,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            EquipmentListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
         #endregion
@@ -259,22 +267,45 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导入装备数据
         /// </summary>
-        private void ImportEquipment_Click(object sender, RoutedEventArgs e)
+        private async void ImportEquipment_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = "导入装备体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
                     DefaultExt = "json"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 这里应该实现实际的导入逻辑
-                    MessageBox.Show($"已选择文件：{dialog.FileName}\n导入功能将在后续版本中完善。",
-                        "导入", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (!EnsureCurrentProject("导入装备体系"))
+                    {
+                        return;
+                    }
+
+                    if (_equipmentDataService == null)
+                    {
+                        MessageBox.Show("装备数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var importedSystems = await _equipmentDataService.ImportEquipmentSystemsAsync(dialog.FileName);
+                    EquipmentSystems.Clear();
+                    foreach (var equipment in importedSystems)
+                    {
+                        equipment.Levels ??= new List<EquipmentLevelViewModel>();
+                        equipment.Attributes ??= new List<EquipmentAttributeViewModel>();
+                        equipment.LevelCount = equipment.Levels.Count;
+                        equipment.AttributeCount = equipment.Attributes.Count;
+                        EquipmentSystems.Add(equipment);
+                    }
+
+                    await PersistEquipmentSystemsAsync();
+                    FilterEquipmentSystems();
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {EquipmentSystems.Count} 个装备体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -286,23 +317,33 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导出装备数据
         /// </summary>
-        private void ExportEquipment_Click(object sender, RoutedEventArgs e)
+        private async void ExportEquipment_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出装备体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json",
                     DefaultExt = "json",
                     FileName = $"装备体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 这里应该实现实际的导出逻辑
-                    MessageBox.Show($"数据将导出到：{dialog.FileName}\n导出功能将在后续版本中完善。",
-                        "导出", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (!EnsureCurrentProject("导出装备体系"))
+                    {
+                        return;
+                    }
+
+                    if (_equipmentDataService == null)
+                    {
+                        MessageBox.Show("装备数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    await _equipmentDataService.ExportEquipmentSystemsAsync(_currentProjectId, EquipmentSystems, dialog.FileName);
+                    MessageBox.Show($"装备体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -343,27 +384,19 @@ namespace NovelManagement.WPF.Views
             }
 
             // 加载等级列表
-            LoadEquipmentLevels(equipment.Id);
+            LoadEquipmentLevels(equipment);
             
             // 加载属性列表
-            LoadEquipmentAttributes(equipment.Id);
+            LoadEquipmentAttributes(equipment);
         }
 
         /// <summary>
         /// 加载装备等级
         /// </summary>
-        private void LoadEquipmentLevels(int equipmentId)
+        private void LoadEquipmentLevels(EquipmentSystemViewModel equipment)
         {
-            // 模拟数据
-            var levels = new List<EquipmentLevelViewModel>
-            {
-                new EquipmentLevelViewModel { Level = 1, Name = "凡品", Requirements = "普通材料" },
-                new EquipmentLevelViewModel { Level = 2, Name = "精品", Requirements = "精良材料" },
-                new EquipmentLevelViewModel { Level = 3, Name = "极品", Requirements = "稀有材料" }
-            };
-
             EquipmentLevels.Clear();
-            foreach (var level in levels)
+            foreach (var level in equipment.Levels.OrderBy(l => l.Level))
             {
                 EquipmentLevels.Add(level);
             }
@@ -374,17 +407,10 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载装备属性
         /// </summary>
-        private void LoadEquipmentAttributes(int equipmentId)
+        private void LoadEquipmentAttributes(EquipmentSystemViewModel equipment)
         {
-            // 模拟数据
-            var attributes = new List<EquipmentAttributeViewModel>
-            {
-                new EquipmentAttributeViewModel { Name = "攻击力", Value = "100-200", Description = "物理攻击伤害" },
-                new EquipmentAttributeViewModel { Name = "耐久度", Value = "1000", Description = "装备使用次数" }
-            };
-
             EquipmentAttributes.Clear();
-            foreach (var attribute in attributes)
+            foreach (var attribute in equipment.Attributes)
             {
                 EquipmentAttributes.Add(attribute);
             }
@@ -487,7 +513,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存装备体系
         /// </summary>
-        private void SaveEquipment_Click(object sender, RoutedEventArgs e)
+        private async void SaveEquipment_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -504,6 +530,8 @@ namespace NovelManagement.WPF.Views
                 SelectedEquipment.Category = (EquipmentCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "武器";
                 SelectedEquipment.LevelCount = EquipmentLevels.Count;
                 SelectedEquipment.AttributeCount = EquipmentAttributes.Count;
+                SelectedEquipment.Levels = EquipmentLevels.OrderBy(l => l.Level).ToList();
+                SelectedEquipment.Attributes = EquipmentAttributes.ToList();
 
                 // 如果是新建装备体系，添加到列表
                 if (SelectedEquipment.Id == 0)
@@ -512,7 +540,7 @@ namespace NovelManagement.WPF.Views
                     EquipmentSystems.Add(SelectedEquipment);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistEquipmentSystemsAsync();
                 MessageBox.Show("装备体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -579,11 +607,53 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// AI助手按钮点击事件
         /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI装备体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedEquipment != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前装备并保存\n否：AI生成新的装备并保存\n取消：打开原始AI助手",
+                        "AI装备体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GenerateEquipmentWithAiAsync(optimizeCurrent: choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的装备并保存\n否：打开原始AI助手",
+                    "AI装备体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GenerateEquipmentWithAiAsync(optimizeCurrent: false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -637,6 +707,240 @@ namespace NovelManagement.WPF.Views
             return context;
         }
 
+        /// <summary>
+        /// 在项目切换后刷新装备体系数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadEquipmentSystemsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的装备体系数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadEquipmentSystemsAsync();
+        }
+
+        private async Task PersistEquipmentSystemsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _equipmentDataService == null)
+            {
+                return;
+            }
+
+            foreach (var equipment in EquipmentSystems)
+            {
+                equipment.Levels ??= new List<EquipmentLevelViewModel>();
+                equipment.Attributes ??= new List<EquipmentAttributeViewModel>();
+                equipment.LevelCount = equipment.Levels.Count;
+                equipment.AttributeCount = equipment.Attributes.Count;
+            }
+
+            await _equipmentDataService.SaveEquipmentSystemsAsync(_currentProjectId, EquipmentSystems);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GenerateEquipmentWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedEquipment != null ? $"优化装备体系：{SelectedEquipment.Name}" : "生成装备体系",
+                ["theme"] = "请生成一个适合小说项目使用的装备体系，并输出名称、类别、描述、等级列表、属性列表。",
+                ["requirements"] = optimizeCurrent && SelectedEquipment != null
+                    ? $"请基于当前装备进行优化并输出结构化文本。当前装备：{SelectedEquipment.Name}，类别：{SelectedEquipment.Category}，描述：{SelectedEquipment.Description}"
+                    : "请输出一个完整装备体系，至少包含名称、类别、描述、至少3个等级、至少2个属性。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI装备体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedEquipment = ParseEquipmentFromAiResult(result.Data, optimizeCurrent ? SelectedEquipment : null);
+            if (generatedEquipment == null)
+            {
+                MessageBox.Show("AI结果无法解析为装备体系。", "AI装备体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedEquipment != null)
+            {
+                generatedEquipment.Id = SelectedEquipment.Id;
+                generatedEquipment.CreatedAt = SelectedEquipment.CreatedAt;
+                var index = EquipmentSystems.IndexOf(SelectedEquipment);
+                if (index >= 0)
+                {
+                    EquipmentSystems[index] = generatedEquipment;
+                }
+                SelectedEquipment = generatedEquipment;
+            }
+            else
+            {
+                generatedEquipment.Id = EquipmentSystems.Count > 0 ? EquipmentSystems.Max(e => e.Id) + 1 : 1;
+                generatedEquipment.CreatedAt = DateTime.Now;
+                EquipmentSystems.Add(generatedEquipment);
+                SelectedEquipment = generatedEquipment;
+            }
+
+            await PersistEquipmentSystemsAsync();
+            FilterEquipmentSystems();
+            UpdateStatistics();
+            LoadEquipmentSystemDetails(generatedEquipment);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存装备：{generatedEquipment.Name}" : $"已使用 AI 生成并保存装备：{generatedEquipment.Name}",
+                "AI装备体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private EquipmentSystemViewModel? ParseEquipmentFromAiResult(object data, EquipmentSystemViewModel? baseEquipment)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var equipment = new EquipmentSystemViewModel
+            {
+                Id = baseEquipment?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseEquipment?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成装备体系",
+                Category = ExtractField(text, "类别") ?? baseEquipment?.Category ?? "武器",
+                Description = ExtractField(text, "描述") ?? baseEquipment?.Description ?? text.Trim(),
+                CreatedAt = baseEquipment?.CreatedAt ?? DateTime.Now
+            };
+
+            equipment.Levels = ParseEquipmentLevels(text);
+            equipment.Attributes = ParseEquipmentAttributes(text);
+
+            if (equipment.Levels.Count == 0)
+            {
+                equipment.Levels = baseEquipment?.Levels?.ToList() ?? new List<EquipmentLevelViewModel>
+                {
+                    new() { Level = 1, Name = "凡品", Requirements = "普通材料" },
+                    new() { Level = 2, Name = "精品", Requirements = "精良材料" },
+                    new() { Level = 3, Name = "极品", Requirements = "稀有材料" }
+                };
+            }
+
+            if (equipment.Attributes.Count == 0)
+            {
+                equipment.Attributes = baseEquipment?.Attributes?.ToList() ?? new List<EquipmentAttributeViewModel>
+                {
+                    new() { Name = "攻击力", Value = "100", Description = "AI生成的基础属性" },
+                    new() { Name = "耐久度", Value = "1000", Description = "AI生成的基础属性" }
+                };
+            }
+
+            equipment.LevelCount = equipment.Levels.Count;
+            equipment.AttributeCount = equipment.Attributes.Count;
+            return equipment;
+        }
+
+        private static List<EquipmentLevelViewModel> ParseEquipmentLevels(string text)
+        {
+            var levels = new List<EquipmentLevelViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var index = 1;
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "品|级|阶"))
+                {
+                    continue;
+                }
+
+                levels.Add(new EquipmentLevelViewModel
+                {
+                    Level = index++,
+                    Name = TrimListMarker(line),
+                    Requirements = "根据 AI 生成内容整理"
+                });
+
+                if (levels.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return levels;
+        }
+
+        private static List<EquipmentAttributeViewModel> ParseEquipmentAttributes(string text)
+        {
+            var attributes = new List<EquipmentAttributeViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "属性|攻击|防御|耐久|暴击|速度|灵力|效果"))
+                {
+                    continue;
+                }
+
+                attributes.Add(new EquipmentAttributeViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Value = "待定",
+                    Description = line
+                });
+
+                if (attributes.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return attributes;
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+
         #endregion
     }
 
@@ -647,13 +951,50 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class EquipmentSystemViewModel
     {
+        /// <summary>
+        /// 装备体系标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 装备体系名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 装备类别。
+        /// </summary>
         public string Category { get; set; } = "";
+
+        /// <summary>
+        /// 装备体系描述。
+        /// </summary>
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 等级数量。
+        /// </summary>
         public int LevelCount { get; set; }
+
+        /// <summary>
+        /// 属性数量。
+        /// </summary>
         public int AttributeCount { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 装备等级列表。
+        /// </summary>
+        public List<EquipmentLevelViewModel> Levels { get; set; } = new();
+
+        /// <summary>
+        /// 装备属性列表。
+        /// </summary>
+        public List<EquipmentAttributeViewModel> Attributes { get; set; } = new();
     }
 
     /// <summary>
@@ -661,8 +1002,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class EquipmentLevelViewModel
     {
+        /// <summary>
+        /// 等级序号。
+        /// </summary>
         public int Level { get; set; }
+
+        /// <summary>
+        /// 等级名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 升级要求。
+        /// </summary>
         public string Requirements { get; set; } = "";
     }
 
@@ -671,8 +1023,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class EquipmentAttributeViewModel
     {
+        /// <summary>
+        /// 属性名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 属性值。
+        /// </summary>
         public string Value { get; set; } = "";
+
+        /// <summary>
+        /// 属性描述。
+        /// </summary>
         public string Description { get; set; } = "";
     }
 

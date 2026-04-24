@@ -47,6 +47,11 @@ public class NovelManagementDbContext : DbContext
     public DbSet<CharacterRelationship> CharacterRelationships { get; set; } = null!;
 
     /// <summary>
+    /// 角色事件/履历记录表
+    /// </summary>
+    public DbSet<CharacterEvent> CharacterEvents { get; set; } = null!;
+
+    /// <summary>
     /// 势力关系表
     /// </summary>
     public DbSet<FactionRelationship> FactionRelationships { get; set; } = null!;
@@ -136,6 +141,9 @@ public class NovelManagementDbContext : DbContext
 
         // 配置角色关系实体
         ConfigureCharacterRelationship(modelBuilder);
+
+        // 配置角色事件/履历记录实体
+        ConfigureCharacterEvent(modelBuilder);
 
         // 配置势力关系实体
         ConfigureFactionRelationship(modelBuilder);
@@ -358,6 +366,43 @@ public class NovelManagementDbContext : DbContext
             entity.HasIndex(e => e.SourceCharacterId);
             entity.HasIndex(e => e.TargetCharacterId);
             entity.HasIndex(e => e.RelationshipType);
+        });
+    }
+
+    /// <summary>
+    /// 配置角色事件/履历记录实体
+    /// </summary>
+    /// <param name="modelBuilder">模型构建器</param>
+    private static void ConfigureCharacterEvent(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CharacterEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.EventType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.StoryTime).HasMaxLength(200);
+            entity.Property(e => e.InvolvedCharacterIds).HasMaxLength(1000);
+            entity.Property(e => e.Tags).HasMaxLength(500);
+
+            entity.HasOne(e => e.Character)
+                  .WithMany(c => c.Events)
+                  .HasForeignKey(e => e.CharacterId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Chapter)
+                  .WithMany()
+                  .HasForeignKey(e => e.ChapterId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Plot)
+                  .WithMany()
+                  .HasForeignKey(e => e.PlotId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.CharacterId);
+            entity.HasIndex(e => e.EventType);
+            entity.HasIndex(e => e.Order);
+            entity.HasIndex(e => new { e.CharacterId, e.Order });
         });
     }
 

@@ -29,10 +29,10 @@ namespace NovelManagement.WPF.Views
         #region 构造函数
 
         /// <summary>
-        /// 构造函数
+        /// 初始化章节一致性检查对话框。
         /// </summary>
-        /// <param name="chapterData">章节数据</param>
-        /// <param name="chapterContent">章节内容</param>
+        /// <param name="chapterData">待检查的章节数据。</param>
+        /// <param name="chapterContent">待检查的章节正文。</param>
         public ConsistencyCheckDialog(ChapterEditData chapterData, string chapterContent)
         {
             InitializeComponent();
@@ -162,27 +162,62 @@ namespace NovelManagement.WPF.Views
 
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    InitializeAIService();
+                    if (_aiAssistantService == null)
+                    {
+                        MessageBox.Show("AI服务未初始化，无法执行一致性检查。\n请确保AI服务已正确配置。",
+                            "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
                 }
 
-                // 模拟AI检查（实际应该调用AI服务）
-                await Task.Delay(2000); // 模拟检查时间
-
-                var mockIssues = GenerateMockIssues();
-                foreach (var issue in mockIssues)
+                // 构建检查参数
+                var parameters = new Dictionary<string, object>
                 {
-                    _issues.Add(issue);
+                    ["chapterTitle"] = _chapterData.Title,
+                    ["chapterContent"] = _chapterContent,
+                    ["chapterSummary"] = _chapterData.Summary,
+                    ["characters"] = _chapterData.Characters,
+                    ["tags"] = _chapterData.Tags,
+                    ["checkPlotConsistency"] = CheckPlotConsistencyCheckBox.IsChecked == true,
+                    ["checkCharacterConsistency"] = CheckCharacterConsistencyCheckBox.IsChecked == true,
+                    ["checkWorldSetting"] = CheckWorldSettingCheckBox.IsChecked == true
+                };
+
+                // 调用AI服务执行一致性检查
+                var result = await _aiAssistantService.CheckPlotContinuityAsync(parameters);
+
+                if (result.IsSuccess && result.Data != null)
+                {
+                    // 解析AI返回的一致性问题
+                    var parsedIssues = ParseConsistencyIssues(result.Data);
+                    foreach (var issue in parsedIssues)
+                    {
+                        _issues.Add(issue);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"一致性检查未返回有效结果：{result.Message ?? "未知错误"}",
+                        "检查结果", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
                 UpdateIssueCount();
 
-                MessageBox.Show($"一致性检查完成！发现 {_issues.Count} 个问题", "检查完成", 
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                if (_issues.Count > 0)
+                {
+                    MessageBox.Show($"一致性检查完成！发现 {_issues.Count} 个问题", "检查完成",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("一致性检查完成！未发现问题", "检查完成",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"一致性检查失败：{ex.Message}", "错误", 
+                MessageBox.Show($"一致性检查失败：{ex.Message}", "错误",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -202,62 +237,87 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成模拟问题
+        /// 解析AI返回的一致性问题数据
         /// </summary>
-        private List<ConsistencyIssue> GenerateMockIssues()
+        /// <param name="data">AI返回的原始数据</param>
+        /// <returns>解析后的一致性问题列表</returns>
+        private List<ConsistencyIssue> ParseConsistencyIssues(object data)
         {
             var issues = new List<ConsistencyIssue>();
 
-            // 根据检查设置生成不同类型的问题
-            if (CheckPlotConsistencyCheckBox.IsChecked == true)
+            try
             {
-                issues.Add(new ConsistencyIssue
+                if (data is string text && !string.IsNullOrWhiteSpace(text))
                 {
-                    Category = "剧情一致性",
-                    Severity = "警告",
-                    SeverityColor = new SolidColorBrush(Colors.Orange),
-                    IconKind = PackIconKind.AlertCircle,
-                    Description = "章节中提到的天劫等级与前文设定不符",
-                    Location = "第3段",
-                    DetailedDescription = "在第3段中，主角面临的是'九重天劫'，但在前面的章节中明确设定为'七重天劫'。",
-                    Suggestion = "建议将'九重天劫'修改为'七重天劫'，或者在前文中调整设定。",
-                    RelatedContent = "第一道雷劫从天而降..."
-                });
-            }
+                    // 将AI返回的文本按段落解析为一致性问题
+                    var sections = text.Split(new[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-            if (CheckCharacterConsistencyCheckBox.IsChecked == true)
-            {
-                issues.Add(new ConsistencyIssue
-                {
-                    Category = "人物一致性",
-                    Severity = "错误",
-                    SeverityColor = new SolidColorBrush(Colors.Red),
-                    IconKind = PackIconKind.AlertCircleOutline,
-                    Description = "角色性格表现与人物设定不符",
-                    Location = "第5段",
-                    DetailedDescription = "林轩在此处表现得过于冲动，与其'沉稳谨慎'的人物设定不符。",
-                    Suggestion = "建议调整林轩的行为描写，体现其谨慎的性格特点。",
-                    RelatedContent = "林轩大喝一声，迎向了那道毁灭的雷光..."
-                });
-            }
+                    foreach (var section in sections)
+                    {
+                        var lines = section.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                        if (lines.Length == 0) continue;
 
-            if (CheckWorldSettingCheckBox.IsChecked == true)
+                        var issue = new ConsistencyIssue
+                        {
+                            Category = DetermineCategory(section),
+                            Severity = DetermineSeverity(section),
+                            Description = lines[0].TrimStart('•', '-', '*', ' '),
+                            DetailedDescription = section,
+                            Suggestion = "请根据AI分析结果进行修改",
+                            Location = "全文",
+                            RelatedContent = lines.Length > 1 ? lines[^1] : string.Empty
+                        };
+
+                        issue.SeverityColor = issue.Severity switch
+                        {
+                            "错误" => new SolidColorBrush(Colors.Red),
+                            "警告" => new SolidColorBrush(Colors.Orange),
+                            _ => new SolidColorBrush(Colors.Blue)
+                        };
+
+                        issue.IconKind = issue.Severity switch
+                        {
+                            "错误" => PackIconKind.AlertCircleOutline,
+                            "警告" => PackIconKind.AlertCircle,
+                            _ => PackIconKind.Information
+                        };
+
+                        issues.Add(issue);
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                issues.Add(new ConsistencyIssue
-                {
-                    Category = "世界设定",
-                    Severity = "提示",
-                    SeverityColor = new SolidColorBrush(Colors.Blue),
-                    IconKind = PackIconKind.Information,
-                    Description = "修炼体系描述可以更详细",
-                    Location = "第2段",
-                    DetailedDescription = "关于真气运转的描述较为简单，可以结合世界设定中的修炼体系进行更详细的描写。",
-                    Suggestion = "建议参考世界设定中的'九转玄功'体系，详细描述真气运转的路径和方法。",
-                    RelatedContent = "立即运转体内真气..."
-                });
+                System.Diagnostics.Debug.WriteLine($"解析一致性问题失败: {ex.Message}");
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// 根据内容判断问题分类
+        /// </summary>
+        private string DetermineCategory(string text)
+        {
+            if (text.Contains("剧情") || text.Contains("情节") || text.Contains("连贯"))
+                return "剧情一致性";
+            if (text.Contains("人物") || text.Contains("角色") || text.Contains("性格"))
+                return "人物一致性";
+            if (text.Contains("设定") || text.Contains("世界") || text.Contains("体系"))
+                return "世界设定";
+            return "其他";
+        }
+
+        /// <summary>
+        /// 根据内容判断问题严重级别
+        /// </summary>
+        private string DetermineSeverity(string text)
+        {
+            if (text.Contains("错误") || text.Contains("矛盾") || text.Contains("冲突"))
+                return "错误";
+            if (text.Contains("警告") || text.Contains("不符") || text.Contains("不一致"))
+                return "警告";
+            return "提示";
         }
 
         /// <summary>
@@ -364,14 +424,49 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ConsistencyIssue
     {
+        /// <summary>
+        /// 问题分类。
+        /// </summary>
         public string Category { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 问题严重级别。
+        /// </summary>
         public string Severity { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 严重级别对应颜色。
+        /// </summary>
         public SolidColorBrush SeverityColor { get; set; } = new SolidColorBrush(Colors.Gray);
+
+        /// <summary>
+        /// 问题图标。
+        /// </summary>
         public PackIconKind IconKind { get; set; } = PackIconKind.Information;
+
+        /// <summary>
+        /// 问题摘要描述。
+        /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 问题位置。
+        /// </summary>
         public string Location { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 问题详细说明。
+        /// </summary>
         public string DetailedDescription { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 修复建议。
+        /// </summary>
         public string Suggestion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 相关原文内容。
+        /// </summary>
         public string RelatedContent { get; set; } = string.Empty;
     }
 }

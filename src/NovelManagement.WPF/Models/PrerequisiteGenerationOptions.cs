@@ -88,10 +88,29 @@ namespace NovelManagement.WPF.Models
     /// </summary>
     public class PlotTemplate
     {
+        /// <summary>
+        /// 剧情标题
+        /// </summary>
         public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 剧情类型
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 摘要模板
+        /// </summary>
         public string SummaryTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 重要性等级
+        /// </summary>
         public int ImportanceLevel { get; set; } = 5;
+
+        /// <summary>
+        /// 剧情节点模板列表
+        /// </summary>
         public List<string> PlotPointTemplates { get; set; } = new();
     }
 
@@ -100,12 +119,39 @@ namespace NovelManagement.WPF.Models
     /// </summary>
     public class CharacterTemplate
     {
+        /// <summary>
+        /// 名称模板
+        /// </summary>
         public string NameTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 角色类型
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 性别
+        /// </summary>
         public string Gender { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 外貌模板
+        /// </summary>
         public string AppearanceTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 性格模板
+        /// </summary>
         public string PersonalityTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 背景模板
+        /// </summary>
         public string BackgroundTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 重要性等级
+        /// </summary>
         public int ImportanceLevel { get; set; } = 5;
     }
 
@@ -114,9 +160,24 @@ namespace NovelManagement.WPF.Models
     /// </summary>
     public class WorldSettingTemplate
     {
+        /// <summary>
+        /// 名称模板
+        /// </summary>
         public string NameTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 设定类型
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 内容模板
+        /// </summary>
         public string ContentTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 重要性
+        /// </summary>
         public int Importance { get; set; } = 5;
     }
 
@@ -125,11 +186,34 @@ namespace NovelManagement.WPF.Models
     /// </summary>
     public class FactionTemplate
     {
+        /// <summary>
+        /// 名称模板
+        /// </summary>
         public string NameTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 势力类型
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 描述模板
+        /// </summary>
         public string DescriptionTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 力量等级
+        /// </summary>
         public int PowerLevel { get; set; } = 50;
+
+        /// <summary>
+        /// 重要性
+        /// </summary>
         public int Importance { get; set; } = 50;
+
+        /// <summary>
+        /// 标签模板列表
+        /// </summary>
         public List<string> TagTemplates { get; set; } = new();
     }
 

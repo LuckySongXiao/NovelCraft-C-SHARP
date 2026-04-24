@@ -424,6 +424,14 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class GreaterThanZeroConverter : IValueConverter
     {
+        /// <summary>
+        /// 将整数值转换为布尔值（大于零返回 true），或将字符串转换为布尔值（非空白返回 true）
+        /// </summary>
+        /// <param name="value">要转换的值</param>
+        /// <param name="targetType">目标类型</param>
+        /// <param name="parameter">转换器参数</param>
+        /// <param name="culture">区域信息</param>
+        /// <returns>转换结果布尔值</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is int intValue)
@@ -433,6 +441,15 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        /// <summary>
+        /// 反向转换，此转换器不支持
+        /// </summary>
+        /// <param name="value">要转换回的值</param>
+        /// <param name="targetType">目标类型</param>
+        /// <param name="parameter">转换器参数</param>
+        /// <param name="culture">区域信息</param>
+        /// <returns>未实现</returns>
+        /// <exception cref="NotImplementedException">始终抛出</exception>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();

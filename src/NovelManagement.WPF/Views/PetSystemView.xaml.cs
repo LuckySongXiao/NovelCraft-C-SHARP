@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,7 +17,7 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 宠物体系管理视图
     /// </summary>
-    public partial class PetSystemView : UserControl
+    public partial class PetSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -49,10 +51,38 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private readonly IAIAssistantService? _aiAssistantService;
 
+        private readonly PetDataService? _petDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
+        /// <summary>
+        /// 获取当前宠物总数。
+        /// </summary>
+        public int TotalCount => Pets.Count;
+
+        /// <summary>
+        /// 获取灵兽数量。
+        /// </summary>
+        public int SpiritBeastCount => Pets.Count(p => p.Type == "灵兽");
+
+        /// <summary>
+        /// 获取神兽数量。
+        /// </summary>
+        public int DivineBeastCount => Pets.Count(p => p.Type == "神兽");
+
+        /// <summary>
+        /// 获取传说级及以上宠物数量。
+        /// </summary>
+        public int LegendaryCount => Pets.Count(p => p.Rarity == "传说" || p.Rarity == "神话" || p.Rarity == "至尊");
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化宠物体系管理视图。
+        /// </summary>
         public PetSystemView()
         {
             InitializeComponent();
@@ -63,6 +93,9 @@ namespace NovelManagement.WPF.Views
                 var serviceProvider = App.ServiceProvider;
                 _logger = serviceProvider?.GetService<ILogger<PetSystemView>>();
                 _aiAssistantService = serviceProvider?.GetService<IAIAssistantService>();
+                _petDataService = serviceProvider?.GetService<PetDataService>();
+                _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
             }
             catch (Exception ex)
             {
@@ -72,7 +105,7 @@ namespace NovelManagement.WPF.Views
 
             InitializeData();
             InitializeCommands();
-            LoadPets();
+            _ = LoadPetsAsync();
         }
 
         #endregion
@@ -106,123 +139,29 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载宠物数据
         /// </summary>
-        private void LoadPets()
+        private async Task LoadPetsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var pets = new List<PetViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new PetViewModel
-                    {
-                        Id = 1,
-                        Name = "九尾天狐",
-                        Type = "神兽",
-                        Rarity = "神话",
-                        Level = "100",
-                        Element = "火、幻术",
-                        GrowthStage = "究极体",
-                        Description = "传说中的九尾狐，拥有强大的幻术能力和火焰操控力",
-                        Attack = "9500",
-                        Defense = "7800",
-                        Health = "12000",
-                        Speed = "8900",
-                        Mana = "15000",
-                        Loyalty = "95",
-                        EvolutionFrom = "七尾狐",
-                        EvolutionTo = "无",
-                        EvolutionCondition = "已达到最终进化形态",
-                        CreatedAt = DateTime.Now.AddDays(-365)
-                    },
-                    new PetViewModel
-                    {
-                        Id = 2,
-                        Name = "青龙",
-                        Type = "神兽",
-                        Rarity = "传说",
-                        Level = "85",
-                        Element = "木、风",
-                        GrowthStage = "完全体",
-                        Description = "东方青龙，掌控木属性和风属性的神兽",
-                        Attack = "8800",
-                        Defense = "9200",
-                        Health = "11500",
-                        Speed = "7600",
-                        Mana = "13000",
-                        Loyalty = "88",
-                        EvolutionFrom = "青蛟",
-                        EvolutionTo = "苍龙",
-                        EvolutionCondition = "等级达到100级，获得龙珠",
-                        CreatedAt = DateTime.Now.AddDays(-300)
-                    },
-                    new PetViewModel
-                    {
-                        Id = 3,
-                        Name = "雷鸟",
-                        Type = "灵兽",
-                        Rarity = "史诗",
-                        Level = "60",
-                        Element = "雷",
-                        GrowthStage = "成熟期",
-                        Description = "掌控雷电之力的神鸟，速度极快",
-                        Attack = "7200",
-                        Defense = "5800",
-                        Health = "8500",
-                        Speed = "9800",
-                        Mana = "9500",
-                        Loyalty = "75",
-                        EvolutionFrom = "雷鹰",
-                        EvolutionTo = "雷神鸟",
-                        EvolutionCondition = "等级达到80级，雷劫洗礼",
-                        CreatedAt = DateTime.Now.AddDays(-250)
-                    },
-                    new PetViewModel
-                    {
-                        Id = 4,
-                        Name = "火麒麟",
-                        Type = "仙兽",
-                        Rarity = "传说",
-                        Level = "90",
-                        Element = "火、土",
-                        GrowthStage = "完全体",
-                        Description = "传说中的火麒麟，拥有强大的火焰和大地之力",
-                        Attack = "9000",
-                        Defense = "8500",
-                        Health = "10800",
-                        Speed = "7200",
-                        Mana = "11500",
-                        Loyalty = "92",
-                        EvolutionFrom = "火麟兽",
-                        EvolutionTo = "圣火麒麟",
-                        EvolutionCondition = "等级达到100级，圣火洗礼",
-                        CreatedAt = DateTime.Now.AddDays(-200)
-                    },
-                    new PetViewModel
-                    {
-                        Id = 5,
-                        Name = "冰晶狼",
-                        Type = "妖兽",
-                        Rarity = "稀有",
-                        Level = "45",
-                        Element = "冰",
-                        GrowthStage = "成长期",
-                        Description = "生活在冰原的狼族，拥有冰属性攻击能力",
-                        Attack = "5500",
-                        Defense = "4800",
-                        Health = "6200",
-                        Speed = "7800",
-                        Mana = "5800",
-                        Loyalty = "68",
-                        EvolutionFrom = "雪狼",
-                        EvolutionTo = "冰霜巨狼",
-                        EvolutionCondition = "等级达到60级，冰晶核心",
-                        CreatedAt = DateTime.Now.AddDays(-150)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "宠物体系管理", out _);
+                    Pets.Clear();
+                    PetListControl.ItemsSource = Pets;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var pets = _petDataService == null
+                    ? new List<PetViewModel>()
+                    : await _petDataService.LoadPetsAsync(_currentProjectId);
 
                 Pets.Clear();
                 foreach (var pet in pets)
                 {
+                    pet.Skills ??= new List<SkillViewModel>();
                     Pets.Add(pet);
                 }
 
@@ -243,8 +182,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            PetListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
         #endregion
@@ -363,46 +303,15 @@ namespace NovelManagement.WPF.Views
             EvolutionConditionTextBox.Text = pet.EvolutionCondition;
 
             // 加载技能列表
-            LoadSkills(pet.Id);
+            LoadSkills(pet);
         }
 
         /// <summary>
         /// 加载技能列表
         /// </summary>
-        private void LoadSkills(int petId)
+        private void LoadSkills(PetViewModel pet)
         {
-            // 模拟数据 - 实际应用中应该从服务层获取
-            var skills = new List<SkillViewModel>();
-            
-            if (petId == 1) // 九尾天狐
-            {
-                skills.AddRange(new[]
-                {
-                    new SkillViewModel { Name = "狐火术", Type = "攻击", Level = "10" },
-                    new SkillViewModel { Name = "幻术迷惑", Type = "辅助", Level = "8" },
-                    new SkillViewModel { Name = "九尾冲击", Type = "攻击", Level = "9" },
-                    new SkillViewModel { Name = "火焰护盾", Type = "防御", Level = "7" }
-                });
-            }
-            else if (petId == 2) // 青龙
-            {
-                skills.AddRange(new[]
-                {
-                    new SkillViewModel { Name = "龙息", Type = "攻击", Level = "9" },
-                    new SkillViewModel { Name = "风刃", Type = "攻击", Level = "8" },
-                    new SkillViewModel { Name = "木遁", Type = "辅助", Level = "7" },
-                    new SkillViewModel { Name = "龙鳞护体", Type = "防御", Level = "8" }
-                });
-            }
-            else if (petId == 3) // 雷鸟
-            {
-                skills.AddRange(new[]
-                {
-                    new SkillViewModel { Name = "雷击", Type = "攻击", Level = "7" },
-                    new SkillViewModel { Name = "闪电链", Type = "攻击", Level = "6" },
-                    new SkillViewModel { Name = "疾风", Type = "辅助", Level = "8" }
-                });
-            }
+            var skills = pet.Skills ?? new List<SkillViewModel>();
 
             Skills.Clear();
             foreach (var skill in skills)
@@ -478,17 +387,86 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导入宠物数据
         /// </summary>
-        private void ImportPet_Click(object sender, RoutedEventArgs e)
+        private async void ImportPet_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导入宠物体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "导入宠物体系数据",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    DefaultExt = "json"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_petDataService == null)
+                    {
+                        MessageBox.Show("宠物数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var importedPets = await _petDataService.ImportPetsAsync(dialog.FileName);
+                    Pets.Clear();
+                    foreach (var pet in importedPets)
+                    {
+                        pet.Skills ??= new List<SkillViewModel>();
+                        Pets.Add(pet);
+                    }
+
+                    await PersistPetsAsync();
+                    FilterPets();
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {Pets.Count} 个宠物。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
         /// 导出宠物数据
         /// </summary>
-        private void ExportPet_Click(object sender, RoutedEventArgs e)
+        private async void ExportPet_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导出宠物体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出宠物体系数据",
+                    Filter = "JSON文件|*.json",
+                    DefaultExt = "json",
+                    FileName = $"宠物体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_petDataService == null)
+                    {
+                        MessageBox.Show("宠物数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    await _petDataService.ExportPetsAsync(_currentProjectId, Pets, dialog.FileName);
+                    MessageBox.Show($"宠物体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
@@ -520,7 +498,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存宠物
         /// </summary>
-        private void SavePet_Click(object sender, RoutedEventArgs e)
+        private async void SavePet_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -550,6 +528,7 @@ namespace NovelManagement.WPF.Views
                 SelectedPet.EvolutionFrom = EvolutionFromTextBox.Text.Trim();
                 SelectedPet.EvolutionTo = EvolutionToTextBox.Text.Trim();
                 SelectedPet.EvolutionCondition = EvolutionConditionTextBox.Text.Trim();
+                SelectedPet.Skills = Skills.ToList();
 
                 // 如果是新建宠物，添加到列表
                 if (SelectedPet.Id == 0)
@@ -558,7 +537,7 @@ namespace NovelManagement.WPF.Views
                     Pets.Add(SelectedPet);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistPetsAsync();
                 MessageBox.Show("宠物保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -586,11 +565,53 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// AI助手按钮点击事件
         /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI宠物体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedPet != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前宠物并保存\n否：AI生成新的宠物并保存\n取消：打开原始AI助手",
+                        "AI宠物体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GeneratePetWithAiAsync(optimizeCurrent: choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的宠物并保存\n否：打开原始AI助手",
+                    "AI宠物体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GeneratePetWithAiAsync(optimizeCurrent: false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -666,6 +687,222 @@ namespace NovelManagement.WPF.Views
             return context;
         }
 
+        /// <summary>
+        /// 在项目切换后刷新宠物体系数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadPetsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的宠物体系数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadPetsAsync();
+        }
+
+        private async Task PersistPetsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _petDataService == null)
+            {
+                return;
+            }
+
+            foreach (var pet in Pets)
+            {
+                pet.Skills ??= new List<SkillViewModel>();
+            }
+
+            await _petDataService.SavePetsAsync(_currentProjectId, Pets);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GeneratePetWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedPet != null ? $"优化宠物：{SelectedPet.Name}" : "生成宠物体系条目",
+                ["theme"] = "请生成一个适合小说项目使用的宠物设定，并输出名称、类型、稀有度、等级、元素、成长阶段、描述、六维属性、忠诚度、进化信息、技能列表。",
+                ["requirements"] = optimizeCurrent && SelectedPet != null
+                    ? $"请基于当前宠物进行优化并输出结构化文本。当前宠物：{SelectedPet.Name}，类型：{SelectedPet.Type}，稀有度：{SelectedPet.Rarity}，等级：{SelectedPet.Level}，描述：{SelectedPet.Description}"
+                    : "请输出一个完整宠物设定，至少包含名称、类型、稀有度、等级、元素、成长阶段、描述、六维属性、忠诚度、进化信息、至少3个技能。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI宠物体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedPet = ParsePetFromAiResult(result.Data, optimizeCurrent ? SelectedPet : null);
+            if (generatedPet == null)
+            {
+                MessageBox.Show("AI结果无法解析为宠物。", "AI宠物体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedPet != null)
+            {
+                generatedPet.Id = SelectedPet.Id;
+                generatedPet.CreatedAt = SelectedPet.CreatedAt;
+                var index = Pets.IndexOf(SelectedPet);
+                if (index >= 0)
+                {
+                    Pets[index] = generatedPet;
+                }
+                SelectedPet = generatedPet;
+            }
+            else
+            {
+                generatedPet.Id = Pets.Count > 0 ? Pets.Max(p => p.Id) + 1 : 1;
+                generatedPet.CreatedAt = DateTime.Now;
+                Pets.Add(generatedPet);
+                SelectedPet = generatedPet;
+            }
+
+            await PersistPetsAsync();
+            FilterPets();
+            UpdateStatistics();
+            LoadPetDetails(generatedPet);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存宠物：{generatedPet.Name}" : $"已使用 AI 生成并保存宠物：{generatedPet.Name}",
+                "AI宠物体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private PetViewModel? ParsePetFromAiResult(object data, PetViewModel? basePet)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var pet = new PetViewModel
+            {
+                Id = basePet?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? basePet?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成宠物",
+                Type = ExtractField(text, "类型") ?? basePet?.Type ?? "灵兽",
+                Rarity = ExtractField(text, "稀有度") ?? basePet?.Rarity ?? "稀有",
+                Level = ExtractField(text, "等级") ?? basePet?.Level ?? "1",
+                Element = ExtractField(text, "元素") ?? basePet?.Element ?? "无",
+                GrowthStage = ExtractField(text, "成长阶段") ?? basePet?.GrowthStage ?? "幼体",
+                Description = ExtractField(text, "描述") ?? basePet?.Description ?? text.Trim(),
+                Attack = ExtractField(text, "攻击") ?? basePet?.Attack ?? "100",
+                Defense = ExtractField(text, "防御") ?? basePet?.Defense ?? "100",
+                Health = ExtractField(text, "生命") ?? basePet?.Health ?? "100",
+                Speed = ExtractField(text, "速度") ?? basePet?.Speed ?? "100",
+                Mana = ExtractField(text, "法力") ?? basePet?.Mana ?? "100",
+                Loyalty = ExtractField(text, "忠诚度") ?? basePet?.Loyalty ?? "80",
+                EvolutionFrom = ExtractField(text, "进化前") ?? basePet?.EvolutionFrom ?? "",
+                EvolutionTo = ExtractField(text, "进化后") ?? basePet?.EvolutionTo ?? "",
+                EvolutionCondition = ExtractField(text, "进化条件") ?? basePet?.EvolutionCondition ?? "待补充",
+                CreatedAt = basePet?.CreatedAt ?? DateTime.Now
+            };
+
+            pet.Skills = ParseSkills(text);
+            if (pet.Skills.Count == 0)
+            {
+                pet.Skills = basePet?.Skills?.ToList() ?? new List<SkillViewModel>
+                {
+                    new() { Name = "基础攻击", Type = "攻击", Level = "1" },
+                    new() { Name = "守护姿态", Type = "防御", Level = "1" },
+                    new() { Name = "灵息感知", Type = "辅助", Level = "1" }
+                };
+            }
+
+            return pet;
+        }
+
+        private static List<SkillViewModel> ParseSkills(string text)
+        {
+            var skills = new List<SkillViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "技能|术|击|爪|护|焰|雷|风|冰"))
+                {
+                    continue;
+                }
+
+                skills.Add(new SkillViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Type = InferSkillType(line),
+                    Level = "1"
+                });
+
+                if (skills.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return skills;
+        }
+
+        private static string InferSkillType(string line)
+        {
+            if (Regex.IsMatch(line, "护|守|盾"))
+            {
+                return "防御";
+            }
+            if (Regex.IsMatch(line, "辅|治疗|感知|增益"))
+            {
+                return "辅助";
+            }
+
+            return "攻击";
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+
         #endregion
     }
 
@@ -676,24 +913,100 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PetViewModel
     {
+        /// <summary>
+        /// 宠物标识。
+        /// </summary>
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Rarity { get; set; }
-        public string Level { get; set; }
-        public string Element { get; set; }
-        public string GrowthStage { get; set; }
-        public string Description { get; set; }
-        public string Attack { get; set; }
-        public string Defense { get; set; }
-        public string Health { get; set; }
-        public string Speed { get; set; }
-        public string Mana { get; set; }
-        public string Loyalty { get; set; }
-        public string EvolutionFrom { get; set; }
-        public string EvolutionTo { get; set; }
-        public string EvolutionCondition { get; set; }
+
+        /// <summary>
+        /// 宠物名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 宠物类型。
+        /// </summary>
+        public string Type { get; set; } = "";
+
+        /// <summary>
+        /// 稀有度。
+        /// </summary>
+        public string Rarity { get; set; } = "";
+
+        /// <summary>
+        /// 当前等级。
+        /// </summary>
+        public string Level { get; set; } = "";
+
+        /// <summary>
+        /// 元素属性。
+        /// </summary>
+        public string Element { get; set; } = "";
+
+        /// <summary>
+        /// 成长阶段。
+        /// </summary>
+        public string GrowthStage { get; set; } = "";
+
+        /// <summary>
+        /// 宠物描述。
+        /// </summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 攻击属性值。
+        /// </summary>
+        public string Attack { get; set; } = "";
+
+        /// <summary>
+        /// 防御属性值。
+        /// </summary>
+        public string Defense { get; set; } = "";
+
+        /// <summary>
+        /// 生命属性值。
+        /// </summary>
+        public string Health { get; set; } = "";
+
+        /// <summary>
+        /// 速度属性值。
+        /// </summary>
+        public string Speed { get; set; } = "";
+
+        /// <summary>
+        /// 法力属性值。
+        /// </summary>
+        public string Mana { get; set; } = "";
+
+        /// <summary>
+        /// 忠诚度。
+        /// </summary>
+        public string Loyalty { get; set; } = "";
+
+        /// <summary>
+        /// 进化前形态。
+        /// </summary>
+        public string EvolutionFrom { get; set; } = "";
+
+        /// <summary>
+        /// 进化后形态。
+        /// </summary>
+        public string EvolutionTo { get; set; } = "";
+
+        /// <summary>
+        /// 进化条件。
+        /// </summary>
+        public string EvolutionCondition { get; set; } = "";
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 技能列表。
+        /// </summary>
+        public List<SkillViewModel> Skills { get; set; } = new();
     }
 
     /// <summary>
@@ -701,9 +1014,20 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class SkillViewModel
     {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public string Level { get; set; }
+        /// <summary>
+        /// 技能名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 技能类型。
+        /// </summary>
+        public string Type { get; set; } = "";
+
+        /// <summary>
+        /// 技能等级。
+        /// </summary>
+        public string Level { get; set; } = "";
     }
 
     #endregion

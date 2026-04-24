@@ -111,6 +111,16 @@ public class Character : BaseEntity
     /// </summary>
     public Guid? LastAppearanceChapterId { get; set; }
 
+    /// <summary>
+    /// 角色历史/履历概述
+    /// </summary>
+    public string? History { get; set; }
+
+    /// <summary>
+    /// 关键经历摘要
+    /// </summary>
+    public string? KeyEvents { get; set; }
+
     // 导航属性
     /// <summary>
     /// 所属项目
@@ -151,4 +161,9 @@ public class Character : BaseEntity
     /// 作为中心的关系网络
     /// </summary>
     public virtual ICollection<RelationshipNetwork> CentralNetworks { get; set; } = new List<RelationshipNetwork>();
+
+    /// <summary>
+    /// 角色事件/履历记录
+    /// </summary>
+    public virtual ICollection<CharacterEvent> Events { get; set; } = new List<CharacterEvent>();
 }

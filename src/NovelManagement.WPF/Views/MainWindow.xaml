@@ -32,13 +32,25 @@
                                        Width="24" Height="24"
                                        VerticalAlignment="Center"
                                        Margin="0,0,16,0"/>
-                <TextBlock Text="小说管理系统 - 仪表盘" 
-                         FontSize="20" 
-                         FontWeight="Medium" 
-                         VerticalAlignment="Center"/>
+                <StackPanel>
+                    <TextBlock Text="小说管理系统 - 仪表盘" 
+                             FontSize="20" 
+                             FontWeight="Medium"/>
+                    <TextBlock x:Name="CurrentLocationTextBlock"
+                             Text="当前位置：仪表盘"
+                             FontSize="12"
+                             Opacity="0.9"/>
+                </StackPanel>
                 
                 <!-- 右侧工具栏 -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="BackButton"
+                            Style="{StaticResource MaterialDesignToolButton}"
+                            ToolTip="返回上一页"
+                            Click="Back_Click"
+                            IsEnabled="False">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="20" Height="20"/>
+                    </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
                             ToolTip="设置">
                         <materialDesign:PackIcon Kind="Settings" Width="20" Height="20"/>

@@ -21,6 +21,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化 AIModelConfigView 的新实例，从应用服务容器获取日志和配置服务
+        /// </summary>
         public AIModelConfigView()
         {
             InitializeComponent();

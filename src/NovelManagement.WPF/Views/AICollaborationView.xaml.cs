@@ -38,14 +38,49 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class AgentViewModel
         {
+            /// <summary>
+            /// Agent 标识。
+            /// </summary>
             public string Id { get; set; } = string.Empty;
+
+            /// <summary>
+            /// Agent 名称。
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 当前状态描述。
+            /// </summary>
             public string StatusDescription { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 当前执行任务名称。
+            /// </summary>
             public string CurrentTask { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 当前进度百分比。
+            /// </summary>
             public int Progress { get; set; }
+
+            /// <summary>
+            /// 状态图标。
+            /// </summary>
             public PackIconKind IconKind { get; set; }
+
+            /// <summary>
+            /// 状态颜色。
+            /// </summary>
             public SolidColorBrush StatusColor { get; set; } = new SolidColorBrush(Colors.Gray);
+
+            /// <summary>
+            /// 指示当前是否已有任务。
+            /// </summary>
             public bool HasCurrentTask => !string.IsNullOrEmpty(CurrentTask);
+
+            /// <summary>
+            /// 指示当前是否处于工作中。
+            /// </summary>
             public bool IsWorking => Progress > 0 && Progress < 100;
         }
 
@@ -54,15 +89,54 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class TaskViewModel
         {
+            /// <summary>
+            /// 任务标识。
+            /// </summary>
             public string Id { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 任务名称。
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 任务类型。
+            /// </summary>
             public string TaskType { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 目标 Agent 标识。
+            /// </summary>
             public string TargetAgentId { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 工作流状态。
+            /// </summary>
             public WorkflowStatus Status { get; set; }
+
+            /// <summary>
+            /// 当前进度百分比。
+            /// </summary>
             public int Progress { get; set; }
+
+            /// <summary>
+            /// 状态图标。
+            /// </summary>
             public PackIconKind StatusIcon { get; set; }
+
+            /// <summary>
+            /// 状态颜色。
+            /// </summary>
             public SolidColorBrush StatusColor { get; set; } = new SolidColorBrush(Colors.Gray);
+
+            /// <summary>
+            /// 指示任务是否正在运行。
+            /// </summary>
             public bool IsRunning => Status == WorkflowStatus.Running;
+
+            /// <summary>
+            /// 指示任务当前是否允许取消。
+            /// </summary>
             public bool CanCancel => Status == WorkflowStatus.Pending || Status == WorkflowStatus.Running;
         }
 
@@ -118,9 +192,11 @@ namespace NovelManagement.WPF.Views
                 _tasks = new ObservableCollection<TaskViewModel>();
                 _logBuilder = new StringBuilder();
 
-                // 创建模拟的日志记录器
-                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-                _logger = loggerFactory.CreateLogger<AICollaborationView>();
+                var serviceProvider = App.ServiceProvider;
+                var loggerFactory = serviceProvider?.GetService<ILoggerFactory>()
+                    ?? LoggerFactory.Create(builder => builder.AddConsole());
+                _logger = serviceProvider?.GetService<ILogger<AICollaborationView>>()
+                    ?? loggerFactory.CreateLogger<AICollaborationView>();
 
                 // 初始化配置
                 _currentConfiguration = new DeepSeekConfiguration();
@@ -131,7 +207,7 @@ namespace NovelManagement.WPF.Views
                 TaskQueueListView.ItemsSource = _tasks;
 
                 // 延迟初始化，确保UI完全加载后再执行
-                this.Loaded += (s, e) => InitializeAfterLoaded(loggerFactory);
+                this.Loaded += (s, e) => InitializeAfterLoaded();
             }
             catch (Exception ex)
             {
@@ -143,19 +219,20 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 在UI加载完成后进行初始化
         /// </summary>
-        private void InitializeAfterLoaded(ILoggerFactory loggerFactory)
+        private void InitializeAfterLoaded()
         {
             try
             {
-                // 创建任务队列和工作流引擎
-                var taskQueueLogger = loggerFactory.CreateLogger<TaskQueue>();
-                _taskQueue = new TaskQueue(taskQueueLogger);
+                var serviceProvider = App.ServiceProvider
+                    ?? throw new InvalidOperationException("服务提供者未初始化");
 
-                var workflowEngineLogger = loggerFactory.CreateLogger<NovelWorkflowEngine>();
-                _workflowEngine = new NovelWorkflowEngine(workflowEngineLogger, _taskQueue);
+                _taskQueue = serviceProvider.GetService<TaskQueue>()
+                    ?? throw new InvalidOperationException("任务队列服务未注册");
+                _workflowEngine = serviceProvider.GetService<NovelWorkflowEngine>()
+                    ?? throw new InvalidOperationException("工作流引擎服务未注册");
 
                 // 初始化AI服务
-                InitializeAIServices(loggerFactory);
+                InitializeAIServices();
 
                 // 初始化UI
                 InitializeUI();
@@ -165,7 +242,6 @@ namespace NovelManagement.WPF.Views
 
                 try
                 {
-                    var serviceProvider = App.ServiceProvider;
                     if (serviceProvider != null)
                     {
                         // 尝试从服务提供者获取Agent实例
@@ -221,8 +297,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 初始化AI服务
         /// </summary>
-        /// <param name="loggerFactory">日志工厂</param>
-        private void InitializeAIServices(ILoggerFactory loggerFactory)
+        private void InitializeAIServices()
         {
             try
             {
@@ -238,44 +313,11 @@ namespace NovelManagement.WPF.Views
                 _configuration = serviceProvider.GetService<IConfiguration>();
                 _modelManager = serviceProvider.GetService<ModelManager>();
                 _ollamaApiService = serviceProvider.GetService<IOllamaApiService>();
-
-                // 获取或创建配置服务
-                _configurationService = serviceProvider.GetService<ConfigurationService>() ??
-                    new ConfigurationService(loggerFactory.CreateLogger<ConfigurationService>());
-
-                // 获取或创建统计服务
-                _statisticsService = serviceProvider.GetService<AIUsageStatisticsService>() ??
-                    new AIUsageStatisticsService(loggerFactory.CreateLogger<AIUsageStatisticsService>());
-
-                // 获取或创建思维链处理器
-                _thinkingChainProcessor = serviceProvider.GetService<IThinkingChainProcessor>() ??
-                    new ThinkingChainProcessor(loggerFactory.CreateLogger<ThinkingChainProcessor>());
-
-                // 获取或创建DeepSeek API服务
+                _configurationService = serviceProvider.GetService<ConfigurationService>();
+                _statisticsService = serviceProvider.GetService<AIUsageStatisticsService>();
+                _thinkingChainProcessor = serviceProvider.GetService<IThinkingChainProcessor>();
                 _deepSeekApiService = serviceProvider.GetService<IDeepSeekApiService>();
-                if (_deepSeekApiService == null)
-                {
-                    var httpClientFactory = serviceProvider.GetService<IHttpClientFactory>();
-                    if (httpClientFactory == null)
-                    {
-                        // 如果没有注册HttpClientFactory，创建一个简单的实现
-                        var services = new ServiceCollection();
-                        services.AddHttpClient();
-                        var provider = services.BuildServiceProvider();
-                        httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-                    }
-
-                    _deepSeekApiService = new DeepSeekApiService(
-                        loggerFactory.CreateLogger<DeepSeekApiService>(),
-                        httpClientFactory,
-                        _thinkingChainProcessor);
-                }
-
-                // 获取或创建悬浮文本管理器
-                _floatingTextManager = serviceProvider.GetService<FloatingTextManager>() ??
-                    new FloatingTextManager(
-                        loggerFactory.CreateLogger<FloatingTextManager>(),
-                        _thinkingChainProcessor);
+                _floatingTextManager = serviceProvider.GetService<FloatingTextManager>();
 
                 // 订阅事件
                 if (_deepSeekApiService != null)
@@ -413,6 +455,7 @@ namespace NovelManagement.WPF.Views
 
                 // 加载Agent数据
                 LoadAgents();
+                AddLog($"已加载 {_agentInstances.Count} 个已注册Agent");
 
                 // 更新任务队列状态
                 UpdateTaskQueueStatus();
@@ -460,6 +503,34 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_taskQueue != null)
+                {
+                    _taskQueue.TaskStatusChanged -= OnTaskStatusChanged;
+                }
+
+                if (_workflowEngine != null)
+                {
+                    _workflowEngine.WorkflowStatusChanged -= OnWorkflowStatusChanged;
+                    _workflowEngine.TaskStatusChanged -= OnTaskStatusChanged;
+                }
+
+                foreach (var agent in _agentInstances ?? Enumerable.Empty<IAgent>())
+                {
+                    agent.StatusChanged -= OnAgentStatusChanged;
+                    agent.TaskCompleted -= OnAgentTaskCompleted;
+                }
+
+                if (_deepSeekApiService != null)
+                {
+                    _deepSeekApiService.ThinkingChainUpdated -= OnThinkingChainUpdated;
+                }
+
+                if (_floatingTextManager != null)
+                {
+                    _floatingTextManager.WindowCreated -= OnThinkingChainWindowCreated;
+                    _floatingTextManager.WindowClosed -= OnThinkingChainWindowClosed;
+                }
+
                 // 停止自动刷新定时器
                 if (_autoRefreshTimer != null)
                 {
@@ -1212,34 +1283,32 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateConfigurationFromUI()
         {
-            // 暂时注释掉，因为UI结构已更改
-            // TODO: 根据新的UI结构重新实现
-            /*
-            // 暂时注释掉，UI结构已更改
-            /*
-            _currentConfiguration.ApiKey = ApiKeyTextBox.Text;
-            _currentConfiguration.BaseUrl = BaseUrlTextBox.Text;
-            _currentConfiguration.DefaultModel = (DefaultModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "deepseek-chat";
-            _currentConfiguration.DefaultTemperature = TemperatureSlider.Value;
-            _currentConfiguration.DefaultMaxTokens = int.TryParse(MaxTokensTextBox.Text, out var maxTokens) ? maxTokens : 4000;
-            _currentConfiguration.EnableThinkingChain = EnableThinkingChainCheckBox.IsChecked ?? true;
-            _currentConfiguration.EnableStreaming = EnableStreamingCheckBox.IsChecked ?? true;
-            */
+            _currentConfiguration ??= new DeepSeekConfiguration();
+            _uiConfiguration ??= new UIConfiguration();
 
-            // 更新悬浮文本管理器设置
-            /*
+            var selectedModelId = (ModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+            _currentConfiguration.DefaultModel = !string.IsNullOrWhiteSpace(selectedModelId)
+                ? selectedModelId
+                : GetDefaultModelForProvider();
+            _currentConfiguration.DefaultTemperature = TemperatureSlider?.Value ?? 0.7;
+            _currentConfiguration.DefaultMaxTokens = int.TryParse(MaxTokensTextBox?.Text, out var maxTokens) ? maxTokens : 4000;
+            _currentConfiguration.EnableThinkingChain = EnableThinkingChainCheckBox?.IsChecked ?? true;
+            _currentConfiguration.EnableStreaming = EnableStreamingCheckBox?.IsChecked ?? true;
+
+            _uiConfiguration.FloatingWindowOpacity = OpacitySlider?.Value ?? 0.9;
+            _uiConfiguration.MaxFloatingWindows = int.TryParse(MaxWindowsTextBox?.Text, out var maxWindows) ? maxWindows : 3;
+            _uiConfiguration.DefaultFloatingPosition = (DefaultPositionComboBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "TopRight";
+
             if (_floatingTextManager != null)
             {
-                _floatingTextManager.Opacity = OpacitySlider.Value;
-                _floatingTextManager.MaxActiveWindows = int.TryParse(MaxWindowsTextBox.Text, out var maxWindows) ? maxWindows : 3;
+                _floatingTextManager.Opacity = _uiConfiguration.FloatingWindowOpacity;
+                _floatingTextManager.MaxActiveWindows = _uiConfiguration.MaxFloatingWindows;
 
-                var selectedPosition = (DefaultPositionComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
-                if (Enum.TryParse<FloatingTextPosition>(selectedPosition, out var position))
+                if (Enum.TryParse<FloatingTextPosition>(_uiConfiguration.DefaultFloatingPosition, out var position))
                 {
                     _floatingTextManager.DefaultPosition = position;
                 }
             }
-            */
         }
 
         /// <summary>
@@ -1247,25 +1316,55 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateUIFromConfiguration()
         {
-            // 暂时注释掉，UI结构已更改
-            /*
-            ApiKeyTextBox.Text = _currentConfiguration.ApiKey;
-            BaseUrlTextBox.Text = _currentConfiguration.BaseUrl;
-            TemperatureSlider.Value = _currentConfiguration.DefaultTemperature;
-            MaxTokensTextBox.Text = _currentConfiguration.DefaultMaxTokens.ToString();
-            EnableThinkingChainCheckBox.IsChecked = _currentConfiguration.EnableThinkingChain;
-            EnableStreamingCheckBox.IsChecked = _currentConfiguration.EnableStreaming;
-
-            // 设置默认模型
-            foreach (ComboBoxItem item in DefaultModelComboBox.Items)
+            if (_currentConfiguration != null)
             {
-                if (item.Content?.ToString() == _currentConfiguration.DefaultModel)
+                if (TemperatureSlider != null)
                 {
-                    DefaultModelComboBox.SelectedItem = item;
-                    break;
+                    TemperatureSlider.Value = _currentConfiguration.DefaultTemperature;
+                }
+
+                if (MaxTokensTextBox != null)
+                {
+                    MaxTokensTextBox.Text = _currentConfiguration.DefaultMaxTokens.ToString();
+                }
+
+                if (EnableThinkingChainCheckBox != null)
+                {
+                    EnableThinkingChainCheckBox.IsChecked = _currentConfiguration.EnableThinkingChain;
+                }
+
+                if (EnableStreamingCheckBox != null)
+                {
+                    EnableStreamingCheckBox.IsChecked = _currentConfiguration.EnableStreaming;
                 }
             }
-            */
+
+            if (_uiConfiguration != null)
+            {
+                if (OpacitySlider != null)
+                {
+                    OpacitySlider.Value = _uiConfiguration.FloatingWindowOpacity;
+                }
+
+                if (MaxWindowsTextBox != null)
+                {
+                    MaxWindowsTextBox.Text = _uiConfiguration.MaxFloatingWindows.ToString();
+                }
+
+                if (DefaultPositionComboBox != null)
+                {
+                    foreach (ComboBoxItem item in DefaultPositionComboBox.Items)
+                    {
+                        if (item.Tag?.ToString() == _uiConfiguration.DefaultFloatingPosition)
+                        {
+                            DefaultPositionComboBox.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            UpdateConfigurationFromUI();
         }
 
         /// <summary>
@@ -2074,8 +2173,14 @@ namespace NovelManagement.WPF.Views
                 {
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        ConnectionStatusIcon.Foreground = Brushes.Gray;
-                        ConnectionStatusText.Text = "需要配置API密钥";
+                        var configured = _currentConfiguration != null &&
+                                         !string.IsNullOrWhiteSpace(_currentConfiguration.ApiKey) &&
+                                         !string.IsNullOrWhiteSpace(_currentConfiguration.BaseUrl);
+
+                        ConnectionStatusIcon.Foreground = configured ? Brushes.Green : Brushes.Orange;
+                        ConnectionStatusText.Text = configured
+                            ? $"DeepSeek已配置 ({_currentConfiguration!.DefaultModel})"
+                            : "DeepSeek未完成配置";
                     });
                 }
                 else
@@ -2083,7 +2188,7 @@ namespace NovelManagement.WPF.Views
                     await Dispatcher.InvokeAsync(() =>
                     {
                         ConnectionStatusIcon.Foreground = Brushes.Gray;
-                        ConnectionStatusText.Text = "未实现";
+                        ConnectionStatusText.Text = $"{_currentProvider}暂不支持状态探测";
                     });
                 }
             }

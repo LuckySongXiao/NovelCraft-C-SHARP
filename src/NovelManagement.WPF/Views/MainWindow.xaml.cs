@@ -1,5 +1,8 @@
 using System.Windows;
+using System.Windows.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Events;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views;
 
@@ -13,6 +16,8 @@ public partial class MainWindow : Window
     // 保持对各个界面的引用，以便进行数据同步
     private CharacterManagementView? _characterManagementView;
     private RelationshipNetworkView? _relationshipNetworkView;
+    private readonly NavigationService? _navigationService;
+    private readonly ProjectContextService? _projectContextService;
 
     #endregion
 
@@ -23,8 +28,21 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        _navigationService = App.ServiceProvider?.GetService<NavigationService>();
+        _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+        _navigationService?.Configure(CreateNavigationRequest, RenderNavigationView);
+        if (_navigationService != null)
+        {
+            _navigationService.NavigationStateChanged += OnNavigationStateChanged;
+        }
+        if (_projectContextService != null)
+        {
+            _projectContextService.ProjectChanged += OnProjectChanged;
+        }
+
         // 订阅窗口关闭事件
         this.Closing += MainWindow_Closing;
+        UpdateNavigationDisplay();
     }
 
     /// <summary>
@@ -34,6 +52,16 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (_projectContextService != null)
+            {
+                _projectContextService.ProjectChanged -= OnProjectChanged;
+            }
+
+            if (_navigationService != null)
+            {
+                _navigationService.NavigationStateChanged -= OnNavigationStateChanged;
+            }
+
             // 清理当前视图的资源
             CleanupCurrentView();
         }
@@ -624,45 +652,228 @@ public partial class MainWindow : Window
     /// <summary>
     /// 统计报告按钮点击事件
     /// </summary>
-    private void StatisticsReport_Click(object sender, RoutedEventArgs e)
+    private async void StatisticsReport_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show("统计报告功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            if (!TryGetCurrentProjectId("统计报告", out var currentProjectId))
+            {
+                return;
+            }
+
+            var statisticsService = App.ServiceProvider?.GetService<ProjectStatisticsService>();
+            if (statisticsService == null)
+            {
+                MessageBox.Show("项目统计服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var summary = await statisticsService.GetProjectStatisticsAsync(currentProjectId);
+            if (summary == null)
+            {
+                MessageBox.Show("未找到当前项目，请重新选择项目。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var statisticsWindow = statisticsService.CreateStatisticsWindow(summary);
+            statisticsWindow.Owner = this;
+            statisticsWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"打开统计报告失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     #endregion
 
     #region 私有方法
 
+    private NavigationViewRequest CreateNavigationRequest(NavigationTarget target)
+    {
+        return target switch
+        {
+            NavigationTarget.ProjectManagement => new NavigationViewRequest
+            {
+                View = new ProjectManagementView(),
+                Title = "小说管理系统 - 项目管理"
+            },
+            NavigationTarget.ProjectOverview => new NavigationViewRequest
+            {
+                View = new ProjectOverviewView(),
+                Title = "小说管理系统 - 项目概览"
+            },
+            NavigationTarget.VolumeManagement => new NavigationViewRequest
+            {
+                View = new VolumeManagementView(),
+                Title = "小说管理系统 - 卷宗管理"
+            },
+            NavigationTarget.CharacterManagement => new NavigationViewRequest
+            {
+                View = GetOrCreateCharacterManagementView(),
+                Title = "小说管理系统 - 角色管理"
+            },
+            NavigationTarget.RelationshipNetwork => new NavigationViewRequest
+            {
+                View = GetOrCreateRelationshipNetworkView(),
+                Title = "小说管理系统 - 关系网络"
+            },
+            NavigationTarget.FactionManagement => new NavigationViewRequest
+            {
+                View = new FactionManagementView(),
+                Title = "小说管理系统 - 势力管理"
+            },
+            NavigationTarget.PlotManagement => new NavigationViewRequest
+            {
+                View = new PlotManagementView(),
+                Title = "小说管理系统 - 剧情管理"
+            },
+            NavigationTarget.AICollaboration => new NavigationViewRequest
+            {
+                View = new AICollaborationView(),
+                Title = "小说管理系统 - AI协作创作"
+            },
+            NavigationTarget.ImportExport => new NavigationViewRequest
+            {
+                View = new ImportExportView(),
+                Title = "小说管理系统 - 导入导出管理"
+            },
+            NavigationTarget.WorldSettingManagement => new NavigationViewRequest
+            {
+                View = new WorldSettingManagementView(),
+                Title = "小说管理系统 - 世界设定管理"
+            },
+            NavigationTarget.DialogGeneration => new NavigationViewRequest
+            {
+                View = new DialogGenerationView(),
+                Title = "小说管理系统 - AI对话生成器"
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
+        };
+    }
+
+    private void RenderNavigationView(UserControl view, string title)
+    {
+        CleanupCurrentView();
+        MainContentArea.Children.Clear();
+        MainContentArea.Children.Add(view);
+        Title = title;
+    }
+
+    private CharacterManagementView GetOrCreateCharacterManagementView()
+    {
+        if (_characterManagementView == null)
+        {
+            _characterManagementView = new CharacterManagementView();
+            _characterManagementView.CharacterUpdated += OnCharacterUpdated;
+        }
+
+        return _characterManagementView;
+    }
+
+    private RelationshipNetworkView GetOrCreateRelationshipNetworkView()
+    {
+        _relationshipNetworkView ??= new RelationshipNetworkView();
+        return _relationshipNetworkView;
+    }
+
+    private async void OnProjectChanged(object? sender, ProjectChangedEventArgs e)
+    {
+        if (_navigationService != null)
+        {
+            await _navigationService.RefreshCurrentViewAsync(e.NewProjectId, e.NewProjectName);
+        }
+    }
+
+    private void OnNavigationStateChanged(object? sender, EventArgs e)
+    {
+        UpdateNavigationDisplay();
+    }
+
+    private void Back_Click(object sender, RoutedEventArgs e)
+    {
+        _navigationService?.GoBack();
+    }
+
+    private void UpdateNavigationDisplay()
+    {
+        if (_navigationService == null)
+        {
+            return;
+        }
+
+        if (BackButton != null)
+        {
+            BackButton.IsEnabled = _navigationService.CanGoBack;
+        }
+
+        if (CurrentLocationTextBlock != null)
+        {
+            var currentLabel = GetNavigationLabel(_navigationService.CurrentTarget) ?? "仪表盘";
+            var source = _navigationService.CurrentContext?.Source;
+            CurrentLocationTextBlock.Text = string.IsNullOrWhiteSpace(source)
+                ? $"当前位置：{currentLabel}"
+                : $"当前位置：{currentLabel} · 来源：{source}";
+        }
+    }
+
+    private static string? GetNavigationLabel(NavigationTarget? target)
+    {
+        return target switch
+        {
+            NavigationTarget.ProjectManagement => "项目管理",
+            NavigationTarget.ProjectOverview => "项目概览",
+            NavigationTarget.VolumeManagement => "卷宗管理",
+            NavigationTarget.CharacterManagement => "角色管理",
+            NavigationTarget.RelationshipNetwork => "关系网络",
+            NavigationTarget.FactionManagement => "势力管理",
+            NavigationTarget.PlotManagement => "剧情管理",
+            NavigationTarget.AICollaboration => "AI协作",
+            NavigationTarget.ImportExport => "导入导出",
+            NavigationTarget.WorldSettingManagement => "世界设定",
+            NavigationTarget.DialogGeneration => "对话生成",
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// 导航到指定目标页面。
+    /// </summary>
+    /// <param name="target">目标页面标识。</param>
+    /// <param name="context">可选的导航上下文。</param>
+    public void NavigateTo(NavigationTarget target, NavigationContext? context = null)
+    {
+        _navigationService?.NavigateTo(target, context);
+    }
+
+    private bool TryGetCurrentProjectId(string featureName, out Guid projectId)
+    {
+        var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+        if (guard == null)
+        {
+            MessageBox.Show("项目校验服务未初始化", "错误",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            projectId = Guid.Empty;
+            return false;
+        }
+
+        return guard.TryGetCurrentProjectId(this, featureName, out projectId, ShowProjectManagement);
+    }
+
     /// <summary>
     /// 显示项目概览
     /// </summary>
     public void ShowProjectOverview()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 添加项目概览视图
-        var projectOverviewView = new ProjectOverviewView();
-        MainContentArea.Children.Add(projectOverviewView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 项目概览";
+        NavigateTo(NavigationTarget.ProjectOverview);
     }
 
     /// <summary>
     /// 显示项目管理
     /// </summary>
-    private void ShowProjectManagement()
+    public void ShowProjectManagement()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 添加项目管理视图
-        var projectManagementView = new ProjectManagementView();
-        MainContentArea.Children.Add(projectManagementView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 项目管理";
+        NavigateTo(NavigationTarget.ProjectManagement);
     }
 
     /// <summary>
@@ -670,15 +881,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowVolumeManagement()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 添加卷宗管理视图
-        var volumeManagementView = new VolumeManagementView();
-        MainContentArea.Children.Add(volumeManagementView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 卷宗管理";
+        NavigateTo(NavigationTarget.VolumeManagement);
     }
 
     /// <summary>
@@ -686,21 +889,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowCharacterManagement()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 创建或重用人物管理视图
-        if (_characterManagementView == null)
-        {
-            _characterManagementView = new CharacterManagementView();
-            // 订阅角色更新事件
-            _characterManagementView.CharacterUpdated += OnCharacterUpdated;
-        }
-
-        MainContentArea.Children.Add(_characterManagementView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 角色管理";
+        NavigateTo(NavigationTarget.CharacterManagement);
     }
 
     /// <summary>
@@ -708,19 +897,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowRelationshipNetwork()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 创建或重用关系网络视图
-        if (_relationshipNetworkView == null)
-        {
-            _relationshipNetworkView = new RelationshipNetworkView();
-        }
-
-        MainContentArea.Children.Add(_relationshipNetworkView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 关系网络";
+        NavigateTo(NavigationTarget.RelationshipNetwork);
     }
 
     /// <summary>
@@ -749,15 +926,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 清空主内容区域
-            MainContentArea?.Children.Clear();
-
-            // 添加势力管理视图
-            var factionManagementView = new FactionManagementView();
-            MainContentArea?.Children.Add(factionManagementView);
-
-            // 更新窗口标题
-            this.Title = "小说管理系统 - 势力管理";
+            NavigateTo(NavigationTarget.FactionManagement);
         }
         catch (Exception ex)
         {
@@ -773,15 +942,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 清空主内容区域
-            MainContentArea?.Children.Clear();
-
-            // 添加剧情管理视图
-            var plotManagementView = new PlotManagementView();
-            MainContentArea?.Children.Add(plotManagementView);
-
-            // 更新窗口标题
-            this.Title = "小说管理系统 - 剧情管理";
+            NavigateTo(NavigationTarget.PlotManagement);
         }
         catch (Exception ex)
         {
@@ -797,9 +958,11 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 获取当前项目ID
-            // 暂时使用固定的项目ID
-            var projectId = new Guid("00000000-0000-0000-0000-000000000001");
+            if (!TryGetCurrentProjectId("前置条件生成", out var projectId))
+            {
+                return;
+            }
+
             var dialog = new PrerequisiteGenerationDialog(projectId);
             dialog.Owner = this;
             dialog.ShowDialog();
@@ -814,22 +977,11 @@ public partial class MainWindow : Window
     /// <summary>
     /// 显示AI协作
     /// </summary>
-    private void ShowAICollaboration()
+    public void ShowAICollaboration()
     {
         try
         {
-            // 清理之前的AI协作视图资源
-            CleanupCurrentView();
-
-            // 清空主内容区域
-            MainContentArea.Children.Clear();
-
-            // 添加AI协作视图
-            var aiCollaborationView = new AICollaborationView();
-            MainContentArea.Children.Add(aiCollaborationView);
-
-            // 更新窗口标题
-            this.Title = "小说管理系统 - AI协作创作";
+            NavigateTo(NavigationTarget.AICollaboration);
         }
         catch (Exception ex)
         {
@@ -869,15 +1021,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 清空主内容区域
-            MainContentArea?.Children.Clear();
-
-            // 添加对话生成视图
-            var dialogGenerationView = new DialogGenerationView();
-            MainContentArea?.Children.Add(dialogGenerationView);
-
-            // 更新窗口标题
-            this.Title = "小说管理系统 - AI对话生成器";
+            NavigateTo(NavigationTarget.DialogGeneration);
         }
         catch (Exception ex)
         {
@@ -889,33 +1033,22 @@ public partial class MainWindow : Window
     /// <summary>
     /// 显示导入导出
     /// </summary>
-    private void ShowImportExport()
+    public void ShowImportExport()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
+        if (!TryGetCurrentProjectId("导入导出", out _))
+        {
+            return;
+        }
 
-        // 添加导入导出视图
-        var importExportView = new ImportExportView();
-        MainContentArea.Children.Add(importExportView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 导入导出管理";
+        NavigateTo(NavigationTarget.ImportExport);
     }
 
     /// <summary>
     /// 显示世界设定管理
     /// </summary>
-    private void ShowWorldSettingManagement()
+    public void ShowWorldSettingManagement()
     {
-        // 清空主内容区域
-        MainContentArea.Children.Clear();
-
-        // 添加世界设定管理视图
-        var worldSettingManagementView = new WorldSettingManagementView();
-        MainContentArea.Children.Add(worldSettingManagementView);
-
-        // 更新窗口标题
-        this.Title = "小说管理系统 - 世界设定管理";
+        NavigateTo(NavigationTarget.WorldSettingManagement);
     }
 
     /// <summary>

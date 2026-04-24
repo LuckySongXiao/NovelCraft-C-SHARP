@@ -58,13 +58,13 @@ namespace NovelManagement.WPF.Views
             SetupUI();
 
             // 确保UI完全加载后再初始化统计信息
-            this.Loaded += (s, e) =>
+            this.Loaded += async (s, e) =>
             {
                 try
                 {
                     UpdateReplacementStats();
-                    GenerateSmartSuggestions();
-                    GenerateQualityAnalysis();
+                    await GenerateSmartSuggestionsAsync();
+                    await GenerateQualityAnalysisAsync();
                 }
                 catch (Exception ex)
                 {
@@ -317,11 +317,11 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 刷新建议按钮点击事件
         /// </summary>
-        private void RefreshSuggestions_Click(object sender, RoutedEventArgs e)
+        private async void RefreshSuggestions_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                GenerateSmartSuggestions();
+                await GenerateSmartSuggestionsAsync();
             }
             catch (Exception ex)
             {
@@ -439,8 +439,8 @@ namespace NovelManagement.WPF.Views
                     UpdatePolishedWordCount();
                     UpdateImprovementIndicator();
                     UpdateReplacementStats();
-                    GenerateSmartSuggestions();
-                    GenerateQualityAnalysis();
+                    await GenerateSmartSuggestionsAsync();
+                    await GenerateQualityAnalysisAsync();
 
                     PolishProgressBar.Value = 100;
                     PolishStatusTextBlock.Text = "文本润色完成！";
@@ -460,8 +460,8 @@ namespace NovelManagement.WPF.Views
 
                     // 如果AI服务失败，使用模拟内容
                     GenerateMockReplacements();
-                    GenerateSmartSuggestions();
-                    GenerateQualityAnalysis();
+                    await GenerateSmartSuggestionsAsync();
+                    await GenerateQualityAnalysisAsync();
 
                     MessageBox.Show($"AI润色失败，已生成模拟内容：{result.Message}", "提示",
                         MessageBoxButton.OK, MessageBoxImage.Information);
@@ -496,7 +496,7 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成模拟润色内容
+        /// 生成模拟润色内容（降级fallback：AI服务不可用时使用）
         /// </summary>
         private string GenerateMockPolishedContent()
         {
@@ -883,7 +883,7 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成模拟替换项
+        /// 生成模拟替换项（降级fallback：AI服务不可用或返回空时使用）
         /// </summary>
         private void GenerateMockReplacements()
         {
@@ -944,9 +944,9 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成智能建议
+        /// 生成智能建议（优先调用AI服务，失败时降级为预设参考建议）
         /// </summary>
-        private void GenerateSmartSuggestions()
+        private async Task GenerateSmartSuggestionsAsync()
         {
             try
             {
@@ -955,6 +955,75 @@ namespace NovelManagement.WPF.Views
 
                 SuggestionsPanel.Children.Clear();
 
+                // 尝试通过AI服务获取智能建议
+                if (_aiAssistantService != null && !string.IsNullOrWhiteSpace(_polishedFullText))
+                {
+                    try
+                    {
+                        var parameters = new Dictionary<string, object>
+                        {
+                            ["text"] = _polishedFullText,
+                            ["taskType"] = "SmartSuggestions"
+                        };
+
+                        var result = await _aiAssistantService.PolishTextAsync(parameters);
+
+                        if (result.IsSuccess && result.Data is string suggestionsText && !string.IsNullOrWhiteSpace(suggestionsText))
+                        {
+                            RenderSuggestionsFromText(suggestionsText);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"AI智能建议失败，降级为预设建议: {ex.Message}");
+                    }
+                }
+
+                // 降级：使用预设参考建议
+                RenderFallbackSuggestions();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"生成智能建议失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从AI返回的文本渲染智能建议
+        /// </summary>
+        private void RenderSuggestionsFromText(string text)
+        {
+            var lines = text.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimStart('•', '-', '*', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '.', '）', ')');
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+                var card = new MaterialDesignThemes.Wpf.Card
+                {
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Padding = new Thickness(12)
+                };
+
+                var contentText = new TextBlock
+                {
+                    Text = trimmed,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = new SolidColorBrush(Colors.Gray)
+                };
+
+                card.Content = contentText;
+                SuggestionsPanel.Children.Add(card);
+            }
+        }
+
+        /// <summary>
+        /// 渲染预设参考建议（降级fallback）
+        /// </summary>
+        private void RenderFallbackSuggestions()
+        {
             var suggestions = new[]
             {
                 new { Title = "词汇丰富度", Content = "建议增加更多形容词和副词来丰富表达", Priority = "高" },
@@ -1010,18 +1079,12 @@ namespace NovelManagement.WPF.Views
 
                 SuggestionsPanel.Children.Add(card);
             }
-            }
-            catch (Exception ex)
-            {
-                // 静默处理智能建议生成错误，避免影响主要功能
-                System.Diagnostics.Debug.WriteLine($"生成智能建议失败: {ex.Message}");
-            }
         }
 
         /// <summary>
-        /// 生成质量分析
+        /// 生成质量分析（优先调用AI服务，失败时降级为预设参考分数）
         /// </summary>
-        private void GenerateQualityAnalysis()
+        private async Task GenerateQualityAnalysisAsync()
         {
             try
             {
@@ -1030,6 +1093,75 @@ namespace NovelManagement.WPF.Views
 
                 QualityAnalysisPanel.Children.Clear();
 
+                // 尝试通过AI服务获取质量分析
+                if (_aiAssistantService != null && !string.IsNullOrWhiteSpace(_polishedFullText))
+                {
+                    try
+                    {
+                        var parameters = new Dictionary<string, object>
+                        {
+                            ["text"] = _polishedFullText,
+                            ["taskType"] = "QualityAnalysis"
+                        };
+
+                        var result = await _aiAssistantService.PolishTextAsync(parameters);
+
+                        if (result.IsSuccess && result.Data is string analysisText && !string.IsNullOrWhiteSpace(analysisText))
+                        {
+                            RenderQualityAnalysisFromText(analysisText);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"AI质量分析失败，降级为预设分析: {ex.Message}");
+                    }
+                }
+
+                // 降级：使用预设参考分数
+                RenderFallbackQualityAnalysis();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"生成质量分析失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从AI返回的文本渲染质量分析
+        /// </summary>
+        private void RenderQualityAnalysisFromText(string text)
+        {
+            var lines = text.Split(new[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimStart('•', '-', '*', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '.', '）', ')');
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+                var card = new MaterialDesignThemes.Wpf.Card
+                {
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Padding = new Thickness(12)
+                };
+
+                var contentText = new TextBlock
+                {
+                    Text = trimmed,
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = new SolidColorBrush(Colors.Gray)
+                };
+
+                card.Content = contentText;
+                QualityAnalysisPanel.Children.Add(card);
+            }
+        }
+
+        /// <summary>
+        /// 渲染预设参考质量分析（降级fallback）
+        /// </summary>
+        private void RenderFallbackQualityAnalysis()
+        {
             var analysisItems = new[]
             {
                 new { Category = "词汇丰富度", Score = 85, Description = "词汇使用较为丰富，但可以进一步增加同义词的使用" },
@@ -1085,12 +1217,6 @@ namespace NovelManagement.WPF.Views
                 card.Content = panel;
 
                 QualityAnalysisPanel.Children.Add(card);
-            }
-            }
-            catch (Exception ex)
-            {
-                // 静默处理质量分析生成错误，避免影响主要功能
-                System.Diagnostics.Debug.WriteLine($"生成质量分析失败: {ex.Message}");
             }
         }
 
@@ -1184,6 +1310,11 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class TextDifferenceDialog : Window
     {
+        /// <summary>
+        /// 初始化 TextDifferenceDialog 的新实例，显示原文与润色后文本的对比
+        /// </summary>
+        /// <param name="original">原始文本</param>
+        /// <param name="polished">润色后文本</param>
         public TextDifferenceDialog(string original, string polished)
         {
             Title = "文本对比";

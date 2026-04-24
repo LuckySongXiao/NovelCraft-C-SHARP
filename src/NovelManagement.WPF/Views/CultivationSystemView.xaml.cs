@@ -40,6 +40,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化修炼体系管理视图。
+        /// </summary>
         public CultivationSystemView()
         {
             InitializeComponent();
@@ -512,14 +515,49 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class CultivationSystemViewModel
     {
+        /// <summary>
+        /// 修炼体系标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 修炼体系名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 修炼体系分类。
+        /// </summary>
         public string Category { get; set; }
+
+        /// <summary>
+        /// 修炼体系品级。
+        /// </summary>
         public string Grade { get; set; }
+
+        /// <summary>
+        /// 修炼体系来源。
+        /// </summary>
         public string Origin { get; set; }
+
+        /// <summary>
+        /// 修炼体系描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 等级数量。
+        /// </summary>
         public int LevelCount { get; set; }
+
+        /// <summary>
+        /// 最高等级描述。
+        /// </summary>
         public string MaxLevel { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -528,11 +566,34 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class CultivationLevelViewModel
     {
+        /// <summary>
+        /// 修炼等级标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 等级名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 等级序号。
+        /// </summary>
         public int Level { get; set; }
+
+        /// <summary>
+        /// 等级描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 升级要求。
+        /// </summary>
         public string Requirements { get; set; }
+
+        /// <summary>
+        /// 等级收益。
+        /// </summary>
         public string Benefits { get; set; }
     }
 

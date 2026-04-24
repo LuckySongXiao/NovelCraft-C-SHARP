@@ -77,7 +77,9 @@ namespace NovelManagement.WPF.Views
                 IsDeleted = character.IsDeleted,
                 DeletedAt = character.DeletedAt,
                 Notes = character.Notes,
-                Tags = character.Tags
+                Tags = character.Tags,
+                History = character.History,
+                KeyEvents = character.KeyEvents
             };
 
             // 保存原始势力和种族信息用于界面显示
@@ -112,11 +114,13 @@ namespace NovelManagement.WPF.Views
             try
             {
                 NameTextBox.Text = Character.Name;
-                DescriptionTextBox.Text = Character.Background;
+                DescriptionTextBox.Text = Character.Notes;
                 AppearanceTextBox.Text = Character.Appearance;
                 PersonalityTextBox.Text = Character.Personality;
                 BackgroundTextBox.Text = Character.Background;
                 AbilitiesTextBox.Text = Character.Abilities;
+                HistoryTextBox.Text = Character.History;
+                KeyEventsTextBox.Text = Character.KeyEvents;
 
                 // 设置ComboBox选中项
                 SetComboBoxSelection(TypeComboBox, Character.Type);
@@ -246,10 +250,13 @@ namespace NovelManagement.WPF.Views
 
                 // 详细信息
                 Character.CultivationLevel = GetComboBoxValue(CultivationLevelComboBox);
+                Character.Notes = DescriptionTextBox.Text.Trim();
                 Character.Background = BackgroundTextBox.Text.Trim();
                 Character.Appearance = AppearanceTextBox.Text.Trim();
                 Character.Personality = PersonalityTextBox.Text.Trim();
                 Character.Abilities = AbilitiesTextBox.Text.Trim();
+                Character.History = HistoryTextBox.Text.Trim();
+                Character.KeyEvents = KeyEventsTextBox.Text.Trim();
 
                 // 确保必需字段不为空
                 if (string.IsNullOrEmpty(Character.Name))

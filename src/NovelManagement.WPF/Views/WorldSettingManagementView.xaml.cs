@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,43 +11,53 @@ using NovelManagement.Application.Interfaces;
 using NovelManagement.WPF.Services;
 using Microsoft.Extensions.Logging;
 using MaterialDesignThemes.Wpf;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NovelManagement.WPF.Views;
 
 /// <summary>
 /// 世界设定管理视图
 /// </summary>
-public partial class WorldSettingManagementView : UserControl
+public partial class WorldSettingManagementView : UserControl, INavigationRefreshableView, INavigationAwareView
 {
     private readonly IWorldSettingService _worldSettingService;
     private readonly ILogger<WorldSettingManagementView>? _logger;
     private readonly WorldSettingAnalysisService _analysisService;
+    private readonly ProjectContextService? _projectContextService;
+    private readonly IAIAssistantService? _aiAssistantService;
     private ObservableCollection<WorldSettingDto> _worldSettings;
     private Guid _currentProjectId;
+    private NavigationContext? _navigationContext;
 
+    /// <summary>
+    /// 初始化世界设定管理视图。
+    /// </summary>
     public WorldSettingManagementView()
     {
         InitializeComponent();
         _worldSettings = new ObservableCollection<WorldSettingDto>();
 
-        // 注意：在实际应用中，这些服务应该通过依赖注入获取
-        // 这里为了演示目的，暂时设为null
-        _worldSettingService = null!;
         _currentProjectId = Guid.Empty;
 
         try
         {
+            _worldSettingService = (App.ServiceProvider?.GetService(typeof(IWorldSettingService)) as IWorldSettingService)!;
+            _projectContextService = App.ServiceProvider?.GetService(typeof(ProjectContextService)) as ProjectContextService;
+            _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
             _logger = App.ServiceProvider?.GetService(typeof(ILogger<WorldSettingManagementView>)) as ILogger<WorldSettingManagementView>;
             var analysisLogger = App.ServiceProvider?.GetService(typeof(ILogger<WorldSettingAnalysisService>)) as ILogger<WorldSettingAnalysisService>;
             _analysisService = new WorldSettingAnalysisService(analysisLogger);
         }
         catch (Exception ex)
         {
+            _worldSettingService = null!;
+            _projectContextService = null;
+            _aiAssistantService = null;
             _analysisService = new WorldSettingAnalysisService();
             MessageBox.Show($"AI分析服务初始化失败，使用默认服务: {ex.Message}", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
-        LoadSampleData();
+        _ = RefreshOnProjectChangedAsync(_projectContextService?.CurrentProjectId, null);
     }
 
     /// <summary>
@@ -52,6 +65,7 @@ public partial class WorldSettingManagementView : UserControl
     /// </summary>
     private void LoadSampleData()
     {
+        _worldSettings.Clear();
         var sampleSettings = new List<WorldSettingDto>
         {
             new WorldSettingDto
@@ -133,6 +147,48 @@ public partial class WorldSettingManagementView : UserControl
         LoadFilterData();
     }
 
+    private async Task LoadWorldSettingsAsync()
+    {
+        try
+        {
+            _worldSettings.Clear();
+
+            if (_currentProjectId == Guid.Empty)
+            {
+                WorldSettingsTreeView.ItemsSource = _worldSettings;
+                LoadFilterData();
+                DetailsPanel.Children.Clear();
+                return;
+            }
+
+            if (_worldSettingService == null)
+            {
+                WorldSettingsTreeView.ItemsSource = _worldSettings;
+                LoadFilterData();
+                DetailsPanel.Children.Clear();
+                return;
+            }
+
+            var settings = (await _worldSettingService.GetAllAsync(_currentProjectId)).ToList();
+            foreach (var setting in settings)
+            {
+                _worldSettings.Add(setting);
+            }
+
+            WorldSettingsTreeView.ItemsSource = _worldSettings;
+            LoadFilterData();
+            ApplyNavigationContext();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "加载世界设定失败");
+            WorldSettingsTreeView.ItemsSource = _worldSettings;
+            LoadFilterData();
+            DetailsPanel.Children.Clear();
+            MessageBox.Show($"加载世界设定失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     /// <summary>
     /// 加载筛选器数据
     /// </summary>
@@ -155,9 +211,58 @@ public partial class WorldSettingManagementView : UserControl
     /// <summary>
     /// 新建设定按钮点击事件
     /// </summary>
-    private void AddWorldSetting_Click(object sender, RoutedEventArgs e)
+    private async void AddWorldSetting_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show("新建世界设定功能待实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (_currentProjectId == Guid.Empty)
+        {
+            MessageBox.Show("请先选择项目后再创建世界设定。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (_worldSettingService == null)
+        {
+            MessageBox.Show("世界设定服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var selectedSetting = WorldSettingsTreeView.SelectedItem as WorldSettingDto;
+        var dialog = new WorldSettingEditDialog(selectedSetting);
+        dialog.Owner = Window.GetWindow(this);
+        if (dialog.ShowDialog() == true)
+        {
+            var createDto = dialog.BuildCreateDto(_currentProjectId, selectedSetting?.Id);
+            var createdSetting = await _worldSettingService.CreateAsync(createDto);
+            await LoadWorldSettingsAsync();
+            FocusSetting(createdSetting.Id);
+        }
+    }
+
+    private void ImportWorldSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            mainWindow.NavigateTo(NavigationTarget.ImportExport, new NavigationContext
+            {
+                ProjectId = _currentProjectId == Guid.Empty ? null : _currentProjectId,
+                Source = "WorldSettingManagement.Import",
+                Payload = new ImportExportNavigationPayload
+                {
+                    Action = "SettingsImport"
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "打开设定导入页面失败");
+            MessageBox.Show($"打开设定导入页面失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     /// <summary>
@@ -204,20 +309,98 @@ public partial class WorldSettingManagementView : UserControl
     /// <summary>
     /// 刷新按钮点击事件
     /// </summary>
-    private void RefreshWorldSettings_Click(object sender, RoutedEventArgs e)
+    private async void RefreshWorldSettings_Click(object sender, RoutedEventArgs e)
     {
-        LoadSampleData();
+        await LoadWorldSettingsAsync();
         MessageBox.Show("数据已刷新", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    /// <summary>
+    /// 导出设定按钮点击事件
+    /// </summary>
+    private void ExportWorldSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var selectedSetting = WorldSettingsTreeView.SelectedItem as WorldSettingDto;
+            mainWindow.NavigateTo(NavigationTarget.ImportExport, new NavigationContext
+            {
+                ProjectId = _currentProjectId == Guid.Empty ? null : _currentProjectId,
+                Source = "WorldSettingManagement.ExportCurrent",
+                Payload = new ImportExportNavigationPayload
+                {
+                    Action = "SettingsOnlyExport",
+                    SettingId = selectedSetting?.Id,
+                    SettingName = selectedSetting?.Name
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "打开设定导出页面失败");
+            MessageBox.Show($"打开设定导出页面失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     /// <summary>
     /// AI助手按钮点击事件
     /// </summary>
-    private void AIAssistant_Click(object sender, RoutedEventArgs e)
+    private async void AIAssistant_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            ShowAIAssistantDialog();
+            if (_currentProjectId == Guid.Empty)
+            {
+                MessageBox.Show("请先选择项目后再使用AI助手。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (_aiAssistantService == null || _worldSettingService == null)
+            {
+                ShowAIAssistantDialog();
+                return;
+            }
+
+            var selectedSetting = WorldSettingsTreeView.SelectedItem as WorldSettingDto;
+            if (selectedSetting != null)
+            {
+                var choice = MessageBox.Show(
+                    "是：AI优化当前设定并保存\n否：AI生成新的设定并保存\n取消：打开原始AI助手",
+                    "AI世界设定",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (choice == MessageBoxResult.Cancel)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                await GenerateWorldSettingWithAiAsync(choice == MessageBoxResult.Yes, selectedSetting);
+                return;
+            }
+
+            var generateChoice = MessageBox.Show(
+                "是：AI生成新的设定并保存\n否：打开原始AI助手",
+                "AI世界设定",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (generateChoice == MessageBoxResult.Yes)
+            {
+                await GenerateWorldSettingWithAiAsync(false, null);
+            }
+            else
+            {
+                ShowAIAssistantDialog();
+            }
         }
         catch (Exception ex)
         {
@@ -439,5 +622,296 @@ public partial class WorldSettingManagementView : UserControl
     {
         var dialog = new AnalysisResultDialog(result);
         dialog.ShowDialog();
+    }
+
+    /// <summary>
+    /// 在项目切换后刷新世界设定数据。
+    /// </summary>
+    /// <param name="projectId">当前项目标识。</param>
+    /// <param name="projectName">当前项目名称。</param>
+    public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+    {
+        _currentProjectId = projectId ?? Guid.Empty;
+        await LoadWorldSettingsAsync();
+    }
+
+    /// <summary>
+    /// 在导航到当前视图时应用导航上下文。
+    /// </summary>
+    /// <param name="context">导航上下文。</param>
+    public void OnNavigatedTo(NavigationContext context)
+    {
+        _navigationContext = context;
+        ApplyNavigationContext();
+    }
+
+    private void ApplyNavigationContext()
+    {
+        if (_navigationContext == null || _worldSettings.Count == 0)
+        {
+            return;
+        }
+
+        var payload = _navigationContext.Payload as WorldSettingNavigationPayload;
+        if (payload?.SettingId != null)
+        {
+            if (FocusSetting(payload.SettingId.Value))
+            {
+                return;
+            }
+        }
+
+        if (payload?.Action == "WorldSettingsHome" || _navigationContext.Source == "ProjectOverview.WorldSettings")
+        {
+            ShowSettingDetails(_worldSettings[0]);
+        }
+    }
+
+    private WorldSettingDto? FindSettingById(IEnumerable<WorldSettingDto> settings, Guid settingId)
+    {
+        foreach (var setting in settings)
+        {
+            if (setting.Id == settingId)
+            {
+                return setting;
+            }
+
+            var childMatch = FindSettingById(setting.Children, settingId);
+            if (childMatch != null)
+            {
+                return childMatch;
+            }
+        }
+
+        return null;
+    }
+
+    private bool FocusSetting(Guid settingId)
+    {
+        var matchedSetting = FindSettingById(_worldSettings.ToList(), settingId);
+        if (matchedSetting == null)
+        {
+            return false;
+        }
+
+        WorldSettingsTreeView.SelectedItemChanged -= WorldSettingsTreeView_SelectedItemChanged;
+        WorldSettingsTreeView.SelectedItemChanged += WorldSettingsTreeView_SelectedItemChanged;
+        ShowSettingDetails(matchedSetting);
+        return true;
+    }
+
+    private async Task GenerateWorldSettingWithAiAsync(bool optimizeCurrent, WorldSettingDto? baseSetting)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            ["title"] = optimizeCurrent && baseSetting != null ? $"优化世界设定：{baseSetting.Name}" : "生成世界设定",
+            ["theme"] = "请生成一个适合小说项目使用的世界设定，并输出名称、类型、分类、描述、详细内容、相关规则、历史背景、重要性。",
+            ["requirements"] = optimizeCurrent && baseSetting != null
+                ? $"请基于当前设定进行优化并输出结构化文本。当前设定：{baseSetting.Name}，类型：{baseSetting.Type}，分类：{baseSetting.Category}，描述：{baseSetting.Description}"
+                : "请输出一个完整世界设定，至少包含名称、类型、分类、描述、详细内容、相关规则、历史背景、重要性。",
+            ["context"] = GetCurrentContext()
+        };
+
+        var result = await _aiAssistantService!.GenerateOutlineAsync(parameters);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            MessageBox.Show(result.Message ?? "AI生成失败。", "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (optimizeCurrent && baseSetting != null)
+        {
+            var updateDto = BuildUpdateDtoFromAiResult(result.Data, baseSetting);
+            var updatedSetting = await _worldSettingService.UpdateAsync(updateDto);
+            await LoadWorldSettingsAsync();
+            FocusSetting(updatedSetting.Id);
+            MessageBox.Show($"已使用 AI 优化并保存设定：{updatedSetting.Name}", "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var createDto = BuildCreateDtoFromAiResult(result.Data, null);
+        createDto.ProjectId = _currentProjectId;
+        var created = await _worldSettingService.CreateAsync(createDto);
+        await LoadWorldSettingsAsync();
+        FocusSetting(created.Id);
+        MessageBox.Show($"已使用 AI 生成并保存设定：{created.Name}", "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private CreateWorldSettingDto BuildCreateDtoFromAiResult(object data, Guid? parentId)
+    {
+        var text = data?.ToString() ?? string.Empty;
+        return new CreateWorldSettingDto
+        {
+            ProjectId = _currentProjectId,
+            ParentId = parentId,
+            Name = ExtractField(text, "名称") ?? ExtractFirstMeaningfulLine(text) ?? "AI生成世界设定",
+            Type = ExtractField(text, "类型") ?? "世界观",
+            Category = ExtractField(text, "分类") ?? "综合",
+            Description = ExtractField(text, "描述") ?? text,
+            Content = ExtractField(text, "详细内容") ?? text,
+            Rules = ExtractField(text, "相关规则"),
+            History = ExtractField(text, "历史背景"),
+            Importance = ExtractImportance(text)
+        };
+    }
+
+    private UpdateWorldSettingDto BuildUpdateDtoFromAiResult(object data, WorldSettingDto baseSetting)
+    {
+        var createDto = BuildCreateDtoFromAiResult(data, baseSetting.ParentId);
+        return new UpdateWorldSettingDto
+        {
+            Id = baseSetting.Id,
+            ProjectId = baseSetting.ProjectId,
+            ParentId = baseSetting.ParentId,
+            Name = createDto.Name,
+            Type = createDto.Type,
+            Category = createDto.Category,
+            Description = createDto.Description,
+            Content = createDto.Content,
+            Rules = createDto.Rules,
+            History = createDto.History,
+            Importance = createDto.Importance,
+            RelatedSettings = baseSetting.RelatedSettings,
+            ImagePath = baseSetting.ImagePath,
+            Tags = baseSetting.Tags,
+            Notes = baseSetting.Notes,
+            Status = baseSetting.Status,
+            OrderIndex = baseSetting.OrderIndex,
+            IsPublic = baseSetting.IsPublic,
+            Version = baseSetting.Version
+        };
+    }
+
+    private static string? ExtractField(string text, string fieldName)
+    {
+        var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+        return match.Success ? match.Groups[1].Value.Trim() : null;
+    }
+
+    private static int ExtractImportance(string text)
+    {
+        var raw = ExtractField(text, "重要性");
+        if (raw == null)
+        {
+            return 5;
+        }
+
+        var match = Regex.Match(raw, @"\d+");
+        return match.Success && int.TryParse(match.Value, out var value)
+            ? Math.Clamp(value, 1, 10)
+            : 5;
+    }
+
+    private static string? ExtractFirstMeaningfulLine(string text)
+    {
+        return text
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' '))
+            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+    }
+}
+
+/// <summary>
+/// 世界设定创建对话框。
+/// </summary>
+public class WorldSettingEditDialog : Window
+{
+    private readonly TextBox _nameTextBox = new();
+    private readonly ComboBox _typeComboBox = new();
+    private readonly TextBox _categoryTextBox = new();
+    private readonly TextBox _descriptionTextBox = new();
+    private readonly TextBox _contentTextBox = new();
+    private readonly Slider _importanceSlider = new();
+
+    /// <summary>
+    /// 初始化世界设定创建对话框。
+    /// </summary>
+    /// <param name="parentSetting">父级设定；为空时创建根设定。</param>
+    public WorldSettingEditDialog(WorldSettingDto? parentSetting)
+    {
+        Title = parentSetting == null ? "新建设定" : $"新建子设定 - {parentSetting.Name}";
+        Width = 520;
+        Height = 640;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+        _typeComboBox.ItemsSource = new[] { "世界观", "体系", "规则", "地点", "组织", "文化", "种族" };
+        _typeComboBox.SelectedIndex = 0;
+        _importanceSlider.Minimum = 1;
+        _importanceSlider.Maximum = 10;
+        _importanceSlider.Value = 5;
+        _importanceSlider.TickFrequency = 1;
+        _importanceSlider.IsSnapToTickEnabled = true;
+
+        _descriptionTextBox.AcceptsReturn = true;
+        _descriptionTextBox.TextWrapping = TextWrapping.Wrap;
+        _descriptionTextBox.Height = 80;
+        _contentTextBox.AcceptsReturn = true;
+        _contentTextBox.TextWrapping = TextWrapping.Wrap;
+        _contentTextBox.Height = 180;
+
+        Content = BuildContent();
+    }
+
+    /// <summary>
+    /// 根据当前输入构建创建设定所需的数据传输对象。
+    /// </summary>
+    /// <param name="projectId">所属项目标识。</param>
+    /// <param name="parentId">父级设定标识。</param>
+    /// <returns>可用于创建世界设定的数据对象。</returns>
+    public CreateWorldSettingDto BuildCreateDto(Guid projectId, Guid? parentId)
+    {
+        return new CreateWorldSettingDto
+        {
+            ProjectId = projectId,
+            ParentId = parentId,
+            Name = _nameTextBox.Text.Trim(),
+            Type = _typeComboBox.SelectedItem?.ToString() ?? "世界观",
+            Category = string.IsNullOrWhiteSpace(_categoryTextBox.Text) ? null : _categoryTextBox.Text.Trim(),
+            Description = string.IsNullOrWhiteSpace(_descriptionTextBox.Text) ? null : _descriptionTextBox.Text.Trim(),
+            Content = string.IsNullOrWhiteSpace(_contentTextBox.Text) ? null : _contentTextBox.Text.Trim(),
+            Importance = (int)_importanceSlider.Value
+        };
+    }
+
+    private FrameworkElement BuildContent()
+    {
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        panel.Children.Add(new TextBlock { Text = "设定名称" });
+        panel.Children.Add(_nameTextBox);
+        panel.Children.Add(new TextBlock { Text = "设定类型", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(_typeComboBox);
+        panel.Children.Add(new TextBlock { Text = "设定分类", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(_categoryTextBox);
+        panel.Children.Add(new TextBlock { Text = "重要性", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(_importanceSlider);
+        panel.Children.Add(new TextBlock { Text = "简要描述", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(_descriptionTextBox);
+        panel.Children.Add(new TextBlock { Text = "详细内容", Margin = new Thickness(0, 12, 0, 0) });
+        panel.Children.Add(_contentTextBox);
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 16, 0, 0)
+        };
+
+        var okButton = new Button { Content = "创建", Width = 84, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+        okButton.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
+            {
+                MessageBox.Show("设定名称不能为空。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            DialogResult = true;
+        };
+
+        var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+        buttons.Children.Add(okButton);
+        buttons.Children.Add(cancelButton);
+        panel.Children.Add(buttons);
+        return new ScrollViewer { Content = panel };
     }
 }

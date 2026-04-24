@@ -27,7 +27,7 @@ namespace NovelManagement.WPF.Views
         #region 构造函数
 
         /// <summary>
-        /// 构造函数
+        /// 初始化新建章节对话框。
         /// </summary>
         public NewChapterDialog()
         {
@@ -36,9 +36,9 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 构造函数（指定卷宗）
+        /// 使用指定卷名初始化新建章节对话框。
         /// </summary>
-        /// <param name="volumeName">卷宗名称</param>
+        /// <param name="volumeName">所属卷名。</param>
         public NewChapterDialog(string volumeName) : this()
         {
             if (!string.IsNullOrEmpty(volumeName))
@@ -263,18 +263,69 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ChapterData
     {
+        /// <summary>
+        /// 所属卷名。
+        /// </summary>
         public string Volume { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节标题。
+        /// </summary>
         public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节编号。
+        /// </summary>
         public int Number { get; set; }
+
+        /// <summary>
+        /// 章节类型。
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节摘要。
+        /// </summary>
         public string Summary { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 目标字数。
+        /// </summary>
         public int? TargetWordCount { get; set; }
+
+        /// <summary>
+        /// 重要性等级。
+        /// </summary>
         public int ImportanceLevel { get; set; } = 2;
+
+        /// <summary>
+        /// 难度等级。
+        /// </summary>
         public int DifficultyLevel { get; set; } = 2;
+
+        /// <summary>
+        /// 相关角色。
+        /// </summary>
         public string RelatedCharacters { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 关键事件。
+        /// </summary>
         public string KeyEvents { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 当前状态。
+        /// </summary>
         public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 标签集合文本。
+        /// </summary>
         public string Tags { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 补充备注。
+        /// </summary>
         public string Notes { get; set; } = string.Empty;
     }
 }

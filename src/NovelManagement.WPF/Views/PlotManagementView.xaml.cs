@@ -6,7 +6,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NovelManagement.Application.Services;
+using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
 
@@ -15,27 +18,91 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// PlotManagementView.xaml 的交互逻辑
     /// </summary>
-    public partial class PlotManagementView : UserControl
+    public partial class PlotManagementView : UserControl, INavigationRefreshableView
     {
         /// <summary>
         /// 剧情数据模型
         /// </summary>
         public class PlotViewModel
         {
-            public int Id { get; set; }
+            /// <summary>
+            /// 剧情实体标识。
+            /// </summary>
+            public Guid PlotId { get; set; }
+
+            /// <summary>
+            /// 剧情标题。
+            /// </summary>
             public string Title { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 剧情类型。
+            /// </summary>
             public string Type { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 剧情状态。
+            /// </summary>
             public string Status { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 优先级。
+            /// </summary>
+            public string Priority { get; set; } = "中";
+
+            /// <summary>
+            /// 剧情描述。
+            /// </summary>
             public string Description { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 剧情完成进度。
+            /// </summary>
             public int Progress { get; set; }
+
+            /// <summary>
+            /// 起始章节名称。
+            /// </summary>
             public string StartChapter { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 结束章节名称。
+            /// </summary>
             public string EndChapter { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 相关角色列表。
+            /// </summary>
             public List<string> RelatedCharacters { get; set; } = new();
+
+            /// <summary>
+            /// 相关势力列表。
+            /// </summary>
             public List<string> RelatedFactions { get; set; } = new();
+
+            /// <summary>
+            /// 备注信息。
+            /// </summary>
             public string Notes { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 创建时间。
+            /// </summary>
             public DateTime CreatedDate { get; set; }
+
+            /// <summary>
+            /// 最近更新时间。
+            /// </summary>
             public DateTime LastUpdated { get; set; }
+
+            /// <summary>
+            /// 类型对应颜色。
+            /// </summary>
             public Brush TypeColor { get; set; } = Brushes.Gray;
+
+            /// <summary>
+            /// 状态对应颜色。
+            /// </summary>
             public Brush StatusColor { get; set; } = Brushes.Gray;
         }
 
@@ -44,8 +111,12 @@ namespace NovelManagement.WPF.Views
         private PlotViewModel? _selectedPlot;
 
         // AI服务
+        private PlotService? _plotService;
+        private ProjectContextService? _projectContextService;
+        private CurrentProjectGuard? _currentProjectGuard;
         private AIAssistantService? _aiAssistantService;
         private ILogger<PlotManagementView>? _logger;
+        private Guid _currentProjectId;
 
         /// <summary>
         /// 选择剧情命令
@@ -60,7 +131,7 @@ namespace NovelManagement.WPF.Views
             InitializeComponent();
             InitializeServices();
             InitializeCommands();
-            LoadPlots();
+            _ = LoadPlotsAsync();
         }
 
         /// <summary>
@@ -70,9 +141,17 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-                _logger = loggerFactory.CreateLogger<PlotManagementView>();
+                var serviceProvider = App.ServiceProvider
+                    ?? throw new InvalidOperationException("应用服务提供者未初始化");
+                var loggerFactory = serviceProvider.GetService<ILoggerFactory>()
+                    ?? LoggerFactory.Create(builder => builder.AddConsole());
 
+                _logger = serviceProvider.GetService<ILogger<PlotManagementView>>()
+                    ?? loggerFactory.CreateLogger<PlotManagementView>();
+                _plotService = serviceProvider.GetService<PlotService>();
+                _projectContextService = serviceProvider.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                 _logger.LogInformation("剧情管理界面服务初始化完成");
             }
             catch (Exception ex)
@@ -94,111 +173,37 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载剧情数据
         /// </summary>
-        private void LoadPlots()
+        private async Task LoadPlotsAsync()
         {
-            // 模拟剧情数据
-            _allPlots = new List<PlotViewModel>
+            try
             {
-                new PlotViewModel
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    Id = 1,
-                    Title = "主线：面具觉醒",
-                    Type = "主线",
-                    Status = "已完成",
-                    Description = "林轩获得神秘面具，开始修仙之路的起始剧情",
-                    Progress = 100,
-                    StartChapter = "第1章",
-                    EndChapter = "第15章",
-                    RelatedCharacters = new List<string> { "林轩", "玄天老祖" },
-                    CreatedDate = DateTime.Now.AddDays(-30),
-                    LastUpdated = DateTime.Now.AddDays(-20),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(244, 67, 54)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(76, 175, 80))
-                },
-                new PlotViewModel
-                {
-                    Id = 2,
-                    Title = "主线：天劫降临",
-                    Type = "主线",
-                    Status = "进行中",
-                    Description = "林轩面临天劫考验，修为突破的关键剧情",
-                    Progress = 75,
-                    StartChapter = "第40章",
-                    EndChapter = "第50章",
-                    RelatedCharacters = new List<string> { "林轩", "血魔宗主" },
-                    CreatedDate = DateTime.Now.AddDays(-10),
-                    LastUpdated = DateTime.Now.AddHours(-2),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(244, 67, 54)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(33, 150, 243))
-                },
-                new PlotViewModel
-                {
-                    Id = 3,
-                    Title = "支线：苏雨薇的秘密",
-                    Type = "支线",
-                    Status = "进行中",
-                    Description = "揭示苏雨薇身世之谜，与主线剧情相互呼应",
-                    Progress = 60,
-                    StartChapter = "第25章",
-                    EndChapter = "第35章",
-                    RelatedCharacters = new List<string> { "苏雨薇", "苏家家主" },
-                    CreatedDate = DateTime.Now.AddDays(-15),
-                    LastUpdated = DateTime.Now.AddDays(-1),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(33, 150, 243))
-                },
-                new PlotViewModel
-                {
-                    Id = 4,
-                    Title = "支线：血魔宗的阴谋",
-                    Type = "支线",
-                    Status = "已完成",
-                    Description = "血魔宗暗中策划的阴谋，为后续主线做铺垫",
-                    Progress = 100,
-                    StartChapter = "第20章",
-                    EndChapter = "第30章",
-                    RelatedCharacters = new List<string> { "血魔宗主", "血魔长老" },
-                    CreatedDate = DateTime.Now.AddDays(-25),
-                    LastUpdated = DateTime.Now.AddDays(-10),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(76, 175, 80))
-                },
-                new PlotViewModel
-                {
-                    Id = 5,
-                    Title = "伏笔：古老预言",
-                    Type = "伏笔",
-                    Status = "规划中",
-                    Description = "关于千面劫体质的古老预言，为后续剧情埋下伏笔",
-                    Progress = 20,
-                    StartChapter = "第5章",
-                    EndChapter = "待定",
-                    RelatedCharacters = new List<string> { "玄天老祖", "天机阁主" },
-                    CreatedDate = DateTime.Now.AddDays(-5),
-                    LastUpdated = DateTime.Now.AddDays(-2),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(156, 39, 176)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(255, 152, 0))
-                },
-                new PlotViewModel
-                {
-                    Id = 6,
-                    Title = "支线：万宝商会的委托",
-                    Type = "支线",
-                    Status = "规划中",
-                    Description = "万宝商会委托林轩寻找珍贵材料的任务",
-                    Progress = 10,
-                    StartChapter = "第55章",
-                    EndChapter = "待定",
-                    RelatedCharacters = new List<string> { "林轩", "万宝会长" },
-                    CreatedDate = DateTime.Now.AddDays(-3),
-                    LastUpdated = DateTime.Now.AddDays(-1),
-                    TypeColor = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(255, 152, 0))
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "剧情管理", out _);
+                    _allPlots = new List<PlotViewModel>();
+                    _filteredPlots = new List<PlotViewModel>();
+                    UpdatePlotList();
+                    ShowPlotStatistics();
+                    return;
                 }
-            };
 
-            _filteredPlots = new List<PlotViewModel>(_allPlots);
-            UpdatePlotList();
+                if (_plotService == null)
+                {
+                    throw new InvalidOperationException("剧情服务未初始化");
+                }
+
+                var plots = await _plotService.GetPlotsByProjectIdAsync(_currentProjectId);
+                _allPlots = plots.Select(MapToViewModel).ToList();
+                _filteredPlots = new List<PlotViewModel>(_allPlots);
+                UpdatePlotList();
+                ShowPlotStatistics();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "加载剧情数据失败");
+                MessageBox.Show($"加载剧情数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
@@ -292,8 +297,61 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // TODO: 创建剧情详细信息界面
-                MessageBox.Show($"显示剧情详细信息: {plot.Title}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                var actionsPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 16)
+                };
+
+                var editButton = new Button
+                {
+                    Content = "编辑剧情",
+                    Margin = new Thickness(0, 0, 12, 0),
+                    MinWidth = 96
+                };
+                editButton.Click += async (_, _) => await EditPlotAsync(plot);
+
+                var deleteButton = new Button
+                {
+                    Content = "删除剧情",
+                    MinWidth = 96
+                };
+                deleteButton.Click += async (_, _) => await DeletePlotAsync(plot);
+
+                actionsPanel.Children.Add(editButton);
+                actionsPanel.Children.Add(deleteButton);
+
+                var detailCard = new MaterialDesignThemes.Wpf.Card
+                {
+                    Padding = new Thickness(24),
+                    Content = new ScrollViewer
+                    {
+                        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                        Content = new StackPanel
+                        {
+                            Children =
+                            {
+                                new TextBlock { Text = plot.Title, FontSize = 24, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 12) },
+                                new TextBlock { Text = $"类型：{plot.Type}    状态：{plot.Status}    优先级：{plot.Priority}", FontSize = 14, Margin = new Thickness(0, 0, 0, 12) },
+                                actionsPanel,
+                                new TextBlock { Text = "剧情描述", FontSize = 18, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 8) },
+                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Description) ? "暂无描述" : plot.Description, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) },
+                                new TextBlock { Text = $"进度：{plot.Progress}%", Margin = new Thickness(0, 0, 0, 8) },
+                                new ProgressBar { Value = plot.Progress, Maximum = 100, Height = 8, Margin = new Thickness(0, 0, 0, 16) },
+                                new TextBlock { Text = $"起始章节：{plot.StartChapter}", Margin = new Thickness(0, 0, 0, 6) },
+                                new TextBlock { Text = $"结束章节：{plot.EndChapter}", Margin = new Thickness(0, 0, 0, 6) },
+                                new TextBlock { Text = $"关联角色：{(plot.RelatedCharacters.Count == 0 ? "暂无" : string.Join("、", plot.RelatedCharacters))}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6) },
+                                new TextBlock { Text = $"创建时间：{plot.CreatedDate:yyyy-MM-dd HH:mm}", Margin = new Thickness(0, 0, 0, 6) },
+                                new TextBlock { Text = $"最近更新：{plot.LastUpdated:yyyy-MM-dd HH:mm}", Margin = new Thickness(0, 0, 0, 12) },
+                                new TextBlock { Text = "备注", FontSize = 18, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 12, 0, 8) },
+                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Notes) ? "暂无备注" : plot.Notes, TextWrapping = TextWrapping.Wrap }
+                            }
+                        }
+                    }
+                };
+
+                DetailArea.Children.Clear();
+                DetailArea.Children.Add(detailCard);
             }
             catch (Exception ex)
             {
@@ -309,11 +367,10 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (GroupByTypeToggle?.IsChecked == true)
-                {
-                    // TODO: 按类型分组显示
-                    MessageBox.Show("按类型分组功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+                _filteredPlots = GroupByTypeToggle?.IsChecked == true
+                    ? _filteredPlots.OrderBy(p => p.Type).ThenBy(p => p.Title).ToList()
+                    : _filteredPlots.OrderByDescending(p => p.LastUpdated).ToList();
+                UpdatePlotList();
             }
             catch (Exception ex)
             {
@@ -325,11 +382,35 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 新建剧情按钮点击事件
         /// </summary>
-        private void NewPlot_Click(object sender, RoutedEventArgs e)
+        private async void NewPlot_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                MessageBox.Show("新建剧情功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (_currentProjectId == Guid.Empty)
+                {
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "新建剧情", out _);
+                    return;
+                }
+
+                if (_plotService == null)
+                {
+                    MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var dialog = new PlotEditDialog();
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                var plot = await PersistNewPlotAsync(dialog);
+                await LoadPlotsAsync();
+                _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == plot.Id);
+                if (_selectedPlot != null)
+                {
+                    ShowPlotDetails(_selectedPlot);
+                }
             }
             catch (Exception ex)
             {
@@ -343,7 +424,16 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ViewTimeline_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("时间线视图功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            var timelineText = _allPlots.Count == 0
+                ? "当前项目暂无剧情。"
+                : string.Join(
+                    Environment.NewLine + Environment.NewLine,
+                    _allPlots
+                        .OrderBy(p => p.StartChapter)
+                        .ThenBy(p => p.Title)
+                        .Select(p => $"• {p.Title}{Environment.NewLine}  {p.StartChapter} -> {p.EndChapter}  [{p.Status}]"));
+
+            ShowTextReportWindow("剧情时间线", timelineText);
         }
 
         /// <summary>
@@ -351,7 +441,22 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void PlotAnalysis_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("剧情分析功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            var total = _allPlots.Count;
+            var mainline = _allPlots.Count(p => p.Type == "主线");
+            var branch = _allPlots.Count(p => p.Type == "支线");
+            var completed = _allPlots.Count(p => p.Status == "已完成");
+            var inProgress = _allPlots.Count(p => p.Status == "进行中");
+            var avgProgress = total > 0 ? _allPlots.Average(p => p.Progress) : 0;
+
+            var report = "剧情分析概览" + Environment.NewLine + Environment.NewLine +
+                         $"• 总剧情数：{total}" + Environment.NewLine +
+                         $"• 主线剧情：{mainline}" + Environment.NewLine +
+                         $"• 支线剧情：{branch}" + Environment.NewLine +
+                         $"• 已完成：{completed}" + Environment.NewLine +
+                         $"• 进行中：{inProgress}" + Environment.NewLine +
+                         $"• 平均进度：{avgProgress:F0}%";
+
+            ShowTextReportWindow("剧情分析", report);
         }
 
         /// <summary>
@@ -359,7 +464,22 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ExportPlots_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出剧情功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            mainWindow.NavigateTo(NavigationTarget.ImportExport, new NavigationContext
+            {
+                ProjectId = _currentProjectId == Guid.Empty ? null : _currentProjectId,
+                Source = "PlotManagement.ExportPlots",
+                Payload = new ImportExportNavigationPayload
+                {
+                    Action = "PlotsOnlyExport"
+                }
+            });
         }
 
         #endregion
@@ -398,11 +518,36 @@ namespace NovelManagement.WPF.Views
                             var generatedPlot = ParseGeneratedPlot(result.Data);
                             if (generatedPlot != null)
                             {
-                                generatedPlot.Id = _allPlots.Count + 1;
-                                generatedPlot.CreatedDate = DateTime.Now;
-                                generatedPlot.LastUpdated = DateTime.Now;
-                                _allPlots.Add(generatedPlot);
-                                ApplyFilters();
+                                if (_plotService == null || _currentProjectId == Guid.Empty)
+                                {
+                                    MessageBox.Show("当前项目或剧情服务不可用，无法保存 AI 生成结果。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+
+                                var createdPlot = await _plotService.CreatePlotAsync(new Plot
+                                {
+                                    ProjectId = _currentProjectId,
+                                    Title = generatedPlot.Title,
+                                    Type = generatedPlot.Type,
+                                    Status = generatedPlot.Status,
+                                    Priority = generatedPlot.Priority,
+                                    Description = generatedPlot.Description,
+                                    Progress = generatedPlot.Progress,
+                                    Importance = generatedPlot.Priority switch
+                                    {
+                                        "高" => 9,
+                                        "中" => 6,
+                                        _ => 3
+                                    },
+                                    Notes = generatedPlot.Notes
+                                });
+
+                                await LoadPlotsAsync();
+                                _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == createdPlot.Id);
+                                if (_selectedPlot != null)
+                                {
+                                    ShowPlotDetails(_selectedPlot);
+                                }
 
                                 _aiAssistantService.ShowSuccess($"成功生成剧情: {generatedPlot.Title}");
                                 _logger?.LogInformation($"AI生成剧情成功: {generatedPlot.Title}");
@@ -464,18 +609,37 @@ namespace NovelManagement.WPF.Views
                             var optimizedPlot = ParseGeneratedPlot(result.Data);
                             if (optimizedPlot != null)
                             {
-                                var index = _allPlots.FindIndex(p => p.Id == _selectedPlot.Id);
-                                if (index >= 0)
+                                if (_plotService == null)
                                 {
-                                    optimizedPlot.Id = _selectedPlot.Id;
-                                    optimizedPlot.CreatedDate = _selectedPlot.CreatedDate;
-                                    optimizedPlot.LastUpdated = DateTime.Now;
-                                    _allPlots[index] = optimizedPlot;
-                                    ApplyFilters();
-
-                                    _aiAssistantService.ShowSuccess($"成功优化剧情: {optimizedPlot.Title}");
-                                    _logger?.LogInformation($"AI优化剧情成功: {optimizedPlot.Title}");
+                                    MessageBox.Show("剧情服务未初始化，无法保存优化结果。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
                                 }
+
+                                var plotEntity = await _plotService.GetPlotByIdAsync(_selectedPlot.PlotId);
+                                if (plotEntity == null)
+                                {
+                                    MessageBox.Show("未找到要优化的剧情。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    return;
+                                }
+
+                                plotEntity.Title = optimizedPlot.Title;
+                                plotEntity.Type = optimizedPlot.Type;
+                                plotEntity.Status = optimizedPlot.Status;
+                                plotEntity.Priority = _selectedPlot.Priority;
+                                plotEntity.Description = optimizedPlot.Description;
+                                plotEntity.Progress = optimizedPlot.Progress;
+                                plotEntity.Notes = optimizedPlot.Notes;
+
+                                await _plotService.UpdatePlotAsync(plotEntity);
+                                await LoadPlotsAsync();
+                                _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == plotEntity.Id);
+                                if (_selectedPlot != null)
+                                {
+                                    ShowPlotDetails(_selectedPlot);
+                                }
+
+                                _aiAssistantService.ShowSuccess($"成功优化剧情: {optimizedPlot.Title}");
+                                _logger?.LogInformation($"AI优化剧情成功: {optimizedPlot.Title}");
                             }
                             else
                             {
@@ -606,8 +770,24 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 这里应该根据实际的AI返回数据格式进行解析
-                // 暂时返回模拟数据
+                if (data is string text && !string.IsNullOrWhiteSpace(text))
+                {
+                    return new PlotViewModel
+                    {
+                        Title = "AI生成剧情",
+                        Type = "支线",
+                        Status = "规划中",
+                        Description = text.Trim(),
+                        Progress = 0,
+                        StartChapter = "待定",
+                        EndChapter = "待定",
+                        RelatedCharacters = new List<string>(),
+                        Priority = "中",
+                        TypeColor = GetTypeColor("支线"),
+                        StatusColor = GetStatusColor("规划中")
+                    };
+                }
+
                 return new PlotViewModel
                 {
                     Title = "AI生成剧情",
@@ -618,8 +798,9 @@ namespace NovelManagement.WPF.Views
                     StartChapter = "待定",
                     EndChapter = "待定",
                     RelatedCharacters = new List<string> { "林轩" },
-                    TypeColor = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                    StatusColor = new SolidColorBrush(Color.FromRgb(255, 152, 0))
+                    Priority = "中",
+                    TypeColor = GetTypeColor("支线"),
+                    StatusColor = GetStatusColor("规划中")
                 };
             }
             catch (Exception ex)
@@ -627,6 +808,227 @@ namespace NovelManagement.WPF.Views
                 _logger?.LogError(ex, "解析生成的剧情数据失败");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 在项目切换后刷新剧情数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadPlotsAsync();
+        }
+
+        private async Task<Plot> PersistNewPlotAsync(PlotEditDialog dialog)
+        {
+            if (_plotService == null)
+            {
+                throw new InvalidOperationException("剧情服务未初始化");
+            }
+
+            var plot = new Plot
+            {
+                ProjectId = _currentProjectId,
+                Title = dialog.PlotTitle,
+                Type = dialog.PlotType,
+                Status = dialog.PlotStatus,
+                Priority = dialog.PlotPriority,
+                Description = dialog.PlotDescription,
+                Progress = 0,
+                Importance = dialog.PlotPriority switch
+                {
+                    "高" => 9,
+                    "中" => 6,
+                    _ => 3
+                }
+            };
+
+            return await _plotService.CreatePlotAsync(plot);
+        }
+
+        private async Task EditPlotAsync(PlotViewModel plot)
+        {
+            if (_plotService == null)
+            {
+                MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var entity = await _plotService.GetPlotByIdAsync(plot.PlotId);
+            if (entity == null)
+            {
+                MessageBox.Show("未找到要编辑的剧情。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var dialog = new PlotEditDialog(plot);
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            entity.Title = dialog.PlotTitle;
+            entity.Type = dialog.PlotType;
+            entity.Status = dialog.PlotStatus;
+            entity.Priority = dialog.PlotPriority;
+            entity.Description = dialog.PlotDescription;
+            entity.Importance = dialog.PlotPriority switch
+            {
+                "高" => 9,
+                "中" => 6,
+                _ => 3
+            };
+
+            await _plotService.UpdatePlotAsync(entity);
+            await LoadPlotsAsync();
+            _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == entity.Id);
+            if (_selectedPlot != null)
+            {
+                ShowPlotDetails(_selectedPlot);
+            }
+        }
+
+        private async Task DeletePlotAsync(PlotViewModel plot)
+        {
+            if (_plotService == null)
+            {
+                MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var result = MessageBox.Show($"确定删除剧情“{plot.Title}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var deleted = await _plotService.DeletePlotAsync(plot.PlotId);
+            if (!deleted)
+            {
+                MessageBox.Show("剧情删除失败或剧情不存在。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _selectedPlot = null;
+            await LoadPlotsAsync();
+            ShowPlotStatistics();
+        }
+
+        private PlotViewModel MapToViewModel(Plot plot)
+        {
+            return new PlotViewModel
+            {
+                PlotId = plot.Id,
+                Title = plot.Title,
+                Type = plot.Type,
+                Status = plot.Status,
+                Priority = plot.Priority,
+                Description = plot.Description ?? string.Empty,
+                Progress = (int)Math.Round(plot.Progress),
+                StartChapter = plot.StartChapter?.Title ?? "待定",
+                EndChapter = plot.EndChapter?.Title ?? "待定",
+                RelatedCharacters = plot.RelatedCharacters.Select(c => c.Name).ToList(),
+                Notes = plot.Notes ?? string.Empty,
+                CreatedDate = plot.CreatedAt.ToLocalTime(),
+                LastUpdated = plot.UpdatedAt.ToLocalTime(),
+                TypeColor = GetTypeColor(plot.Type),
+                StatusColor = GetStatusColor(plot.Status)
+            };
+        }
+
+        private static SolidColorBrush GetTypeColor(string type)
+        {
+            return type switch
+            {
+                "主线" => new SolidColorBrush(Color.FromRgb(244, 67, 54)),
+                "支线" => new SolidColorBrush(Color.FromRgb(255, 152, 0)),
+                "伏笔" => new SolidColorBrush(Color.FromRgb(156, 39, 176)),
+                "回忆" => new SolidColorBrush(Color.FromRgb(63, 81, 181)),
+                _ => new SolidColorBrush(Color.FromRgb(96, 125, 139))
+            };
+        }
+
+        private static SolidColorBrush GetStatusColor(string status)
+        {
+            return status switch
+            {
+                "已完成" => new SolidColorBrush(Color.FromRgb(76, 175, 80)),
+                "进行中" => new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                "规划中" => new SolidColorBrush(Color.FromRgb(255, 152, 0)),
+                "暂停" => new SolidColorBrush(Color.FromRgb(158, 158, 158)),
+                _ => new SolidColorBrush(Color.FromRgb(96, 125, 139))
+            };
+        }
+
+        private void ShowPlotStatistics()
+        {
+            var total = _allPlots.Count;
+            var mainline = _allPlots.Count(p => p.Type == "主线");
+            var branch = _allPlots.Count(p => p.Type == "支线");
+            var completionRate = total > 0 ? _allPlots.Average(p => p.Progress) : 0;
+            var completed = _allPlots.Count(p => p.Status == "已完成");
+            var inProgress = _allPlots.Count(p => p.Status == "进行中");
+            var planning = _allPlots.Count(p => p.Status == "规划中");
+            var recentUpdates = _allPlots
+                .OrderByDescending(p => p.LastUpdated)
+                .Take(5)
+                .Select(p => $"• {p.Title}（{p.LastUpdated:MM-dd HH:mm}）")
+                .ToList();
+
+            var report = "剧情统计" + Environment.NewLine + Environment.NewLine +
+                         $"• 总剧情数：{total}" + Environment.NewLine +
+                         $"• 主线剧情：{mainline}" + Environment.NewLine +
+                         $"• 支线剧情：{branch}" + Environment.NewLine +
+                         $"• 平均完成度：{completionRate:F0}%" + Environment.NewLine +
+                         $"• 已完成：{completed} / 进行中：{inProgress} / 规划中：{planning}" + Environment.NewLine + Environment.NewLine +
+                         "最近更新：" + Environment.NewLine +
+                         (recentUpdates.Count == 0 ? "• 暂无剧情更新" : string.Join(Environment.NewLine, recentUpdates));
+
+            var card = new MaterialDesignThemes.Wpf.Card
+            {
+                Padding = new Thickness(24),
+                Content = new ScrollViewer
+                {
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Content = new StackPanel
+                    {
+                        Children =
+                        {
+                            new TextBlock { Text = "剧情统计", FontSize = 24, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 20) },
+                            new TextBlock { Text = report, TextWrapping = TextWrapping.Wrap, LineHeight = 20 }
+                        }
+                    }
+                }
+            };
+
+            DetailArea.Children.Clear();
+            DetailArea.Children.Add(card);
+        }
+
+        private void ShowTextReportWindow(string title, string content)
+        {
+            var window = new Window
+            {
+                Title = title,
+                Width = 900,
+                Height = 700,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                Content = new ScrollViewer
+                {
+                    Margin = new Thickness(24),
+                    Content = new TextBlock
+                    {
+                        Text = content,
+                        TextWrapping = TextWrapping.Wrap,
+                        FontSize = 14,
+                        LineHeight = 20
+                    }
+                }
+            };
+            window.ShowDialog();
         }
 
         #endregion
@@ -639,12 +1041,35 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PlotGenerationDialog : Window
     {
+        /// <summary>
+        /// 目标剧情类型。
+        /// </summary>
         public string PlotType { get; set; } = "支线";
+
+        /// <summary>
+        /// 剧情主题。
+        /// </summary>
         public string Theme { get; set; } = "";
+
+        /// <summary>
+        /// 目标章节范围。
+        /// </summary>
         public string TargetChapters { get; set; } = "";
+
+        /// <summary>
+        /// 相关角色列表。
+        /// </summary>
         public List<string> RelatedCharacters { get; set; } = new();
+
+        /// <summary>
+        /// 选中的剧情元素。
+        /// </summary>
         public List<string> PlotElements { get; set; } = new();
 
+        /// <summary>
+        /// 初始化剧情生成参数对话框。
+        /// </summary>
+        /// <param name="existingPlots">当前项目已有剧情列表。</param>
         public PlotGenerationDialog(List<PlotManagementView.PlotViewModel> existingPlots)
         {
             Title = "AI剧情生成参数";
@@ -658,12 +1083,155 @@ namespace NovelManagement.WPF.Views
     }
 
     /// <summary>
+    /// 剧情编辑对话框。
+    /// </summary>
+    public class PlotEditDialog : Window
+    {
+        /// <summary>
+        /// 编辑后的剧情标题。
+        /// </summary>
+        public string PlotTitle { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 编辑后的剧情类型。
+        /// </summary>
+        public string PlotType { get; private set; } = "支线";
+
+        /// <summary>
+        /// 编辑后的剧情状态。
+        /// </summary>
+        public string PlotStatus { get; private set; } = "规划中";
+
+        /// <summary>
+        /// 编辑后的剧情优先级。
+        /// </summary>
+        public string PlotPriority { get; private set; } = "中";
+
+        /// <summary>
+        /// 编辑后的剧情描述。
+        /// </summary>
+        public string PlotDescription { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 初始化新建剧情对话框。
+        /// </summary>
+        public PlotEditDialog()
+            : this(null)
+        {
+        }
+
+        /// <summary>
+        /// 初始化剧情编辑对话框。
+        /// </summary>
+        /// <param name="plot">待编辑的剧情；为空时表示新建。</param>
+        public PlotEditDialog(PlotManagementView.PlotViewModel? plot)
+        {
+            Title = plot == null ? "新建剧情" : $"编辑剧情 - {plot.Title}";
+            Width = 520;
+            Height = 420;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+
+            var titleTextBox = new TextBox
+            {
+                Text = plot?.Title ?? string.Empty
+            };
+            var typeComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "主线", "支线", "伏笔", "回忆", "番外" }
+            };
+            var statusComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "规划中", "进行中", "已完成", "暂停" }
+            };
+            var priorityComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "高", "中", "低" }
+            };
+            var descriptionTextBox = new TextBox
+            {
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Height = 140,
+                Text = plot?.Description ?? string.Empty
+            };
+
+            typeComboBox.SelectedItem = plot?.Type ?? "支线";
+            statusComboBox.SelectedItem = plot?.Status ?? "规划中";
+            priorityComboBox.SelectedItem = plot?.Priority ?? "中";
+
+            var formPanel = new StackPanel { Margin = new Thickness(24) };
+            formPanel.Children.Add(new TextBlock { Text = "剧情标题", Margin = new Thickness(0, 0, 0, 6) });
+            formPanel.Children.Add(titleTextBox);
+            formPanel.Children.Add(new TextBlock { Text = "剧情类型", Margin = new Thickness(0, 12, 0, 6) });
+            formPanel.Children.Add(typeComboBox);
+            formPanel.Children.Add(new TextBlock { Text = "剧情状态", Margin = new Thickness(0, 12, 0, 6) });
+            formPanel.Children.Add(statusComboBox);
+            formPanel.Children.Add(new TextBlock { Text = "优先级", Margin = new Thickness(0, 12, 0, 6) });
+            formPanel.Children.Add(priorityComboBox);
+            formPanel.Children.Add(new TextBlock { Text = "剧情描述", Margin = new Thickness(0, 12, 0, 6) });
+            formPanel.Children.Add(descriptionTextBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+
+            var confirmButton = new Button
+            {
+                Content = "确定",
+                Width = 88,
+                Margin = new Thickness(0, 0, 12, 0),
+                IsDefault = true
+            };
+            confirmButton.Click += (_, _) =>
+            {
+                if (string.IsNullOrWhiteSpace(titleTextBox.Text))
+                {
+                    MessageBox.Show("请输入剧情标题。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                PlotTitle = titleTextBox.Text.Trim();
+                PlotType = typeComboBox.SelectedItem?.ToString() ?? "支线";
+                PlotStatus = statusComboBox.SelectedItem?.ToString() ?? "规划中";
+                PlotPriority = priorityComboBox.SelectedItem?.ToString() ?? "中";
+                PlotDescription = descriptionTextBox.Text.Trim();
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 88,
+                IsCancel = true
+            };
+
+            buttonPanel.Children.Add(confirmButton);
+            buttonPanel.Children.Add(cancelButton);
+            formPanel.Children.Add(buttonPanel);
+
+            Content = formPanel;
+        }
+    }
+
+    /// <summary>
     /// 剧情优化对话框
     /// </summary>
     public class PlotOptimizationDialog : Window
     {
+        /// <summary>
+        /// 选中的优化目标列表。
+        /// </summary>
         public List<string> SelectedOptimizationGoals { get; set; } = new();
 
+        /// <summary>
+        /// 初始化剧情优化对话框。
+        /// </summary>
+        /// <param name="plot">待优化的剧情。</param>
         public PlotOptimizationDialog(PlotManagementView.PlotViewModel plot)
         {
             Title = $"优化剧情: {plot.Title}";
@@ -682,6 +1250,10 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PlotContinuityDialog : Window
     {
+        /// <summary>
+        /// 初始化剧情连贯性检查结果对话框。
+        /// </summary>
+        /// <param name="continuityData">连贯性检查结果数据。</param>
         public PlotContinuityDialog(object continuityData)
         {
             Title = "剧情连贯性检查结果";
@@ -699,6 +1271,10 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PlotSuggestionsDialog : Window
     {
+        /// <summary>
+        /// 初始化剧情建议对话框。
+        /// </summary>
+        /// <param name="suggestionsData">AI生成的剧情建议数据。</param>
         public PlotSuggestionsDialog(object suggestionsData)
         {
             Title = "AI剧情建议";

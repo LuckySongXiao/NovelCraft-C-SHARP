@@ -148,6 +148,8 @@ public class CharacterService
             existingCharacter.Tags = character.Tags;
             existingCharacter.Status = character.Status;
             existingCharacter.Importance = character.Importance;
+            existingCharacter.History = character.History;
+            existingCharacter.KeyEvents = character.KeyEvents;
 
             // 处理势力关系 - 从Tags字段提取势力信息
             if (!string.IsNullOrEmpty(character.Tags))
@@ -598,4 +600,150 @@ public class CharacterService
             };
         }
     }
+
+    #region 角色事件/履历记录
+
+    /// <summary>
+    /// 获取角色的所有履历事件（按时间线排序）
+    /// </summary>
+    public async Task<IEnumerable<CharacterEvent>> GetCharacterEventsAsync(Guid characterId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _unitOfWork.CharacterEvents.GetEventsByCharacterIdAsync(characterId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取角色履历事件失败，角色ID: {CharacterId}", characterId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 添加角色履历事件
+    /// </summary>
+    public async Task<CharacterEvent> AddCharacterEventAsync(CharacterEvent characterEvent, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("添加角色履历事件: {Title}, 角色ID: {CharacterId}", characterEvent.Title, characterEvent.CharacterId);
+
+            // 自动计算排序序号
+            if (characterEvent.Order == 0)
+            {
+                var existingEvents = await _unitOfWork.CharacterEvents.GetEventsByCharacterIdAsync(characterEvent.CharacterId, cancellationToken);
+                characterEvent.Order = existingEvents.Any() ? existingEvents.Max(e => e.Order) + 1 : 1;
+            }
+
+            await _unitOfWork.CharacterEvents.AddAsync(characterEvent);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return characterEvent;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "添加角色履历事件失败");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 更新角色履历事件
+    /// </summary>
+    public async Task<CharacterEvent> UpdateCharacterEventAsync(CharacterEvent characterEvent, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("更新角色履历事件: {EventId}", characterEvent.Id);
+
+            var existing = await _unitOfWork.CharacterEvents.GetByIdAsync(characterEvent.Id, cancellationToken);
+            if (existing == null)
+                throw new InvalidOperationException($"角色事件不存在: {characterEvent.Id}");
+
+            existing.Title = characterEvent.Title;
+            existing.Description = characterEvent.Description;
+            existing.EventType = characterEvent.EventType;
+            existing.StoryTime = characterEvent.StoryTime;
+            existing.Order = characterEvent.Order;
+            existing.ChapterId = characterEvent.ChapterId;
+            existing.PlotId = characterEvent.PlotId;
+            existing.Impact = characterEvent.Impact;
+            existing.InvolvedCharacterIds = characterEvent.InvolvedCharacterIds;
+            existing.Tags = characterEvent.Tags;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _unitOfWork.CharacterEvents.UpdateAsync(existing);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return existing;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "更新角色履历事件失败");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 删除角色履历事件
+    /// </summary>
+    public async Task<bool> DeleteCharacterEventAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("删除角色履历事件: {EventId}", eventId);
+
+            var existing = await _unitOfWork.CharacterEvents.GetByIdAsync(eventId, cancellationToken);
+            if (existing == null) return false;
+
+            await _unitOfWork.CharacterEvents.DeleteAsync(existing);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "删除角色履历事件失败");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 批量添加角色履历事件
+    /// </summary>
+    public async Task AddCharacterEventsRangeAsync(IEnumerable<CharacterEvent> events, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var eventList = events.ToList();
+            _logger.LogInformation("批量添加 {Count} 条角色履历事件", eventList.Count);
+
+            await _unitOfWork.CharacterEvents.AddRangeAsync(eventList, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "批量添加角色履历事件失败");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 重新排序角色履历事件
+    /// </summary>
+    public async Task ReorderCharacterEventsAsync(Guid characterId, List<Guid> orderedEventIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _unitOfWork.CharacterEvents.ReorderEventsAsync(characterId, orderedEventIds, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "重新排序角色履历事件失败");
+            throw;
+        }
+    }
+
+    #endregion
 }

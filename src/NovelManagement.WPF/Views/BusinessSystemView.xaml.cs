@@ -58,6 +58,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化商业体系管理视图。
+        /// </summary>
         public BusinessSystemView()
         {
             InitializeComponent();
@@ -664,14 +667,49 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class BusinessSystemViewModel
     {
+        /// <summary>
+        /// 商业体系标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 商业体系名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 商业类别。
+        /// </summary>
         public string Category { get; set; } = "";
+
+        /// <summary>
+        /// 所在地点。
+        /// </summary>
         public string Location { get; set; } = "";
+
+        /// <summary>
+        /// 经营者或所有者。
+        /// </summary>
         public string Owner { get; set; } = "";
+
+        /// <summary>
+        /// 商业体系描述。
+        /// </summary>
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 商品数量。
+        /// </summary>
         public int ProductCount { get; set; }
+
+        /// <summary>
+        /// 服务数量。
+        /// </summary>
         public int ServiceCount { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -680,8 +718,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class BusinessProductViewModel
     {
+        /// <summary>
+        /// 商品名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 商品价格。
+        /// </summary>
         public string Price { get; set; } = "";
+
+        /// <summary>
+        /// 商品描述。
+        /// </summary>
         public string Description { get; set; } = "";
     }
 
@@ -690,8 +739,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class BusinessServiceViewModel
     {
+        /// <summary>
+        /// 服务名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 服务费用。
+        /// </summary>
         public string Fee { get; set; } = "";
+
+        /// <summary>
+        /// 服务描述。
+        /// </summary>
         public string Description { get; set; } = "";
     }
 

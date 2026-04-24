@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,7 +17,7 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 生民体系管理视图
     /// </summary>
-    public partial class PopulationSystemView : UserControl
+    public partial class PopulationSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -49,10 +51,38 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private readonly IAIAssistantService? _aiAssistantService;
 
+        private readonly PopulationDataService? _populationDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
+        /// <summary>
+        /// 获取当前生民体系总数。
+        /// </summary>
+        public int TotalCount => PopulationSystems.Count;
+
+        /// <summary>
+        /// 获取修仙界生民体系数量。
+        /// </summary>
+        public int CultivationWorldCount => PopulationSystems.Count(s => s.RegionName == "修仙界");
+
+        /// <summary>
+        /// 获取凡人界生民体系数量。
+        /// </summary>
+        public int MortalWorldCount => PopulationSystems.Count(s => s.RegionName == "凡人界");
+
+        /// <summary>
+        /// 获取其他区域生民体系数量。
+        /// </summary>
+        public int OtherWorldCount => PopulationSystems.Count - CultivationWorldCount - MortalWorldCount;
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化生民体系管理视图。
+        /// </summary>
         public PopulationSystemView()
         {
             InitializeComponent();
@@ -63,6 +93,9 @@ namespace NovelManagement.WPF.Views
                 var serviceProvider = App.ServiceProvider;
                 _logger = serviceProvider?.GetService<ILogger<PopulationSystemView>>();
                 _aiAssistantService = serviceProvider?.GetService<IAIAssistantService>();
+                _populationDataService = serviceProvider?.GetService<PopulationDataService>();
+                _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
             }
             catch (Exception ex)
             {
@@ -72,7 +105,7 @@ namespace NovelManagement.WPF.Views
 
             InitializeData();
             InitializeCommands();
-            LoadPopulationSystems();
+            _ = LoadPopulationSystemsAsync();
         }
 
         #endregion
@@ -106,70 +139,29 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载生民体系数据
         /// </summary>
-        private void LoadPopulationSystems()
+        private async Task LoadPopulationSystemsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var populationSystems = new List<PopulationSystemViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new PopulationSystemViewModel
-                    {
-                        Id = 1,
-                        Name = "修仙界生民体系",
-                        RegionName = "修仙界",
-                        DimensionId = "DIM-001",
-                        Description = "修仙界的生民体系，包含修仙者和凡人两大群体，社会结构以修为等级为主导",
-                        TotalPopulation = "10亿",
-                        PopulationDensity = "中等",
-                        GrowthRate = 2.5,
-                        DevelopmentLevel = "修仙文明",
-                        CreatedAt = DateTime.Now.AddDays(-90)
-                    },
-                    new PopulationSystemViewModel
-                    {
-                        Id = 2,
-                        Name = "凡人界生民体系",
-                        RegionName = "凡人界",
-                        DimensionId = "DIM-002",
-                        Description = "凡人界的生民体系，以传统封建社会为主，分为皇室、贵族、平民等阶层",
-                        TotalPopulation = "50亿",
-                        PopulationDensity = "高",
-                        GrowthRate = 1.8,
-                        DevelopmentLevel = "封建社会",
-                        CreatedAt = DateTime.Now.AddDays(-75)
-                    },
-                    new PopulationSystemViewModel
-                    {
-                        Id = 3,
-                        Name = "魔界生民体系",
-                        RegionName = "魔界",
-                        DimensionId = "DIM-003",
-                        Description = "魔界的生民体系，以魔族为主体，社会结构严格按照血脉和实力划分",
-                        TotalPopulation = "5亿",
-                        PopulationDensity = "低",
-                        GrowthRate = 1.2,
-                        DevelopmentLevel = "修仙文明",
-                        CreatedAt = DateTime.Now.AddDays(-60)
-                    },
-                    new PopulationSystemViewModel
-                    {
-                        Id = 4,
-                        Name = "妖界生民体系",
-                        RegionName = "妖界",
-                        DimensionId = "DIM-004",
-                        Description = "妖界的生民体系，以各种妖族为主，崇尚自然法则和血脉传承",
-                        TotalPopulation = "8亿",
-                        PopulationDensity = "中等",
-                        GrowthRate = 2.0,
-                        DevelopmentLevel = "修仙文明",
-                        CreatedAt = DateTime.Now.AddDays(-45)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "生民体系管理", out _);
+                    PopulationSystems.Clear();
+                    PopulationSystemListControl.ItemsSource = PopulationSystems;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var populationSystems = _populationDataService == null
+                    ? new List<PopulationSystemViewModel>()
+                    : await _populationDataService.LoadPopulationSystemsAsync(_currentProjectId);
 
                 PopulationSystems.Clear();
                 foreach (var system in populationSystems)
                 {
+                    system.SocialClasses ??= new List<SocialClassViewModel>();
                     PopulationSystems.Add(system);
                 }
 
@@ -190,8 +182,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            PopulationSystemListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
         #endregion
@@ -270,38 +263,15 @@ namespace NovelManagement.WPF.Views
             }
 
             // 加载社会阶层列表
-            LoadSocialClasses(system.Id);
+            LoadSocialClasses(system);
         }
 
         /// <summary>
         /// 加载社会阶层列表
         /// </summary>
-        private void LoadSocialClasses(int systemId)
+        private void LoadSocialClasses(PopulationSystemViewModel system)
         {
-            // 模拟数据 - 实际应用中应该从服务层获取
-            var socialClasses = new List<SocialClassViewModel>();
-            
-            if (systemId == 1) // 修仙界生民体系
-            {
-                socialClasses.AddRange(new[]
-                {
-                    new SocialClassViewModel { Name = "仙人", Population = "1万", Description = "已成仙的修炼者，地位最高" },
-                    new SocialClassViewModel { Name = "修仙者", Population = "100万", Description = "正在修炼的人群，社会中坚力量" },
-                    new SocialClassViewModel { Name = "修仙家族", Population = "1000万", Description = "有修仙传承的家族成员" },
-                    new SocialClassViewModel { Name = "普通凡人", Population = "9亿", Description = "无法修炼的普通人群" }
-                });
-            }
-            else if (systemId == 2) // 凡人界生民体系
-            {
-                socialClasses.AddRange(new[]
-                {
-                    new SocialClassViewModel { Name = "皇室", Population = "1000", Description = "皇帝及其家族成员" },
-                    new SocialClassViewModel { Name = "贵族", Population = "10万", Description = "各级贵族和官员" },
-                    new SocialClassViewModel { Name = "商人", Population = "1000万", Description = "从事商业活动的人群" },
-                    new SocialClassViewModel { Name = "农民", Population = "40亿", Description = "从事农业生产的人群" },
-                    new SocialClassViewModel { Name = "手工业者", Population = "9亿", Description = "从事手工业的人群" }
-                });
-            }
+            var socialClasses = system.SocialClasses ?? new List<SocialClassViewModel>();
 
             SocialClasses.Clear();
             foreach (var socialClass in socialClasses)
@@ -369,17 +339,86 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导入生民数据
         /// </summary>
-        private void ImportPopulation_Click(object sender, RoutedEventArgs e)
+        private async void ImportPopulation_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导入生民体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "导入生民体系数据",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    DefaultExt = "json"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_populationDataService == null)
+                    {
+                        MessageBox.Show("生民数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var importedSystems = await _populationDataService.ImportPopulationSystemsAsync(dialog.FileName);
+                    PopulationSystems.Clear();
+                    foreach (var system in importedSystems)
+                    {
+                        system.SocialClasses ??= new List<SocialClassViewModel>();
+                        PopulationSystems.Add(system);
+                    }
+
+                    await PersistPopulationSystemsAsync();
+                    FilterPopulationSystems();
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {PopulationSystems.Count} 个生民体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
         /// 导出生民数据
         /// </summary>
-        private void ExportPopulation_Click(object sender, RoutedEventArgs e)
+        private async void ExportPopulation_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导出生民体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出生民体系数据",
+                    Filter = "JSON文件|*.json",
+                    DefaultExt = "json",
+                    FileName = $"生民体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_populationDataService == null)
+                    {
+                        MessageBox.Show("生民数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    await _populationDataService.ExportPopulationSystemsAsync(_currentProjectId, PopulationSystems, dialog.FileName);
+                    MessageBox.Show($"生民体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
@@ -411,7 +450,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存生民体系
         /// </summary>
-        private void SavePopulationSystem_Click(object sender, RoutedEventArgs e)
+        private async void SavePopulationSystem_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -443,6 +482,7 @@ namespace NovelManagement.WPF.Views
                 {
                     SelectedPopulationSystem.GrowthRate = growthRate;
                 }
+                SelectedPopulationSystem.SocialClasses = SocialClasses.ToList();
 
                 // 如果是新建生民体系，添加到列表
                 if (SelectedPopulationSystem.Id == 0)
@@ -451,7 +491,7 @@ namespace NovelManagement.WPF.Views
                     PopulationSystems.Add(SelectedPopulationSystem);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistPopulationSystemsAsync();
                 MessageBox.Show("生民体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -479,11 +519,53 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// AI助手按钮点击事件
         /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI生民体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedPopulationSystem != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前生民体系并保存\n否：AI生成新的生民体系并保存\n取消：打开原始AI助手",
+                        "AI生民体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GeneratePopulationSystemWithAiAsync(optimizeCurrent: choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的生民体系并保存\n否：打开原始AI助手",
+                    "AI生民体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GeneratePopulationSystemWithAiAsync(optimizeCurrent: false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -557,6 +639,212 @@ namespace NovelManagement.WPF.Views
             return context;
         }
 
+        /// <summary>
+        /// 在项目切换后刷新生民体系数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadPopulationSystemsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的生民体系数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadPopulationSystemsAsync();
+        }
+
+        private async Task PersistPopulationSystemsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _populationDataService == null)
+            {
+                return;
+            }
+
+            foreach (var system in PopulationSystems)
+            {
+                system.SocialClasses ??= new List<SocialClassViewModel>();
+            }
+
+            await _populationDataService.SavePopulationSystemsAsync(_currentProjectId, PopulationSystems);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GeneratePopulationSystemWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedPopulationSystem != null ? $"优化生民体系：{SelectedPopulationSystem.Name}" : "生成生民体系",
+                ["theme"] = "请生成一个适合小说项目使用的生民体系设定，并输出名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、社会阶层。",
+                ["requirements"] = optimizeCurrent && SelectedPopulationSystem != null
+                    ? $"请基于当前生民体系进行优化并输出结构化文本。当前体系：{SelectedPopulationSystem.Name}，区域：{SelectedPopulationSystem.RegionName}，总人口：{SelectedPopulationSystem.TotalPopulation}，发展水平：{SelectedPopulationSystem.DevelopmentLevel}"
+                    : "请输出一个完整生民体系，至少包含名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、至少3个社会阶层。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI生民体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedSystem = ParsePopulationSystemFromAiResult(result.Data, optimizeCurrent ? SelectedPopulationSystem : null);
+            if (generatedSystem == null)
+            {
+                MessageBox.Show("AI结果无法解析为生民体系。", "AI生民体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedPopulationSystem != null)
+            {
+                generatedSystem.Id = SelectedPopulationSystem.Id;
+                generatedSystem.CreatedAt = SelectedPopulationSystem.CreatedAt;
+                var index = PopulationSystems.IndexOf(SelectedPopulationSystem);
+                if (index >= 0)
+                {
+                    PopulationSystems[index] = generatedSystem;
+                }
+                SelectedPopulationSystem = generatedSystem;
+            }
+            else
+            {
+                generatedSystem.Id = PopulationSystems.Count > 0 ? PopulationSystems.Max(s => s.Id) + 1 : 1;
+                generatedSystem.CreatedAt = DateTime.Now;
+                PopulationSystems.Add(generatedSystem);
+                SelectedPopulationSystem = generatedSystem;
+            }
+
+            await PersistPopulationSystemsAsync();
+            FilterPopulationSystems();
+            UpdateStatistics();
+            LoadPopulationSystemDetails(generatedSystem);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存生民体系：{generatedSystem.Name}" : $"已使用 AI 生成并保存生民体系：{generatedSystem.Name}",
+                "AI生民体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private PopulationSystemViewModel? ParsePopulationSystemFromAiResult(object data, PopulationSystemViewModel? baseSystem)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var system = new PopulationSystemViewModel
+            {
+                Id = baseSystem?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseSystem?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成生民体系",
+                RegionName = ExtractField(text, "区域") ?? baseSystem?.RegionName ?? "修仙界",
+                DimensionId = ExtractField(text, "维度") ?? baseSystem?.DimensionId ?? "DIM-AI",
+                Description = ExtractField(text, "描述") ?? baseSystem?.Description ?? text.Trim(),
+                TotalPopulation = ExtractField(text, "总人口") ?? baseSystem?.TotalPopulation ?? "1000万",
+                PopulationDensity = ExtractField(text, "人口密度") ?? baseSystem?.PopulationDensity ?? "中等",
+                GrowthRate = ExtractDoubleField(text, "增长率") ?? baseSystem?.GrowthRate ?? 1.5,
+                DevelopmentLevel = ExtractField(text, "发展水平") ?? baseSystem?.DevelopmentLevel ?? "封建社会",
+                CreatedAt = baseSystem?.CreatedAt ?? DateTime.Now,
+                SocialClasses = ParseSocialClasses(text)
+            };
+
+            if (system.SocialClasses.Count == 0)
+            {
+                system.SocialClasses = baseSystem?.SocialClasses?.ToList() ?? new List<SocialClassViewModel>
+                {
+                    new() { Name = "统治阶层", Population = "10万", Description = "AI生成的统治阶层" },
+                    new() { Name = "中坚阶层", Population = "500万", Description = "AI生成的中坚阶层" },
+                    new() { Name = "普通居民", Population = "900万", Description = "AI生成的普通居民" }
+                };
+            }
+
+            return system;
+        }
+
+        private static List<SocialClassViewModel> ParseSocialClasses(string text)
+        {
+            var classes = new List<SocialClassViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "阶层|族群|居民|贵族|平民|修士|百姓|商人|农民"))
+                {
+                    continue;
+                }
+
+                classes.Add(new SocialClassViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Population = "待定",
+                    Description = line
+                });
+
+                if (classes.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return classes;
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static double? ExtractDoubleField(string text, string fieldName)
+        {
+            var value = ExtractField(text, fieldName);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var numberMatch = Regex.Match(value, @"-?\d+(\.\d+)?");
+            return numberMatch.Success && double.TryParse(numberMatch.Value, out var result) ? result : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+
         #endregion
     }
 
@@ -567,16 +855,60 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PopulationSystemViewModel
     {
+        /// <summary>
+        /// 生民体系标识。
+        /// </summary>
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string RegionName { get; set; }
-        public string DimensionId { get; set; }
-        public string Description { get; set; }
-        public string TotalPopulation { get; set; }
-        public string PopulationDensity { get; set; }
+
+        /// <summary>
+        /// 生民体系名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 所属区域名称。
+        /// </summary>
+        public string RegionName { get; set; } = "";
+
+        /// <summary>
+        /// 所属维度标识。
+        /// </summary>
+        public string DimensionId { get; set; } = "";
+
+        /// <summary>
+        /// 生民体系描述。
+        /// </summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 总人口规模。
+        /// </summary>
+        public string TotalPopulation { get; set; } = "";
+
+        /// <summary>
+        /// 人口密度描述。
+        /// </summary>
+        public string PopulationDensity { get; set; } = "";
+
+        /// <summary>
+        /// 人口增长率。
+        /// </summary>
         public double GrowthRate { get; set; }
-        public string DevelopmentLevel { get; set; }
+
+        /// <summary>
+        /// 发展水平。
+        /// </summary>
+        public string DevelopmentLevel { get; set; } = "";
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 社会阶层列表。
+        /// </summary>
+        public List<SocialClassViewModel> SocialClasses { get; set; } = new();
     }
 
     /// <summary>
@@ -584,9 +916,20 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class SocialClassViewModel
     {
-        public string Name { get; set; }
-        public string Population { get; set; }
-        public string Description { get; set; }
+        /// <summary>
+        /// 阶层名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 阶层人口规模。
+        /// </summary>
+        public string Population { get; set; } = "";
+
+        /// <summary>
+        /// 阶层描述。
+        /// </summary>
+        public string Description { get; set; } = "";
     }
 
     #endregion

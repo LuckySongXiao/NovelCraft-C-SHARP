@@ -230,7 +230,8 @@
                                     <TextBlock Text="总角色数" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="23" 
+                                    <TextBlock x:Name="TotalCharactersTextBlock"
+                                             Text="0" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -241,7 +242,8 @@
                                     <TextBlock Text="主要角色" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="8" 
+                                    <TextBlock x:Name="MainCharactersTextBlock"
+                                             Text="0" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -252,7 +254,8 @@
                                     <TextBlock Text="势力数量" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="5" 
+                                    <TextBlock x:Name="FactionCountTextBlock"
+                                             Text="0" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -263,7 +266,8 @@
                                     <TextBlock Text="关系数量" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="15" 
+                                    <TextBlock x:Name="RelationshipCountTextBlock"
+                                             Text="0" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -285,8 +289,8 @@
                                 </Grid.ColumnDefinitions>
                                 
                                 <materialDesign:Chip Grid.Column="0" Content="主角" Margin="0,0,12,0"/>
-                                <ProgressBar Grid.Column="1" Value="4" Maximum="23" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="4" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <ProgressBar x:Name="ProtagonistProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ProtagonistCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,8">
@@ -297,8 +301,8 @@
                                 </Grid.ColumnDefinitions>
                                 
                                 <materialDesign:Chip Grid.Column="0" Content="主配角" Margin="0,0,12,0"/>
-                                <ProgressBar Grid.Column="1" Value="6" Maximum="23" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="6" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <ProgressBar x:Name="SupportingLeadProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SupportingLeadCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,8">
@@ -309,8 +313,8 @@
                                 </Grid.ColumnDefinitions>
                                 
                                 <materialDesign:Chip Grid.Column="0" Content="反派" Margin="0,0,12,0"/>
-                                <ProgressBar Grid.Column="1" Value="3" Maximum="23" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="3" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <ProgressBar x:Name="AntagonistProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="AntagonistCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
                         </ItemsControl>
                     </StackPanel>
@@ -385,12 +389,12 @@
                             <!-- 角色描述 -->
                             <materialDesign:Card Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="角色描述"
+                                    <TextBlock Text="角色备注"
                                              FontSize="16"
                                              FontWeight="Medium"
                                              Margin="0,0,0,8"/>
                                     <TextBlock x:Name="CharacterDescriptionText"
-                                             Text="角色描述内容..."
+                                             Text="角色备注内容..."
                                              TextWrapping="Wrap"
                                              LineHeight="20"/>
                                 </StackPanel>
@@ -434,6 +438,26 @@
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterAbilitiesText"
                                                      Text="能力技能描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+
+                                    <!-- 履历经历 -->
+                                    <TabItem Header="履历经历">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterHistoryText"
+                                                     Text="履历经历描述..."
+                                                     TextWrapping="Wrap"
+                                                     LineHeight="20"/>
+                                        </Border>
+                                    </TabItem>
+
+                                    <!-- 关键事件 -->
+                                    <TabItem Header="关键事件">
+                                        <Border Padding="16">
+                                            <TextBlock x:Name="CharacterKeyEventsText"
+                                                     Text="关键事件描述..."
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>

@@ -36,6 +36,11 @@ public interface IUnitOfWork : IDisposable
     ICharacterRelationshipRepository CharacterRelationships { get; }
 
     /// <summary>
+    /// 角色事件/履历记录仓储
+    /// </summary>
+    ICharacterEventRepository CharacterEvents { get; }
+
+    /// <summary>
     /// 势力关系仓储
     /// </summary>
     IFactionRelationshipRepository FactionRelationships { get; }

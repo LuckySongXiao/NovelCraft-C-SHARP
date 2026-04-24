@@ -53,6 +53,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化地图结构管理视图。
+        /// </summary>
         public MapStructureView()
         {
             InitializeComponent();
@@ -633,18 +636,69 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class MapViewModel
     {
+        /// <summary>
+        /// 地图标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 地图名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 地图层级。
+        /// </summary>
         public string Level { get; set; }
+
+        /// <summary>
+        /// 地形类型。
+        /// </summary>
         public string TerrainType { get; set; }
+
+        /// <summary>
+        /// 气候类型。
+        /// </summary>
         public string ClimateType { get; set; }
+
+        /// <summary>
+        /// 地图描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 所属维度标识。
+        /// </summary>
         public string DimensionId { get; set; }
+
+        /// <summary>
+        /// 父级地图名称。
+        /// </summary>
         public string ParentMap { get; set; }
+
+        /// <summary>
+        /// 区域面积描述。
+        /// </summary>
         public string AreaSize { get; set; }
+
+        /// <summary>
+        /// 坐标信息。
+        /// </summary>
         public string Coordinates { get; set; }
+
+        /// <summary>
+        /// 海拔描述。
+        /// </summary>
         public string Elevation { get; set; }
+
+        /// <summary>
+        /// 危险等级。
+        /// </summary>
         public string DangerLevel { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -653,8 +707,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ResourceViewModel
     {
+        /// <summary>
+        /// 资源名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 资源类型。
+        /// </summary>
         public string Type { get; set; }
+
+        /// <summary>
+        /// 资源丰度。
+        /// </summary>
         public string Abundance { get; set; }
     }
 

@@ -662,70 +662,13 @@ namespace NovelManagement.WPF.Views
         /// <returns>项目上下文数据</returns>
         private async Task<ProjectContextData> GetProjectContextDataAsync()
         {
-            var contextData = new ProjectContextData();
-
-            try
+            var assembler = App.ServiceProvider?.GetService<ProjectContextAssembler>();
+            if (assembler == null)
             {
-                var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
-                if (projectContextService?.CurrentProjectId == null)
-                {
-                    return contextData; // 返回空的上下文数据
-                }
-
-                var projectId = projectContextService.CurrentProjectId.Value;
-                contextData.ProjectId = projectId;
-
-                // 获取剧情大纲
-                try
-                {
-                    var plotService = App.ServiceProvider?.GetService<PlotService>();
-                    if (plotService != null)
-                    {
-                        var plots = await plotService.GetPlotsByProjectIdAsync(projectId);
-                        contextData.PlotOutlines = plots.Take(5).Select(p => new { p.Title, p.Description, Type = p.Type }).ToList().Cast<object>().ToList();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"获取剧情大纲失败: {ex.Message}");
-                }
-
-                // 获取主要角色
-                try
-                {
-                    var characterService = App.ServiceProvider?.GetService<CharacterService>();
-                    if (characterService != null)
-                    {
-                        var characters = await characterService.GetCharactersByProjectIdAsync(projectId);
-                        contextData.MainCharacters = characters.Take(10).Select(c => new { c.Name, c.Background, c.Type }).ToList().Cast<object>().ToList();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"获取角色数据失败: {ex.Message}");
-                }
-
-                // 获取世界设定
-                try
-                {
-                    var worldSettingService = App.ServiceProvider?.GetService<IWorldSettingService>();
-                    if (worldSettingService != null)
-                    {
-                        var settings = await worldSettingService.GetAllAsync(projectId);
-                        contextData.WorldSettings = settings.Take(10).Select(s => new { s.Name, s.Content, s.Type }).ToList().Cast<object>().ToList();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"获取世界设定失败: {ex.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"获取项目上下文数据失败: {ex.Message}");
+                return new ProjectContextData();
             }
 
-            return contextData;
+            return await assembler.BuildCurrentProjectContextAsync();
         }
 
         #endregion

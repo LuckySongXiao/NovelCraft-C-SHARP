@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Commands;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// 职业体系管理视图
     /// </summary>
-    public partial class ProfessionSystemView : UserControl
+    public partial class ProfessionSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -37,16 +41,49 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public ICommand SelectProfessionCommand { get; set; }
 
+        private readonly IAIAssistantService? _aiAssistantService;
+        private readonly ProfessionDataService? _professionDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
+        /// <summary>
+        /// 获取当前职业体系总数。
+        /// </summary>
+        public int TotalCount => ProfessionSystems.Count;
+
+        /// <summary>
+        /// 获取修炼职业数量。
+        /// </summary>
+        public int CultivationCount => ProfessionSystems.Count(p => p.Category == "修炼职业");
+
+        /// <summary>
+        /// 获取生活职业数量。
+        /// </summary>
+        public int LifeCount => ProfessionSystems.Count(p => p.Category == "生活职业");
+
+        /// <summary>
+        /// 获取战斗职业数量。
+        /// </summary>
+        public int CombatCount => ProfessionSystems.Count(p => p.Category == "战斗职业");
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化职业体系管理视图。
+        /// </summary>
         public ProfessionSystemView()
         {
             InitializeComponent();
+            _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _professionDataService = App.ServiceProvider?.GetService<ProfessionDataService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
             InitializeData();
             InitializeCommands();
-            LoadProfessionSystems();
+            _ = LoadProfessionSystemsAsync();
         }
 
         #endregion
@@ -80,58 +117,30 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载职业体系数据
         /// </summary>
-        private void LoadProfessionSystems()
+        private async Task LoadProfessionSystemsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var professions = new List<ProfessionSystemViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new ProfessionSystemViewModel
-                    {
-                        Id = 1,
-                        Name = "修仙者职业",
-                        Category = "修炼职业",
-                        Description = "以修炼为主的职业体系，包含炼气、筑基、金丹等境界",
-                        LevelCount = 12,
-                        SkillCount = 25,
-                        CreatedAt = DateTime.Now.AddDays(-30)
-                    },
-                    new ProfessionSystemViewModel
-                    {
-                        Id = 2,
-                        Name = "炼器师",
-                        Category = "生活职业",
-                        Description = "专门炼制法器、灵器的职业，需要深厚的炼器知识",
-                        LevelCount = 8,
-                        SkillCount = 15,
-                        CreatedAt = DateTime.Now.AddDays(-25)
-                    },
-                    new ProfessionSystemViewModel
-                    {
-                        Id = 3,
-                        Name = "剑修",
-                        Category = "战斗职业",
-                        Description = "专精剑道的修炼者，以剑为道，剑心通明",
-                        LevelCount = 10,
-                        SkillCount = 20,
-                        CreatedAt = DateTime.Now.AddDays(-20)
-                    },
-                    new ProfessionSystemViewModel
-                    {
-                        Id = 4,
-                        Name = "阵法师",
-                        Category = "辅助职业",
-                        Description = "精通阵法布置和破解的职业，能够布置各种功能阵法",
-                        LevelCount = 9,
-                        SkillCount = 18,
-                        CreatedAt = DateTime.Now.AddDays(-15)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "职业体系管理", out _);
+                    ProfessionSystems.Clear();
+                    ProfessionListControl.ItemsSource = ProfessionSystems;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var professions = _professionDataService == null
+                    ? new List<ProfessionSystemViewModel>()
+                    : await _professionDataService.LoadProfessionSystemsAsync(_currentProjectId);
 
                 ProfessionSystems.Clear();
                 foreach (var profession in professions)
                 {
+                    profession.Levels ??= new List<ProfessionLevelViewModel>();
+                    profession.LevelCount = profession.Levels.Count;
                     ProfessionSystems.Add(profession);
                 }
 
@@ -152,8 +161,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            ProfessionListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
         #endregion
@@ -226,42 +236,16 @@ namespace NovelManagement.WPF.Views
             }
 
             // 加载职业等级
-            LoadProfessionLevels(profession.Id);
+            LoadProfessionLevels(profession);
         }
 
         /// <summary>
         /// 加载职业等级
         /// </summary>
-        private void LoadProfessionLevels(int professionId)
+        private void LoadProfessionLevels(ProfessionSystemViewModel profession)
         {
-            // 模拟数据 - 实际应用中应该从服务层获取
-            var levels = new List<ProfessionLevelViewModel>();
-            
-            if (professionId == 1) // 修仙者职业
-            {
-                levels.AddRange(new[]
-                {
-                    new ProfessionLevelViewModel { Level = 1, Name = "炼气初期", Requirements = "开始修炼" },
-                    new ProfessionLevelViewModel { Level = 2, Name = "炼气中期", Requirements = "炼气初期圆满" },
-                    new ProfessionLevelViewModel { Level = 3, Name = "炼气后期", Requirements = "炼气中期圆满" },
-                    new ProfessionLevelViewModel { Level = 4, Name = "筑基初期", Requirements = "炼气后期圆满，筑基丹" },
-                    new ProfessionLevelViewModel { Level = 5, Name = "筑基中期", Requirements = "筑基初期圆满" },
-                    new ProfessionLevelViewModel { Level = 6, Name = "筑基后期", Requirements = "筑基中期圆满" }
-                });
-            }
-            else if (professionId == 2) // 炼器师
-            {
-                levels.AddRange(new[]
-                {
-                    new ProfessionLevelViewModel { Level = 1, Name = "学徒", Requirements = "基础炼器知识" },
-                    new ProfessionLevelViewModel { Level = 2, Name = "初级炼器师", Requirements = "炼制10件法器" },
-                    new ProfessionLevelViewModel { Level = 3, Name = "中级炼器师", Requirements = "炼制灵器" },
-                    new ProfessionLevelViewModel { Level = 4, Name = "高级炼器师", Requirements = "炼制法宝" }
-                });
-            }
-
             ProfessionLevels.Clear();
-            foreach (var level in levels)
+            foreach (var level in profession.Levels.OrderBy(l => l.Level))
             {
                 ProfessionLevels.Add(level);
             }
@@ -323,27 +307,139 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导入职业数据
         /// </summary>
-        private void ImportProfession_Click(object sender, RoutedEventArgs e)
+        private async void ImportProfession_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导入职业体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "导入职业体系数据",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    DefaultExt = "json"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_professionDataService == null)
+                    {
+                        MessageBox.Show("职业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var importedProfessions = await _professionDataService.ImportProfessionSystemsAsync(dialog.FileName);
+                    ProfessionSystems.Clear();
+                    foreach (var profession in importedProfessions)
+                    {
+                        profession.Levels ??= new List<ProfessionLevelViewModel>();
+                        profession.LevelCount = profession.Levels.Count;
+                        ProfessionSystems.Add(profession);
+                    }
+
+                    await PersistProfessionSystemsAsync();
+                    FilterProfessionSystems();
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {ProfessionSystems.Count} 个职业体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
         /// 导出职业数据
         /// </summary>
-        private void ExportProfession_Click(object sender, RoutedEventArgs e)
+        private async void ExportProfession_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导出职业体系"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出职业体系数据",
+                    Filter = "JSON文件|*.json",
+                    DefaultExt = "json",
+                    FileName = $"职业体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    if (_professionDataService == null)
+                    {
+                        MessageBox.Show("职业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    await _professionDataService.ExportProfessionSystemsAsync(_currentProjectId, ProfessionSystems, dialog.FileName);
+                    MessageBox.Show($"职业体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         /// <summary>
         /// AI助手按钮点击事件
         /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI职业体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedProfession != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前职业并保存\n否：AI生成新的职业并保存\n取消：打开原始AI助手",
+                        "AI职业体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GenerateProfessionWithAiAsync(optimizeCurrent: choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的职业并保存\n否：打开原始AI助手",
+                    "AI职业体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GenerateProfessionWithAiAsync(optimizeCurrent: false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -422,7 +518,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存职业体系
         /// </summary>
-        private void SaveProfession_Click(object sender, RoutedEventArgs e)
+        private async void SaveProfession_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -440,6 +536,8 @@ namespace NovelManagement.WPF.Views
                 SelectedProfession.Description = ProfessionDescriptionTextBox.Text.Trim();
                 SelectedProfession.Category = (ProfessionCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "修炼职业";
                 SelectedProfession.LevelCount = ProfessionLevels.Count;
+                SelectedProfession.Levels = ProfessionLevels.OrderBy(l => l.Level).ToList();
+                SelectedProfession.SkillCount = Math.Max(SelectedProfession.SkillCount, SelectedProfession.Levels.Count * 2);
 
                 // 如果是新建职业，添加到列表
                 if (SelectedProfession.Id == 0)
@@ -448,7 +546,7 @@ namespace NovelManagement.WPF.Views
                     ProfessionSystems.Add(SelectedProfession);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistProfessionSystemsAsync();
                 MessageBox.Show("职业体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -469,6 +567,199 @@ namespace NovelManagement.WPF.Views
             HideEditPanel();
         }
 
+        /// <summary>
+        /// 在项目切换后刷新职业体系数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadProfessionSystemsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的职业体系数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadProfessionSystemsAsync();
+        }
+
+        private async Task PersistProfessionSystemsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _professionDataService == null)
+            {
+                return;
+            }
+
+            foreach (var profession in ProfessionSystems)
+            {
+                profession.Levels ??= new List<ProfessionLevelViewModel>();
+                profession.LevelCount = profession.Levels.Count;
+            }
+
+            await _professionDataService.SaveProfessionSystemsAsync(_currentProjectId, ProfessionSystems);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GenerateProfessionWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedProfession != null ? $"优化职业体系：{SelectedProfession.Name}" : "生成职业体系",
+                ["theme"] = "请生成一个适合小说项目使用的职业体系，并输出名称、类别、描述、等级列表和核心技能方向。",
+                ["requirements"] = optimizeCurrent && SelectedProfession != null
+                    ? $"请基于当前职业体系进行优化并输出结构化文本。当前职业：{SelectedProfession.Name}，类别：{SelectedProfession.Category}，描述：{SelectedProfession.Description}"
+                    : "请输出一个完整职业体系，至少包含名称、类别、描述、至少3个等级。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI职业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedProfession = ParseProfessionFromAiResult(result.Data, optimizeCurrent ? SelectedProfession : null);
+            if (generatedProfession == null)
+            {
+                MessageBox.Show("AI结果无法解析为职业体系。", "AI职业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedProfession != null)
+            {
+                generatedProfession.Id = SelectedProfession.Id;
+                generatedProfession.CreatedAt = SelectedProfession.CreatedAt;
+                var index = ProfessionSystems.IndexOf(SelectedProfession);
+                if (index >= 0)
+                {
+                    ProfessionSystems[index] = generatedProfession;
+                }
+                SelectedProfession = generatedProfession;
+            }
+            else
+            {
+                generatedProfession.Id = ProfessionSystems.Count > 0 ? ProfessionSystems.Max(p => p.Id) + 1 : 1;
+                generatedProfession.CreatedAt = DateTime.Now;
+                ProfessionSystems.Add(generatedProfession);
+                SelectedProfession = generatedProfession;
+            }
+
+            await PersistProfessionSystemsAsync();
+            FilterProfessionSystems();
+            UpdateStatistics();
+            LoadProfessionDetails(generatedProfession);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存职业：{generatedProfession.Name}" : $"已使用 AI 生成并保存职业：{generatedProfession.Name}",
+                "AI职业体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private ProfessionSystemViewModel? ParseProfessionFromAiResult(object data, ProfessionSystemViewModel? baseProfession)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var profession = new ProfessionSystemViewModel
+            {
+                Id = baseProfession?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseProfession?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成职业体系",
+                Category = ExtractField(text, "类别") ?? baseProfession?.Category ?? "修炼职业",
+                Description = ExtractField(text, "描述") ?? baseProfession?.Description ?? text.Trim(),
+                CreatedAt = baseProfession?.CreatedAt ?? DateTime.Now
+            };
+
+            profession.Levels = ParseProfessionLevels(text);
+            if (profession.Levels.Count == 0)
+            {
+                profession.Levels = baseProfession?.Levels?.ToList() ?? new List<ProfessionLevelViewModel>
+                {
+                    new() { Level = 1, Name = "入门", Requirements = "基础条件" },
+                    new() { Level = 2, Name = "进阶", Requirements = "完成初阶训练" },
+                    new() { Level = 3, Name = "精通", Requirements = "积累足够经验" }
+                };
+            }
+
+            profession.LevelCount = profession.Levels.Count;
+            profession.SkillCount = Math.Max(baseProfession?.SkillCount ?? 0, profession.LevelCount * 2);
+            return profession;
+        }
+
+        private static List<ProfessionLevelViewModel> ParseProfessionLevels(string text)
+        {
+            var levels = new List<ProfessionLevelViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var index = 1;
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "等级|级|阶|境|学徒|入门|精通|宗师"))
+                {
+                    continue;
+                }
+
+                levels.Add(new ProfessionLevelViewModel
+                {
+                    Level = index++,
+                    Name = TrimListMarker(line),
+                    Requirements = "根据 AI 生成内容整理"
+                });
+
+                if (levels.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return levels;
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+
         #endregion
     }
 
@@ -479,13 +770,45 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ProfessionSystemViewModel
     {
+        /// <summary>
+        /// 职业体系标识。
+        /// </summary>
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Category { get; set; }
-        public string Description { get; set; }
+
+        /// <summary>
+        /// 职业体系名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 职业类别。
+        /// </summary>
+        public string Category { get; set; } = "";
+
+        /// <summary>
+        /// 职业描述。
+        /// </summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 等级数量。
+        /// </summary>
         public int LevelCount { get; set; }
+
+        /// <summary>
+        /// 技能数量。
+        /// </summary>
         public int SkillCount { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 职业等级列表。
+        /// </summary>
+        public List<ProfessionLevelViewModel> Levels { get; set; } = new();
     }
 
     /// <summary>
@@ -493,9 +816,20 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ProfessionLevelViewModel
     {
+        /// <summary>
+        /// 等级序号。
+        /// </summary>
         public int Level { get; set; }
-        public string Name { get; set; }
-        public string Requirements { get; set; }
+
+        /// <summary>
+        /// 等级名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 等级要求。
+        /// </summary>
+        public string Requirements { get; set; } = "";
     }
 
     #endregion

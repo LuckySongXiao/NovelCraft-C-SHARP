@@ -14,6 +14,7 @@ namespace NovelManagement.WPF.Services
 
         private readonly ILogger<DialogGenerationService>? _logger;
         private readonly AICacheService _cacheService;
+        private readonly AIAssistantService? _aiAssistantService;
 
         /// <summary>
         /// 对话生成结果
@@ -45,6 +46,8 @@ namespace NovelManagement.WPF.Services
             // 为AICacheService创建专用的Logger
             var cacheLogger = App.ServiceProvider?.GetService(typeof(ILogger<AICacheService>)) as ILogger<AICacheService>;
             _cacheService = cacheService ?? new AICacheService(cacheLogger);
+            // 获取AI助手服务（可选，用于真实AI生成）
+            _aiAssistantService = App.ServiceProvider?.GetService(typeof(AIAssistantService)) as AIAssistantService;
         }
 
         #endregion
@@ -85,11 +88,31 @@ namespace NovelManagement.WPF.Services
                 // 缓存未命中，生成新对话
                 _logger?.LogInformation("缓存未命中，开始生成新对话");
 
-                // 模拟AI生成过程
-                await Task.Delay(2000);
+                // 优先尝试通过AI服务生成对话
+                string? aiGeneratedContent = null;
+                if (_aiAssistantService != null)
+                {
+                    try
+                    {
+                        var aiParameters = new Dictionary<string, object>(parameters)
+                        {
+                            ["taskType"] = "GenerateDialogue"
+                        };
+                        var aiResult = await _aiAssistantService.PolishTextAsync(aiParameters);
+                        if (aiResult.IsSuccess && aiResult.Data is string aiText && !string.IsNullOrWhiteSpace(aiText))
+                        {
+                            aiGeneratedContent = aiText;
+                            _logger?.LogInformation("AI服务对话生成成功");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "AI服务对话生成失败，降级为模板拼接");
+                    }
+                }
 
-                // 生成对话内容
-                var dialogueContent = await GenerateDialogueContent(characters, relationship, situation, purpose, emotion, style, length);
+                // 生成对话内容（AI结果或降级模板拼接）
+                var dialogueContent = aiGeneratedContent ?? await GenerateDialogueContent(characters, relationship, situation, purpose, emotion, style, length);
 
                 // 评估对话质量
                 var qualityScore = await EvaluateDialogueQuality(dialogueContent, parameters);
@@ -131,11 +154,32 @@ namespace NovelManagement.WPF.Services
             {
                 _logger?.LogInformation("开始优化对话");
 
-                // 模拟AI优化过程
-                await Task.Delay(1500);
+                // 优先尝试通过AI服务优化对话
+                string? aiOptimizedContent = null;
+                if (_aiAssistantService != null)
+                {
+                    try
+                    {
+                        var aiParameters = new Dictionary<string, object>(parameters)
+                        {
+                            ["taskType"] = "OptimizeDialogue",
+                            ["existingDialogue"] = existingDialogue
+                        };
+                        var aiResult = await _aiAssistantService.PolishTextAsync(aiParameters);
+                        if (aiResult.IsSuccess && aiResult.Data is string aiText && !string.IsNullOrWhiteSpace(aiText))
+                        {
+                            aiOptimizedContent = aiText;
+                            _logger?.LogInformation("AI服务对话优化成功");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "AI服务对话优化失败，降级为本地优化");
+                    }
+                }
 
-                // 优化对话内容
-                var optimizedContent = await OptimizeDialogueContent(existingDialogue, parameters);
+                // 优化对话内容（AI结果或降级本地优化）
+                var optimizedContent = aiOptimizedContent ?? await OptimizeDialogueContent(existingDialogue, parameters);
 
                 // 评估优化后的质量
                 var qualityScore = await EvaluateDialogueQuality(optimizedContent, parameters);

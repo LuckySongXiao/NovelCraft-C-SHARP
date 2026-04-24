@@ -40,6 +40,9 @@ namespace NovelManagement.WPF.Views
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化政治体系管理视图。
+        /// </summary>
         public PoliticalSystemView()
         {
             InitializeComponent();
@@ -515,14 +518,49 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PoliticalSystemViewModel
     {
+        /// <summary>
+        /// 政治体系标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 政治体系名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 政治体制类型。
+        /// </summary>
         public string Type { get; set; }
+
+        /// <summary>
+        /// 管辖疆域。
+        /// </summary>
         public string Territory { get; set; }
+
+        /// <summary>
+        /// 政治体系描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 职位数量。
+        /// </summary>
         public int PositionCount { get; set; }
+
+        /// <summary>
+        /// 管辖人口。
+        /// </summary>
         public long Population { get; set; }
+
+        /// <summary>
+        /// 首都或核心驻地。
+        /// </summary>
         public string Capital { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
     }
 
@@ -531,12 +569,39 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PoliticalPositionViewModel
     {
+        /// <summary>
+        /// 职位标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 职位名称。
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// 职位层级。
+        /// </summary>
         public string Level { get; set; }
+
+        /// <summary>
+        /// 职位描述。
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// 任职要求。
+        /// </summary>
         public string Requirements { get; set; }
+
+        /// <summary>
+        /// 职位权力范围。
+        /// </summary>
         public string Powers { get; set; }
+
+        /// <summary>
+        /// 职位职责。
+        /// </summary>
         public string Responsibilities { get; set; }
     }
 

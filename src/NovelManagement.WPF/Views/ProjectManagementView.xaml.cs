@@ -6,6 +6,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
@@ -19,16 +21,64 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class ProjectViewModel
         {
+            /// <summary>
+            /// 项目显示编号。
+            /// </summary>
             public int Id { get; set; }
+
+            /// <summary>
+            /// 项目真实标识。
+            /// </summary>
+            public Guid? ProjectGuid { get; set; }
+
+            /// <summary>
+            /// 项目名称。
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 项目描述。
+            /// </summary>
             public string Description { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 项目类型。
+            /// </summary>
             public string Type { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 当前项目状态。
+            /// </summary>
             public string Status { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 最后更新时间的显示文本。
+            /// </summary>
             public string LastUpdated { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 是否已移入回收站。
+            /// </summary>
             public bool IsDeleted { get; set; } = false;
+
+            /// <summary>
+            /// 删除时间。
+            /// </summary>
             public DateTime? DeletedAt { get; set; }
+
+            /// <summary>
+            /// 删除执行人。
+            /// </summary>
             public string? DeletedBy { get; set; }
+
+            /// <summary>
+            /// 项目本地路径。
+            /// </summary>
             public string ProjectPath { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 指示项目路径是否实际存在。
+            /// </summary>
             public bool IsExisting => !string.IsNullOrEmpty(ProjectPath) && Directory.Exists(ProjectPath);
         }
 
@@ -65,6 +115,9 @@ namespace NovelManagement.WPF.Views
 
         /// <summary>
         /// 构造函数
+        /// </summary>
+        /// <summary>
+        /// 初始化项目管理视图。
         /// </summary>
         public ProjectManagementView()
         {
@@ -414,15 +467,25 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
+                    var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+                    if (projectContextService != null)
+                    {
+                        var projectId = project.ProjectGuid ?? Guid.NewGuid();
+                        project.ProjectGuid = projectId;
+                        projectContextService.SetCurrentProject(projectId, project.Name);
+                    }
+
                     // 获取主窗口并切换到项目概览
                     var mainWindow = Window.GetWindow(this) as MainWindow;
                     if (mainWindow != null)
                     {
-                        // 切换到项目概览界面
-                        mainWindow.ShowProjectOverview();
-
-                        MessageBox.Show($"已打开项目: {project.Name}\n当前显示项目概览界面",
-                            "项目已打开", MessageBoxButton.OK, MessageBoxImage.Information);
+                        mainWindow.NavigateTo(NavigationTarget.ProjectOverview, new NavigationContext
+                        {
+                            ProjectId = project.ProjectGuid,
+                            ProjectName = project.Name,
+                            Source = "ProjectManagement.OpenProject",
+                            Payload = project
+                        });
                     }
                     else
                     {

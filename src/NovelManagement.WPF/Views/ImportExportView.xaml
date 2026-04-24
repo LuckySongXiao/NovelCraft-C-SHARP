@@ -28,7 +28,7 @@
         </StackPanel>
 
         <!-- 主要内容区域 -->
-        <TabControl Grid.Row="1" Style="{StaticResource MaterialDesignTabControl}">
+        <TabControl x:Name="MainTabControl" Grid.Row="1" Style="{StaticResource MaterialDesignTabControl}">
             
             <!-- 导出标签页 -->
             <TabItem Header="导出管理">

@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
+using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using ThinkingChainModel = NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain;
@@ -12,10 +13,12 @@ using ThinkingChainModel = NovelManagement.AI.Services.ThinkingChain.Models.Thin
 namespace NovelManagement.AI.Agents
 {
     /// <summary>
-    /// 作家Agent - 负责章节内容生成
+    /// 作家Agent - 负责章节内容生成（续写优先使用RWKV，决策类任务使用OpenAI兼容接口）
     /// </summary>
     public class WriterAgent : BaseAgent
     {
+        private readonly IRwkvLightningService? _rwkvService;
+
         /// <summary>
         /// 构造函数（用于依赖注入）
         /// </summary>
@@ -24,14 +27,17 @@ namespace NovelManagement.AI.Agents
         /// <param name="deepSeekApiService">DeepSeek API服务</param>
         /// <param name="thinkingChainProcessor">思维链处理器</param>
         /// <param name="modelManager">模型管理器</param>
+        /// <param name="rwkvService">RWKV推理服务（可选，续写首选）</param>
         public WriterAgent(
             ILogger<WriterAgent> logger,
             IMemoryManager memoryManager,
             IDeepSeekApiService deepSeekApiService,
             IThinkingChainProcessor thinkingChainProcessor,
-            NovelManagement.AI.Services.ModelManager modelManager)
+            NovelManagement.AI.Services.ModelManager modelManager,
+            IRwkvLightningService? rwkvService = null)
             : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager)
         {
+            _rwkvService = rwkvService;
         }
 
         #region 基础属性
@@ -231,18 +237,28 @@ namespace NovelManagement.AI.Agents
                 UpdateProgress(10);
 
                 var existingContent = parameters.GetValueOrDefault("ExistingContent", "").ToString();
-                var continueLength = parameters.GetValueOrDefault("ContinueLength", "中续写").ToString();
+                var continueLength = parameters.GetValueOrDefault("ContinueLength", "短续写").ToString();
                 var customWordCount = parameters.GetValueOrDefault("CustomWordCount", "").ToString();
                 var continueDirection = parameters.GetValueOrDefault("ContinueDirection", "").ToString();
                 var chapterData = parameters.GetValueOrDefault("ChapterData", null);
 
-                _logger.LogInformation($"开始AI续写章节内容，续写长度：{continueLength}");
+                _logger.LogInformation($"开始续写章节内容，续写长度：{continueLength}，RWKV可用：{_rwkvService?.IsAvailable ?? false}");
+
+                // 优先使用 RWKV 进行续写（单次最多200字）
+                if (_rwkvService != null && _rwkvService.IsAvailable)
+                {
+                    _logger.LogInformation("使用 RWKV 进行续写");
+                    return await ContinueWithRwkvAsync(existingContent, continueDirection, continueLength, customWordCount);
+                }
+
+                // 降级：使用决策类AI模型（Ollama/DeepSeek/OpenAI兼容）进行续写
+                _logger.LogInformation("RWKV 不可用，降级使用决策类AI模型续写");
 
                 // 创建思维链
                 var thinkingChain = new ThinkingChainModel
                 {
                     Title = $"{Name} - 章节续写",
-                    Description = "执行章节续写任务",
+                    Description = "执行章节续写任务（决策类AI降级）",
                     TaskId = Guid.NewGuid().ToString(),
                     AgentId = Id
                 };
@@ -267,14 +283,15 @@ namespace NovelManagement.AI.Agents
                     return new AgentTaskResult
                     {
                         IsSuccess = true,
-                        Data = continuedText, // 直接返回续写的文本内容
+                        Data = continuedText,
                         Metadata = new Dictionary<string, object>
                         {
                             ["ContentType"] = "ContinuedContent",
-                            ["Quality"] = "AI Generated",
+                            ["Quality"] = "AI Generated (Fallback)",
                             ["WordCount"] = actualWordCount,
                             ["StyleConsistency"] = "AI Maintained",
-                            ["ContinuationStyle"] = continueLength
+                            ["ContinuationStyle"] = continueLength,
+                            ["Engine"] = "DecisionAI"
                         }
                     };
                 }
@@ -292,6 +309,136 @@ namespace NovelManagement.AI.Agents
                     ErrorMessage = ex.Message
                 };
             }
+        }
+
+        /// <summary>
+        /// 使用 RWKV 进行续写（单次最多200字，可多次续写拼接）
+        /// </summary>
+        private async Task<AgentTaskResult> ContinueWithRwkvAsync(string existingContent, string continueDirection, string continueLength, string customWordCount)
+        {
+            try
+            {
+                UpdateProgress(20);
+
+                // 计算目标字数（RWKV 单次最多200字）
+                var targetWordCount = continueLength switch
+                {
+                    "短续写" => 200,
+                    "中续写" => 500,
+                    "长续写" => 1000,
+                    _ => 200
+                };
+
+                if (int.TryParse(customWordCount, out var custom) && custom > 0)
+                {
+                    targetWordCount = Math.Clamp(custom, 50, 2000);
+                }
+
+                // RWKV 单次最多200字，需要多次续写拼接
+                var maxTokensPerCall = _rwkvService!.Configuration.MaxTokensPerCompletion;
+                var rounds = Math.Max(1, (int)Math.Ceiling((double)targetWordCount / 200));
+                rounds = Math.Clamp(rounds, 1, 10); // 最多10轮续写
+
+                _logger.LogInformation("RWKV 续写：目标{TargetWords}字，分{Rounds}轮，每轮最多{MaxTokens}tokens",
+                    targetWordCount, rounds, maxTokensPerCall);
+
+                var allContinuedText = new System.Text.StringBuilder();
+                var currentContent = existingContent;
+
+                for (int round = 0; round < rounds; round++)
+                {
+                    UpdateProgress(20 + (int)((double)(round + 1) / rounds * 70));
+
+                    var result = await _rwkvService.CompleteAsync(
+                        prompt: currentContent,
+                        maxTokens: maxTokensPerCall,
+                        direction: round == 0 ? continueDirection : null // 仅第一轮使用续写方向引导
+                    );
+
+                    if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
+                    {
+                        _logger.LogWarning("RWKV 第{Round}轮续写返回空结果，停止续写", round + 1);
+                        break;
+                    }
+
+                    allContinuedText.Append(result.Text);
+
+                    // 将续写内容拼接到当前内容，作为下一轮的前文
+                    currentContent = existingContent + allContinuedText.ToString();
+
+                    // 检查是否已达到目标字数
+                    var currentWordCount = CountChineseCharacters(allContinuedText.ToString());
+                    if (currentWordCount >= targetWordCount)
+                    {
+                        _logger.LogInformation("RWKV 续写已达到目标字数：{WordCount}/{Target}", currentWordCount, targetWordCount);
+                        break;
+                    }
+                }
+
+                var continuedText = allContinuedText.ToString();
+
+                // 确保续写内容与原文排版一致
+                continuedText = FormatContinuedText(continuedText, existingContent);
+
+                // 截断到目标字数
+                var finalWordCount = CountChineseCharacters(continuedText);
+                if (finalWordCount > targetWordCount * 1.2) // 允许20%溢出
+                {
+                    continuedText = TruncateToWordCount(continuedText, targetWordCount);
+                }
+
+                finalWordCount = CountChineseCharacters(continuedText);
+                UpdateProgress(100);
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = true,
+                    Data = continuedText,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["ContentType"] = "ContinuedContent",
+                        ["Quality"] = "RWKV Generated",
+                        ["WordCount"] = finalWordCount,
+                        ["StyleConsistency"] = "RWKV Maintained",
+                        ["ContinuationStyle"] = continueLength,
+                        ["Engine"] = "RWKV",
+                        ["Rounds"] = rounds
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RWKV 续写失败");
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"RWKV 续写失败: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// 截断文本到指定字数（按中文字符计算）
+        /// </summary>
+        private string TruncateToWordCount(string text, int targetWordCount)
+        {
+            var charCount = 0;
+            for (int i = 0; i < text.Length; i++)
+            {
+                var c = text[i];
+                charCount += c > 127 ? 1 : 0; // 简化：中文字符计1，英文忽略
+                if (charCount >= targetWordCount)
+                {
+                    // 找到最近的句子结束位置
+                    var endPos = text.IndexOfAny(new[] { '。', '！', '？', '.', '!', '?' }, i);
+                    if (endPos > 0 && endPos < i + 50)
+                    {
+                        return text[..(endPos + 1)];
+                    }
+                    return text[..(i + 1)];
+                }
+            }
+            return text;
         }
 
         /// <summary>

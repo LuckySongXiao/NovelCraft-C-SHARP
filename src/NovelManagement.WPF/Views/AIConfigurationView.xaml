@@ -67,14 +67,275 @@
                 <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
                     <StackPanel>
                         <TextBlock Text="默认AI提供者" Style="{StaticResource SectionHeaderStyle}"/>
-                        <ComboBox x:Name="DefaultProviderComboBox"
-                                  materialDesign:HintAssist.Hint="选择默认AI提供者"
-                                  Style="{StaticResource MaterialDesignComboBox}"
-                                  SelectionChanged="DefaultProviderComboBox_SelectionChanged">
-                            <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
-                            <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
-                            <ComboBoxItem Content="MCP (协议模型)" Tag="MCP"/>
-                        </ComboBox>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="DefaultProviderComboBox"
+                                      Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="默认决策类AI提供者"
+                                      Style="{StaticResource MaterialDesignComboBox}"
+                                      SelectionChanged="DefaultProviderComboBox_SelectionChanged"
+                                      Margin="0,0,8,0">
+                                <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
+                                <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="MCP (协议模型)" Tag="MCP"/>
+                            </ComboBox>
+                            <ComboBox x:Name="DefaultCompletionProviderComboBox"
+                                      Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="默认续写类AI提供者"
+                                      Style="{StaticResource MaterialDesignComboBox}"
+                                      SelectionChanged="DefaultCompletionProviderComboBox_SelectionChanged"
+                                      Margin="8,0,0,0">
+                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
+                                <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
+                                <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- RWKV Configuration -->
+                <materialDesign:Card x:Name="RwkvConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="RWKV 续写模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle"
+                                                       x:Name="RwkvStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="RwkvStatusText"
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="基于 rwkv_lightning_libtorch 的本地续写推理服务，单次续写≤200字"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.68" Margin="0,0,0,8"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBox x:Name="RwkvBaseUrlTextBox"
+                                     Grid.Row="0" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="推理服务地址"
+                                     Text="http://localhost:8765"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="RwkvModelNameTextBox"
+                                     Grid.Row="0" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="模型名称"
+                                     Text="RWKV-7B"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="RwkvModelPathTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="模型文件路径"
+                                     Margin="0,0,8,8"/>
+
+                            <ComboBox x:Name="RwkvStrategyComboBox"
+                                      Grid.Row="1" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="推理策略"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="cuda fp16" IsSelected="True"/>
+                                <ComboBoxItem Content="cuda fp32"/>
+                                <ComboBoxItem Content="web"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="RwkvMaxTokensTextBox"
+                                     Grid.Row="2" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="单次续写最大Token数 (1-200)"
+                                     Text="200"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="RwkvTemperatureTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="温度 (0-2)"
+                                     Text="1.0"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="RwkvTopPTextBox"
+                                     Grid.Row="3" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="Top-P 采样"
+                                     Text="0.7"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="RwkvTopKTextBox"
+                                     Grid.Row="3" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="Top-K 采样"
+                                     Text="50"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="RwkvFrequencyPenaltyTextBox"
+                                     Grid.Row="4" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="频率惩罚"
+                                     Text="0.0"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="RwkvPresencePenaltyTextBox"
+                                     Grid.Row="4" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="出现惩罚"
+                                     Text="0.0"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="RwkvTimeoutTextBox"
+                                     Grid.Row="5" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     Text="120"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="RwkvMaxRetriesTextBox"
+                                     Grid.Row="5" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     Text="3"
+                                     Margin="8,0,0,8"/>
+                        </Grid>
+
+                        <!-- RWKV Server Settings -->
+                        <Expander Header="服务启动设置" Margin="0,8,0,0">
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <CheckBox x:Name="RwkvAutoStartServerCheckBox"
+                                          Grid.Row="0" Grid.Column="0"
+                                          Content="自动启动推理服务"
+                                          IsChecked="False"
+                                          Margin="0,0,8,8"/>
+
+                                <TextBox x:Name="RwkvGpuDeviceIdTextBox"
+                                         Grid.Row="0" Grid.Column="1"
+                                         materialDesign:HintAssist.Hint="GPU设备ID (-1为自动)"
+                                         Text="-1"
+                                         Margin="8,0,0,8"/>
+
+                                <TextBox x:Name="RwkvPythonPathTextBox"
+                                         Grid.Row="1" Grid.Column="0"
+                                         materialDesign:HintAssist.Hint="Python解释器路径"
+                                         Text="python"
+                                         Margin="0,0,8,8"/>
+
+                                <TextBox x:Name="RwkvServerScriptPathTextBox"
+                                         Grid.Row="1" Grid.Column="1"
+                                         materialDesign:HintAssist.Hint="rwkv_lightning_libtorch脚本路径"
+                                         Margin="8,0,0,8"/>
+                            </Grid>
+                        </Expander>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- ZhipuAI Configuration -->
+                <materialDesign:Card x:Name="ZhipuAIConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="智谱AI 云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle"
+                                                       x:Name="ZhipuAIStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="ZhipuAIStatusText"
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="智谱AI免费在线模型 (glm-4-flash)，通过OpenAI兼容接口调用"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.68" Margin="0,0,0,8"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <PasswordBox x:Name="ZhipuAIApiKeyPasswordBox"
+                                         Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                         materialDesign:HintAssist.Hint="API密钥 (在 open.bigmodel.cn 获取)"
+                                         Margin="0,0,0,8"/>
+
+                            <TextBox x:Name="ZhipuAIBaseUrlTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="API地址"
+                                     Text="https://open.bigmodel.cn/api/paas/v4"
+                                     Margin="0,0,8,8"/>
+
+                            <ComboBox x:Name="ZhipuAIModelComboBox"
+                                      Grid.Row="1" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="默认模型"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="glm-4-flash" IsSelected="True"/>
+                                <ComboBoxItem Content="glm-4"/>
+                                <ComboBoxItem Content="glm-4-plus"/>
+                                <ComboBoxItem Content="glm-3-turbo"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="ZhipuAITimeoutTextBox"
+                                     Grid.Row="2" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     Text="120"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="ZhipuAIMaxRetriesTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     Text="3"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="ZhipuAITemperatureTextBox"
+                                     Grid.Row="3" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="温度参数"
+                                     Text="0.7"
+                                     Margin="0,0,8,8"/>
+
+                            <CheckBox x:Name="ZhipuAIEnableStreamingCheckBox"
+                                      Grid.Row="3" Grid.Column="1"
+                                      Content="启用流式响应"
+                                      IsChecked="True"
+                                      Margin="8,0,0,8"/>
+                        </Grid>
                     </StackPanel>
                 </materialDesign:Card>
 

@@ -1,21 +1,19 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11512.155 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
-
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Core", "src\NovelManagement.Core\NovelManagement.Core.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Infrastructure", "src\NovelManagement.Infrastructure\NovelManagement.Infrastructure.csproj", "{B2C3D4E5-F6G7-8901-BCDE-F23456789012}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Infrastructure", "src\NovelManagement.Infrastructure\NovelManagement.Infrastructure.csproj", "{888E2F2C-7288-402E-A84E-AC5532BA11F9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Application", "src\NovelManagement.Application\NovelManagement.Application.csproj", "{C3D4E5F6-G7H8-9012-CDEF-345678901234}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Application", "src\NovelManagement.Application\NovelManagement.Application.csproj", "{DB1FF99A-A570-49A8-BD6D-E40A56EB6446}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Domain", "src\NovelManagement.Domain\NovelManagement.Domain.csproj", "{D4E5F6G7-H8I9-0123-DEF0-456789012345}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Domain", "src\NovelManagement.Domain\NovelManagement.Domain.csproj", "{CD111732-8A6F-472E-9EEE-689BCF258920}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.AI", "src\NovelManagement.AI\NovelManagement.AI.csproj", "{E5F6G7H8-I9J0-1234-EF01-567890123456}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.AI", "src\NovelManagement.AI\NovelManagement.AI.csproj", "{5A8EF772-A462-4628-A8D1-AEA0247F3F4B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.WPF", "src\NovelManagement.WPF\NovelManagement.WPF.csproj", "{F6G7H8I9-J0K1-2345-F012-678901234567}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.WPF", "src\NovelManagement.WPF\NovelManagement.WPF.csproj", "{30672C84-9BEE-4487-919B-1BD89E40C075}"
 EndProject
-
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{11111111-1111-1111-1111-111111111111}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{22222222-2222-2222-2222-222222222222}"
@@ -26,7 +24,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{44444444-4
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{55555555-5555-5555-5555-555555555555}"
 EndProject
-
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Core.Tests", "tests\NovelManagement.Core.Tests\NovelManagement.Core.Tests.csproj", "{A1111111-1111-1111-1111-111111111111}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Application.Tests", "tests\NovelManagement.Application.Tests\NovelManagement.Application.Tests.csproj", "{B2222222-2222-2222-2222-222222222222}"
@@ -37,7 +34,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.AI.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NovelManagement.Integration.Tests", "tests\NovelManagement.Integration.Tests\NovelManagement.Integration.Tests.csproj", "{E5555555-5555-5555-5555-555555555555}"
 EndProject
-
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,26 +44,26 @@ Global
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B2C3D4E5-F6G7-8901-BCDE-F23456789012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6G7-8901-BCDE-F23456789012}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6G7-8901-BCDE-F23456789012}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6G7-8901-BCDE-F23456789012}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C3D4E5F6-G7H8-9012-CDEF-345678901234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C3D4E5F6-G7H8-9012-CDEF-345678901234}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C3D4E5F6-G7H8-9012-CDEF-345678901234}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C3D4E5F6-G7H8-9012-CDEF-345678901234}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D4E5F6G7-H8I9-0123-DEF0-456789012345}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D4E5F6G7-H8I9-0123-DEF0-456789012345}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D4E5F6G7-H8I9-0123-DEF0-456789012345}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D4E5F6G7-H8I9-0123-DEF0-456789012345}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E5F6G7H8-I9J0-1234-EF01-567890123456}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E5F6G7H8-I9J0-1234-EF01-567890123456}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E5F6G7H8-I9J0-1234-EF01-567890123456}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E5F6G7H8-I9J0-1234-EF01-567890123456}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F6G7H8I9-J0K1-2345-F012-678901234567}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F6G7H8I9-J0K1-2345-F012-678901234567}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F6G7H8I9-J0K1-2345-F012-678901234567}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F6G7H8I9-J0K1-2345-F012-678901234567}.Release|Any CPU.Build.0 = Release|Any CPU
+		{888E2F2C-7288-402E-A84E-AC5532BA11F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{888E2F2C-7288-402E-A84E-AC5532BA11F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{888E2F2C-7288-402E-A84E-AC5532BA11F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{888E2F2C-7288-402E-A84E-AC5532BA11F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB1FF99A-A570-49A8-BD6D-E40A56EB6446}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB1FF99A-A570-49A8-BD6D-E40A56EB6446}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB1FF99A-A570-49A8-BD6D-E40A56EB6446}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB1FF99A-A570-49A8-BD6D-E40A56EB6446}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD111732-8A6F-472E-9EEE-689BCF258920}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD111732-8A6F-472E-9EEE-689BCF258920}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD111732-8A6F-472E-9EEE-689BCF258920}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD111732-8A6F-472E-9EEE-689BCF258920}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A8EF772-A462-4628-A8D1-AEA0247F3F4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A8EF772-A462-4628-A8D1-AEA0247F3F4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A8EF772-A462-4628-A8D1-AEA0247F3F4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A8EF772-A462-4628-A8D1-AEA0247F3F4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30672C84-9BEE-4487-919B-1BD89E40C075}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30672C84-9BEE-4487-919B-1BD89E40C075}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30672C84-9BEE-4487-919B-1BD89E40C075}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30672C84-9BEE-4487-919B-1BD89E40C075}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A1111111-1111-1111-1111-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A1111111-1111-1111-1111-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1111111-1111-1111-1111-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -94,11 +90,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890} = {11111111-1111-1111-1111-111111111111}
-		{B2C3D4E5-F6G7-8901-BCDE-F23456789012} = {11111111-1111-1111-1111-111111111111}
-		{C3D4E5F6-G7H8-9012-CDEF-345678901234} = {11111111-1111-1111-1111-111111111111}
-		{D4E5F6G7-H8I9-0123-DEF0-456789012345} = {11111111-1111-1111-1111-111111111111}
-		{E5F6G7H8-I9J0-1234-EF01-567890123456} = {11111111-1111-1111-1111-111111111111}
-		{F6G7H8I9-J0K1-2345-F012-678901234567} = {11111111-1111-1111-1111-111111111111}
 		{A1111111-1111-1111-1111-111111111111} = {22222222-2222-2222-2222-222222222222}
 		{B2222222-2222-2222-2222-222222222222} = {22222222-2222-2222-2222-222222222222}
 		{C3333333-3333-3333-3333-333333333333} = {22222222-2222-2222-2222-222222222222}

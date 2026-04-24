@@ -223,11 +223,17 @@ namespace NovelManagement.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("History")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Importance")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("KeyEvents")
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("LastAppearanceChapterId")
                         .HasColumnType("TEXT");
@@ -291,6 +297,95 @@ namespace NovelManagement.Infrastructure.Migrations
                     b.HasIndex("Type");
 
                     b.ToTable("Characters");
+                });
+
+            modelBuilder.Entity("NovelManagement.Core.Entities.CharacterEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ChapterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Impact")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InvolvedCharacterIds")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("PlotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoryTime")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChapterId");
+
+                    b.HasIndex("CharacterId");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("Order");
+
+                    b.HasIndex("PlotId");
+
+                    b.HasIndex("CharacterId", "Order");
+
+                    b.ToTable("CharacterEvents");
                 });
 
             modelBuilder.Entity("NovelManagement.Core.Entities.CharacterRelationship", b =>
@@ -2270,6 +2365,31 @@ namespace NovelManagement.Infrastructure.Migrations
                     b.Navigation("Race");
                 });
 
+            modelBuilder.Entity("NovelManagement.Core.Entities.CharacterEvent", b =>
+                {
+                    b.HasOne("NovelManagement.Core.Entities.Chapter", "Chapter")
+                        .WithMany()
+                        .HasForeignKey("ChapterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NovelManagement.Core.Entities.Character", "Character")
+                        .WithMany("Events")
+                        .HasForeignKey("CharacterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NovelManagement.Core.Entities.Plot", "Plot")
+                        .WithMany()
+                        .HasForeignKey("PlotId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Chapter");
+
+                    b.Navigation("Character");
+
+                    b.Navigation("Plot");
+                });
+
             modelBuilder.Entity("NovelManagement.Core.Entities.CharacterRelationship", b =>
                 {
                     b.HasOne("NovelManagement.Core.Entities.RelationshipNetwork", "RelationshipNetwork")
@@ -2560,6 +2680,8 @@ namespace NovelManagement.Infrastructure.Migrations
             modelBuilder.Entity("NovelManagement.Core.Entities.Character", b =>
                 {
                     b.Navigation("CentralNetworks");
+
+                    b.Navigation("Events");
 
                     b.Navigation("RelationshipsAsSource");
 

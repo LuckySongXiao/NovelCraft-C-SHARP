@@ -27,12 +27,38 @@ namespace NovelManagement.WPF.Views
         #region 构造函数
 
         /// <summary>
-        /// 构造函数
+        /// 初始化新建卷宗对话框。
         /// </summary>
         public NewVolumeDialog()
         {
             InitializeComponent();
             InitializeDefaults();
+        }
+
+        /// <summary>
+        /// 使用已有卷宗数据初始化对话框。
+        /// </summary>
+        /// <param name="volumeData">待加载的卷宗数据。</param>
+        public NewVolumeDialog(VolumeData volumeData) : this()
+        {
+            if (volumeData == null)
+            {
+                return;
+            }
+
+            VolumeNameTextBox.Text = volumeData.Name;
+            VolumeDescriptionTextBox.Text = volumeData.Description;
+            VolumeOrderTextBox.Text = volumeData.Order.ToString();
+            TargetChapterCountTextBox.Text = volumeData.TargetChapterCount?.ToString() ?? string.Empty;
+            EstimatedWordCountTextBox.Text = volumeData.EstimatedWordCount?.ToString() ?? string.Empty;
+            VolumeThemeTextBox.Text = volumeData.Theme;
+            KeyCharactersTextBox.Text = volumeData.KeyCharacters;
+            ImportantEventsTextBox.Text = volumeData.ImportantEvents;
+            VolumeTagsTextBox.Text = volumeData.Tags;
+
+            SelectComboBoxItemByContent(VolumeTypeComboBox, volumeData.Type);
+            SelectComboBoxItemByContent(VolumeStatusComboBox, volumeData.Status);
+            Title = $"编辑卷宗 - {volumeData.Name}";
         }
 
         #endregion
@@ -179,6 +205,24 @@ namespace NovelManagement.WPF.Views
             return data;
         }
 
+        private static void SelectComboBoxItemByContent(System.Windows.Controls.ComboBox comboBox, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            foreach (var item in comboBox.Items)
+            {
+                if (item is System.Windows.Controls.ComboBoxItem comboBoxItem
+                    && string.Equals(comboBoxItem.Content?.ToString(), value, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = comboBoxItem;
+                    break;
+                }
+            }
+        }
+
         #endregion
 
         #region 事件处理
@@ -236,16 +280,59 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class VolumeData
     {
+        /// <summary>
+        /// 卷宗名称。
+        /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 卷宗描述。
+        /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 卷宗类型。
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 排序序号。
+        /// </summary>
         public int Order { get; set; }
+
+        /// <summary>
+        /// 目标章节数。
+        /// </summary>
         public int? TargetChapterCount { get; set; }
+
+        /// <summary>
+        /// 预计字数。
+        /// </summary>
         public int? EstimatedWordCount { get; set; }
+
+        /// <summary>
+        /// 卷宗主题。
+        /// </summary>
         public string Theme { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 关键角色。
+        /// </summary>
         public string KeyCharacters { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 重要事件。
+        /// </summary>
         public string ImportantEvents { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 当前状态。
+        /// </summary>
         public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 标签集合文本。
+        /// </summary>
         public string Tags { get; set; } = string.Empty;
     }
 }

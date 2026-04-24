@@ -14,13 +14,44 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class NewProjectModel
         {
+            /// <summary>
+            /// 项目名称。
+            /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 项目描述。
+            /// </summary>
             public string Description { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 项目类型。
+            /// </summary>
             public string Type { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 目标字数。
+            /// </summary>
             public int TargetWordCount { get; set; }
+
+            /// <summary>
+            /// 是否启用 AI 功能。
+            /// </summary>
             public bool EnableAI { get; set; } = true;
+
+            /// <summary>
+            /// 是否启用自动保存。
+            /// </summary>
             public bool AutoSave { get; set; } = true;
+
+            /// <summary>
+            /// 是否启用版本控制。
+            /// </summary>
             public bool VersionControl { get; set; } = false;
+
+            /// <summary>
+            /// 选中的项目模板。
+            /// </summary>
             public string Template { get; set; } = string.Empty;
         }
 
@@ -35,7 +66,7 @@ namespace NovelManagement.WPF.Views
         public bool IsConfirmed { get; private set; } = false;
 
         /// <summary>
-        /// 构造函数
+        /// 初始化新建项目对话框。
         /// </summary>
         public NewProjectDialog()
         {

@@ -3,19 +3,23 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Commands;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// 时间线管理视图
     /// </summary>
-    public partial class TimelineView : UserControl
+    public partial class TimelineView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -39,16 +43,27 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public ICommand SelectEventCommand { get; private set; }
 
+        private readonly TimelineDataService? _timelineDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化时间线管理视图。
+        /// </summary>
         public TimelineView()
         {
             InitializeComponent();
+            _timelineDataService = App.ServiceProvider?.GetService<TimelineDataService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
             InitializeData();
             InitializeCommands();
-            LoadTimelineEvents();
+            _ = LoadTimelineEventsAsync();
 
             // 添加调试信息检查控件是否正确加载
             this.Loaded += TimelineView_Loaded;
@@ -62,6 +77,10 @@ namespace NovelManagement.WPF.Views
             System.Diagnostics.Debug.WriteLine($"EventTitleTextBox: {EventTitleTextBox != null}");
             System.Diagnostics.Debug.WriteLine($"TimelineListControl: {TimelineListControl != null}");
             System.Diagnostics.Debug.WriteLine("=== 控件检查完成 ===");
+            if (_currentProjectId == Guid.Empty)
+            {
+                _ = LoadTimelineEventsAsync();
+            }
         }
 
         #endregion
@@ -88,74 +107,29 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载时间线事件数据
         /// </summary>
-        private void LoadTimelineEvents()
+        private async Task LoadTimelineEventsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var events = new List<TimelineEventViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new TimelineEventViewModel
-                    {
-                        Id = 1,
-                        Title = "天元宗建立",
-                        Category = "历史事件",
-                        EventDate = DateTime.Now.AddYears(-1000),
-                        Location = "天元山",
-                        Importance = "极高",
-                        Status = "已完成",
-                        Description = "修仙界第一大宗门天元宗正式建立，标志着修仙界新时代的开始",
-                        Impact = "奠定了修仙界的基本格局",
-                        ParticipantCount = 12,
-                        CreatedAt = DateTime.Now.AddDays(-30)
-                    },
-                    new TimelineEventViewModel
-                    {
-                        Id = 2,
-                        Title = "魔族入侵",
-                        Category = "世界事件",
-                        EventDate = DateTime.Now.AddYears(-500),
-                        Location = "修仙界各地",
-                        Importance = "极高",
-                        Status = "已完成",
-                        Description = "魔族大举入侵修仙界，引发了持续百年的正魔大战",
-                        Impact = "修仙界格局重新洗牌，许多宗门覆灭",
-                        ParticipantCount = 156,
-                        CreatedAt = DateTime.Now.AddDays(-25)
-                    },
-                    new TimelineEventViewModel
-                    {
-                        Id = 3,
-                        Title = "主角出生",
-                        Category = "角色事件",
-                        EventDate = DateTime.Now.AddYears(-18),
-                        Location = "青云村",
-                        Importance = "高",
-                        Status = "已完成",
-                        Description = "故事主角林天在青云村出生，身负神秘血脉",
-                        Impact = "开启了新的传奇故事",
-                        ParticipantCount = 3,
-                        CreatedAt = DateTime.Now.AddDays(-20)
-                    },
-                    new TimelineEventViewModel
-                    {
-                        Id = 4,
-                        Title = "宗门大比",
-                        Category = "剧情事件",
-                        EventDate = DateTime.Now.AddMonths(3),
-                        Location = "天元宗",
-                        Importance = "高",
-                        Status = "计划中",
-                        Description = "十年一度的宗门大比即将举行，各宗门弟子将展开激烈竞争",
-                        Impact = "将决定各宗门未来十年的地位",
-                        ParticipantCount = 89,
-                        CreatedAt = DateTime.Now.AddDays(-15)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "时间线管理", out _);
+                    TimelineEvents.Clear();
+                    TimelineListControl.ItemsSource = TimelineEvents;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var events = _timelineDataService == null
+                    ? new List<TimelineEventViewModel>()
+                    : await _timelineDataService.LoadTimelineEventsAsync(_currentProjectId);
 
                 TimelineEvents.Clear();
                 foreach (var timelineEvent in events)
                 {
+                    timelineEvent.ParticipantCount = timelineEvent.Participants.Count;
                     TimelineEvents.Add(timelineEvent);
                 }
 
@@ -645,7 +619,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ImportTimeline_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入时间线数据功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            _ = ImportTimelineAsync();
         }
 
         /// <summary>
@@ -653,7 +627,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ExportTimeline_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出时间线数据功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            _ = ExportTimelineAsync();
         }
 
         /// <summary>
@@ -810,12 +784,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void LoadEventParticipants(int eventId)
         {
-            // 模拟数据
-            var participants = new List<EventParticipantViewModel>
-            {
-                new EventParticipantViewModel { Name = "林天", Type = "角色", Role = "主角" },
-                new EventParticipantViewModel { Name = "天元宗", Type = "势力", Role = "主办方" }
-            };
+            var participants = SelectedEvent?.Participants?.ToList() ?? new List<EventParticipantViewModel>();
 
             EventParticipants.Clear();
             foreach (var participant in participants)
@@ -877,7 +846,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存事件
         /// </summary>
-        private void SaveEvent_Click(object sender, RoutedEventArgs e)
+        private async void SaveEvent_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -898,15 +867,17 @@ namespace NovelManagement.WPF.Views
                 SelectedEvent.Importance = (EventImportanceComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "中";
                 SelectedEvent.Status = (EventStatusComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "计划中";
                 SelectedEvent.ParticipantCount = EventParticipants.Count;
+                SelectedEvent.Participants = EventParticipants.ToList();
 
                 // 如果是新建事件，添加到列表
                 if (SelectedEvent.Id == 0)
                 {
                     SelectedEvent.Id = TimelineEvents.Count > 0 ? TimelineEvents.Max(e => e.Id) + 1 : 1;
+                    SelectedEvent.CreatedAt = DateTime.Now;
                     TimelineEvents.Add(SelectedEvent);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistTimelineEventsAsync();
                 MessageBox.Show("时间线事件保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -997,6 +968,131 @@ namespace NovelManagement.WPF.Views
             EditPanel.Visibility = Visibility.Collapsed;
         }
 
+        /// <summary>
+        /// 在项目切换后刷新时间线数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadTimelineEventsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的时间线数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadTimelineEventsAsync();
+        }
+
+        private async Task PersistTimelineEventsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _timelineDataService == null)
+            {
+                return;
+            }
+
+            foreach (var timelineEvent in TimelineEvents)
+            {
+                timelineEvent.ParticipantCount = timelineEvent.Participants?.Count ?? 0;
+            }
+
+            await _timelineDataService.SaveTimelineEventsAsync(_currentProjectId, TimelineEvents);
+        }
+
+        private async Task ImportTimelineAsync()
+        {
+            try
+            {
+                if (!EnsureCurrentProject("导入时间线"))
+                {
+                    return;
+                }
+
+                if (_timelineDataService == null)
+                {
+                    MessageBox.Show("时间线数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var openDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "导入时间线数据",
+                    Filter = "时间线文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+                };
+
+                if (openDialog.ShowDialog() == true)
+                {
+                    var importedEvents = await _timelineDataService.ImportTimelineEventsAsync(openDialog.FileName);
+                    TimelineEvents.Clear();
+                    foreach (var importedEvent in importedEvents)
+                    {
+                        importedEvent.ParticipantCount = importedEvent.Participants.Count;
+                        TimelineEvents.Add(importedEvent);
+                    }
+
+                    await PersistTimelineEventsAsync();
+                    TimelineListControl.ItemsSource = TimelineEvents;
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {TimelineEvents.Count} 条时间线事件。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入时间线数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ExportTimelineAsync()
+        {
+            try
+            {
+                if (!EnsureCurrentProject("导出时间线"))
+                {
+                    return;
+                }
+
+                if (_timelineDataService == null)
+                {
+                    MessageBox.Show("时间线数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出时间线数据",
+                    Filter = "时间线文件 (*.json)|*.json",
+                    FileName = $"时间线_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    await _timelineDataService.ExportTimelineEventsAsync(_currentProjectId, TimelineEvents, saveDialog.FileName);
+                    MessageBox.Show($"时间线数据已导出到：{saveDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出时间线数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
         #endregion
     }
 
@@ -1007,23 +1103,76 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class TimelineEventViewModel
     {
+        /// <summary>
+        /// 事件标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 事件标题。
+        /// </summary>
         public string Title { get; set; } = "";
+
+        /// <summary>
+        /// 事件类别。
+        /// </summary>
         public string Category { get; set; } = "";
+
+        /// <summary>
+        /// 事件发生时间。
+        /// </summary>
         public DateTime EventDate { get; set; }
+
+        /// <summary>
+        /// 事件地点。
+        /// </summary>
         public string Location { get; set; } = "";
+
+        /// <summary>
+        /// 重要程度。
+        /// </summary>
         public string Importance { get; set; } = "";
+
+        /// <summary>
+        /// 当前状态。
+        /// </summary>
         public string Status { get; set; } = "";
+
+        /// <summary>
+        /// 事件描述。
+        /// </summary>
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 事件影响。
+        /// </summary>
         public string Impact { get; set; } = "";
+
+        /// <summary>
+        /// 参与者数量。
+        /// </summary>
         public int ParticipantCount { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
 
+        /// <summary>
+        /// 参与者列表。
+        /// </summary>
+        public List<EventParticipantViewModel> Participants { get; set; } = new();
+
+        /// <summary>
+        /// 事件时间显示文本。
+        /// </summary>
+        [JsonIgnore]
         public string TimeDisplay => EventDate.ToString("yyyy年MM月dd日");
 
         /// <summary>
         /// 根据类别获取图标
         /// </summary>
+        [JsonIgnore]
         public string CategoryIcon
         {
             get
@@ -1044,6 +1193,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 根据重要程度获取颜色画刷
         /// </summary>
+        [JsonIgnore]
         public Brush ImportanceColor
         {
             get
@@ -1063,6 +1213,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 根据状态获取颜色画刷
         /// </summary>
+        [JsonIgnore]
         public Brush StatusColor
         {
             get
@@ -1085,8 +1236,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class EventParticipantViewModel
     {
+        /// <summary>
+        /// 参与者名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 参与者类型。
+        /// </summary>
         public string Type { get; set; } = "";
+
+        /// <summary>
+        /// 在事件中的角色。
+        /// </summary>
         public string Role { get; set; } = "";
     }
 

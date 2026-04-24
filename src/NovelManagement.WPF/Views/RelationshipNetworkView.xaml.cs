@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using MaterialDesignThemes.Wpf;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +25,7 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 关系网络视图
     /// </summary>
-    public partial class RelationshipNetworkView : UserControl
+    public partial class RelationshipNetworkView : UserControl, INavigationRefreshableView
     {
         #region 字段
 
@@ -31,10 +36,19 @@ namespace NovelManagement.WPF.Views
         private RelationshipViewModel? _selectedRelationship;
         private bool _isDragging;
         private Point _lastMousePosition;
+        private ToolTip? _activeTooltip;
+        private bool _showCharacterLabels = true;
+        private bool _dimUnselectedElements = true;
+        private double _nodeDiameter = 60;
+        private double _canvasWidth = 800;
+        private double _canvasHeight = 600;
 
         // 服务
         private CharacterService? _characterService;
+        private CharacterRelationshipService? _characterRelationshipService;
+        private AIAssistantService? _aiAssistantService;
         private ProjectContextService? _projectContextService;
+        private CurrentProjectGuard? _currentProjectGuard;
         private ILogger<RelationshipNetworkView>? _logger;
 
         #endregion
@@ -82,7 +96,10 @@ namespace NovelManagement.WPF.Views
                 if (serviceProvider != null)
                 {
                     _characterService = serviceProvider.GetService<CharacterService>();
+                    _characterRelationshipService = serviceProvider.GetService<CharacterRelationshipService>();
+                    _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                     _projectContextService = serviceProvider.GetService<ProjectContextService>();
+                    _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
                     _logger = serviceProvider.GetService<ILogger<RelationshipNetworkView>>();
                 }
             }
@@ -115,6 +132,14 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private async void LoadCharactersAsync()
         {
+            await LoadCharactersDataAsync();
+        }
+
+        /// <summary>
+        /// 加载角色和关系数据。
+        /// </summary>
+        private async Task LoadCharactersDataAsync()
+        {
             try
             {
                 _logger?.LogInformation("开始加载关系网络角色数据");
@@ -123,10 +148,13 @@ namespace NovelManagement.WPF.Views
                 var currentProjectId = GetCurrentProjectId();
                 if (currentProjectId == Guid.Empty)
                 {
-                    _logger?.LogWarning("没有当前项目，使用模拟数据");
-                    LoadMockData();
+                    _logger?.LogWarning("没有当前项目，关系网络进入空状态");
+                    _allCharacters = new List<CharacterNodeViewModel>();
+                    _allRelationships = new List<RelationshipViewModel>();
+                    _filteredCharacters = new List<CharacterNodeViewModel>();
                     UpdateCharacterList();
                     DrawNetworkGraph();
+                    EnsureCurrentProject("关系网络", out _);
                     return;
                 }
 
@@ -150,8 +178,10 @@ namespace NovelManagement.WPF.Views
                 }
                 else
                 {
-                    _logger?.LogWarning("CharacterService 不可用，使用模拟数据");
-                    LoadMockData();
+                    _logger?.LogWarning("CharacterService 不可用，关系网络进入空状态");
+                    _allCharacters = new List<CharacterNodeViewModel>();
+                    _allRelationships = new List<RelationshipViewModel>();
+                    _filteredCharacters = new List<CharacterNodeViewModel>();
                 }
 
                 UpdateCharacterList();
@@ -161,12 +191,13 @@ namespace NovelManagement.WPF.Views
             {
                 _logger?.LogError(ex, "加载关系网络角色数据失败");
 
-                // 发生错误时使用模拟数据
-                LoadMockData();
+                _allCharacters = new List<CharacterNodeViewModel>();
+                _allRelationships = new List<RelationshipViewModel>();
+                _filteredCharacters = new List<CharacterNodeViewModel>();
                 UpdateCharacterList();
                 DrawNetworkGraph();
 
-                MessageBox.Show($"加载角色数据失败，已切换到模拟数据: {ex.Message}", "警告",
+                MessageBox.Show($"加载角色数据失败：{ex.Message}", "警告",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -191,6 +222,17 @@ namespace NovelManagement.WPF.Views
                 _logger?.LogError(ex, "获取当前项目ID失败");
                 return Guid.Empty;
             }
+        }
+
+        private bool EnsureCurrentProject(string featureName, out Guid projectId)
+        {
+            if (_currentProjectGuard != null)
+            {
+                return _currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), featureName, out projectId);
+            }
+
+            projectId = GetCurrentProjectId();
+            return projectId != Guid.Empty;
         }
 
         /// <summary>
@@ -249,6 +291,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _allRelationships = new List<RelationshipViewModel>();
+                var loadedRelationshipIds = new HashSet<Guid>();
 
                 // 为每个角色加载其关系
                 foreach (var character in characters)
@@ -259,6 +302,11 @@ namespace NovelManagement.WPF.Views
 
                         foreach (var relationship in relationships)
                         {
+                            if (!loadedRelationshipIds.Add(relationship.Id))
+                            {
+                                continue;
+                            }
+
                             // 查找对应的视图模型
                             var sourceViewModel = _allCharacters.FirstOrDefault(c => c.CharacterId == relationship.SourceCharacterId);
                             var targetViewModel = _allCharacters.FirstOrDefault(c => c.CharacterId == relationship.TargetCharacterId);
@@ -267,7 +315,10 @@ namespace NovelManagement.WPF.Views
                             {
                                 var relationshipViewModel = new RelationshipViewModel
                                 {
+                                    RelationshipId = relationship.Id,
                                     Id = _allRelationships.Count + 1,
+                                    SourceCharacterGuid = relationship.SourceCharacterId,
+                                    TargetCharacterGuid = relationship.TargetCharacterId,
                                     FromCharacterId = sourceViewModel.Id,
                                     ToCharacterId = targetViewModel.Id,
                                     FromCharacterName = sourceViewModel.Name,
@@ -649,6 +700,7 @@ namespace NovelManagement.WPF.Views
         /// <param name="relationshipsToShow">要显示的关系列表</param>
         private void DrawNetworkGraph(List<RelationshipViewModel> relationshipsToShow)
         {
+            ApplyCanvasSettings();
             NetworkCanvas.Children.Clear();
 
             // 绘制关系连线
@@ -675,6 +727,13 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void DrawRelationshipLine(CharacterNodeViewModel from, CharacterNodeViewModel to, RelationshipViewModel relationship)
         {
+            var isConnectedToSelectedCharacter = _selectedCharacter != null &&
+                (relationship.FromCharacterId == _selectedCharacter.Id || relationship.ToCharacterId == _selectedCharacter.Id);
+            var isSelectedRelationship = _selectedRelationship?.RelationshipId == relationship.RelationshipId;
+            var shouldDim = _dimUnselectedElements &&
+                ((_selectedRelationship != null && !isSelectedRelationship) ||
+                 (_selectedCharacter != null && !isConnectedToSelectedCharacter));
+
             var line = new Line
             {
                 X1 = from.X,
@@ -682,7 +741,8 @@ namespace NovelManagement.WPF.Views
                 X2 = to.X,
                 Y2 = to.Y,
                 Stroke = relationship.Color,
-                StrokeThickness = Math.Max(1, relationship.Strength / 20.0),
+                StrokeThickness = Math.Max(1, relationship.Strength / 20.0) + (isSelectedRelationship ? 2 : 0),
+                Opacity = shouldDim ? 0.18 : 0.92,
                 Tag = relationship
             };
 
@@ -698,19 +758,33 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void DrawCharacterNode(CharacterNodeViewModel character)
         {
+            var isSelectedCharacter = _selectedCharacter?.CharacterId == character.CharacterId;
+            var isConnectedToSelectedRelationship = _selectedRelationship != null &&
+                (character.CharacterId == _selectedRelationship.SourceCharacterGuid ||
+                 character.CharacterId == _selectedRelationship.TargetCharacterGuid);
+            var isConnectedToSelectedCharacter = _selectedCharacter != null &&
+                _allRelationships.Any(r =>
+                    (r.FromCharacterId == _selectedCharacter.Id && r.ToCharacterId == character.Id) ||
+                    (r.ToCharacterId == _selectedCharacter.Id && r.FromCharacterId == character.Id));
+            var shouldDim = _dimUnselectedElements &&
+                ((_selectedRelationship != null && !isConnectedToSelectedRelationship) ||
+                 (_selectedCharacter != null && !isSelectedCharacter && !isConnectedToSelectedCharacter));
+            var diameter = isSelectedCharacter ? _nodeDiameter + 10 : _nodeDiameter;
+
             // 创建节点圆圈
             var circle = new Ellipse
             {
-                Width = 60,
-                Height = 60,
+                Width = diameter,
+                Height = diameter,
                 Fill = character.ConnectionStrengthColor,
                 Stroke = new SolidColorBrush(Colors.White),
-                StrokeThickness = 3,
+                StrokeThickness = isSelectedCharacter ? 5 : 3,
+                Opacity = shouldDim ? 0.28 : 1.0,
                 Tag = character
             };
 
-            Canvas.SetLeft(circle, character.X - 30);
-            Canvas.SetTop(circle, character.Y - 30);
+            Canvas.SetLeft(circle, character.X - diameter / 2);
+            Canvas.SetTop(circle, character.Y - diameter / 2);
 
             // 创建角色名称标签
             var nameLabel = new TextBlock
@@ -721,6 +795,8 @@ namespace NovelManagement.WPF.Views
                 FontSize = 12,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
+                Visibility = _showCharacterLabels || isSelectedCharacter ? Visibility.Visible : Visibility.Collapsed,
+                Opacity = shouldDim ? 0.35 : 1.0,
                 Tag = character
             };
 
@@ -924,7 +1000,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void HighlightCharacterConnections(CharacterNodeViewModel character)
         {
-            // TODO: 实现高亮显示选中角色的所有连接
+            _selectedCharacter = character;
+            _selectedRelationship = null;
+            DrawNetworkGraph();
         }
 
         /// <summary>
@@ -932,7 +1010,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void HighlightRelationship(RelationshipViewModel relationship)
         {
-            // TODO: 实现高亮显示选中的关系
+            _selectedRelationship = relationship;
+            _selectedCharacter = null;
+            DrawNetworkGraph();
         }
 
         /// <summary>
@@ -940,7 +1020,8 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ShowCharacterTooltip(CharacterNodeViewModel character, Point position)
         {
-            // TODO: 实现角色提示显示
+            var content = $"角色：{character.Name}\n类型：{character.Type}\n势力：{character.Faction}\n关系数：{character.RelationshipCount}";
+            ShowTooltip(content, position);
         }
 
         /// <summary>
@@ -948,7 +1029,8 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ShowRelationshipTooltip(RelationshipViewModel relationship, Point position)
         {
-            // TODO: 实现关系提示显示
+            var content = $"{relationship.FromCharacterName} -> {relationship.ToCharacterName}\n类型：{relationship.RelationshipType}\n强度：{relationship.Strength}\n状态：{relationship.Status}";
+            ShowTooltip(content, position);
         }
 
         /// <summary>
@@ -956,7 +1038,11 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void HideTooltip()
         {
-            // TODO: 实现隐藏提示
+            if (_activeTooltip != null)
+            {
+                _activeTooltip.IsOpen = false;
+                _activeTooltip = null;
+            }
         }
 
         #endregion
@@ -1022,15 +1108,37 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void AddRelationship_Click(object sender, RoutedEventArgs e)
         {
+            _ = AddRelationshipAsync();
+        }
+
+        private async Task AddRelationshipAsync()
+        {
             try
             {
                 var dialog = new AddRelationshipDialog(_allCharacters);
                 dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() == true)
                 {
-                    // TODO: 添加新关系到数据
+                    if (_characterRelationshipService == null)
+                    {
+                        MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var relationship = new CharacterRelationship
+                    {
+                        SourceCharacterId = dialog.SourceCharacterGuid,
+                        TargetCharacterId = dialog.TargetCharacterGuid,
+                        RelationshipType = dialog.RelationshipType,
+                        Intensity = Math.Max(1, Math.Min(10, dialog.Strength / 10)),
+                        Description = dialog.Description,
+                        Status = dialog.Status,
+                        RelationshipName = $"{dialog.FromCharacterName}-{dialog.RelationshipType}-{dialog.ToCharacterName}"
+                    };
+
+                    await _characterRelationshipService.CreateCharacterRelationshipAsync(relationship);
+                    await LoadCharactersDataAsync();
                     MessageBox.Show("关系添加成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                    DrawNetworkGraph();
                 }
             }
             catch (Exception ex)
@@ -1042,12 +1150,64 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 智能检测关系按钮点击事件
         /// </summary>
-        private void AutoDetectRelationships_Click(object sender, RoutedEventArgs e)
+        private async void AutoDetectRelationships_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                MessageBox.Show("AI正在分析文本内容，检测角色关系...\n\n检测到3个新的潜在关系：\n• 林轩 - 玄天老祖 (师徒关系)\n• 李雪儿 - 苏雨薇 (闺蜜关系)\n• 张无忌 - 魔尊 (从属关系)",
-                    "智能关系检测", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (_allCharacters.Count < 2)
+                {
+                    MessageBox.Show("至少需要两个角色才能进行关系检测。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                if (_characterRelationshipService == null)
+                {
+                    MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var candidates = await DetectRelationshipCandidatesAsync();
+                if (candidates.Count == 0)
+                {
+                    MessageBox.Show("本次没有检测到新的可写入关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var confirmDialog = new RelationshipDetectionResultDialog(candidates)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                if (confirmDialog.ShowDialog() == true)
+                {
+                    var selectedCandidates = confirmDialog.GetSelectedCandidates();
+                    if (selectedCandidates.Count == 0)
+                    {
+                        MessageBox.Show("未选择任何候选关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    foreach (var candidate in selectedCandidates)
+                    {
+                        var relationship = new CharacterRelationship
+                        {
+                            SourceCharacterId = candidate.SourceCharacterId,
+                            TargetCharacterId = candidate.TargetCharacterId,
+                            RelationshipType = candidate.RelationshipType,
+                            Intensity = Math.Max(1, Math.Min(10, candidate.Strength / 10)),
+                            Description = candidate.Description,
+                            Status = candidate.Status,
+                            RelationshipName = $"{candidate.SourceCharacterName}-{candidate.RelationshipType}-{candidate.TargetCharacterName}"
+                        };
+
+                        await _characterRelationshipService.CreateCharacterRelationshipAsync(relationship);
+                    }
+
+                    await LoadCharactersDataAsync();
+                    var summary = string.Join(Environment.NewLine, selectedCandidates.Select(c =>
+                        $"• {c.SourceCharacterName} - {c.TargetCharacterName}（{c.RelationshipType}）"));
+                    MessageBox.Show($"已写入 {selectedCandidates.Count} 条关系：\n\n{summary}", "智能检测完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
@@ -1131,7 +1291,28 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                MessageBox.Show("网络图导出功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                var bitmap = CaptureNetworkBitmap();
+                if (bitmap == null)
+                {
+                    MessageBox.Show("当前没有可导出的网络图内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出网络图",
+                    Filter = "PNG 图片 (*.png)|*.png",
+                    FileName = $"关系网络图_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    using var fileStream = new FileStream(saveDialog.FileName, FileMode.Create, FileAccess.Write);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    encoder.Save(fileStream);
+                    MessageBox.Show($"网络图已导出到：{saveDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
@@ -1146,7 +1327,20 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                MessageBox.Show("网络图设置功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                var dialog = new NetworkSettingsDialog(_showCharacterLabels, _dimUnselectedElements, _nodeDiameter, _canvasWidth, _canvasHeight)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+                if (dialog.ShowDialog() == true)
+                {
+                    _showCharacterLabels = dialog.ShowCharacterLabels;
+                    _dimUnselectedElements = dialog.DimUnselectedElements;
+                    _nodeDiameter = dialog.NodeDiameter;
+                    _canvasWidth = dialog.CanvasWidth;
+                    _canvasHeight = dialog.CanvasHeight;
+                    ApplyCanvasSettings();
+                    DrawNetworkGraph();
+                }
             }
             catch (Exception ex)
             {
@@ -1195,7 +1389,14 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var fullScreenWindow = new NetworkFullScreenWindow(_allCharacters, _allRelationships);
+                var bitmap = CaptureNetworkBitmap();
+                if (bitmap == null)
+                {
+                    MessageBox.Show("当前没有可显示的网络图内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var fullScreenWindow = new NetworkFullScreenWindow(bitmap, _allCharacters.Count, _allRelationships.Count);
                 fullScreenWindow.ShowDialog();
             }
             catch (Exception ex)
@@ -1209,6 +1410,11 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void EditRelationship_Click(object sender, RoutedEventArgs e)
         {
+            _ = EditRelationshipAsync();
+        }
+
+        private async Task EditRelationshipAsync()
+        {
             try
             {
                 if (_selectedRelationship != null)
@@ -1217,8 +1423,31 @@ namespace NovelManagement.WPF.Views
                     dialog.Owner = Window.GetWindow(this);
                     if (dialog.ShowDialog() == true)
                     {
-                        DrawNetworkGraph();
-                        ShowRelationshipDetails(_selectedRelationship);
+                        if (_characterRelationshipService == null)
+                        {
+                            MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
+                        var relationship = await _characterRelationshipService.GetCharacterRelationshipByIdAsync(_selectedRelationship.RelationshipId);
+                        if (relationship == null)
+                        {
+                            MessageBox.Show("未找到要编辑的关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        relationship.RelationshipType = dialog.RelationshipType;
+                        relationship.Intensity = Math.Max(1, Math.Min(10, dialog.Strength / 10));
+                        relationship.Description = dialog.Description;
+                        relationship.Status = dialog.Status;
+                        await _characterRelationshipService.UpdateCharacterRelationshipAsync(relationship);
+
+                        await LoadCharactersDataAsync();
+                        _selectedRelationship = _allRelationships.FirstOrDefault(r => r.RelationshipId == relationship.Id);
+                        if (_selectedRelationship != null)
+                        {
+                            ShowRelationshipDetails(_selectedRelationship);
+                        }
                     }
                 }
             }
@@ -1233,6 +1462,11 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void DeleteRelationship_Click(object sender, RoutedEventArgs e)
         {
+            _ = DeleteRelationshipAsync();
+        }
+
+        private async Task DeleteRelationshipAsync()
+        {
             try
             {
                 if (_selectedRelationship != null)
@@ -1242,9 +1476,21 @@ namespace NovelManagement.WPF.Views
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        _allRelationships.Remove(_selectedRelationship);
+                        if (_characterRelationshipService == null)
+                        {
+                            MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
+                        var deleted = await _characterRelationshipService.DeleteCharacterRelationshipAsync(_selectedRelationship.RelationshipId);
+                        if (!deleted)
+                        {
+                            MessageBox.Show("关系删除失败或关系不存在。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+
                         _selectedRelationship = null;
-                        DrawNetworkGraph();
+                        await LoadCharactersDataAsync();
                         RelationshipDetailPanel.Children.Clear();
                         RelationshipDetailPanel.Children.Add(new TextBlock
                         {
@@ -1326,6 +1572,256 @@ namespace NovelManagement.WPF.Views
             NetworkCanvas.ReleaseMouseCapture();
         }
 
+        private RenderTargetBitmap? CaptureNetworkBitmap()
+        {
+            try
+            {
+                NetworkCanvas.UpdateLayout();
+
+                var width = (int)Math.Max(NetworkCanvas.ActualWidth, NetworkCanvas.Width);
+                var height = (int)Math.Max(NetworkCanvas.ActualHeight, NetworkCanvas.Height);
+                if (width <= 0 || height <= 0)
+                {
+                    return null;
+                }
+
+                NetworkCanvas.Measure(new Size(width, height));
+                NetworkCanvas.Arrange(new Rect(0, 0, width, height));
+                NetworkCanvas.UpdateLayout();
+
+                var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(NetworkCanvas);
+                return renderBitmap;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "捕获关系网络图像失败");
+                return null;
+            }
+        }
+
+        private void ShowTooltip(string content, Point position)
+        {
+            HideTooltip();
+            _activeTooltip = new ToolTip
+            {
+                Content = new TextBlock
+                {
+                    Text = content,
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 260,
+                    LineHeight = 18
+                },
+                Placement = PlacementMode.Relative,
+                PlacementTarget = NetworkCanvas,
+                HorizontalOffset = position.X + 12,
+                VerticalOffset = position.Y + 12,
+                StaysOpen = true,
+                IsOpen = true
+            };
+        }
+
+        private void ApplyCanvasSettings()
+        {
+            NetworkCanvas.Width = Math.Max(600, _canvasWidth);
+            NetworkCanvas.Height = Math.Max(400, _canvasHeight);
+        }
+
+        private async Task<List<DetectedRelationshipCandidate>> DetectRelationshipCandidatesAsync()
+        {
+            var existingKeys = new HashSet<string>(_allRelationships.Select(BuildRelationshipKey), StringComparer.OrdinalIgnoreCase);
+            var candidates = new List<DetectedRelationshipCandidate>();
+
+            if (_aiAssistantService != null)
+            {
+                var parameters = new Dictionary<string, object>
+                {
+                    ["characters"] = _allCharacters
+                        .Select(c => new { c.Name, c.Type, c.Faction, c.RelationshipCount })
+                        .Cast<object>()
+                        .ToList(),
+                    ["existingRelationships"] = _allRelationships
+                        .Select(r => new { r.FromCharacterName, r.ToCharacterName, r.RelationshipType, r.Status })
+                        .Cast<object>()
+                        .ToList()
+                };
+
+                var result = await _aiAssistantService.AnalyzeCharacterRelationshipsAsync(parameters);
+                if (result.IsSuccess && result.Data != null)
+                {
+                    candidates.AddRange(ParseRelationshipCandidates(result.Data, existingKeys));
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                candidates.AddRange(BuildHeuristicRelationshipCandidates(existingKeys));
+            }
+
+            return candidates
+                .GroupBy(c => BuildRelationshipKey(c))
+                .Select(g => g.First())
+                .ToList();
+        }
+
+        private List<DetectedRelationshipCandidate> ParseRelationshipCandidates(object data, HashSet<string> existingKeys)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return new List<DetectedRelationshipCandidate>();
+            }
+
+            var candidates = new List<DetectedRelationshipCandidate>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '、', ' ');
+                var matchedCharacters = _allCharacters
+                    .Where(c => line.Contains(c.Name, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(c => c.Name.Length)
+                    .Take(2)
+                    .ToList();
+
+                if (matchedCharacters.Count < 2)
+                {
+                    continue;
+                }
+
+                var relationshipType = InferRelationshipType(line, matchedCharacters[0], matchedCharacters[1]);
+                var candidate = BuildRelationshipCandidate(matchedCharacters[0], matchedCharacters[1], relationshipType, line);
+                if (candidate != null && existingKeys.Add(BuildRelationshipKey(candidate)))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            return candidates;
+        }
+
+        private List<DetectedRelationshipCandidate> BuildHeuristicRelationshipCandidates(HashSet<string> existingKeys)
+        {
+            var candidates = new List<DetectedRelationshipCandidate>();
+            var protagonist = _allCharacters.FirstOrDefault(c => c.Type == "主角");
+            var femaleLead = _allCharacters.FirstOrDefault(c => c.Type == "女主角");
+            if (protagonist != null && femaleLead != null)
+            {
+                var candidate = BuildRelationshipCandidate(protagonist, femaleLead, "爱情关系", "基于角色定位推断为潜在爱情关系");
+                if (candidate != null && existingKeys.Add(BuildRelationshipKey(candidate)))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            foreach (var sameFactionPair in _allCharacters
+                .Where(c => !string.IsNullOrWhiteSpace(c.Faction) && c.Faction != "无势力")
+                .GroupBy(c => c.Faction)
+                .SelectMany(g => g.Take(3).SelectMany((left, index) => g.Skip(index + 1).Take(2).Select(right => (left, right)))))
+            {
+                var candidate = BuildRelationshipCandidate(sameFactionPair.left, sameFactionPair.right, "同门关系", "基于同势力推断为同门或阵营关系");
+                if (candidate != null && existingKeys.Add(BuildRelationshipKey(candidate)))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            var antagonist = _allCharacters.FirstOrDefault(c => c.Type == "反派");
+            if (protagonist != null && antagonist != null)
+            {
+                var candidate = BuildRelationshipCandidate(protagonist, antagonist, "敌对关系", "基于主角与反派定位推断为潜在敌对关系");
+                if (candidate != null && existingKeys.Add(BuildRelationshipKey(candidate)))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            return candidates.Take(8).ToList();
+        }
+
+        private DetectedRelationshipCandidate? BuildRelationshipCandidate(CharacterNodeViewModel source, CharacterNodeViewModel target, string relationshipType, string description)
+        {
+            if (source.CharacterId == target.CharacterId)
+            {
+                return null;
+            }
+
+            return new DetectedRelationshipCandidate
+            {
+                SourceCharacterId = source.CharacterId,
+                TargetCharacterId = target.CharacterId,
+                SourceCharacterName = source.Name,
+                TargetCharacterName = target.Name,
+                RelationshipType = relationshipType,
+                Strength = InferRelationshipStrength(relationshipType),
+                Status = InferRelationshipStatus(relationshipType),
+                Description = description
+            };
+        }
+
+        private static string InferRelationshipType(string text, CharacterNodeViewModel source, CharacterNodeViewModel target)
+        {
+            if (Regex.IsMatch(text, "师徒|老师|徒弟"))
+            {
+                return "师徒关系";
+            }
+            if (Regex.IsMatch(text, "爱情|恋人|情侣|夫妻|爱慕|闺蜜"))
+            {
+                return "爱情关系";
+            }
+            if (Regex.IsMatch(text, "敌对|仇敌|死敌|对立|宿敌"))
+            {
+                return "敌对关系";
+            }
+            if (Regex.IsMatch(text, "亲属|父子|母女|兄妹|姐妹|兄弟|家人"))
+            {
+                return "亲属关系";
+            }
+            if (Regex.IsMatch(text, "从属|下属|上级|追随"))
+            {
+                return "从属关系";
+            }
+            if (source.Faction == target.Faction && !string.IsNullOrWhiteSpace(source.Faction) && source.Faction != "无势力")
+            {
+                return "同门关系";
+            }
+
+            return "朋友关系";
+        }
+
+        private static int InferRelationshipStrength(string relationshipType)
+        {
+            return relationshipType switch
+            {
+                "爱情关系" => 85,
+                "师徒关系" => 80,
+                "敌对关系" => 75,
+                "亲属关系" => 90,
+                "同门关系" => 70,
+                "从属关系" => 68,
+                _ => 60
+            };
+        }
+
+        private static string InferRelationshipStatus(string relationshipType)
+        {
+            return relationshipType switch
+            {
+                "敌对关系" => "紧张",
+                "爱情关系" => "友好",
+                _ => "稳定"
+            };
+        }
+
+        private static string BuildRelationshipKey(RelationshipViewModel relationship)
+        {
+            return $"{relationship.SourceCharacterGuid:N}|{relationship.TargetCharacterGuid:N}|{relationship.RelationshipType}";
+        }
+
+        private static string BuildRelationshipKey(DetectedRelationshipCandidate relationship)
+        {
+            return $"{relationship.SourceCharacterId:N}|{relationship.TargetCharacterId:N}|{relationship.RelationshipType}";
+        }
+
         #endregion
 
         #region 公共方法
@@ -1338,7 +1834,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _logger?.LogInformation("开始刷新关系网络数据");
-                await Task.Run(() => LoadCharactersAsync());
+                await LoadCharactersDataAsync();
                 _logger?.LogInformation("关系网络数据刷新完成");
             }
             catch (Exception ex)
@@ -1347,6 +1843,16 @@ namespace NovelManagement.WPF.Views
                 MessageBox.Show($"刷新关系网络数据失败: {ex.Message}", "错误",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// 在项目切换后刷新关系网络数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            await RefreshNetworkDataAsync();
         }
 
         /// <summary>
@@ -1461,16 +1967,59 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class CharacterNodeViewModel
     {
+        /// <summary>
+        /// 用于界面展示的角色编号。
+        /// </summary>
         public int Id { get; set; } // 显示用的ID
+
+        /// <summary>
+        /// 角色的真实数据库标识。
+        /// </summary>
         public Guid CharacterId { get; set; } // 真实的数据库ID
+
+        /// <summary>
+        /// 角色名称。
+        /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 角色类型。
+        /// </summary>
         public string Type { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 所属势力。
+        /// </summary>
         public string Faction { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 名称首字母。
+        /// </summary>
         public string InitialLetter { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 节点连接强度对应的颜色。
+        /// </summary>
         public SolidColorBrush ConnectionStrengthColor { get; set; } = new SolidColorBrush(Colors.Gray);
+
+        /// <summary>
+        /// 连接数量。
+        /// </summary>
         public int ConnectionCount { get; set; }
+
+        /// <summary>
+        /// 关系数量。
+        /// </summary>
         public int RelationshipCount { get; set; }
+
+        /// <summary>
+        /// 节点横坐标。
+        /// </summary>
         public double X { get; set; }
+
+        /// <summary>
+        /// 节点纵坐标。
+        /// </summary>
         public double Y { get; set; }
     }
 
@@ -1479,16 +2028,121 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class RelationshipViewModel
     {
+        /// <summary>
+        /// 关系实体标识。
+        /// </summary>
+        public Guid RelationshipId { get; set; }
+
+        /// <summary>
+        /// 用于界面展示的关系编号。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 源角色真实标识。
+        /// </summary>
+        public Guid SourceCharacterGuid { get; set; }
+
+        /// <summary>
+        /// 目标角色真实标识。
+        /// </summary>
+        public Guid TargetCharacterGuid { get; set; }
+
+        /// <summary>
+        /// 源角色显示编号。
+        /// </summary>
         public int FromCharacterId { get; set; }
+
+        /// <summary>
+        /// 目标角色显示编号。
+        /// </summary>
         public int ToCharacterId { get; set; }
+
+        /// <summary>
+        /// 源角色名称。
+        /// </summary>
         public string FromCharacterName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 目标角色名称。
+        /// </summary>
         public string ToCharacterName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 关系类型。
+        /// </summary>
         public string RelationshipType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 关系强度。
+        /// </summary>
         public int Strength { get; set; }
+
+        /// <summary>
+        /// 关系描述。
+        /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 关系状态。
+        /// </summary>
         public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 连线显示颜色。
+        /// </summary>
         public SolidColorBrush Color { get; set; } = new SolidColorBrush(Colors.Gray);
+    }
+
+    /// <summary>
+    /// 智能检测到的关系候选。
+    /// </summary>
+    public sealed class DetectedRelationshipCandidate
+    {
+        /// <summary>
+        /// 源角色标识。
+        /// </summary>
+        public Guid SourceCharacterId { get; init; }
+
+        /// <summary>
+        /// 目标角色标识。
+        /// </summary>
+        public Guid TargetCharacterId { get; init; }
+
+        /// <summary>
+        /// 源角色名称。
+        /// </summary>
+        public string SourceCharacterName { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 目标角色名称。
+        /// </summary>
+        public string TargetCharacterName { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 检测到的关系类型。
+        /// </summary>
+        public string RelationshipType { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 关系强度。
+        /// </summary>
+        public int Strength { get; init; }
+
+        /// <summary>
+        /// 关系状态。
+        /// </summary>
+        public string Status { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 候选关系描述。
+        /// </summary>
+        public string Description { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 是否选中该候选关系。
+        /// </summary>
+        public bool IsSelected { get; set; } = true;
     }
 
     /// <summary>
@@ -1499,23 +2153,40 @@ namespace NovelManagement.WPF.Views
         private readonly Action<T> _execute;
         private readonly Func<T, bool>? _canExecute;
 
+        /// <summary>
+        /// 初始化泛型命令。
+        /// </summary>
+        /// <param name="execute">执行逻辑。</param>
+        /// <param name="canExecute">是否允许执行的判断逻辑。</param>
         public RelayCommand(Action<T> execute, Func<T, bool>? canExecute = null)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
         }
 
+        /// <summary>
+        /// 可执行状态变化事件。
+        /// </summary>
         public event EventHandler CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        /// <summary>
+        /// 判断当前命令是否可以执行。
+        /// </summary>
+        /// <param name="parameter">命令参数。</param>
+        /// <returns>可以执行时返回 <see langword="true"/>。</returns>
         public bool CanExecute(object parameter)
         {
             return _canExecute == null || _canExecute((T)parameter);
         }
 
+        /// <summary>
+        /// 执行命令。
+        /// </summary>
+        /// <param name="parameter">命令参数。</param>
         public void Execute(object parameter)
         {
             _execute((T)parameter);
@@ -1531,17 +2202,126 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class AddRelationshipDialog : Window
     {
+        /// <summary>
+        /// 源角色标识。
+        /// </summary>
+        public Guid SourceCharacterGuid { get; private set; }
+
+        /// <summary>
+        /// 目标角色标识。
+        /// </summary>
+        public Guid TargetCharacterGuid { get; private set; }
+
+        /// <summary>
+        /// 源角色名称。
+        /// </summary>
+        public string FromCharacterName { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 目标角色名称。
+        /// </summary>
+        public string ToCharacterName { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 关系类型。
+        /// </summary>
+        public string RelationshipType { get; private set; } = "朋友关系";
+
+        /// <summary>
+        /// 关系强度。
+        /// </summary>
+        public int Strength { get; private set; } = 50;
+
+        /// <summary>
+        /// 关系描述。
+        /// </summary>
+        public string Description { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 关系状态。
+        /// </summary>
+        public string Status { get; private set; } = "稳定";
+
+        /// <summary>
+        /// 初始化添加关系对话框。
+        /// </summary>
+        /// <param name="characters">可用于建立关系的角色列表。</param>
         public AddRelationshipDialog(List<CharacterNodeViewModel> characters)
         {
             Title = "添加关系";
-            Width = 400;
-            Height = 300;
+            Width = 460;
+            Height = 420;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-            // 简化实现
-            var result = MessageBox.Show("是否添加新的角色关系？", "添加关系",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-            DialogResult = result == MessageBoxResult.Yes;
+            var sourceComboBox = new ComboBox
+            {
+                ItemsSource = characters,
+                DisplayMemberPath = "Name",
+                SelectedIndex = characters.Count > 0 ? 0 : -1
+            };
+            var targetComboBox = new ComboBox
+            {
+                ItemsSource = characters,
+                DisplayMemberPath = "Name",
+                SelectedIndex = characters.Count > 1 ? 1 : (characters.Count > 0 ? 0 : -1)
+            };
+            var typeComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "朋友关系", "爱情关系", "师徒关系", "敌对关系", "同门关系", "亲属关系" },
+                SelectedIndex = 0
+            };
+            var strengthSlider = new Slider
+            {
+                Minimum = 10,
+                Maximum = 100,
+                TickFrequency = 10,
+                IsSnapToTickEnabled = true,
+                Value = 50
+            };
+            var statusComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "稳定", "友好", "紧张", "敌对", "复杂" },
+                SelectedIndex = 0
+            };
+            var descriptionTextBox = new TextBox
+            {
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                Height = 100
+            };
+
+            Content = RelationshipDialogFactory.CreateRelationshipDialogContent(
+                sourceComboBox,
+                targetComboBox,
+                typeComboBox,
+                strengthSlider,
+                statusComboBox,
+                descriptionTextBox,
+                confirmAction: () =>
+                {
+                    if (sourceComboBox.SelectedItem is not CharacterNodeViewModel source
+                        || targetComboBox.SelectedItem is not CharacterNodeViewModel target)
+                    {
+                        MessageBox.Show("请选择关系双方角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return false;
+                    }
+
+                    if (source.CharacterId == target.CharacterId)
+                    {
+                        MessageBox.Show("关系双方不能是同一个角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return false;
+                    }
+
+                    SourceCharacterGuid = source.CharacterId;
+                    TargetCharacterGuid = target.CharacterId;
+                    FromCharacterName = source.Name;
+                    ToCharacterName = target.Name;
+                    RelationshipType = typeComboBox.SelectedItem?.ToString() ?? "朋友关系";
+                    Strength = (int)strengthSlider.Value;
+                    Status = statusComboBox.SelectedItem?.ToString() ?? "稳定";
+                    Description = descriptionTextBox.Text.Trim();
+                    return true;
+                });
         }
     }
 
@@ -1550,17 +2330,364 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class EditRelationshipDialog : Window
     {
+        /// <summary>
+        /// 编辑后的关系类型。
+        /// </summary>
+        public string RelationshipType { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 编辑后的关系强度。
+        /// </summary>
+        public int Strength { get; private set; }
+
+        /// <summary>
+        /// 编辑后的关系描述。
+        /// </summary>
+        public string Description { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 编辑后的关系状态。
+        /// </summary>
+        public string Status { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 初始化编辑关系对话框。
+        /// </summary>
+        /// <param name="relationship">待编辑的关系。</param>
         public EditRelationshipDialog(RelationshipViewModel relationship)
         {
             Title = "编辑关系";
-            Width = 400;
-            Height = 300;
+            Width = 460;
+            Height = 380;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-            // 简化实现
-            var result = MessageBox.Show($"是否修改关系\"{relationship.RelationshipType}\"？", "编辑关系",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-            DialogResult = result == MessageBoxResult.Yes;
+            var sourceComboBox = new ComboBox
+            {
+                ItemsSource = new[] { relationship.FromCharacterName },
+                SelectedIndex = 0,
+                IsEnabled = false
+            };
+            var targetComboBox = new ComboBox
+            {
+                ItemsSource = new[] { relationship.ToCharacterName },
+                SelectedIndex = 0,
+                IsEnabled = false
+            };
+            var typeComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "朋友关系", "爱情关系", "师徒关系", "敌对关系", "同门关系", "亲属关系" },
+                SelectedItem = relationship.RelationshipType
+            };
+            var strengthSlider = new Slider
+            {
+                Minimum = 10,
+                Maximum = 100,
+                TickFrequency = 10,
+                IsSnapToTickEnabled = true,
+                Value = relationship.Strength
+            };
+            var statusComboBox = new ComboBox
+            {
+                ItemsSource = new[] { "稳定", "友好", "紧张", "敌对", "复杂" },
+                SelectedItem = relationship.Status
+            };
+            var descriptionTextBox = new TextBox
+            {
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                Height = 100,
+                Text = relationship.Description
+            };
+
+            Content = RelationshipDialogFactory.CreateRelationshipDialogContent(
+                sourceComboBox,
+                targetComboBox,
+                typeComboBox,
+                strengthSlider,
+                statusComboBox,
+                descriptionTextBox,
+                confirmAction: () =>
+                {
+                    RelationshipType = typeComboBox.SelectedItem?.ToString() ?? relationship.RelationshipType;
+                    Strength = (int)strengthSlider.Value;
+                    Status = statusComboBox.SelectedItem?.ToString() ?? relationship.Status;
+                    Description = descriptionTextBox.Text.Trim();
+                    return true;
+                });
+        }
+    }
+
+    /// <summary>
+    /// 智能关系检测结果确认对话框。
+    /// </summary>
+    public class RelationshipDetectionResultDialog : Window
+    {
+        private readonly List<DetectedRelationshipCandidate> _candidates;
+        private readonly List<CheckBox> _checkBoxes = new();
+
+        /// <summary>
+        /// 初始化关系检测结果确认对话框。
+        /// </summary>
+        /// <param name="candidates">待确认的候选关系列表。</param>
+        public RelationshipDetectionResultDialog(List<DetectedRelationshipCandidate> candidates)
+        {
+            _candidates = candidates;
+            Title = "智能关系检测结果";
+            Width = 680;
+            Height = 520;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            var panel = new StackPanel { Margin = new Thickness(20) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"检测到 {candidates.Count} 条可写入候选关系，请确认需要保存的项：",
+                Margin = new Thickness(0, 0, 0, 12),
+                FontWeight = FontWeights.Medium
+            });
+
+            var listPanel = new StackPanel();
+            foreach (var candidate in candidates)
+            {
+                var checkBox = new CheckBox
+                {
+                    IsChecked = true,
+                    Margin = new Thickness(0, 0, 0, 12),
+                    Content = new TextBlock
+                    {
+                        Text = BuildCandidateText(candidate),
+                        TextWrapping = TextWrapping.Wrap,
+                        LineHeight = 18
+                    }
+                };
+                _checkBoxes.Add(checkBox);
+                listPanel.Children.Add(checkBox);
+            }
+
+            panel.Children.Add(new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Content = listPanel
+            });
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 16, 0, 0)
+            };
+            var okButton = new Button
+            {
+                Content = "写入选中关系",
+                Width = 110,
+                Margin = new Thickness(0, 0, 8, 0),
+                IsDefault = true
+            };
+            okButton.Click += (_, _) => DialogResult = true;
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 84,
+                IsCancel = true
+            };
+
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            panel.Children.Add(buttonPanel);
+            Content = panel;
+        }
+
+        /// <summary>
+        /// 获取当前勾选的候选关系。
+        /// </summary>
+        /// <returns>用户选择写入的候选关系列表。</returns>
+        public List<DetectedRelationshipCandidate> GetSelectedCandidates()
+        {
+            for (var i = 0; i < _candidates.Count; i++)
+            {
+                _candidates[i].IsSelected = _checkBoxes[i].IsChecked == true;
+            }
+
+            return _candidates.Where(c => c.IsSelected).ToList();
+        }
+
+        private static string BuildCandidateText(DetectedRelationshipCandidate candidate)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine($"{candidate.SourceCharacterName} -> {candidate.TargetCharacterName}");
+            builder.AppendLine($"类型：{candidate.RelationshipType}    强度：{candidate.Strength}    状态：{candidate.Status}");
+            builder.Append(candidate.Description);
+            return builder.ToString();
+        }
+    }
+
+    internal static class RelationshipDialogFactory
+    {
+        public static FrameworkElement CreateRelationshipDialogContent(
+            ComboBox sourceComboBox,
+            ComboBox targetComboBox,
+            ComboBox typeComboBox,
+            Slider strengthSlider,
+            ComboBox statusComboBox,
+            TextBox descriptionTextBox,
+            Func<bool> confirmAction)
+        {
+            var panel = new StackPanel { Margin = new Thickness(20) };
+            panel.Children.Add(new TextBlock { Text = "关系发起角色" });
+            panel.Children.Add(sourceComboBox);
+            panel.Children.Add(new TextBlock { Text = "关系目标角色", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(targetComboBox);
+            panel.Children.Add(new TextBlock { Text = "关系类型", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(typeComboBox);
+            panel.Children.Add(new TextBlock { Text = "关系强度", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(strengthSlider);
+            panel.Children.Add(new TextBlock { Text = "关系状态", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(statusComboBox);
+            panel.Children.Add(new TextBlock { Text = "关系描述", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(descriptionTextBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 16, 0, 0)
+            };
+
+            var okButton = new Button { Content = "确定", Width = 80, Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
+            var cancelButton = new Button { Content = "取消", Width = 80, IsCancel = true };
+
+            okButton.Click += (_, e) =>
+            {
+                if (confirmAction())
+                {
+                    if (Window.GetWindow((DependencyObject)e.Source) is Window window)
+                    {
+                        window.DialogResult = true;
+                    }
+                }
+            };
+
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            panel.Children.Add(buttonPanel);
+            return panel;
+        }
+    }
+
+    /// <summary>
+    /// 网络图设置对话框
+    /// </summary>
+    public class NetworkSettingsDialog : Window
+    {
+        /// <summary>
+        /// 是否显示角色标签。
+        /// </summary>
+        public bool ShowCharacterLabels { get; private set; }
+
+        /// <summary>
+        /// 是否弱化未选中元素。
+        /// </summary>
+        public bool DimUnselectedElements { get; private set; }
+
+        /// <summary>
+        /// 节点直径。
+        /// </summary>
+        public double NodeDiameter { get; private set; }
+
+        /// <summary>
+        /// 画布宽度。
+        /// </summary>
+        public double CanvasWidth { get; private set; }
+
+        /// <summary>
+        /// 画布高度。
+        /// </summary>
+        public double CanvasHeight { get; private set; }
+
+        /// <summary>
+        /// 初始化网络图设置对话框。
+        /// </summary>
+        /// <param name="showCharacterLabels">是否显示角色标签。</param>
+        /// <param name="dimUnselectedElements">是否弱化未选中元素。</param>
+        /// <param name="nodeDiameter">节点直径。</param>
+        /// <param name="canvasWidth">画布宽度。</param>
+        /// <param name="canvasHeight">画布高度。</param>
+        public NetworkSettingsDialog(bool showCharacterLabels, bool dimUnselectedElements, double nodeDiameter, double canvasWidth, double canvasHeight)
+        {
+            Title = "网络图设置";
+            Width = 420;
+            Height = 340;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+
+            var showLabelsCheckBox = new CheckBox
+            {
+                Content = "显示角色名称标签",
+                IsChecked = showCharacterLabels
+            };
+            var dimElementsCheckBox = new CheckBox
+            {
+                Content = "弱化未选中元素",
+                IsChecked = dimUnselectedElements,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            var nodeDiameterBox = new TextBox { Text = nodeDiameter.ToString("F0") };
+            var canvasWidthBox = new TextBox { Text = canvasWidth.ToString("F0") };
+            var canvasHeightBox = new TextBox { Text = canvasHeight.ToString("F0") };
+
+            var panel = new StackPanel { Margin = new Thickness(24) };
+            panel.Children.Add(showLabelsCheckBox);
+            panel.Children.Add(dimElementsCheckBox);
+            panel.Children.Add(new TextBlock { Text = "节点直径", Margin = new Thickness(0, 16, 0, 6) });
+            panel.Children.Add(nodeDiameterBox);
+            panel.Children.Add(new TextBlock { Text = "画布宽度", Margin = new Thickness(0, 12, 0, 6) });
+            panel.Children.Add(canvasWidthBox);
+            panel.Children.Add(new TextBlock { Text = "画布高度", Margin = new Thickness(0, 12, 0, 6) });
+            panel.Children.Add(canvasHeightBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+
+            var okButton = new Button
+            {
+                Content = "确定",
+                Width = 84,
+                Margin = new Thickness(0, 0, 8, 0),
+                IsDefault = true
+            };
+            okButton.Click += (_, _) =>
+            {
+                if (!double.TryParse(nodeDiameterBox.Text, out var parsedNodeDiameter) ||
+                    !double.TryParse(canvasWidthBox.Text, out var parsedCanvasWidth) ||
+                    !double.TryParse(canvasHeightBox.Text, out var parsedCanvasHeight))
+                {
+                    MessageBox.Show("请输入有效的数值设置。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                ShowCharacterLabels = showLabelsCheckBox.IsChecked == true;
+                DimUnselectedElements = dimElementsCheckBox.IsChecked == true;
+                NodeDiameter = Math.Max(36, parsedNodeDiameter);
+                CanvasWidth = Math.Max(600, parsedCanvasWidth);
+                CanvasHeight = Math.Max(400, parsedCanvasHeight);
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 84,
+                IsCancel = true
+            };
+
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            panel.Children.Add(buttonPanel);
+            Content = panel;
         }
     }
 
@@ -1569,6 +2696,11 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class NetworkAnalysisDialog : Window
     {
+        /// <summary>
+        /// 初始化网络分析对话框。
+        /// </summary>
+        /// <param name="characters">网络中的角色列表。</param>
+        /// <param name="relationships">网络中的关系列表。</param>
         public NetworkAnalysisDialog(List<CharacterNodeViewModel> characters, List<RelationshipViewModel> relationships)
         {
             Title = "网络分析";
@@ -1623,22 +2755,66 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class NetworkFullScreenWindow : Window
     {
-        public NetworkFullScreenWindow(List<CharacterNodeViewModel> characters, List<RelationshipViewModel> relationships)
+        /// <summary>
+        /// 初始化网络全屏查看窗口。
+        /// </summary>
+        /// <param name="networkImage">当前网络图像快照。</param>
+        /// <param name="characterCount">角色数量。</param>
+        /// <param name="relationshipCount">关系数量。</param>
+        public NetworkFullScreenWindow(ImageSource networkImage, int characterCount, int relationshipCount)
         {
             Title = "关系网络 - 全屏模式";
             WindowState = WindowState.Maximized;
             WindowStyle = WindowStyle.None;
+            Background = Brushes.Black;
 
-            var content = new Grid();
-            content.Children.Add(new TextBlock
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            var header = new Border
             {
-                Text = "全屏网络图显示（开发中）\n\n按ESC键退出全屏",
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 24
-            });
+                Background = new SolidColorBrush(Color.FromArgb(220, 20, 20, 20)),
+                Padding = new Thickness(20)
+            };
+            header.Child = new DockPanel
+            {
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = $"关系网络全屏视图  角色：{characterCount}  关系：{relationshipCount}",
+                        Foreground = Brushes.White,
+                        FontSize = 20,
+                        FontWeight = FontWeights.Medium
+                    },
+                    new TextBlock
+                    {
+                        Text = "按 ESC 退出全屏",
+                        Foreground = Brushes.White,
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }
+                }
+            };
+            Grid.SetRow(header, 0);
+            grid.Children.Add(header);
 
-            Content = content;
+            var image = new Image
+            {
+                Source = networkImage,
+                Stretch = Stretch.Uniform
+            };
+            var viewer = new ScrollViewer
+            {
+                Content = image,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Background = Brushes.Black
+            };
+            Grid.SetRow(viewer, 1);
+            grid.Children.Add(viewer);
+
+            Content = grid;
 
             KeyDown += (s, e) => { if (e.Key == Key.Escape) Close(); };
         }

@@ -120,7 +120,7 @@
                                  Margin="0,0,0,16"/>
 
                         <TextBox x:Name="DescriptionTextBox"
-                               materialDesign:HintAssist.Hint="角色的基本描述和背景介绍..."
+                               materialDesign:HintAssist.Hint="角色的简要描述和备注..."
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -185,6 +185,32 @@
                                        AcceptsReturn="True"
                                        MinHeight="100"
                                        MaxHeight="150"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+
+                        <!-- 履历经历 -->
+                        <TabItem Header="履历经历">
+                            <Border Padding="16">
+                                <TextBox x:Name="HistoryTextBox"
+                                       materialDesign:HintAssist.Hint="角色的历史履历和重要经历概述..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       Height="200"
+                                       VerticalScrollBarVisibility="Auto"/>
+                            </Border>
+                        </TabItem>
+
+                        <!-- 关键事件 -->
+                        <TabItem Header="关键事件">
+                            <Border Padding="16">
+                                <TextBox x:Name="KeyEventsTextBox"
+                                       materialDesign:HintAssist.Hint="角色的关键经历和重要事件摘要..."
+                                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                       TextWrapping="Wrap"
+                                       AcceptsReturn="True"
+                                       Height="200"
                                        VerticalScrollBarVisibility="Auto"/>
                             </Border>
                         </TabItem>

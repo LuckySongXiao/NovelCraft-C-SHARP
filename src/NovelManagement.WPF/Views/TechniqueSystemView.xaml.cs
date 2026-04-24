@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Commands;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// 功法体系管理视图
     /// </summary>
-    public partial class TechniqueSystemView : UserControl
+    public partial class TechniqueSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 属性
 
@@ -42,16 +46,49 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public ICommand SelectTechniqueCommand { get; private set; }
 
+        /// <summary>
+        /// 获取当前功法体系总数。
+        /// </summary>
+        public int TotalCount => TechniqueSystems.Count;
+
+        /// <summary>
+        /// 获取修炼功法数量。
+        /// </summary>
+        public int CultivationCount => TechniqueSystems.Count(t => t.Category == "修炼功法");
+
+        /// <summary>
+        /// 获取攻击功法数量。
+        /// </summary>
+        public int AttackCount => TechniqueSystems.Count(t => t.Category == "攻击功法");
+
+        /// <summary>
+        /// 获取防御功法数量。
+        /// </summary>
+        public int DefenseCount => TechniqueSystems.Count(t => t.Category == "防御功法");
+
+        private readonly IAIAssistantService? _aiAssistantService;
+        private readonly TechniqueDataService? _techniqueDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
+
         #endregion
 
         #region 构造函数
 
+        /// <summary>
+        /// 初始化功法体系管理视图。
+        /// </summary>
         public TechniqueSystemView()
         {
             InitializeComponent();
+            _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _techniqueDataService = App.ServiceProvider?.GetService<TechniqueDataService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
             InitializeData();
             InitializeCommands();
-            LoadTechniqueSystems();
+            _ = LoadTechniqueSystemsAsync();
         }
 
         #endregion
@@ -82,66 +119,30 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载功法体系数据
         /// </summary>
-        private void LoadTechniqueSystems()
+        private async Task LoadTechniqueSystemsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var techniques = new List<TechniqueSystemViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new TechniqueSystemViewModel
-                    {
-                        Id = 1,
-                        Name = "九阳神功",
-                        Category = "修炼功法",
-                        Grade = "天级",
-                        Origin = "明教",
-                        Description = "至阳至刚的内功心法，修炼至大成可刀枪不入、百毒不侵",
-                        LevelCount = 9,
-                        MoveCount = 12,
-                        CreatedAt = DateTime.Now.AddDays(-30)
-                    },
-                    new TechniqueSystemViewModel
-                    {
-                        Id = 2,
-                        Name = "降龙十八掌",
-                        Category = "攻击功法",
-                        Grade = "地级",
-                        Origin = "丐帮",
-                        Description = "天下第一掌法，刚猛无比，招招都有龙吟虎啸之威",
-                        LevelCount = 18,
-                        MoveCount = 18,
-                        CreatedAt = DateTime.Now.AddDays(-25)
-                    },
-                    new TechniqueSystemViewModel
-                    {
-                        Id = 3,
-                        Name = "凌波微步",
-                        Category = "身法功法",
-                        Grade = "玄级",
-                        Origin = "逍遥派",
-                        Description = "轻功身法，步法精妙，可在水上行走如履平地",
-                        LevelCount = 8,
-                        MoveCount = 64,
-                        CreatedAt = DateTime.Now.AddDays(-20)
-                    },
-                    new TechniqueSystemViewModel
-                    {
-                        Id = 4,
-                        Name = "易筋经",
-                        Category = "修炼功法",
-                        Grade = "仙级",
-                        Origin = "少林寺",
-                        Description = "佛门至高内功，可改变筋脉，脱胎换骨",
-                        LevelCount = 12,
-                        MoveCount = 0,
-                        CreatedAt = DateTime.Now.AddDays(-15)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "功法体系管理", out _);
+                    TechniqueSystems.Clear();
+                    TechniqueListControl.ItemsSource = TechniqueSystems;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var techniques = _techniqueDataService == null
+                    ? new List<TechniqueSystemViewModel>()
+                    : await _techniqueDataService.LoadTechniqueSystemsAsync(_currentProjectId);
 
                 TechniqueSystems.Clear();
                 foreach (var technique in techniques)
                 {
+                    technique.LevelCount = technique.Levels.Count;
+                    technique.MoveCount = technique.Moves.Count;
                     TechniqueSystems.Add(technique);
                 }
 
@@ -162,8 +163,9 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            TechniqueListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
         #endregion
@@ -243,22 +245,43 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导入功法数据
         /// </summary>
-        private void ImportTechnique_Click(object sender, RoutedEventArgs e)
+        private async void ImportTechnique_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (!EnsureCurrentProject("导入功法体系"))
+                {
+                    return;
+                }
+
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = "导入功法体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
                     DefaultExt = "json"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 这里应该实现实际的导入逻辑
-                    MessageBox.Show($"已选择文件：{dialog.FileName}\n导入功能将在后续版本中完善。",
-                        "导入", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (_techniqueDataService == null)
+                    {
+                        MessageBox.Show("功法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var importedTechniques = await _techniqueDataService.ImportTechniqueSystemsAsync(dialog.FileName);
+                    TechniqueSystems.Clear();
+                    foreach (var technique in importedTechniques)
+                    {
+                        technique.LevelCount = technique.Levels.Count;
+                        technique.MoveCount = technique.Moves.Count;
+                        TechniqueSystems.Add(technique);
+                    }
+
+                    await PersistTechniqueSystemsAsync();
+                    FilterTechniqueSystems();
+                    UpdateStatistics();
+                    MessageBox.Show($"已成功导入 {TechniqueSystems.Count} 个功法体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -270,23 +293,34 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导出功法数据
         /// </summary>
-        private void ExportTechnique_Click(object sender, RoutedEventArgs e)
+        private async void ExportTechnique_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (!EnsureCurrentProject("导出功法体系"))
+                {
+                    return;
+                }
+
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出功法体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json",
                     DefaultExt = "json",
                     FileName = $"功法体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 这里应该实现实际的导出逻辑
-                    MessageBox.Show($"数据将导出到：{dialog.FileName}\n导出功能将在后续版本中完善。",
-                        "导出", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (_techniqueDataService == null)
+                    {
+                        MessageBox.Show("功法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    await _techniqueDataService.ExportTechniqueSystemsAsync(_currentProjectId, TechniqueSystems, dialog.FileName);
+                    MessageBox.Show($"功法体系数据已导出到：{dialog.FileName}",
+                        "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -298,11 +332,53 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// AI助手按钮点击事件
         /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI功法体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedTechnique != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前功法并保存\n否：AI生成新的功法并保存\n取消：打开原始AI助手",
+                        "AI功法体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GenerateTechniqueWithAiAsync(optimizeCurrent: choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的功法并保存\n否：打开原始AI助手",
+                    "AI功法体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GenerateTechniqueWithAiAsync(optimizeCurrent: false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -348,6 +424,205 @@ namespace NovelManagement.WPF.Views
             return context.ToString();
         }
 
+        private async Task GenerateTechniqueWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedTechnique != null ? $"优化功法体系：{SelectedTechnique.Name}" : "生成功法体系",
+                ["theme"] = "请生成一个适合小说项目使用的功法体系，并输出名称、类别、品级、起源、描述、等级列表和招式列表。",
+                ["requirements"] = optimizeCurrent && SelectedTechnique != null
+                    ? $"请基于当前功法体系进行优化并输出结构化文本：名称、类别、品级、起源、描述、等级列表、招式列表。当前功法：{SelectedTechnique.Name}，类别：{SelectedTechnique.Category}，品级：{SelectedTechnique.Grade}，描述：{SelectedTechnique.Description}"
+                    : "请输出一个完整功法体系，包含名称、类别、品级、起源、描述、至少3个等级、至少2个招式。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI功法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedTechnique = ParseTechniqueFromAiResult(result.Data, optimizeCurrent ? SelectedTechnique : null);
+            if (generatedTechnique == null)
+            {
+                MessageBox.Show("AI结果无法解析为功法体系。", "AI功法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedTechnique != null)
+            {
+                generatedTechnique.Id = SelectedTechnique.Id;
+                generatedTechnique.CreatedAt = SelectedTechnique.CreatedAt;
+                var index = TechniqueSystems.IndexOf(SelectedTechnique);
+                if (index >= 0)
+                {
+                    TechniqueSystems[index] = generatedTechnique;
+                }
+                SelectedTechnique = generatedTechnique;
+            }
+            else
+            {
+                generatedTechnique.Id = TechniqueSystems.Count > 0 ? TechniqueSystems.Max(t => t.Id) + 1 : 1;
+                generatedTechnique.CreatedAt = DateTime.Now;
+                TechniqueSystems.Add(generatedTechnique);
+                SelectedTechnique = generatedTechnique;
+            }
+
+            await PersistTechniqueSystemsAsync();
+            FilterTechniqueSystems();
+            UpdateStatistics();
+            LoadTechniqueSystemDetails(generatedTechnique);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存功法：{generatedTechnique.Name}" : $"已使用 AI 生成并保存功法：{generatedTechnique.Name}",
+                "AI功法体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private TechniqueSystemViewModel? ParseTechniqueFromAiResult(object data, TechniqueSystemViewModel? baseTechnique)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var technique = new TechniqueSystemViewModel
+            {
+                Id = baseTechnique?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseTechnique?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成功法体系",
+                Category = ExtractField(text, "类别") ?? baseTechnique?.Category ?? "修炼功法",
+                Grade = ExtractField(text, "品级") ?? baseTechnique?.Grade ?? "凡级",
+                Origin = ExtractField(text, "起源") ?? baseTechnique?.Origin ?? "AI生成",
+                Description = ExtractField(text, "描述") ?? baseTechnique?.Description ?? text.Trim(),
+                CreatedAt = baseTechnique?.CreatedAt ?? DateTime.Now
+            };
+
+            technique.Levels = ParseTechniqueLevels(text);
+            technique.Moves = ParseTechniqueMoves(text);
+
+            if (technique.Levels.Count == 0)
+            {
+                technique.Levels = baseTechnique?.Levels?.ToList() ?? new List<TechniqueLevelViewModel>
+                {
+                    new() { Level = 1, Name = "初窥门径", Requirements = "基础修为" },
+                    new() { Level = 2, Name = "登堂入室", Requirements = "进阶修为" },
+                    new() { Level = 3, Name = "大成圆满", Requirements = "高阶修为" }
+                };
+            }
+
+            if (technique.Moves.Count == 0)
+            {
+                technique.Moves = baseTechnique?.Moves?.ToList() ?? new List<TechniqueMoveViewModel>
+                {
+                    new() { Name = "基础式", Type = "攻击", Description = "AI生成的基础招式" },
+                    new() { Name = "护体式", Type = "防御", Description = "AI生成的护体招式" }
+                };
+            }
+
+            technique.LevelCount = technique.Levels.Count;
+            technique.MoveCount = technique.Moves.Count;
+            return technique;
+        }
+
+        private static List<TechniqueLevelViewModel> ParseTechniqueLevels(string text)
+        {
+            var levels = new List<TechniqueLevelViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var levelIndex = 1;
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "等级|层|境"))
+                {
+                    continue;
+                }
+
+                levels.Add(new TechniqueLevelViewModel
+                {
+                    Level = levelIndex++,
+                    Name = TrimListMarker(line),
+                    Requirements = "根据 AI 生成内容整理"
+                });
+
+                if (levels.Count >= 6)
+                {
+                    break;
+                }
+            }
+
+            return levels;
+        }
+
+        private static List<TechniqueMoveViewModel> ParseTechniqueMoves(string text)
+        {
+            var moves = new List<TechniqueMoveViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "式|招|术|掌|剑|拳|步|法"))
+                {
+                    continue;
+                }
+
+                moves.Add(new TechniqueMoveViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Type = InferMoveType(line),
+                    Description = line
+                });
+
+                if (moves.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return moves;
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string InferMoveType(string line)
+        {
+            if (Regex.IsMatch(line, "守|护|御|盾"))
+            {
+                return "防御";
+            }
+            if (Regex.IsMatch(line, "步|身法|遁"))
+            {
+                return "身法";
+            }
+
+            return "攻击";
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+
         /// <summary>
         /// 选择功法体系
         /// </summary>
@@ -391,27 +666,19 @@ namespace NovelManagement.WPF.Views
             }
 
             // 加载等级列表
-            LoadTechniqueLevels(technique.Id);
+            LoadTechniqueLevels(technique);
             
             // 加载招式列表
-            LoadTechniqueMoves(technique.Id);
+            LoadTechniqueMoves(technique);
         }
 
         /// <summary>
         /// 加载功法等级
         /// </summary>
-        private void LoadTechniqueLevels(int techniqueId)
+        private void LoadTechniqueLevels(TechniqueSystemViewModel technique)
         {
-            // 模拟数据
-            var levels = new List<TechniqueLevelViewModel>
-            {
-                new TechniqueLevelViewModel { Level = 1, Name = "初窥门径", Requirements = "基础修为" },
-                new TechniqueLevelViewModel { Level = 2, Name = "略有小成", Requirements = "筑基期修为" },
-                new TechniqueLevelViewModel { Level = 3, Name = "登堂入室", Requirements = "金丹期修为" }
-            };
-
             TechniqueLevels.Clear();
-            foreach (var level in levels)
+            foreach (var level in technique.Levels.OrderBy(l => l.Level))
             {
                 TechniqueLevels.Add(level);
             }
@@ -422,17 +689,10 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载功法招式
         /// </summary>
-        private void LoadTechniqueMoves(int techniqueId)
+        private void LoadTechniqueMoves(TechniqueSystemViewModel technique)
         {
-            // 模拟数据
-            var moves = new List<TechniqueMoveViewModel>
-            {
-                new TechniqueMoveViewModel { Name = "第一式", Type = "攻击", Description = "基础攻击招式" },
-                new TechniqueMoveViewModel { Name = "第二式", Type = "防御", Description = "基础防御招式" }
-            };
-
             TechniqueMoves.Clear();
-            foreach (var move in moves)
+            foreach (var move in technique.Moves)
             {
                 TechniqueMoves.Add(move);
             }
@@ -535,7 +795,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存功法体系
         /// </summary>
-        private void SaveTechnique_Click(object sender, RoutedEventArgs e)
+        private async void SaveTechnique_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -554,6 +814,8 @@ namespace NovelManagement.WPF.Views
                 SelectedTechnique.Grade = (TechniqueGradeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "凡级";
                 SelectedTechnique.LevelCount = TechniqueLevels.Count;
                 SelectedTechnique.MoveCount = TechniqueMoves.Count;
+                SelectedTechnique.Levels = TechniqueLevels.OrderBy(l => l.Level).ToList();
+                SelectedTechnique.Moves = TechniqueMoves.ToList();
 
                 // 如果是新建功法体系，添加到列表
                 if (SelectedTechnique.Id == 0)
@@ -562,7 +824,7 @@ namespace NovelManagement.WPF.Views
                     TechniqueSystems.Add(SelectedTechnique);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistTechniqueSystemsAsync();
                 MessageBox.Show("功法体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
@@ -624,6 +886,55 @@ namespace NovelManagement.WPF.Views
             EditPanel.Visibility = Visibility.Collapsed;
         }
 
+        /// <summary>
+        /// 在项目切换后刷新功法体系数据。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadTechniqueSystemsAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时刷新对应项目的功法体系数据。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadTechniqueSystemsAsync();
+        }
+
+        private async Task PersistTechniqueSystemsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _techniqueDataService == null)
+            {
+                return;
+            }
+
+            foreach (var technique in TechniqueSystems)
+            {
+                technique.LevelCount = technique.Levels.Count;
+                technique.MoveCount = technique.Moves.Count;
+            }
+
+            await _techniqueDataService.SaveTechniqueSystemsAsync(_currentProjectId, TechniqueSystems);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
         #endregion
     }
 
@@ -634,15 +945,60 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class TechniqueSystemViewModel
     {
+        /// <summary>
+        /// 功法体系标识。
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// 功法体系名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 功法类别。
+        /// </summary>
         public string Category { get; set; } = "";
+
+        /// <summary>
+        /// 功法品级。
+        /// </summary>
         public string Grade { get; set; } = "";
+
+        /// <summary>
+        /// 功法起源。
+        /// </summary>
         public string Origin { get; set; } = "";
+
+        /// <summary>
+        /// 功法描述。
+        /// </summary>
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 等级数量。
+        /// </summary>
         public int LevelCount { get; set; }
+
+        /// <summary>
+        /// 招式数量。
+        /// </summary>
         public int MoveCount { get; set; }
+
+        /// <summary>
+        /// 创建时间。
+        /// </summary>
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// 功法等级列表。
+        /// </summary>
+        public List<TechniqueLevelViewModel> Levels { get; set; } = new();
+
+        /// <summary>
+        /// 功法招式列表。
+        /// </summary>
+        public List<TechniqueMoveViewModel> Moves { get; set; } = new();
     }
 
     /// <summary>
@@ -650,8 +1006,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class TechniqueLevelViewModel
     {
+        /// <summary>
+        /// 等级序号。
+        /// </summary>
         public int Level { get; set; }
+
+        /// <summary>
+        /// 等级名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 升级要求。
+        /// </summary>
         public string Requirements { get; set; } = "";
     }
 
@@ -660,8 +1027,19 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class TechniqueMoveViewModel
     {
+        /// <summary>
+        /// 招式名称。
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 招式类型。
+        /// </summary>
         public string Type { get; set; } = "";
+
+        /// <summary>
+        /// 招式描述。
+        /// </summary>
         public string Description { get; set; } = "";
     }
 

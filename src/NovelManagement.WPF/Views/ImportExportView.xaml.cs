@@ -9,18 +9,20 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using NovelManagement.Application.DTOs;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Interfaces;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
     /// ImportExportView.xaml 的交互逻辑
     /// </summary>
-    public partial class ImportExportView : UserControl
+    public partial class ImportExportView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         #region 数据模型
 
@@ -29,15 +31,49 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public class OperationHistoryViewModel
         {
+            /// <summary>
+            /// 操作标识。
+            /// </summary>
             public Guid OperationId { get; set; }
+
+            /// <summary>
+            /// 文件格式。
+            /// </summary>
             public string Format { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 文件路径。
+            /// </summary>
             public string FilePath { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 文件大小。
+            /// </summary>
             public long FileSize { get; set; }
+
+            /// <summary>
+            /// 操作状态。
+            /// </summary>
             public OperationStatus Status { get; set; }
+
+            /// <summary>
+            /// 开始时间。
+            /// </summary>
             public DateTime StartTime { get; set; }
+
+            /// <summary>
+            /// 结束时间。
+            /// </summary>
             public DateTime? EndTime { get; set; }
+
+            /// <summary>
+            /// 备注信息。
+            /// </summary>
             public string? Notes { get; set; }
             
+            /// <summary>
+            /// 状态对应图标。
+            /// </summary>
             public PackIconKind StatusIcon => Status switch
             {
                 OperationStatus.Completed => PackIconKind.CheckCircle,
@@ -47,6 +83,9 @@ namespace NovelManagement.WPF.Views
                 _ => PackIconKind.Clock
             };
             
+            /// <summary>
+            /// 状态对应颜色。
+            /// </summary>
             public SolidColorBrush StatusColor => Status switch
             {
                 OperationStatus.Completed => new SolidColorBrush(Color.FromRgb(76, 175, 80)),
@@ -65,14 +104,16 @@ namespace NovelManagement.WPF.Views
         private readonly ObservableCollection<OperationHistoryViewModel> _importHistory;
         private readonly ExportService _exportService;
         private readonly ImportService _importService;
+        private readonly ProjectReadModelService _projectReadModelService;
         private readonly ILogger<ImportExportView> _logger;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
 
         private Guid? _currentExportOperationId;
         private Guid? _currentImportOperationId;
         private readonly System.Windows.Threading.DispatcherTimer _progressTimer;
 
-        // 模拟的当前项目ID
-        private readonly Guid _currentProjectId = Guid.NewGuid();
+        private Guid _currentProjectId;
+        private NavigationContext? _navigationContext;
 
         #endregion
 
@@ -89,16 +130,25 @@ namespace NovelManagement.WPF.Views
             _exportHistory = new ObservableCollection<OperationHistoryViewModel>();
             _importHistory = new ObservableCollection<OperationHistoryViewModel>();
 
-            // 创建模拟的服务
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            _logger = loggerFactory.CreateLogger<ImportExportView>();
-            
-            // 这里应该通过依赖注入获取服务，现在创建模拟实例
-            var unitOfWork = new MockUnitOfWork(); // 模拟的UnitOfWork
-            var excelService = new ExcelProcessingService(loggerFactory.CreateLogger<ExcelProcessingService>());
-            var wordService = new WordProcessingService(loggerFactory.CreateLogger<WordProcessingService>());
-            _exportService = new ExportService(unitOfWork, loggerFactory.CreateLogger<ExportService>(), excelService, wordService);
-            _importService = new ImportService(unitOfWork, loggerFactory.CreateLogger<ImportService>());
+            var serviceProvider = App.ServiceProvider
+                ?? throw new InvalidOperationException("应用服务提供者未初始化");
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>()
+                ?? LoggerFactory.Create(builder => builder.AddConsole());
+
+            _logger = serviceProvider.GetService<ILogger<ImportExportView>>()
+                ?? loggerFactory.CreateLogger<ImportExportView>();
+            _exportService = serviceProvider.GetService<ExportService>()
+                ?? throw new InvalidOperationException("导出服务未注册");
+            _importService = serviceProvider.GetService<ImportService>()
+                ?? throw new InvalidOperationException("导入服务未注册");
+            _projectReadModelService = serviceProvider.GetService<ProjectReadModelService>()
+                ?? throw new InvalidOperationException("项目读模型服务未注册");
+
+            _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+            if (_currentProjectGuard != null && _currentProjectGuard.TryGetCurrentProjectId(out var projectId))
+            {
+                _currentProjectId = projectId;
+            }
 
             // 设置数据绑定
             ExportHistoryListView.ItemsSource = _exportHistory;
@@ -130,9 +180,17 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_currentProjectId == Guid.Empty)
+                {
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导入导出", out _);
+                    return;
+                }
+
                 // 设置默认输出路径
                 var defaultExportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
                 OutputPathTextBox.Text = Path.Combine(defaultExportPath, "千面劫·宿命轮回.txt");
+
+                await RefreshSelectionOptionsAsync();
 
                 // 加载历史记录
                 await LoadExportHistoryAsync();
@@ -223,6 +281,206 @@ namespace NovelManagement.WPF.Views
                     ? Visibility.Visible 
                     : Visibility.Collapsed;
             }
+
+            _ = RefreshSelectionOptionsAsync();
+        }
+
+        private async Task RefreshSelectionOptionsAsync()
+        {
+            try
+            {
+                SelectionListBox.Items.Clear();
+
+                if (_currentProjectId == Guid.Empty || ExportScopeComboBox.SelectedItem is not ComboBoxItem scopeItem)
+                {
+                    return;
+                }
+
+                var scope = scopeItem.Tag?.ToString();
+                var exportSelection = await _projectReadModelService.GetExportSelectionAsync(_currentProjectId);
+                if (scope == "SelectedVolumes")
+                {
+                    foreach (var volume in exportSelection.VolumeOptions)
+                    {
+                        SelectionListBox.Items.Add(new ListBoxItem
+                        {
+                            Content = volume.DisplayName,
+                            Tag = volume.Id
+                        });
+                    }
+                }
+                else if (scope == "SelectedChapters")
+                {
+                    foreach (var chapter in exportSelection.ChapterOptions)
+                    {
+                        SelectionListBox.Items.Add(new ListBoxItem
+                        {
+                            Content = chapter.DisplayName,
+                            Tag = chapter.Id
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "刷新导出选择列表失败");
+            }
+        }
+
+        private async Task ApplyNavigationContextAsync()
+        {
+            if (_navigationContext?.Payload is not ImportExportNavigationPayload payload)
+            {
+                return;
+            }
+
+            ApplyIncludePreset(payload);
+
+            if (payload.ChapterId.HasValue)
+            {
+                SelectExportScope("SelectedChapters");
+                await RefreshSelectionOptionsAsync();
+                SelectItemsByGuid(payload.ChapterId.Value);
+                return;
+            }
+
+            if (payload.VolumeId.HasValue)
+            {
+                SelectExportScope("SelectedVolumes");
+                await RefreshSelectionOptionsAsync();
+                SelectItemsByGuid(payload.VolumeId.Value);
+                return;
+            }
+
+            if (payload.Action == "EntireProjectExport")
+            {
+                SelectExportScope("EntireProject");
+            }
+        }
+
+        private void ApplyIncludePreset(ImportExportNavigationPayload payload)
+        {
+            if (payload.Action == "SettingsOnlyExport")
+            {
+                SelectExportScope("EntireProject");
+                IncludeSettingsCheckBox.IsChecked = true;
+                IncludeCharactersCheckBox.IsChecked = false;
+                IncludeFactionsCheckBox.IsChecked = false;
+                IncludePlotsCheckBox.IsChecked = false;
+
+                if (!string.IsNullOrWhiteSpace(payload.SettingName))
+                {
+                    var safeName = string.Concat(payload.SettingName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+                    var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
+                    if (string.IsNullOrWhiteSpace(exportDirectory))
+                    {
+                        exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                    }
+
+                    OutputPathTextBox.Text = Path.Combine(exportDirectory, $"{safeName}_设定导出.txt");
+                }
+            }
+            else if (payload.Action == "PlotsOnlyExport")
+            {
+                SelectExportScope("EntireProject");
+                IncludeSettingsCheckBox.IsChecked = false;
+                IncludeCharactersCheckBox.IsChecked = false;
+                IncludeFactionsCheckBox.IsChecked = false;
+                IncludePlotsCheckBox.IsChecked = true;
+
+                var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
+                if (string.IsNullOrWhiteSpace(exportDirectory))
+                {
+                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                }
+
+                OutputPathTextBox.Text = Path.Combine(exportDirectory, "剧情导出.txt");
+            }
+            else if (payload.Action == "CharactersOnlyExport")
+            {
+                SelectExportScope("EntireProject");
+                IncludeSettingsCheckBox.IsChecked = false;
+                IncludeCharactersCheckBox.IsChecked = true;
+                IncludeFactionsCheckBox.IsChecked = false;
+                IncludePlotsCheckBox.IsChecked = false;
+
+                var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
+                if (string.IsNullOrWhiteSpace(exportDirectory))
+                {
+                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                }
+
+                OutputPathTextBox.Text = Path.Combine(exportDirectory, "角色导出.txt");
+            }
+            else if (payload.Action == "CharactersImport")
+            {
+                MainTabControl.SelectedIndex = 1;
+            }
+            else if (payload.Action == "SettingsImport")
+            {
+                MainTabControl.SelectedIndex = 1;
+            }
+        }
+
+        private void SelectExportScope(string tag)
+        {
+            foreach (var item in ExportScopeComboBox.Items)
+            {
+                if (item is ComboBoxItem comboBoxItem && string.Equals(comboBoxItem.Tag?.ToString(), tag, StringComparison.Ordinal))
+                {
+                    ExportScopeComboBox.SelectedItem = comboBoxItem;
+                    SelectionPanel.Visibility = (tag == "SelectedVolumes" || tag == "SelectedChapters")
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                    return;
+                }
+            }
+        }
+
+        private void SelectItemsByGuid(params Guid[] ids)
+        {
+            SelectionListBox.SelectedItems.Clear();
+
+            foreach (var item in SelectionListBox.Items.OfType<ListBoxItem>())
+            {
+                if (item.Tag is Guid guid && ids.Contains(guid))
+                {
+                    item.IsSelected = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 在项目切换后刷新导入导出选项与历史记录。
+        /// </summary>
+        /// <param name="projectId">当前项目标识。</param>
+        /// <param name="projectName">当前项目名称。</param>
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+
+            if (_currentProjectId == Guid.Empty)
+            {
+                SelectionListBox.Items.Clear();
+                _exportHistory.Clear();
+                _importHistory.Clear();
+                return;
+            }
+
+            await RefreshSelectionOptionsAsync();
+            await ApplyNavigationContextAsync();
+            await LoadExportHistoryAsync();
+            await LoadImportHistoryAsync();
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时应用导航上下文。
+        /// </summary>
+        /// <param name="context">导航上下文。</param>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _navigationContext = context;
+            _ = ApplyNavigationContextAsync();
         }
 
         /// <summary>
@@ -256,6 +514,12 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_currentProjectId == Guid.Empty)
+                {
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导出", out _);
+                    return;
+                }
+
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(OutputPathTextBox.Text))
                 {
@@ -292,14 +556,18 @@ namespace NovelManagement.WPF.Views
                         MessageBox.Show("请选择要导出的项目", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    
-                    // 这里应该根据实际选择的项目设置ID，现在使用模拟数据
-                    for (int i = 0; i < selectedItems.Count; i++)
+
+                    foreach (var item in selectedItems)
                     {
+                        if (item.Tag is not Guid selectedId)
+                        {
+                            continue;
+                        }
+
                         if (request.Scope == ExportScope.SelectedVolumes)
-                            request.SelectedVolumeIds.Add(Guid.NewGuid());
+                            request.SelectedVolumeIds.Add(selectedId);
                         else
-                            request.SelectedChapterIds.Add(Guid.NewGuid());
+                            request.SelectedChapterIds.Add(selectedId);
                     }
                 }
 
@@ -480,6 +748,12 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_currentProjectId == Guid.Empty)
+                {
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导入", out _);
+                    return;
+                }
+
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(ImportFilePathTextBox.Text))
                 {
@@ -743,6 +1017,7 @@ namespace NovelManagement.WPF.Views
         public ICharacterRepository Characters => null!;
         public IFactionRepository Factions => null!;
         public ICharacterRelationshipRepository CharacterRelationships => null!;
+        public ICharacterEventRepository CharacterEvents => null!;
         public IFactionRelationshipRepository FactionRelationships => null!;
         public IWorldSettingRepository WorldSettings => null!;
         public ICultivationSystemRepository CultivationSystems => null!;

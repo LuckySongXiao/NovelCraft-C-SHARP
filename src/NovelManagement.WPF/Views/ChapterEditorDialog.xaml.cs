@@ -846,31 +846,21 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
-                if (projectContextService == null)
+                var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+                if (guard == null)
                 {
-                    MessageBox.Show("项目上下文服务未初始化", "错误",
+                    MessageBox.Show("项目校验服务未初始化", "错误",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
-                // 检查是否有当前项目
-                if (!projectContextService.CurrentProjectId.HasValue)
+                if (!guard.TryGetCurrentProjectId(this, "AI编辑功能", out var projectId))
                 {
-                    // 尝试获取或创建默认项目
-                    var projectId = await EnsureDefaultProjectAsync();
-                    if (projectId == Guid.Empty)
-                    {
-                        MessageBox.Show("无法获取项目信息，AI编辑功能需要项目上下文。\n\n请先：\n1. 创建或选择一个项目\n2. 确保项目数据正常加载",
-                            "项目上下文缺失", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return false;
-                    }
-
-                    projectContextService.SetCurrentProject(projectId, "默认项目");
+                    return false;
                 }
 
                 // 检查并生成前置条件
-                await EnsurePrerequisitesAsync(projectContextService.CurrentProjectId.Value);
+                await EnsurePrerequisitesAsync(projectId);
 
                 return true;
             }
@@ -883,88 +873,6 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 确保默认项目存在
-        /// </summary>
-        /// <returns>项目ID</returns>
-        private async Task<Guid> EnsureDefaultProjectAsync()
-        {
-            try
-            {
-                var defaultProjectId = new Guid("00000000-0000-0000-0000-000000000001");
-                var projectService = App.ServiceProvider?.GetService<ProjectService>();
-
-                if (projectService != null)
-                {
-                    try
-                    {
-                        // 检查项目是否已存在（按ID）
-                        var existingProject = await projectService.GetProjectByIdAsync(defaultProjectId);
-                        if (existingProject != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"默认项目已存在: {existingProject.Name}");
-                            return defaultProjectId;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // 项目不存在，继续检查
-                        System.Diagnostics.Debug.WriteLine("按ID未找到默认项目，检查是否有同名项目");
-                    }
-
-                    try
-                    {
-                        // 检查是否有同名项目
-                        var allProjects = await projectService.GetAllProjectsAsync();
-                        var existingByName = allProjects?.FirstOrDefault(p => p.Name == "默认项目");
-                        if (existingByName != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"找到同名项目，使用现有项目: {existingByName.Name} (ID: {existingByName.Id})");
-                            return existingByName.Id;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"检查同名项目失败: {ex.Message}");
-                    }
-
-                    // 创建默认项目
-                    var defaultProject = new Project
-                    {
-                        Id = defaultProjectId,
-                        Name = "默认项目",
-                        Description = "系统自动创建的默认项目",
-                        Type = "小说",
-                        Status = "Active",
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    try
-                    {
-                        await projectService.CreateProjectAsync(defaultProject);
-                        System.Diagnostics.Debug.WriteLine($"成功创建默认项目: {defaultProject.Name}");
-                    }
-                    catch (Exception ex) when (ex.Message.Contains("UNIQUE constraint failed"))
-                    {
-                        // 如果还是有唯一约束冲突，使用时间戳创建唯一名称
-                        System.Diagnostics.Debug.WriteLine("项目名称冲突，使用时间戳创建唯一名称");
-                        defaultProject.Name = $"默认项目_{DateTime.Now:yyyyMMdd_HHmmss}";
-                        await projectService.CreateProjectAsync(defaultProject);
-                        System.Diagnostics.Debug.WriteLine($"成功创建默认项目: {defaultProject.Name}");
-                    }
-                }
-
-                return defaultProjectId;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"创建默认项目失败: {ex.Message}");
-                // 发生错误时返回固定的默认项目ID
-                return new Guid("00000000-0000-0000-0000-000000000001");
-            }
-        }
-
-        /// <summary>
         /// 确保完整的层次结构存在（项目 -> 卷 -> 章节）
         /// </summary>
         private async Task EnsureCompleteHierarchyAsync()
@@ -973,12 +881,17 @@ namespace NovelManagement.WPF.Views
             {
                 System.Diagnostics.Debug.WriteLine("开始确保完整的层次结构");
 
-                // 1. 确保默认项目存在
-                var defaultProjectId = await EnsureDefaultProjectAsync();
-                System.Diagnostics.Debug.WriteLine($"默认项目ID: {defaultProjectId}");
+                var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+                if (projectContextService?.CurrentProjectId == null)
+                {
+                    throw new InvalidOperationException("当前未选择项目，无法保存章节。");
+                }
+
+                var currentProjectId = projectContextService.CurrentProjectId.Value;
+                System.Diagnostics.Debug.WriteLine($"当前项目ID: {currentProjectId}");
 
                 // 2. 确保默认卷存在
-                var defaultVolumeId = await EnsureDefaultVolumeAsync(defaultProjectId);
+                var defaultVolumeId = await EnsureDefaultVolumeAsync(currentProjectId);
                 System.Diagnostics.Debug.WriteLine($"默认卷ID: {defaultVolumeId}");
 
                 // 3. 设置章节的VolumeId
@@ -1005,11 +918,14 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 首先确保有默认项目
-                var defaultProjectId = await EnsureDefaultProjectAsync();
+                var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+                if (projectContextService?.CurrentProjectId == null)
+                {
+                    throw new InvalidOperationException("当前未选择项目，无法创建默认卷。");
+                }
 
                 // 然后确保有默认卷
-                var defaultVolumeId = await EnsureDefaultVolumeAsync(defaultProjectId);
+                var defaultVolumeId = await EnsureDefaultVolumeAsync(projectContextService.CurrentProjectId.Value);
 
                 // 返回默认卷ID
                 return defaultVolumeId;
@@ -1017,8 +933,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"确保默认卷失败: {ex.Message}");
-                // 返回固定的默认卷ID
-                return new Guid("00000000-0000-0000-0000-000000000002");
+                return Guid.Empty;
             }
         }
 
@@ -1126,17 +1041,64 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class ChapterEditData
     {
+        /// <summary>
+        /// 章节唯一标识
+        /// </summary>
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// 章节标题
+        /// </summary>
         public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节正文内容
+        /// </summary>
         public string Content { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节摘要
+        /// </summary>
         public string Summary { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 章节状态（如"写作中"、"草稿"等）
+        /// </summary>
         public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 重要性等级
+        /// </summary>
         public int ImportanceLevel { get; set; } = 2;
+
+        /// <summary>
+        /// 涉及角色列表（逗号分隔）
+        /// </summary>
         public string Characters { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 标签（逗号分隔）
+        /// </summary>
         public string Tags { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 作者备注
+        /// </summary>
         public string Notes { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 目标字数
+        /// </summary>
         public int TargetWordCount { get; set; } = 2800;
+
+        /// <summary>
+        /// 所属卷ID
+        /// </summary>
         public Guid VolumeId { get; set; }
+
+        /// <summary>
+        /// 章节排序序号
+        /// </summary>
         public int Order { get; set; } = 1;
     }
 
@@ -1146,16 +1108,32 @@ namespace NovelManagement.WPF.Views
     public class RelayCommand : ICommand
     {
         private readonly Action _execute;
-        
+
+        /// <summary>
+        /// 初始化 RelayCommand 的新实例
+        /// </summary>
+        /// <param name="execute">命令执行时要调用的操作</param>
         public RelayCommand(Action execute)
         {
             _execute = execute;
         }
-        
+
+        /// <summary>
+        /// 当影响命令是否可执行的条件发生更改时引发
+        /// </summary>
         public event EventHandler CanExecuteChanged;
-        
+
+        /// <summary>
+        /// 确定此命令是否可在当前状态下执行
+        /// </summary>
+        /// <param name="parameter">命令参数（未使用）</param>
+        /// <returns>始终返回 true</returns>
         public bool CanExecute(object parameter) => true;
-        
+
+        /// <summary>
+        /// 执行命令
+        /// </summary>
+        /// <param name="parameter">命令参数（未使用）</param>
         public void Execute(object parameter) => _execute?.Invoke();
     }
 }

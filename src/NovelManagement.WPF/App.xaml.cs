@@ -158,8 +158,21 @@ public partial class App : System.Windows.Application
 
                 // 注册WPF服务
                 services.AddSingleton<ProjectContextService>();
+                services.AddSingleton<CurrentProjectGuard>();
+                services.AddSingleton<NavigationService>();
+            services.AddScoped<JudicialDataService>();
+            services.AddScoped<PetDataService>();
+            services.AddScoped<EquipmentDataService>();
+            services.AddScoped<ProfessionDataService>();
+            services.AddScoped<PopulationDataService>();
+            services.AddScoped<TreasureDataService>();
+            services.AddScoped<TechniqueDataService>();
+            services.AddScoped<TimelineDataService>();
+            services.AddScoped<ProjectReadModelService>();
+            services.AddScoped<ProjectStatisticsService>();
                 services.AddSingleton<AIServiceStatusChecker>();
                 services.AddTransient<PrerequisiteGenerationService>();
+                services.AddTransient<ProjectContextAssembler>();
 
                 // 注册界面
                 services.AddTransient<MainWindow>();
@@ -178,6 +191,7 @@ public partial class App : System.Windows.Application
         services.AddScoped<VolumeService>();
         services.AddScoped<ChapterService>();
         services.AddScoped<CharacterService>();
+        services.AddScoped<CharacterRelationshipService>();
         services.AddScoped<FactionService>();
         services.AddScoped<PlotService>();
         services.AddScoped<ResourceService>();
@@ -188,6 +202,11 @@ public partial class App : System.Windows.Application
         services.AddScoped<PoliticalSystemService>();
         services.AddScoped<CurrencySystemService>();
         services.AddScoped<WorldSettingService>();
+        services.AddScoped<IWorldSettingService>(provider => provider.GetRequiredService<WorldSettingService>());
+        services.AddScoped<ExcelProcessingService>();
+        services.AddScoped<WordProcessingService>();
+        services.AddScoped<ExportService>();
+        services.AddScoped<ImportService>();
     }
 
     /// <summary>
@@ -209,6 +228,48 @@ public partial class App : System.Windows.Application
             services.AddSingleton<IOllamaApiService, OllamaApiService>();
             services.AddSingleton<IDeepSeekApiService, DeepSeekApiService>();
             services.AddSingleton<IThinkingChainProcessor, ThinkingChainProcessor>();
+
+            // 注册 RWKV 推理服务
+            services.AddSingleton<NovelManagement.AI.Services.RWKV.IRwkvLightningService>(serviceProvider =>
+            {
+                var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger<NovelManagement.AI.Services.RWKV.RwkvLightningService>();
+                var httpClient = new System.Net.Http.HttpClient();
+                var service = new NovelManagement.AI.Services.RWKV.RwkvLightningService(logger, httpClient);
+
+                // 异步初始化
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var rwkvConfig = new NovelManagement.AI.Services.RWKV.Models.RwkvConfiguration();
+                configuration.GetSection("AI:Providers:RWKV").Bind(rwkvConfig);
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        logger.LogInformation("开始初始化 RWKV 推理服务...");
+                        var success = await service.InitializeAsync(rwkvConfig);
+                        if (success)
+                            logger.LogInformation("RWKV 推理服务初始化成功");
+                        else
+                            logger.LogWarning("RWKV 推理服务不可用，续写将降级为决策类AI模型");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "初始化 RWKV 推理服务异常");
+                    }
+                });
+
+                return service;
+            });
+
+            // 注册 OpenAI 兼容提供者（智谱/Ollama/自定义）
+            services.AddSingleton<NovelManagement.AI.Services.OpenAICompatible.OpenAICompatibleProvider>(serviceProvider =>
+            {
+                var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger<NovelManagement.AI.Services.OpenAICompatible.OpenAICompatibleProvider>();
+                var httpClient = new System.Net.Http.HttpClient();
+                return new NovelManagement.AI.Services.OpenAICompatible.OpenAICompatibleProvider(logger, httpClient);
+            });
 
             // 注册模型管理器
             services.AddSingleton<ModelManager>(serviceProvider =>
@@ -258,6 +319,36 @@ public partial class App : System.Windows.Application
                 // {
                 //     modelManager.RegisterProvider(deepSeekService);
                 // }
+
+                // 注册 OpenAI 兼容提供者（智谱AI / 自定义 OpenAI 端点）
+                var openAICompatibleProvider = serviceProvider.GetService<NovelManagement.AI.Services.OpenAICompatible.OpenAICompatibleProvider>();
+                if (openAICompatibleProvider != null)
+                {
+                    // 优先尝试智谱AI配置
+                    var zhipuAIConfig = new NovelManagement.AI.Services.OpenAICompatible.Models.OpenAICompatibleConfiguration();
+                    configuration.GetSection("AI:Providers:ZhipuAI").Bind(zhipuAIConfig);
+
+                    if (zhipuAIConfig.IsValid())
+                    {
+                        modelManager.RegisterProvider(openAICompatibleProvider);
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                logger.LogInformation("开始初始化智谱AI服务...");
+                                var success = await openAICompatibleProvider.InitializeAsync(zhipuAIConfig);
+                                if (success)
+                                    logger.LogInformation("智谱AI服务初始化成功");
+                                else
+                                    logger.LogWarning("智谱AI服务初始化失败");
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "初始化智谱AI服务异常");
+                            }
+                        });
+                    }
+                }
 
                 // 设置默认提供者
                 modelManager.SetDefaultProvider("Ollama");
