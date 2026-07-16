@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
+using Microsoft.Win32;
 using NovelManagement.WPF.Services;
 using NovelManagement.WPF.Models;
 using NovelManagement.Application.Services;
@@ -26,6 +29,8 @@ namespace NovelManagement.WPF.Views
         private readonly ChapterEditData _chapterData;
         private AIAssistantService? _aiAssistantService;
         private bool _isGenerating;
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+        private Dictionary<string, object> _lastGenerationMetadata = new();
 
         #endregion
 
@@ -56,6 +61,7 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
+                    ClearRwkvDebugInfo();
                     UpdateRealTimeStatistics();
                     UpdateQualityScore();
                 }
@@ -195,8 +201,29 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // TODO: 实现模板管理对话框
-                MessageBox.Show("模板管理功能正在开发中", "提示",
+                var templateDirectory = GetChapterTemplateDirectory();
+                Directory.CreateDirectory(templateDirectory);
+
+                var dialog = new ChapterTemplateManagementDialog(templateDirectory)
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.SelectedTemplatePath))
+                {
+                    return;
+                }
+
+                var template = LoadTemplateFromFile(dialog.SelectedTemplatePath);
+                if (template == null)
+                {
+                    MessageBox.Show("模板内容无效。", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                ApplyTemplate(template);
+                MessageBox.Show($"模板已加载：{template.Name}", "加载成功",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -213,15 +240,32 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(GeneratedContentTextBox.Text))
+                if (string.IsNullOrWhiteSpace(GeneratedContentTextBox.Text) &&
+                    string.IsNullOrWhiteSpace(ChapterOutlineTextBox.Text) &&
+                    string.IsNullOrWhiteSpace(KeyPlotsTextBox.Text))
                 {
                     MessageBox.Show("没有内容可保存为模板", "提示",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                // TODO: 实现保存模板功能
-                MessageBox.Show("模板保存功能正在开发中", "提示",
+                var inputDialog = new TextInputDialog("保存章节模板", "模板名称", $"章节模板_{DateTime.Now:yyyyMMdd_HHmmss}")
+                {
+                    Owner = this
+                };
+
+                if (inputDialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                var template = BuildTemplate(inputDialog.InputText);
+                var templateDirectory = GetChapterTemplateDirectory();
+                Directory.CreateDirectory(templateDirectory);
+                var templatePath = Path.Combine(templateDirectory, $"{SanitizeFileName(template.Name)}.json");
+                File.WriteAllText(templatePath, JsonSerializer.Serialize(template, _jsonSerializerOptions));
+
+                MessageBox.Show($"模板已保存：{templatePath}", "保存成功",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -357,10 +401,12 @@ namespace NovelManagement.WPF.Views
                         {
                             // 直接使用返回的文本内容
                             GeneratedContent = result.Data.ToString() ?? "";
+                            _lastGenerationMetadata = result.Metadata ?? new Dictionary<string, object>();
                             GeneratedContentTextBox.Text = GeneratedContent;
                             UpdateGeneratedWordCount();
                             UpdateRealTimeStatistics();
                             UpdateQualityScore();
+                            UpdateRwkvDebugInfo(_lastGenerationMetadata);
 
                             GenerationProgressBar.Value = 100;
                             StatusTextBlock.Text = "章节生成完成！";
@@ -390,6 +436,7 @@ namespace NovelManagement.WPF.Views
                     }
                     else
                     {
+                        ClearRwkvDebugInfo();
                         GenerationProgressBar.Visibility = Visibility.Collapsed;
                         StatusTextBlock.Visibility = Visibility.Collapsed;
                         MessageBox.Show($"章节生成失败：{result.Message}", "错误",
@@ -398,26 +445,17 @@ namespace NovelManagement.WPF.Views
                 }
                 else
                 {
-                    StatusTextBlock.Text = "AI服务不可用，生成模拟内容...";
-                    GenerationProgressBar.Value = 70;
-
-                    // 如果服务不可用，使用模拟内容
-                    var generatedContent = GenerateMockContent();
-                    GeneratedContentTextBox.Text = generatedContent;
-                    UpdateGeneratedWordCount();
-                    UpdateRealTimeStatistics();
-
-                    GenerationProgressBar.Value = 100;
-                    await Task.Delay(500);
+                    StatusTextBlock.Text = "AI服务不可用";
+                    ClearRwkvDebugInfo();
                     GenerationProgressBar.Visibility = Visibility.Collapsed;
                     StatusTextBlock.Visibility = Visibility.Collapsed;
-
-                    MessageBox.Show("AI服务未初始化，已生成模拟内容", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("AI服务未初始化，无法生成章节内容。请先在AI配置中启用可用模型。", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
+                ClearRwkvDebugInfo();
                 MessageBox.Show($"生成章节内容失败：{ex.Message}", "错误", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -486,37 +524,6 @@ namespace NovelManagement.WPF.Views
 5. 内容积极向上，符合网络文学规范
 
 请开始创作：";
-        }
-
-        /// <summary>
-        /// 生成模拟内容
-        /// </summary>
-        private string GenerateMockContent()
-        {
-            var title = ChapterTitleTextBox.Text;
-            var outline = ChapterOutlineTextBox.Text;
-            var characters = CharactersTextBox.Text;
-            var keyPlots = KeyPlotsTextBox.Text;
-
-            return $@"    {title}
-
-    天空中乌云密布，雷声阵阵。{characters.Split(',')[0].Trim()}站在山峰之上，感受着天地间涌动的恐怖威压。
-
-    ""天劫...终于来了。""他深吸一口气，眼中闪过一丝坚定。
-
-    {outline}
-
-    这是他修炼路上最重要的一关，成功便能突破到更高境界，失败则可能魂飞魄散。
-
-    {keyPlots}
-
-    第一道雷劫从天而降，带着毁天灭地的威势。{characters.Split(',')[0].Trim()}不敢大意，立即运转体内真气，准备迎接这生死考验。
-
-    雷光照亮了整个天空，也照亮了他坚毅的面庞。无论前路如何凶险，他都要勇敢面对，因为这是他选择的道路。
-
-    ""来吧！""他大喝一声，迎向了那道毁灭的雷光...
-
-    （本章节由AI根据您的设定自动生成，您可以继续编辑和完善内容）";
         }
 
         /// <summary>
@@ -656,6 +663,106 @@ namespace NovelManagement.WPF.Views
             return Math.Min(score, 100);
         }
 
+        private void UpdateRwkvDebugInfo(Dictionary<string, object>? metadata)
+        {
+            if (RwkvDebugExpander == null)
+            {
+                return;
+            }
+
+            metadata ??= new Dictionary<string, object>();
+            var hasRwkvMetadata = string.Equals(
+                GetMetadataText(metadata, "AIModel", "Engine"),
+                "RWKV",
+                StringComparison.OrdinalIgnoreCase) ||
+                metadata.ContainsKey("RwkvSessionId") ||
+                metadata.ContainsKey("RwkvBigBatchEnabled");
+
+            if (!hasRwkvMetadata)
+            {
+                ClearRwkvDebugInfo();
+                return;
+            }
+
+            RwkvDebugExpander.Visibility = Visibility.Visible;
+            RwkvEngineInfoTextBlock.Text = BuildRwkvEngineInfo(metadata);
+            RwkvSessionInfoTextBlock.Text = GetMetadataText(metadata, "RwkvSessionId", fallback: "-");
+            RwkvBigBatchInfoTextBlock.Text = BuildRwkvBatchInfo(metadata);
+            RwkvBigBatchSelectionTextBlock.Text = BuildRwkvSelectionInfo(metadata);
+        }
+
+        private void ClearRwkvDebugInfo()
+        {
+            _lastGenerationMetadata = new Dictionary<string, object>();
+            if (RwkvDebugExpander == null)
+            {
+                return;
+            }
+
+            RwkvDebugExpander.Visibility = Visibility.Collapsed;
+            RwkvEngineInfoTextBlock.Text = "-";
+            RwkvSessionInfoTextBlock.Text = "-";
+            RwkvBigBatchInfoTextBlock.Text = "-";
+            RwkvBigBatchSelectionTextBlock.Text = "-";
+        }
+
+        private static string BuildRwkvEngineInfo(IReadOnlyDictionary<string, object> metadata)
+        {
+            var quality = GetMetadataText(metadata, "Quality");
+            var temperature = GetMetadataText(metadata, "Temperature");
+            var topP = GetMetadataText(metadata, "TopP");
+            var parts = new List<string> { "RWKV" };
+
+            if (!string.IsNullOrWhiteSpace(quality))
+            {
+                parts.Add(quality);
+            }
+
+            if (!string.IsNullOrWhiteSpace(temperature))
+            {
+                parts.Add($"Temp={temperature}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(topP))
+            {
+                parts.Add($"TopP={topP}");
+            }
+
+            return string.Join(" | ", parts);
+        }
+
+        private static string BuildRwkvBatchInfo(IReadOnlyDictionary<string, object> metadata)
+        {
+            var enabled = GetMetadataText(metadata, "RwkvBigBatchEnabled", fallback: "false");
+            var selectedRounds = GetMetadataText(metadata, "RwkvBigBatchSelectedRounds", fallback: "0");
+            var fallbackRounds = GetMetadataText(metadata, "RwkvBigBatchFallbackRounds", fallback: "0");
+            return $"启用={enabled}，命中轮次={selectedRounds}，回退轮次={fallbackRounds}";
+        }
+
+        private static string BuildRwkvSelectionInfo(IReadOnlyDictionary<string, object> metadata)
+        {
+            var index = GetMetadataText(metadata, "RwkvBigBatchLastSelectedIndex", fallback: "-1");
+            var score = GetMetadataText(metadata, "RwkvBigBatchLastScore", fallback: "0");
+            return $"候选索引={index}，评分={score}";
+        }
+
+        private static string GetMetadataText(IReadOnlyDictionary<string, object> metadata, string key, string? alternateKey = null, string fallback = "")
+        {
+            if (metadata.TryGetValue(key, out var value) && value != null)
+            {
+                return value.ToString() ?? fallback;
+            }
+
+            if (!string.IsNullOrWhiteSpace(alternateKey) &&
+                metadata.TryGetValue(alternateKey, out var alternateValue) &&
+                alternateValue != null)
+            {
+                return alternateValue.ToString() ?? fallback;
+            }
+
+            return fallback;
+        }
+
         /// <summary>
         /// 获取项目上下文数据
         /// </summary>
@@ -671,6 +778,217 @@ namespace NovelManagement.WPF.Views
             return await assembler.BuildCurrentProjectContextAsync();
         }
 
+        private ChapterWriteTemplate BuildTemplate(string name)
+        {
+            return new ChapterWriteTemplate
+            {
+                Name = name,
+                ChapterTitle = ChapterTitleTextBox.Text?.Trim() ?? string.Empty,
+                WritingStyle = (WritingStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                ChapterType = (ChapterTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                TargetWordCount = TargetWordCountTextBox.Text?.Trim() ?? string.Empty,
+                ChapterOutline = ChapterOutlineTextBox.Text?.Trim() ?? string.Empty,
+                KeyPlots = KeyPlotsTextBox.Text?.Trim() ?? string.Empty,
+                Characters = CharactersTextBox.Text?.Trim() ?? string.Empty,
+                SpecialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty,
+                AIModel = (AIModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                Creativity = CreativitySlider.Value,
+                StyleIntensity = (StyleIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                SegmentedGeneration = SegmentedGenerationCheckBox.IsChecked == true,
+                RealTimePreview = RealTimePreviewCheckBox.IsChecked == true,
+                GeneratedContent = GeneratedContentTextBox.Text ?? string.Empty,
+                SavedAt = DateTime.Now
+            };
+        }
+
+        private void ApplyTemplate(ChapterWriteTemplate template)
+        {
+            ChapterTitleTextBox.Text = template.ChapterTitle;
+            TargetWordCountTextBox.Text = template.TargetWordCount;
+            CharactersTextBox.Text = template.Characters;
+            ChapterOutlineTextBox.Text = template.ChapterOutline;
+            KeyPlotsTextBox.Text = template.KeyPlots;
+            SpecialRequirementsTextBox.Text = template.SpecialRequirements;
+            GeneratedContentTextBox.Text = template.GeneratedContent;
+            CreativitySlider.Value = Math.Clamp(template.Creativity, CreativitySlider.Minimum, CreativitySlider.Maximum);
+            SegmentedGenerationCheckBox.IsChecked = template.SegmentedGeneration;
+            RealTimePreviewCheckBox.IsChecked = template.RealTimePreview;
+
+            SetComboBoxSelection(AIModelComboBox, template.AIModel);
+            SetComboBoxSelection(WritingStyleComboBox, template.WritingStyle);
+            SetComboBoxSelection(ChapterTypeComboBox, template.ChapterType);
+            SetComboBoxSelection(StyleIntensityComboBox, template.StyleIntensity);
+
+            UpdateGeneratedWordCount();
+            UpdateRealTimeStatistics();
+            UpdateQualityScore();
+            ClearRwkvDebugInfo();
+        }
+
+        private ChapterWriteTemplate? LoadTemplateFromFile(string filePath)
+        {
+            var json = File.ReadAllText(filePath);
+            return JsonSerializer.Deserialize<ChapterWriteTemplate>(json);
+        }
+
+        private static void SetComboBoxSelection(ComboBox comboBox, string content)
+        {
+            foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private static string GetChapterTemplateDirectory()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NovelManagement",
+                "config",
+                "chapter-templates");
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            return string.Concat(name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
+        }
+
         #endregion
+    }
+
+    internal sealed class ChapterWriteTemplate
+    {
+        public string Name { get; set; } = string.Empty;
+        public string ChapterTitle { get; set; } = string.Empty;
+        public string WritingStyle { get; set; } = string.Empty;
+        public string ChapterType { get; set; } = string.Empty;
+        public string TargetWordCount { get; set; } = string.Empty;
+        public string ChapterOutline { get; set; } = string.Empty;
+        public string KeyPlots { get; set; } = string.Empty;
+        public string Characters { get; set; } = string.Empty;
+        public string SpecialRequirements { get; set; } = string.Empty;
+        public string AIModel { get; set; } = string.Empty;
+        public double Creativity { get; set; }
+        public string StyleIntensity { get; set; } = string.Empty;
+        public bool SegmentedGeneration { get; set; }
+        public bool RealTimePreview { get; set; }
+        public string GeneratedContent { get; set; } = string.Empty;
+        public DateTime SavedAt { get; set; }
+    }
+
+    internal sealed class ChapterTemplateManagementDialog : Window
+    {
+        private readonly string _templateDirectory;
+        private readonly ListBox _templateListBox;
+        public string? SelectedTemplatePath { get; private set; }
+
+        public ChapterTemplateManagementDialog(string templateDirectory)
+        {
+            _templateDirectory = templateDirectory;
+            Title = "章节模板管理";
+            Width = 520;
+            Height = 420;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            _templateListBox = new ListBox { Margin = new Thickness(0, 0, 0, 12) };
+            RefreshTemplates();
+
+            var panel = new DockPanel { Margin = new Thickness(20) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = "请选择要加载或删除的章节模板：",
+                Margin = new Thickness(0, 0, 0, 12)
+            });
+
+            DockPanel.SetDock(_templateListBox, Dock.Top);
+            panel.Children.Add(_templateListBox);
+
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            var openFolderButton = new Button { Content = "打开目录", Width = 84, Margin = new Thickness(0, 0, 12, 0) };
+            openFolderButton.Click += (_, _) =>
+            {
+                Directory.CreateDirectory(_templateDirectory);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = _templateDirectory,
+                    UseShellExecute = true
+                });
+            };
+
+            var deleteButton = new Button { Content = "删除", Width = 84, Margin = new Thickness(0, 0, 12, 0) };
+            deleteButton.Click += (_, _) =>
+            {
+                if (_templateListBox.SelectedItem is not ChapterTemplateListItem selectedItem)
+                {
+                    MessageBox.Show("请先选择模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var confirm = MessageBox.Show($"确定删除模板“{selectedItem.Name}”吗？", "确认删除",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                File.Delete(selectedItem.FilePath);
+                RefreshTemplates();
+            };
+
+            var loadButton = new Button { Content = "加载", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            loadButton.Click += (_, _) =>
+            {
+                if (_templateListBox.SelectedItem is not ChapterTemplateListItem selectedItem)
+                {
+                    MessageBox.Show("请先选择模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                SelectedTemplatePath = selectedItem.FilePath;
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button { Content = "关闭", Width = 84, IsCancel = true };
+
+            buttons.Children.Add(openFolderButton);
+            buttons.Children.Add(deleteButton);
+            buttons.Children.Add(loadButton);
+            buttons.Children.Add(cancelButton);
+
+            DockPanel.SetDock(buttons, Dock.Bottom);
+            panel.Children.Add(buttons);
+            Content = panel;
+        }
+
+        private void RefreshTemplates()
+        {
+            Directory.CreateDirectory(_templateDirectory);
+            _templateListBox.ItemsSource = Directory.GetFiles(_templateDirectory, "*.json")
+                .Select(filePath => new ChapterTemplateListItem
+                {
+                    Name = Path.GetFileNameWithoutExtension(filePath),
+                    FilePath = filePath,
+                    DisplayText = $"{Path.GetFileNameWithoutExtension(filePath)}  ({File.GetLastWriteTime(filePath):yyyy-MM-dd HH:mm})"
+                })
+                .OrderByDescending(item => File.GetLastWriteTime(item.FilePath))
+                .ToList();
+            _templateListBox.DisplayMemberPath = nameof(ChapterTemplateListItem.DisplayText);
+        }
+    }
+
+    internal sealed class ChapterTemplateListItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public string DisplayText { get; set; } = string.Empty;
     }
 }

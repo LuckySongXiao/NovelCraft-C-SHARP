@@ -61,12 +61,17 @@ namespace NovelManagement.WPF.Views
         }
 
         private ObservableCollection<TreeNodeViewModel> _treeData = new();
+        public ObservableCollection<RecentUpdateViewModel> RecentUpdates { get; } = new();
         private readonly ProjectService? _projectService;
         private readonly VolumeService? _volumeService;
         private readonly ChapterService? _chapterService;
         private readonly ProjectContextService? _projectContextService;
         private NavigationContext? _navigationContext;
         private Guid _currentProjectId;
+        public int TotalVolumeCount { get; private set; }
+        public int TotalChapterCount { get; private set; }
+        public int TotalWordCount { get; private set; }
+        public int AverageChapterWordCount { get; private set; }
 
         /// <summary>
         /// 构造函数
@@ -81,6 +86,7 @@ namespace NovelManagement.WPF.Views
                 _volumeService = serviceProvider?.GetService<VolumeService>();
                 _chapterService = serviceProvider?.GetService<ChapterService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                DataContext = this;
                 _ = RefreshTreeDataAsync();
             }
             catch (Exception ex)
@@ -100,6 +106,8 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _treeData.Clear();
+                RecentUpdates.Clear();
+                ResetStatistics();
 
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty || _projectService == null || _volumeService == null || _chapterService == null)
@@ -131,6 +139,8 @@ namespace NovelManagement.WPF.Views
 
                 var volumes = (await _volumeService.GetVolumeListAsync(_currentProjectId)).ToList();
                 var chapters = (await _chapterService.GetChaptersByProjectIdAsync(_currentProjectId)).ToList();
+                UpdateStatistics(volumes, chapters);
+                UpdateRecentUpdates(volumes, chapters);
 
                 var projectNode = new TreeNodeViewModel
                 {
@@ -197,39 +207,76 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 获取章节标题（模拟数据）
+        /// 重置统计数据。
         /// </summary>
-        private string GetChapterTitle(int volume, int chapter)
+        private void ResetStatistics()
         {
-            var titles = new Dictionary<int, Dictionary<int, string>>
-            {
-                [1] = new Dictionary<int, string>
-                {
-                    [1] = "诡异的面具",
-                    [2] = "好友相见分外嘴贱",
-                    [3] = "被选中的孩子",
-                    [4] = "恶向胆边生",
-                    [5] = "魔影初现"
-                },
-                [2] = new Dictionary<int, string>
-                {
-                    [16] = "宗门试炼",
-                    [17] = "秘境探险",
-                    [18] = "古老传承"
-                },
-                [3] = new Dictionary<int, string>
-                {
-                    [44] = "血魔宗主",
-                    [45] = "天劫降临"
-                }
-            };
+            TotalVolumeCount = 0;
+            TotalChapterCount = 0;
+            TotalWordCount = 0;
+            AverageChapterWordCount = 0;
+        }
 
-            if (titles.ContainsKey(volume) && titles[volume].ContainsKey(chapter))
+        /// <summary>
+        /// 根据真实数据更新统计信息。
+        /// </summary>
+        private void UpdateStatistics(IReadOnlyCollection<Volume> volumes, IReadOnlyCollection<Chapter> chapters)
+        {
+            TotalVolumeCount = volumes.Count;
+            TotalChapterCount = chapters.Count;
+            TotalWordCount = chapters.Sum(chapter => chapter.WordCount);
+            AverageChapterWordCount = chapters.Count > 0
+                ? (int)Math.Round(chapters.Average(chapter => chapter.WordCount))
+                : 0;
+        }
+
+        /// <summary>
+        /// 根据最新章节更新时间构建最近更新列表。
+        /// </summary>
+        private void UpdateRecentUpdates(IEnumerable<Volume> volumes, IEnumerable<Chapter> chapters)
+        {
+            RecentUpdates.Clear();
+
+            var volumeLookup = volumes.ToDictionary(volume => volume.Id);
+            var recentChapters = chapters
+                .OrderByDescending(chapter => chapter.LastEditedAt ?? chapter.UpdatedAt)
+                .Take(6)
+                .ToList();
+
+            foreach (var chapter in recentChapters)
             {
-                return titles[volume][chapter];
+                volumeLookup.TryGetValue(chapter.VolumeId, out var volume);
+                RecentUpdates.Add(new RecentUpdateViewModel
+                {
+                    Title = $"第{chapter.Order}章：{chapter.Title}",
+                    Subtitle = volume == null ? "未归属卷宗" : volume.Title,
+                    RelativeTime = FormatRelativeTime(chapter.LastEditedAt ?? chapter.UpdatedAt)
+                });
+            }
+        }
+
+        private static string FormatRelativeTime(DateTime time)
+        {
+            var localTime = time.Kind == DateTimeKind.Unspecified ? time : time.ToLocalTime();
+            var delta = DateTime.Now - localTime;
+            if (delta.TotalMinutes < 1)
+            {
+                return "刚刚";
+            }
+            if (delta.TotalHours < 1)
+            {
+                return $"{Math.Max(1, (int)delta.TotalMinutes)}分钟前";
+            }
+            if (delta.TotalDays < 1)
+            {
+                return $"{Math.Max(1, (int)delta.TotalHours)}小时前";
+            }
+            if (delta.TotalDays < 30)
+            {
+                return $"{Math.Max(1, (int)delta.TotalDays)}天前";
             }
 
-            return $"章节标题{chapter}";
+            return localTime.ToString("yyyy-MM-dd");
         }
 
         /// <summary>
@@ -1367,42 +1414,16 @@ namespace NovelManagement.WPF.Views
             }
         }
 
-        /// <summary>
-        /// 获取示例章节内容
-        /// </summary>
-        private string GetSampleChapterContent(int chapterId)
-        {
-            var contents = new Dictionary<int, string>
-            {
-                [1] = @"    古董店内昏暗的灯光下，林轩小心翼翼地擦拭着一个古老的面具。这个面具造型奇特，似乎蕴含着某种神秘的力量。
-
-    当他的手指触碰到面具的瞬间，一股奇异的能量涌入体内，让他感到前所未有的震撼。
-
-    ""这是什么？""林轩喃喃自语，眼中闪过一丝惊讶和好奇。
-
-    面具似乎在回应他的疑问，散发出微弱的光芒...",
-
-                [2] = @"    ""林轩！你小子终于回来了！""张伟的声音从远处传来，带着熟悉的调侃语气。
-
-    两人相视而笑，多年的友谊让他们之间没有丝毫的陌生感。但张伟敏锐地察觉到了林轩身上的变化。
-
-    ""你...好像有什么不一样了。""张伟皱着眉头，仔细打量着眼前的好友。
-
-    林轩心中一紧，面具的秘密绝不能让任何人知道...",
-
-                [45] = @"    天空中乌云密布，雷声阵阵。林轩站在山峰之上，感受着天地间涌动的恐怖威压。
-
-    ""天劫...终于来了。""他深吸一口气，眼中闪过一丝坚定。
-
-    这是他修炼路上最重要的一关，成功便能突破到更高境界，失败则可能魂飞魄散。
-
-    第一道雷劫从天而降，带着毁天灭地的威势。林轩不敢大意，立即运转体内真气，准备迎接这生死考验..."
-            };
-
-            return contents.ContainsKey(chapterId) ? contents[chapterId] :
-                "这是一个精彩的章节，主角在这里经历了重要的成长和挑战。详细内容请通过编辑器进行编写。";
-        }
-
         #endregion
+    }
+
+    /// <summary>
+    /// 最近更新项视图模型。
+    /// </summary>
+    public sealed class RecentUpdateViewModel
+    {
+        public string Title { get; init; } = string.Empty;
+        public string Subtitle { get; init; } = string.Empty;
+        public string RelativeTime { get; init; } = string.Empty;
     }
 }

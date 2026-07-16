@@ -218,21 +218,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="贸易商行: "/>
-                                        <Run Text="{Binding TradeCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TradeCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="拍卖行: "/>
-                                        <Run Text="{Binding AuctionCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding AuctionCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="炼器坊: "/>
-                                        <Run Text="{Binding CraftCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding CraftCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>

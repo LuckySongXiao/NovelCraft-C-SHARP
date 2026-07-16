@@ -230,21 +230,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="物质维度: "/>
-                                        <Run Text="{Binding MaterialCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding MaterialCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="精神维度: "/>
-                                        <Run Text="{Binding SpiritualCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding SpiritualCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="稳定维度: "/>
-                                        <Run Text="{Binding StableCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding StableCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>
@@ -454,7 +454,8 @@
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="2" 
-                                                                SelectedItem="{Binding Status}" 
+                                                                SelectedValuePath="Content"
+                                                                SelectedValue="{Binding Status, UpdateSourceTrigger=PropertyChanged}" 
                                                                 materialDesign:HintAssist.Hint="状态"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">

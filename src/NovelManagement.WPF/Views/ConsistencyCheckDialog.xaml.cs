@@ -8,6 +8,7 @@ using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
 using NovelManagement.WPF.Services;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 namespace NovelManagement.WPF.Views
 {
@@ -19,10 +20,11 @@ namespace NovelManagement.WPF.Views
         #region 字段
 
         private readonly ChapterEditData _chapterData;
-        private readonly string _chapterContent;
         private AIAssistantService? _aiAssistantService;
         private bool _isChecking;
+        private bool _isAutoFixing;
         private ObservableCollection<ConsistencyIssue> _issues;
+        private string _workingChapterContent;
 
         #endregion
 
@@ -37,11 +39,21 @@ namespace NovelManagement.WPF.Views
         {
             InitializeComponent();
             _chapterData = chapterData;
-            _chapterContent = chapterContent;
+            _workingChapterContent = chapterContent;
             _issues = new ObservableCollection<ConsistencyIssue>();
             InitializeAIService();
             SetupUI();
         }
+
+        /// <summary>
+        /// 自动修复后的正文。
+        /// </summary>
+        public string AutoFixedContent { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// 是否已应用自动修复。
+        /// </summary>
+        public bool AutoFixApplied { get; private set; }
 
         #endregion
 
@@ -125,10 +137,9 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 自动修复按钮点击事件
         /// </summary>
-        private void AutoFix_Click(object sender, RoutedEventArgs e)
+        private async void AutoFix_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("自动修复功能正在开发中，敬请期待！", "提示", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            await PerformAutoFixAsync();
         }
 
         /// <summary>
@@ -175,7 +186,7 @@ namespace NovelManagement.WPF.Views
                 var parameters = new Dictionary<string, object>
                 {
                     ["chapterTitle"] = _chapterData.Title,
-                    ["chapterContent"] = _chapterContent,
+                    ["chapterContent"] = _workingChapterContent,
                     ["chapterSummary"] = _chapterData.Summary,
                     ["characters"] = _chapterData.Characters,
                     ["tags"] = _chapterData.Tags,
@@ -414,6 +425,201 @@ namespace NovelManagement.WPF.Views
             }
 
             return report;
+        }
+
+        private async Task PerformAutoFixAsync()
+        {
+            if (_isChecking || _isAutoFixing)
+            {
+                return;
+            }
+
+            if (_issues.Count == 0)
+            {
+                var shouldCheck = MessageBox.Show(
+                    "当前没有可修复的问题。是否先执行一次一致性检查？",
+                    "自动修复",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (shouldCheck == MessageBoxResult.Yes)
+                {
+                    await PerformConsistencyCheck();
+                }
+
+                if (_issues.Count == 0)
+                {
+                    return;
+                }
+            }
+
+            if (_aiAssistantService == null)
+            {
+                InitializeAIService();
+                if (_aiAssistantService == null)
+                {
+                    MessageBox.Show("AI服务未初始化，无法执行自动修复。", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            try
+            {
+                _isAutoFixing = true;
+                StartCheckButton.IsEnabled = false;
+
+                var autoFixButton = AutoFixButton;
+                autoFixButton.IsEnabled = false;
+                autoFixButton.Content = "修复中...";
+
+                var parameters = BuildAutoFixParameters();
+                var result = await _aiAssistantService.PolishTextAsync(parameters);
+                var fixedContent = result.IsSuccess && result.Data != null
+                    ? ExtractPolishedText(result.Data)
+                    : string.Empty;
+
+                if (string.IsNullOrWhiteSpace(fixedContent))
+                {
+                    MessageBox.Show(
+                        $"自动修复未生成有效结果：{result.Message ?? "未知错误"}",
+                        "自动修复",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var previewDialog = new TextDifferenceDialog(_workingChapterContent, fixedContent)
+                {
+                    Owner = this,
+                    Title = "一致性自动修复预览"
+                };
+                previewDialog.ShowDialog();
+
+                var applyResult = MessageBox.Show(
+                    "已生成修复稿。是否将修复结果应用到章节编辑器？\n选择“是”将回写正文，选择“否”仅复制到剪贴板。",
+                    "应用修复",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (applyResult == MessageBoxResult.Cancel)
+                {
+                    return;
+                }
+
+                AutoFixedContent = fixedContent;
+                Clipboard.SetText(fixedContent);
+
+                if (applyResult == MessageBoxResult.Yes)
+                {
+                    AutoFixApplied = true;
+                    _workingChapterContent = fixedContent;
+                    DialogResult = true;
+                    Close();
+                    return;
+                }
+
+                MessageBox.Show("修复稿已复制到剪贴板，你可以按需手动比对后使用。", "自动修复",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"自动修复失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isAutoFixing = false;
+                StartCheckButton.IsEnabled = true;
+                AutoFixButton.IsEnabled = true;
+                AutoFixButton.Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Children =
+                    {
+                        new PackIcon { Kind = PackIconKind.AutoFix, Margin = new Thickness(0, 0, 4, 0) },
+                        new TextBlock { Text = "自动修复" }
+                    }
+                };
+            }
+        }
+
+        private Dictionary<string, object> BuildAutoFixParameters()
+        {
+            var issueInstructions = string.Join(Environment.NewLine, _issues.Select((issue, index) =>
+                $"{index + 1}. [{issue.Category}/{issue.Severity}] {issue.Description}；建议：{issue.Suggestion}"));
+
+            var specialRequirements =
+                $"请在保持原有章节叙事风格和基本情节顺序的前提下，修复以下一致性问题：{Environment.NewLine}" +
+                issueInstructions +
+                $"{Environment.NewLine}{Environment.NewLine}章节标题：{_chapterData.Title}" +
+                $"{Environment.NewLine}章节摘要：{_chapterData.Summary}" +
+                $"{Environment.NewLine}涉及角色：{_chapterData.Characters}" +
+                $"{Environment.NewLine}标签：{_chapterData.Tags}" +
+                $"{Environment.NewLine}要求：只输出修复后的正文，不要解释，不要添加标题。";
+
+            return new Dictionary<string, object>
+            {
+                ["OriginalContent"] = _workingChapterContent,
+                ["TargetStyle"] = "保持原风格",
+                ["PolishIntensity"] = "中度润色",
+                ["PreserveElements"] = "保持原意",
+                ["SpecialRequirements"] = specialRequirements,
+                ["PolishFocus"] = "全面润色",
+                ["EmotionalTone"] = "保持原有",
+                ["TargetAudience"] = "通用读者",
+                ["AutoCorrect"] = true,
+                ["EnhanceDescription"] = false,
+                ["OptimizeDialogue"] = false,
+                ["PreserveStyle"] = true
+            };
+        }
+
+        private static string ExtractPolishedText(object data)
+        {
+            if (data is string text)
+            {
+                return CleanupPolishedText(text);
+            }
+
+            if (data is Dictionary<string, object> dictionary)
+            {
+                if (dictionary.TryGetValue("PolishedText", out var polishedText))
+                {
+                    return CleanupPolishedText(polishedText?.ToString() ?? string.Empty);
+                }
+
+                if (dictionary.TryGetValue("Content", out var content))
+                {
+                    return CleanupPolishedText(content?.ToString() ?? string.Empty);
+                }
+            }
+
+            var resultType = data.GetType();
+            foreach (var propertyName in new[] { "PolishedText", "Content", "Text" })
+            {
+                var property = resultType.GetProperty(propertyName);
+                if (property?.GetValue(data) is object value)
+                {
+                    return CleanupPolishedText(value.ToString() ?? string.Empty);
+                }
+            }
+
+            return CleanupPolishedText(data.ToString() ?? string.Empty);
+        }
+
+        private static string CleanupPolishedText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            return text.Trim()
+                .Replace("\\r\\n", "\n")
+                .Replace("\\n", "\n")
+                .Replace("\\t", "\t")
+                .Trim();
         }
 
         #endregion

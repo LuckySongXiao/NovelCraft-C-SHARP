@@ -11,7 +11,7 @@
     <UserControl.Resources>
         <Style x:Key="ConfigCardStyle" TargetType="materialDesign:Card">
             <Setter Property="Margin" Value="8"/>
-            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Padding" Value="18"/>
             <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
         </Style>
         
@@ -20,6 +20,12 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,12"/>
             <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+        </Style>
+
+        <Style x:Key="InfoTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
     </UserControl.Resources>
 
@@ -62,6 +68,43 @@
         <!-- Main Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="8">
+
+                <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="3*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Text="推荐配置顺序" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock Text="1. 先选择默认提供者" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="2. 再填写 API Key 或本地模型路径" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="3. 点击测试连接并保存配置" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="使用建议" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock Text="MainAgent 建议使用云端强模型" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="SubAgent 建议使用本地模型做整理与归档" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="发布版保存到用户目录，不会覆盖安装文件" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="当前配置文件位置" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock x:Name="ConfigPathTextBlock"
+                                       Text="加载中..."
+                                       TextWrapping="Wrap"
+                                       Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="保存后配置立即生效，无需重启应用。"
+                                       Margin="0,8,0,0"
+                                       Opacity="0.72"
+                                       TextWrapping="Wrap"
+                                       Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:Card>
                 
                 <!-- Provider Selection -->
                 <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
@@ -78,9 +121,11 @@
                                       Style="{StaticResource MaterialDesignComboBox}"
                                       SelectionChanged="DefaultProviderComboBox_SelectionChanged"
                                       Margin="0,0,8,0">
+                                <ComboBoxItem Content="llama.cpp (本地GGUF)" Tag="LlamaCpp"/>
                                 <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
                                 <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
                                 <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="小米米模 (云端模型)" Tag="XiaoMiMiMo"/>
                                 <ComboBoxItem Content="MCP (协议模型)" Tag="MCP"/>
                             </ComboBox>
                             <ComboBox x:Name="DefaultCompletionProviderComboBox"
@@ -90,11 +135,93 @@
                                       SelectionChanged="DefaultCompletionProviderComboBox_SelectionChanged"
                                       Margin="8,0,0,0">
                                 <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
+                                <ComboBoxItem Content="llama.cpp (本地GGUF)" Tag="LlamaCpp"/>
                                 <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
                                 <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
                                 <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="小米米模 (云端模型)" Tag="XiaoMiMiMo"/>
                             </ComboBox>
                         </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="MainAgent / SubAgent 双代理配置" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="建议由稠密模型承担 MainAgent，MoE 或本地 GGUF 模型承担 SubAgent。SubAgent 负责总结需求、整理定稿并归档。"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.68"
+                                   Margin="0,0,0,12"/>
+
+                        <CheckBox x:Name="EnableDualAgentWorkflowCheckBox"
+                                  Content="启用 MainAgent / SubAgent 双代理写作流"
+                                  IsChecked="True"
+                                  Margin="0,0,0,12"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ComboBox x:Name="MainAgentProviderComboBox"
+                                      Grid.Row="0" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="MainAgent 提供者"
+                                      Margin="0,0,8,8">
+                                <ComboBoxItem Content="DeepSeek (推荐稠密模型)" Tag="DeepSeek" IsSelected="True"/>
+                                <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="llama.cpp (推荐 GGUF)" Tag="LlamaCpp"/>
+                                <ComboBoxItem Content="Ollama" Tag="Ollama"/>
+                                <ComboBoxItem Content="小米米模" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
+                                <ComboBoxItem Content="OpenAI" Tag="OpenAI"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="MainAgentModelTextBox"
+                                     Grid.Row="0" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="MainAgent 模型（可选，留空使用提供者默认模型）"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="MainAgentRoleDescriptionTextBox"
+                                     Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                     materialDesign:HintAssist.Hint="MainAgent 职责描述"
+                                     Text="结合 SubAgent 的需求简报撰写正式文案，专注内容创作。"
+                                     Margin="0,0,0,8"/>
+
+                            <ComboBox x:Name="SubAgentProviderComboBox"
+                                      Grid.Row="2" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="SubAgent 提供者"
+                                      Margin="0,0,8,8">
+                                <ComboBoxItem Content="llama.cpp (推荐 MoE/GGUF)" Tag="LlamaCpp" IsSelected="True"/>
+                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
+                                <ComboBoxItem Content="Ollama" Tag="Ollama"/>
+                                <ComboBoxItem Content="小米米模" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="DeepSeek" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="OpenAI" Tag="OpenAI"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="SubAgentModelTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="SubAgent 模型（可选，留空使用提供者默认模型）"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="SubAgentRoleDescriptionTextBox"
+                                     Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                     materialDesign:HintAssist.Hint="SubAgent 职责描述"
+                                     Text="总结写作需求，整理 MainAgent 草稿，并将纯净内容写入项目档案库。"
+                                     Margin="0,0,0,8"/>
+                        </Grid>
+
+                        <CheckBox x:Name="EnableArchiveWriteCheckBox"
+                                  Content="允许 SubAgent 将纯净定稿写入正式项目档案库"
+                                  IsChecked="True"/>
                     </StackPanel>
                 </materialDesign:Card>
 
@@ -124,6 +251,23 @@
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68" Margin="0,0,0,8"/>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button x:Name="RwkvRefreshStatusButton"
+                                    Content="刷新状态"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="RwkvRefreshStatusButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="RwkvStartRuntimeButton"
+                                    Content="一键启动"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Click="RwkvStartRuntimeButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="RwkvStopRuntimeButton"
+                                    Content="一键关闭"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="RwkvStopRuntimeButton_Click"/>
+                        </StackPanel>
+
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -141,19 +285,31 @@
                             <TextBox x:Name="RwkvBaseUrlTextBox"
                                      Grid.Row="0" Grid.Column="0"
                                      materialDesign:HintAssist.Hint="推理服务地址"
-                                     Text="http://localhost:8765"
+                                     Text="http://localhost:8000"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvModelNameTextBox"
                                      Grid.Row="0" Grid.Column="1"
                                      materialDesign:HintAssist.Hint="模型名称"
-                                     Text="RWKV-7B"
+                                     Text="rwkv7"
                                      Margin="8,0,0,8"/>
 
-                            <TextBox x:Name="RwkvModelPathTextBox"
-                                     Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="模型文件路径"
-                                     Margin="0,0,8,8"/>
+                            <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,8,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="RwkvModelComboBox"
+                                          Grid.Column="0"
+                                          materialDesign:HintAssist.Hint="选择RWKV模型"
+                                          SelectionChanged="RwkvModelComboBox_SelectionChanged"/>
+                                <Button x:Name="RwkvRefreshModelsButton"
+                                        Grid.Column="1"
+                                        Content="扫描"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        Click="RwkvRefreshModelsButton_Click"
+                                        Margin="8,0,0,0"/>
+                            </Grid>
 
                             <ComboBox x:Name="RwkvStrategyComboBox"
                                       Grid.Row="1" Grid.Column="1"
@@ -248,8 +404,207 @@
                                          Grid.Row="1" Grid.Column="1"
                                          materialDesign:HintAssist.Hint="rwkv_lightning_libtorch脚本路径"
                                          Margin="8,0,0,8"/>
+
+                                <TextBox x:Name="RwkvContextSizeTextBox"
+                                         Grid.Row="2" Grid.Column="0"
+                                         materialDesign:HintAssist.Hint="上下文大小"
+                                         Text="8192"
+                                         Margin="0,0,8,8"/>
+
+                                <TextBox x:Name="RwkvMaxConcurrentRequestsTextBox"
+                                         Grid.Row="2" Grid.Column="1"
+                                         materialDesign:HintAssist.Hint="最大并发请求数"
+                                         Text="20"
+                                         Margin="8,0,0,8"/>
                             </Grid>
                         </Expander>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- llama.cpp Configuration -->
+                <materialDesign:Card x:Name="LlamaCppConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="llama.cpp 本地推理配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle"
+                                                       x:Name="LlamaStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="LlamaStatusText"
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="基于 llama-server.exe 的本地 GGUF 推理服务，支持按后端与模型按需启动"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.68"
+                                   Margin="0,0,0,8"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button x:Name="LlamaRefreshStatusButton"
+                                    Content="刷新状态"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="LlamaRefreshStatusButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="LlamaRefreshModelsButton"
+                                    Content="扫描模型"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="LlamaRefreshModelsButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="StartLlamaRuntimeButton"
+                                    Content="一键启动"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Click="StartLlamaRuntimeButton_Click"
+                                    Margin="0,0,8,0"/>
+                            <Button x:Name="StopLlamaRuntimeButton"
+                                    Content="一键关闭"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Click="StopLlamaRuntimeButton_Click"/>
+                        </StackPanel>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ComboBox x:Name="LlamaBackendComboBox"
+                                      Grid.Row="0" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="llama.cpp 后端"
+                                      Margin="0,0,8,8"
+                                      SelectionChanged="LlamaBackendComboBox_SelectionChanged">
+                                <ComboBoxItem Content="CUDA" Tag="cuda" IsSelected="True"/>
+                                <ComboBoxItem Content="CPU" Tag="cpu"/>
+                                <ComboBoxItem Content="Vulkan" Tag="vulkan"/>
+                                <ComboBoxItem Content="SYCL" Tag="sycl"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="LlamaBaseUrlTextBox"
+                                     Grid.Row="0" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="服务地址"
+                                     Text="http://localhost:8081"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="LlamaExecutablePathTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="llama-server.exe 路径"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="LlamaModelDirectoryTextBox"
+                                     Grid.Row="1" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="GGUF 模型目录"
+                                     Margin="8,0,0,8"/>
+
+                            <ComboBox x:Name="LlamaModelComboBox"
+                                      Grid.Row="2" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="按需启动模型"
+                                      Margin="0,0,8,8"
+                                      SelectionChanged="LlamaModelComboBox_SelectionChanged"/>
+
+                            <TextBox x:Name="LlamaMmprojPathTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="mmproj 路径（可选）"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="LlamaContextSizeTextBox"
+                                     Grid.Row="3" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="上下文长度"
+                                     Text="262144"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="LlamaGpuLayersTextBox"
+                                     Grid.Row="3" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="GPU Layers (-1 全量自动)"
+                                     Text="-1"
+                                     Margin="8,0,0,8"/>
+
+                            <PasswordBox x:Name="LlamaApiKeyPasswordBox"
+                                         Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                         materialDesign:HintAssist.Hint="服务 API Key（可选）"
+                                         Margin="0,0,0,8"/>
+
+                            <TextBox x:Name="LlamaParallelSlotsTextBox"
+                                     Grid.Row="5" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="并行槽位"
+                                     Text="1"
+                                     Margin="0,0,8,8"/>
+
+                            <CheckBox x:Name="LlamaEnableFlashAttentionCheckBox"
+                                      Grid.Row="5" Grid.Column="1"
+                                      Content="启用 Flash Attention"
+                                      IsChecked="True"
+                                      Margin="8,0,0,8"/>
+
+                            <ComboBox x:Name="LlamaCacheTypeKComboBox"
+                                      Grid.Row="6" Grid.Column="0"
+                                      materialDesign:HintAssist.Hint="KV Cache K 类型"
+                                      Margin="0,0,8,8">
+                                <ComboBoxItem Content="q8_0" IsSelected="True"/>
+                                <ComboBoxItem Content="q4_0"/>
+                                <ComboBoxItem Content="f16"/>
+                                <ComboBoxItem Content="f32"/>
+                            </ComboBox>
+
+                            <ComboBox x:Name="LlamaCacheTypeVComboBox"
+                                      Grid.Row="6" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="KV Cache V 类型"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="q8_0" IsSelected="True"/>
+                                <ComboBoxItem Content="q4_0"/>
+                                <ComboBoxItem Content="f16"/>
+                                <ComboBoxItem Content="f32"/>
+                            </ComboBox>
+
+                            <CheckBox x:Name="LlamaEnableCpuMoeCheckBox"
+                                      Grid.Row="7" Grid.Column="0"
+                                      Content="MoE 使用 CPU 异构推理"
+                                      IsChecked="True"
+                                      Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="LlamaCpuMoeLayerCountTextBox"
+                                     Grid.Row="7" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="前 N 层使用 CPU-MoE（0=全量或关闭）"
+                                     Text="0"
+                                     Margin="8,0,0,8"/>
+
+                            <CheckBox x:Name="LlamaEnableAutoFitCheckBox"
+                                      Grid.Row="8" Grid.Column="0"
+                                      Content="自动贴合显存"
+                                      IsChecked="True"
+                                      Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="LlamaFitContextSizeTextBox"
+                                     Grid.Row="8" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="AutoFit 最小上下文"
+                                     Text="262144"
+                                     Margin="8,0,0,8"/>
+
+                            <CheckBox x:Name="LlamaDisableWarmupCheckBox"
+                                      Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2"
+                                      Content="跳过 warmup 加速启动"
+                                      IsChecked="True"
+                                      Margin="0,0,0,8"/>
+                        </Grid>
                     </StackPanel>
                 </materialDesign:Card>
 
@@ -289,6 +644,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <PasswordBox x:Name="ZhipuAIApiKeyPasswordBox"
@@ -306,7 +662,8 @@
                                       Grid.Row="1" Grid.Column="1"
                                       materialDesign:HintAssist.Hint="默认模型"
                                       Margin="8,0,0,8">
-                                <ComboBoxItem Content="glm-4-flash" IsSelected="True"/>
+                                <ComboBoxItem Content="glm-4.7-flash" IsSelected="True"/>
+                                <ComboBoxItem Content="glm-4-flash"/>
                                 <ComboBoxItem Content="glm-4"/>
                                 <ComboBoxItem Content="glm-4-plus"/>
                                 <ComboBoxItem Content="glm-3-turbo"/>
@@ -371,6 +728,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <TextBox x:Name="OllamaBaseUrlTextBox"
@@ -395,26 +753,38 @@
                                      materialDesign:HintAssist.Hint="最大重试次数"
                                      Text="3"
                                      Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="OllamaContextSizeTextBox"
+                                     Grid.Row="2" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="上下文大小"
+                                     Text="32768"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="OllamaMaxConcurrentRequestsTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="最大并发请求数"
+                                     Text="3"
+                                     Margin="8,0,0,8"/>
                             
                             <CheckBox x:Name="OllamaEnableGPUCheckBox"
-                                      Grid.Row="2" Grid.Column="0"
+                                      Grid.Row="3" Grid.Column="0"
                                       Content="启用GPU加速"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
                             
                             <TextBox x:Name="OllamaGPUDeviceIdTextBox"
-                                     Grid.Row="2" Grid.Column="1"
+                                     Grid.Row="3" Grid.Column="1"
                                      materialDesign:HintAssist.Hint="GPU设备ID (-1为自动)"
                                      Text="-1"
                                      Margin="8,0,0,8"/>
                             
                             <CheckBox x:Name="OllamaVerboseLoggingCheckBox"
-                                      Grid.Row="3" Grid.Column="0"
+                                      Grid.Row="4" Grid.Column="0"
                                       Content="启用详细日志"
                                       Margin="0,0,8,8"/>
                             
                             <Button x:Name="RefreshModelsButton"
-                                    Grid.Row="3" Grid.Column="1"
+                                    Grid.Row="4" Grid.Column="1"
                                     Content="刷新模型列表"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="RefreshModelsButton_Click"
@@ -529,8 +899,9 @@
                                       Grid.Row="1" Grid.Column="1"
                                       materialDesign:HintAssist.Hint="模型"
                                       Margin="8,0,0,8">
-                                <ComboBoxItem Content="deepseek-chat" IsSelected="True"/>
-                                <ComboBoxItem Content="deepseek-coder"/>
+                                <ComboBoxItem Content="deepseek-v4-flash" IsSelected="True"/>
+                                <ComboBoxItem Content="deepseek-v4-pro"/>
+                                <ComboBoxItem Content="deepseek-chat"/>
                                 <ComboBoxItem Content="deepseek-reasoner"/>
                             </ComboBox>
                             
@@ -545,6 +916,91 @@
                                      materialDesign:HintAssist.Hint="超时时间(秒)"
                                      Text="60"
                                      Margin="8,0,0,8"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <!-- Xiaomi MiMo Configuration -->
+                <materialDesign:Card x:Name="XiaoMiMiMoConfigCard" Style="{StaticResource ConfigCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="小米米模云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Circle"
+                                                       x:Name="XiaoMiMiMoStatusIcon"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       Margin="0,0,4,0"/>
+                                <TextBlock x:Name="XiaoMiMiMoStatusText"
+                                         Text="未配置"
+                                         VerticalAlignment="Center"
+                                         Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="小米米模 OpenAI 兼容接口配置，支持 mimo-v2.5-pro"
+                                   Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                                   Opacity="0.68" Margin="0,0,0,8"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <PasswordBox x:Name="XiaoMiMiMoApiKeyPasswordBox"
+                                         Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                         materialDesign:HintAssist.Hint="API密钥"
+                                         Margin="0,0,0,8"/>
+
+                            <TextBox x:Name="XiaoMiMiMoBaseUrlTextBox"
+                                     Grid.Row="1" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="API地址"
+                                     Text="https://api.xiaomimimo.com/v1"
+                                     Margin="0,0,8,8"/>
+
+                            <ComboBox x:Name="XiaoMiMiMoModelComboBox"
+                                      Grid.Row="1" Grid.Column="1"
+                                      materialDesign:HintAssist.Hint="默认模型"
+                                      Margin="8,0,0,8">
+                                <ComboBoxItem Content="mimo-v2.5-pro" IsSelected="True"/>
+                                <ComboBoxItem Content="mimo-v2.5"/>
+                                <ComboBoxItem Content="mimo-v2-flash"/>
+                            </ComboBox>
+
+                            <TextBox x:Name="XiaoMiMiMoTimeoutTextBox"
+                                     Grid.Row="2" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     Text="120"
+                                     Margin="0,0,8,8"/>
+
+                            <TextBox x:Name="XiaoMiMiMoMaxRetriesTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     Text="3"
+                                     Margin="8,0,0,8"/>
+
+                            <TextBox x:Name="XiaoMiMiMoTemperatureTextBox"
+                                     Grid.Row="3" Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="温度参数"
+                                     Text="1.0"
+                                     Margin="0,0,8,8"/>
+
+                            <CheckBox x:Name="XiaoMiMiMoEnableStreamingCheckBox"
+                                      Grid.Row="3" Grid.Column="1"
+                                      Content="启用流式响应"
+                                      IsChecked="True"
+                                      Margin="8,0,0,8"/>
                         </Grid>
                     </StackPanel>
                 </materialDesign:Card>

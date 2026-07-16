@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.Zhipu.Models;
+using NovelManagement.AI.Utilities;
 
 namespace NovelManagement.AI.Services.Zhipu
 {
@@ -139,12 +140,12 @@ namespace NovelManagement.AI.Services.Zhipu
         /// </summary>
         public Task<List<ModelInfo>> GetAvailableModelsAsync(CancellationToken cancellationToken = default)
         {
-            // Zhipu API没有直接获取模型列表的端点（或者不常用），这里返回已知支持的模型
             var models = new List<ModelInfo>
             {
-                new ModelInfo { Id = "glm-4.7-flash", Name = "GLM-4.7 Flash", Description = "智谱AI免费高速模型", Capabilities = new List<string> { "chat", "context-128k" } },
-                new ModelInfo { Id = "glm-4", Name = "GLM-4", Description = "智谱AI最强模型", Capabilities = new List<string> { "chat", "context-128k" } },
+                new ModelInfo { Id = "glm-4.7-flash", Name = "GLM-4.7 Flash", Description = "智谱AI高速模型", Capabilities = new List<string> { "chat", "context-128k" } },
                 new ModelInfo { Id = "glm-4-flash", Name = "GLM-4 Flash", Description = "智谱AI高速模型", Capabilities = new List<string> { "chat", "context-128k" } },
+                new ModelInfo { Id = "glm-4", Name = "GLM-4", Description = "智谱AI通用模型", Capabilities = new List<string> { "chat", "context-128k" } },
+                new ModelInfo { Id = "glm-4-plus", Name = "GLM-4 Plus", Description = "智谱AI增强模型", Capabilities = new List<string> { "chat", "context-128k" } },
                 new ModelInfo { Id = "glm-3-turbo", Name = "GLM-3 Turbo", Description = "智谱AI高性价比模型", Capabilities = new List<string> { "chat", "context-128k" } }
             };
 
@@ -237,8 +238,10 @@ namespace NovelManagement.AI.Services.Zhipu
         private HttpClient CreateHttpClient()
         {
             var client = _httpClientFactory.CreateClient("Zhipu");
-            client.BaseAddress = new Uri(_configuration.BaseUrl);
+            client.BaseAddress = new Uri(NormalizeBaseUrl(_configuration.BaseUrl));
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration.ApiKey);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("NovelCraft/1.0");
             client.Timeout = TimeSpan.FromSeconds(_configuration.TimeoutSeconds);
             return client;
         }
@@ -249,9 +252,11 @@ namespace NovelManagement.AI.Services.Zhipu
             {
                 Model = string.IsNullOrEmpty(request.Model) ? _configuration.DefaultModel : request.Model,
                 Messages = request.Messages.Select(m => new ZhipuMessage { Role = m.Role, Content = m.Content }).ToList(),
-                Temperature = request.Temperature > 0 ? request.Temperature : _configuration.DefaultTemperature,
+                Temperature = request.Temperature >= 0 ? request.Temperature : _configuration.DefaultTemperature,
                 MaxTokens = request.MaxTokens > 0 ? request.MaxTokens : _configuration.DefaultMaxTokens,
-                Stream = request.Stream
+                Stream = request.Stream,
+                TopP = TryGetDoubleParameter(request.Parameters, "top_p") ?? 0.7,
+                RequestId = request.Parameters.TryGetValue("request_id", out var requestId) ? requestId?.ToString() : null
             };
         }
 
@@ -263,7 +268,9 @@ namespace NovelManagement.AI.Services.Zhipu
             {
                 Id = response.Id,
                 Model = response.Model,
-                Content = response.GetContent(),
+                Content = AIOutputSanitizer.ExtractVisibleContent(
+                    response.Choices?.FirstOrDefault()?.Message?.Content,
+                    response.Choices?.FirstOrDefault()?.Message?.ReasoningContent),
                 IsSuccess = true,
                 Usage = response.Usage != null ? new TokenUsage 
                 { 
@@ -276,59 +283,25 @@ namespace NovelManagement.AI.Services.Zhipu
 
         private async Task<ZhipuResponse?> SendRequestAsync(HttpClient client, ZhipuRequest request, CancellationToken cancellationToken)
         {
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-            var response = await client.PostAsync("/api/paas/v4/chat/completions", content, cancellationToken); // Handle full URL if BaseAddress is just domain
-            
-            // If BaseAddress is already set to https://open.bigmodel.cn/api/paas/v4, then path is /chat/completions
-            // Let's assume BaseUrl in config includes /api/paas/v4 or user sets it. 
-            // The default in config is "https://open.bigmodel.cn/api/paas/v4".
-            // So we should append "/chat/completions".
-            // But HttpClient.BaseAddress behavior depends on trailing slash.
-            // Safe bet: ensure path starts with relative path.
-            
-            // Correction: SendRequestAsync should use relative path.
-            // If BaseUrl is https://open.bigmodel.cn/api/paas/v4
-            // Path should be "chat/completions" (no leading slash if base has trailing, or handle it)
-            // Let's retry with safe logic.
-            
-            // For now, let's assume the client is configured correctly in CreateHttpClient.
-            // We'll use "chat/completions" relative path.
-            
-            // Re-creating client with correct path logic inside SendRequest is safer if we control it here.
-            // But CreateHttpClient sets BaseAddress. 
-            
-            // Let's assume standard behavior.
-            var path = "chat/completions";
-            // Check if BaseUrl ends with /
-            if (!_configuration.BaseUrl.EndsWith("/"))
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
             {
-                // If not ending with /, and we use relative path, it might drop the last segment if we are not careful.
-                // But HttpClient combines BaseAddress and request Uri.
-                // If BaseAddress is "https://api.com/v4", Request "chat/completions" -> "https://api.com/chat/completions" (drops v4 if no slash!)
-                // If BaseAddress is "https://api.com/v4/", Request "chat/completions" -> "https://api.com/v4/chat/completions"
-                
-                // We should ensure BaseUrl ends with / in Config or here.
-            }
-            
-            // Override: CreateHttpClient should ensure slash.
-            // But here I'll use absolute URL if needed or just trust the config.
-            // Let's assume config is good or fix it in CreateHttpClient.
-            
-            // Actually, let's just use the client.
-            var responseMsg = await client.PostAsync("chat/completions", content, cancellationToken);
-            responseMsg.EnsureSuccessStatusCode();
-            
+                Content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+            };
+            using var responseMsg = await client.SendAsync(requestMessage, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(responseMsg, cancellationToken);
+
             var json = await responseMsg.Content.ReadAsStringAsync(cancellationToken);
             return JsonConvert.DeserializeObject<ZhipuResponse>(json);
         }
 
         private async Task<ChatResponse> SendStreamRequestAsync(HttpClient client, ZhipuRequest request, Action<ChatChunk> onChunkReceived, CancellationToken cancellationToken)
         {
-             var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-             // Use SendAsync with CompletionOption.ResponseHeadersRead
-             using var requestMsg = new HttpRequestMessage(HttpMethod.Post, "chat/completions") { Content = content };
+             using var requestMsg = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+             {
+                 Content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+             };
              using var responseMsg = await client.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-             responseMsg.EnsureSuccessStatusCode();
+             await EnsureSuccessStatusCodeAsync(responseMsg, cancellationToken);
              
              using var stream = await responseMsg.Content.ReadAsStreamAsync(cancellationToken);
              using var reader = new StreamReader(stream);
@@ -349,8 +322,10 @@ namespace NovelManagement.AI.Services.Zhipu
                          var chunk = JsonConvert.DeserializeObject<ZhipuResponse>(data);
                          if (chunk != null && chunk.Choices != null && chunk.Choices.Count > 0)
                          {
-                             var deltaContent = chunk.Choices[0].Delta?.Content;
-                             if (!string.IsNullOrEmpty(deltaContent))
+                            var deltaContent = AIOutputSanitizer.ExtractVisibleContent(
+                                chunk.Choices[0].Delta?.Content,
+                                chunk.Choices[0].Delta?.ReasoningContent);
+                            if (!string.IsNullOrWhiteSpace(deltaContent))
                              {
                                  sb.Append(deltaContent);
                                  onChunkReceived?.Invoke(new ChatChunk 
@@ -378,6 +353,44 @@ namespace NovelManagement.AI.Services.Zhipu
              
              finalResponse.Content = sb.ToString();
              return finalResponse;
+        }
+
+        private static string NormalizeBaseUrl(string? baseUrl)
+        {
+            var normalized = string.IsNullOrWhiteSpace(baseUrl)
+                ? "https://open.bigmodel.cn/api/paas/v4/"
+                : baseUrl.Trim();
+
+            return normalized.EndsWith("/", StringComparison.Ordinal)
+                ? normalized
+                : normalized + "/";
+        }
+
+        private static async Task EnsureSuccessStatusCodeAsync(HttpResponseMessage responseMsg, CancellationToken cancellationToken)
+        {
+            if (responseMsg.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var errorBody = await responseMsg.Content.ReadAsStringAsync(cancellationToken);
+            var message = $"Zhipu API 请求失败: HTTP {(int)responseMsg.StatusCode} {responseMsg.StatusCode}";
+            if (!string.IsNullOrWhiteSpace(errorBody))
+            {
+                message += $", Body: {errorBody}";
+            }
+
+            throw new HttpRequestException(message);
+        }
+
+        private static double? TryGetDoubleParameter(IReadOnlyDictionary<string, object> parameters, string key)
+        {
+            if (!parameters.TryGetValue(key, out var value) || value == null)
+            {
+                return null;
+            }
+
+            return double.TryParse(value.ToString(), out var parsed) ? parsed : null;
         }
 
         private void UpdateStatistics(bool success, TimeSpan duration, TokenUsage? usage)

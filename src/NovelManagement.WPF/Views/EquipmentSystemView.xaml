@@ -218,21 +218,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="武器: "/>
-                                        <Run Text="{Binding WeaponCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding WeaponCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="防具: "/>
-                                        <Run Text="{Binding ArmorCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding ArmorCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="法宝: "/>
-                                        <Run Text="{Binding TreasureCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TreasureCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>

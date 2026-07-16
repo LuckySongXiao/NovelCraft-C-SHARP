@@ -31,7 +31,7 @@
                              VerticalAlignment="Center"/>
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
                     <Button Style="{StaticResource MaterialDesignRaisedButton}"
                             Margin="5,0"
                             Click="AddWorldSetting_Click">
@@ -98,16 +98,16 @@
                             </StackPanel>
                         </Button.Content>
                     </Button>
-                </StackPanel>
+                </WrapPanel>
             </Grid>
         </materialDesign:Card>
         
         <!-- 主内容区域 -->
         <Grid Grid.Row="1" Margin="10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300" MinWidth="240"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*" MinWidth="360"/>
             </Grid.ColumnDefinitions>
             
             <!-- 左侧：设定列表 -->
@@ -175,7 +175,8 @@
             
             <!-- 右侧：设定详情 -->
             <materialDesign:Card Grid.Column="2">
-                <ScrollViewer>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="DetailsPanel" Margin="20">
                         <!-- 设定详情将在代码中动态生成 -->
                         <TextBlock Text="请选择一个世界设定查看详情" 

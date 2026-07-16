@@ -49,8 +49,14 @@ namespace NovelManagement.AI.Services.Ollama.Models
         /// <summary>
         /// 并发请求数限制
         /// </summary>
-        [Range(1, 10)]
+        [Range(1, 20)]
         public int MaxConcurrentRequests { get; set; } = 3;
+
+        /// <summary>
+        /// 默认上下文窗口大小
+        /// </summary>
+        [Range(1024, 262144)]
+        public int ContextSize { get; set; } = 32768;
 
         /// <summary>
         /// 是否启用模型预加载
@@ -121,9 +127,14 @@ namespace NovelManagement.AI.Services.Ollama.Models
             }
 
             // 验证MaxConcurrentRequests
-            if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 10)
+            if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 20)
             {
-                errors.Add("MaxConcurrentRequests必须在1-10之间");
+                errors.Add("MaxConcurrentRequests必须在1-20之间");
+            }
+
+            if (ContextSize < 1024 || ContextSize > 262144)
+            {
+                errors.Add("ContextSize必须在1024-262144之间");
             }
 
             // 验证ModelKeepAliveMinutes
@@ -150,6 +161,7 @@ namespace NovelManagement.AI.Services.Ollama.Models
                 EnableGPU = EnableGPU,
                 GPUDeviceId = GPUDeviceId,
                 MaxConcurrentRequests = MaxConcurrentRequests,
+                ContextSize = ContextSize,
                 EnableModelPreload = EnableModelPreload,
                 ModelKeepAliveMinutes = ModelKeepAliveMinutes,
                 EnableVerboseLogging = EnableVerboseLogging,
@@ -196,6 +208,9 @@ namespace NovelManagement.AI.Services.Ollama.Models
             if (settings.TryGetValue("MaxConcurrentRequests", out var maxConcurrent) && int.TryParse(maxConcurrent.ToString(), out var maxConcurrentInt))
                 config.MaxConcurrentRequests = maxConcurrentInt;
 
+            if (settings.TryGetValue("ContextSize", out var contextSize) && int.TryParse(contextSize.ToString(), out var contextSizeInt))
+                config.ContextSize = contextSizeInt;
+
             if (settings.TryGetValue("EnableModelPreload", out var preload) && bool.TryParse(preload.ToString(), out var preloadBool))
                 config.EnableModelPreload = preloadBool;
 
@@ -223,6 +238,7 @@ namespace NovelManagement.AI.Services.Ollama.Models
                 ["EnableGPU"] = EnableGPU,
                 ["GPUDeviceId"] = GPUDeviceId,
                 ["MaxConcurrentRequests"] = MaxConcurrentRequests,
+                ["ContextSize"] = ContextSize,
                 ["EnableModelPreload"] = EnableModelPreload,
                 ["ModelKeepAliveMinutes"] = ModelKeepAliveMinutes,
                 ["EnableVerboseLogging"] = EnableVerboseLogging

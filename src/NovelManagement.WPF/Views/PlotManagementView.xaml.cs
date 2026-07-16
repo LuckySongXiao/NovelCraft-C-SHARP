@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -114,9 +115,14 @@ namespace NovelManagement.WPF.Views
         private PlotService? _plotService;
         private ProjectContextService? _projectContextService;
         private CurrentProjectGuard? _currentProjectGuard;
+        private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
         private AIAssistantService? _aiAssistantService;
+        private VolumeService? _volumeService;
+        private ChapterService? _chapterService;
         private ILogger<PlotManagementView>? _logger;
         private Guid _currentProjectId;
+        private bool _isChapterSyncSubscribed;
+        private string? _pendingHighlightedPlotTitle;
 
         /// <summary>
         /// 选择剧情命令
@@ -131,6 +137,8 @@ namespace NovelManagement.WPF.Views
             InitializeComponent();
             InitializeServices();
             InitializeCommands();
+            Loaded += PlotManagementView_Loaded;
+            Unloaded += PlotManagementView_Unloaded;
             _ = LoadPlotsAsync();
         }
 
@@ -151,7 +159,10 @@ namespace NovelManagement.WPF.Views
                 _plotService = serviceProvider.GetService<PlotService>();
                 _projectContextService = serviceProvider.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                _chapterContentSyncNotificationService = serviceProvider.GetService<ChapterContentSyncNotificationService>();
                 _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
+                _volumeService = serviceProvider.GetService<VolumeService>();
+                _chapterService = serviceProvider.GetService<ChapterService>();
                 _logger.LogInformation("剧情管理界面服务初始化完成");
             }
             catch (Exception ex)
@@ -198,6 +209,7 @@ namespace NovelManagement.WPF.Views
                 _filteredPlots = new List<PlotViewModel>(_allPlots);
                 UpdatePlotList();
                 ShowPlotStatistics();
+                TryHighlightPlotFromSync();
             }
             catch (Exception ex)
             {
@@ -297,16 +309,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var actionsPanel = new StackPanel
+                var actionsPanel = new WrapPanel
                 {
-                    Orientation = Orientation.Horizontal,
                     Margin = new Thickness(0, 0, 0, 16)
                 };
 
                 var editButton = new Button
                 {
                     Content = "编辑剧情",
-                    Margin = new Thickness(0, 0, 12, 0),
+                    Margin = new Thickness(0, 0, 12, 12),
                     MinWidth = 96
                 };
                 editButton.Click += async (_, _) => await EditPlotAsync(plot);
@@ -314,6 +325,7 @@ namespace NovelManagement.WPF.Views
                 var deleteButton = new Button
                 {
                     Content = "删除剧情",
+                    Margin = new Thickness(0, 0, 12, 12),
                     MinWidth = 96
                 };
                 deleteButton.Click += async (_, _) => await DeletePlotAsync(plot);
@@ -323,9 +335,10 @@ namespace NovelManagement.WPF.Views
 
                 var detailCard = new MaterialDesignThemes.Wpf.Card
                 {
-                    Padding = new Thickness(24),
+                    Padding = new Thickness(16),
                     Content = new ScrollViewer
                     {
+                        HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                         Content = new StackPanel
                         {
@@ -399,6 +412,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 var dialog = new PlotEditDialog();
+                dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() != true)
                 {
                     return;
@@ -497,6 +511,7 @@ namespace NovelManagement.WPF.Views
 
                 // 显示生成参数对话框
                 var dialog = new PlotGenerationDialog(_allPlots);
+                dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() == true)
                 {
                     var parameters = new Dictionary<string, object>
@@ -539,8 +554,14 @@ namespace NovelManagement.WPF.Views
                                         "中" => 6,
                                         _ => 3
                                     },
+                                    Outline = generatedPlot.Description,
                                     Notes = generatedPlot.Notes
                                 });
+
+                                if (dialog.SaveAsChapterDraft)
+                                {
+                                    await CreateChapterDraftAsync(createdPlot, generatedPlot.Description);
+                                }
 
                                 await LoadPlotsAsync();
                                 _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == createdPlot.Id);
@@ -591,6 +612,7 @@ namespace NovelManagement.WPF.Views
                 _logger?.LogInformation($"开始AI优化剧情: {_selectedPlot.Title}");
 
                 var dialog = new PlotOptimizationDialog(_selectedPlot);
+                dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() == true)
                 {
                     var optimizationGoals = dialog.SelectedOptimizationGoals;
@@ -627,10 +649,15 @@ namespace NovelManagement.WPF.Views
                                 plotEntity.Status = optimizedPlot.Status;
                                 plotEntity.Priority = _selectedPlot.Priority;
                                 plotEntity.Description = optimizedPlot.Description;
+                                plotEntity.Outline = optimizedPlot.Description;
                                 plotEntity.Progress = optimizedPlot.Progress;
                                 plotEntity.Notes = optimizedPlot.Notes;
 
                                 await _plotService.UpdatePlotAsync(plotEntity);
+                                if (dialog.SaveAsChapterDraft)
+                                {
+                                    await CreateChapterDraftAsync(plotEntity, optimizedPlot.Description);
+                                }
                                 await LoadPlotsAsync();
                                 _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == plotEntity.Id);
                                 if (_selectedPlot != null)
@@ -690,6 +717,7 @@ namespace NovelManagement.WPF.Views
                     if (result.IsSuccess && result.Data != null)
                     {
                         var continuityDialog = new PlotContinuityDialog(result.Data);
+                        continuityDialog.Owner = Window.GetWindow(this);
                         continuityDialog.ShowDialog();
 
                         _aiAssistantService.ShowSuccess("剧情连贯性检查完成");
@@ -739,7 +767,25 @@ namespace NovelManagement.WPF.Views
                     if (result.IsSuccess && result.Data != null)
                     {
                         var suggestionsDialog = new PlotSuggestionsDialog(result.Data);
-                        suggestionsDialog.ShowDialog();
+                        suggestionsDialog.Owner = Window.GetWindow(this);
+                        if (suggestionsDialog.ShowDialog() == true && suggestionsDialog.SaveToSelectedPlotNotes && _selectedPlot != null && _plotService != null)
+                        {
+                            var plotEntity = await _plotService.GetPlotByIdAsync(_selectedPlot.PlotId);
+                            if (plotEntity != null)
+                            {
+                                var suggestionText = suggestionsDialog.SuggestionsText;
+                                plotEntity.Notes = string.IsNullOrWhiteSpace(plotEntity.Notes)
+                                    ? suggestionText
+                                    : $"{plotEntity.Notes}{Environment.NewLine}{Environment.NewLine}AI建议：{Environment.NewLine}{suggestionText}";
+                                await _plotService.UpdatePlotAsync(plotEntity);
+                                await LoadPlotsAsync();
+                                _selectedPlot = _allPlots.FirstOrDefault(p => p.PlotId == plotEntity.Id);
+                                if (_selectedPlot != null)
+                                {
+                                    ShowPlotDetails(_selectedPlot);
+                                }
+                            }
+                        }
 
                         _aiAssistantService.ShowSuccess("剧情建议获取完成");
                         _logger?.LogInformation("AI获取剧情建议成功");
@@ -821,6 +867,57 @@ namespace NovelManagement.WPF.Views
             await LoadPlotsAsync();
         }
 
+        private void PlotManagementView_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_isChapterSyncSubscribed || _chapterContentSyncNotificationService == null)
+            {
+                return;
+            }
+
+            _chapterContentSyncNotificationService.ChapterContentSynced += OnChapterContentSynced;
+            _isChapterSyncSubscribed = true;
+        }
+
+        private void PlotManagementView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (!_isChapterSyncSubscribed || _chapterContentSyncNotificationService == null)
+            {
+                return;
+            }
+
+            _chapterContentSyncNotificationService.ChapterContentSynced -= OnChapterContentSynced;
+            _isChapterSyncSubscribed = false;
+        }
+
+        private void OnChapterContentSynced(object? sender, ChapterContentSyncedEventArgs e)
+        {
+            if (_currentProjectId == Guid.Empty || e.ProjectId != _currentProjectId)
+            {
+                return;
+            }
+
+            _logger?.LogInformation("收到章节同步通知，刷新剧情列表，ChapterId={ChapterId}", e.ChapterId);
+            _pendingHighlightedPlotTitle = e.Result.UpdatedPlotTitles.FirstOrDefault();
+            _ = Dispatcher.BeginInvoke(new Action(() => _ = LoadPlotsAsync()));
+        }
+
+        private void TryHighlightPlotFromSync()
+        {
+            if (string.IsNullOrWhiteSpace(_pendingHighlightedPlotTitle))
+            {
+                return;
+            }
+
+            var matchedPlot = _allPlots.FirstOrDefault(plot =>
+                string.Equals(plot.Title, _pendingHighlightedPlotTitle, StringComparison.OrdinalIgnoreCase));
+            _pendingHighlightedPlotTitle = null;
+
+            if (matchedPlot != null)
+            {
+                SelectPlot(matchedPlot);
+            }
+        }
+
         private async Task<Plot> PersistNewPlotAsync(PlotEditDialog dialog)
         {
             if (_plotService == null)
@@ -848,6 +945,53 @@ namespace NovelManagement.WPF.Views
             return await _plotService.CreatePlotAsync(plot);
         }
 
+        private async Task CreateChapterDraftAsync(Plot plot, string content)
+        {
+            if (_volumeService == null || _chapterService == null)
+            {
+                return;
+            }
+
+            var volume = await EnsureDefaultVolumeAsync();
+            var chapter = new Chapter
+            {
+                VolumeId = volume.Id,
+                Title = $"{plot.Title} - 剧情草稿",
+                Summary = plot.Description,
+                Content = content,
+                Status = "Draft",
+                Type = "PlotDraft",
+                Notes = $"由剧情“{plot.Title}”的 AI 生成结果自动创建。",
+                Importance = plot.Importance
+            };
+
+            await _chapterService.CreateChapterAsync(chapter);
+        }
+
+        private async Task<Volume> EnsureDefaultVolumeAsync()
+        {
+            if (_volumeService == null)
+            {
+                throw new InvalidOperationException("卷宗服务未初始化");
+            }
+
+            var volumes = (await _volumeService.GetVolumeListAsync(_currentProjectId)).ToList();
+            if (volumes.Count > 0)
+            {
+                return volumes[0];
+            }
+
+            return await _volumeService.CreateVolumeAsync(new Volume
+            {
+                ProjectId = _currentProjectId,
+                Title = "默认卷",
+                Description = "系统为 AI 生成内容自动创建的默认卷",
+                Status = "Planning",
+                Type = "默认",
+                Notes = "自动创建"
+            });
+        }
+
         private async Task EditPlotAsync(PlotViewModel plot)
         {
             if (_plotService == null)
@@ -864,6 +1008,7 @@ namespace NovelManagement.WPF.Views
             }
 
             var dialog = new PlotEditDialog(plot);
+            dialog.Owner = Window.GetWindow(this);
             if (dialog.ShowDialog() != true)
             {
                 return;
@@ -1067,6 +1212,11 @@ namespace NovelManagement.WPF.Views
         public List<string> PlotElements { get; set; } = new();
 
         /// <summary>
+        /// 是否同时保存为章节草稿。
+        /// </summary>
+        public bool SaveAsChapterDraft { get; private set; }
+
+        /// <summary>
         /// 初始化剧情生成参数对话框。
         /// </summary>
         /// <param name="existingPlots">当前项目已有剧情列表。</param>
@@ -1074,11 +1224,61 @@ namespace NovelManagement.WPF.Views
         {
             Title = "AI剧情生成参数";
             Width = 500;
-            Height = 600;
+            Height = 620;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
 
-            var result = MessageBox.Show("是否使用默认参数生成剧情？", "剧情生成", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            DialogResult = result == MessageBoxResult.Yes;
+            var plotTypeComboBox = new ComboBox { ItemsSource = new[] { "主线", "支线", "伏笔", "回忆", "番外" }, SelectedIndex = 1 };
+            var themeTextBox = new TextBox();
+            var targetChaptersTextBox = new TextBox { Text = "第10章-第15章" };
+            var relatedCharactersTextBox = new TextBox { AcceptsReturn = true, Height = 60, Text = string.Join("、", existingPlots.SelectMany(p => p.RelatedCharacters).Distinct().Take(6)) };
+            var elementsTextBox = new TextBox { AcceptsReturn = true, Height = 80, Text = "冲突、反转、成长" };
+            var saveAsChapterDraftCheckBox = new CheckBox { Content = "同时保存为章节草稿", IsChecked = true, Margin = new Thickness(0, 12, 0, 0) };
+
+            var panel = new StackPanel { Margin = new Thickness(24) };
+            panel.Children.Add(new TextBlock { Text = "剧情类型" });
+            panel.Children.Add(plotTypeComboBox);
+            panel.Children.Add(new TextBlock { Text = "剧情主题", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(themeTextBox);
+            panel.Children.Add(new TextBlock { Text = "目标章节范围", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(targetChaptersTextBox);
+            panel.Children.Add(new TextBlock { Text = "相关角色（使用顿号或换行分隔）", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(relatedCharactersTextBox);
+            panel.Children.Add(new TextBlock { Text = "剧情要素（使用顿号或换行分隔）", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(elementsTextBox);
+            panel.Children.Add(saveAsChapterDraftCheckBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+
+            var okButton = new Button { Content = "开始生成", Width = 96, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            okButton.Click += (_, _) =>
+            {
+                if (string.IsNullOrWhiteSpace(themeTextBox.Text))
+                {
+                    MessageBox.Show("请输入剧情主题。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                PlotType = plotTypeComboBox.SelectedItem?.ToString() ?? "支线";
+                Theme = themeTextBox.Text.Trim();
+                TargetChapters = targetChaptersTextBox.Text.Trim();
+                RelatedCharacters = PlotDialogHelpers.SplitInputValues(relatedCharactersTextBox.Text);
+                PlotElements = PlotDialogHelpers.SplitInputValues(elementsTextBox.Text);
+                SaveAsChapterDraft = saveAsChapterDraftCheckBox.IsChecked == true;
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button { Content = "取消", Width = 88, IsCancel = true };
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            panel.Children.Add(buttonPanel);
+
+            Content = new ScrollViewer { Content = panel };
         }
     }
 
@@ -1087,6 +1287,7 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PlotEditDialog : Window
     {
+        private readonly IAIAssistantService? _aiAssistantService;
         /// <summary>
         /// 编辑后的剧情标题。
         /// </summary>
@@ -1126,11 +1327,14 @@ namespace NovelManagement.WPF.Views
         /// <param name="plot">待编辑的剧情；为空时表示新建。</param>
         public PlotEditDialog(PlotManagementView.PlotViewModel? plot)
         {
+            _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
             Title = plot == null ? "新建剧情" : $"编辑剧情 - {plot.Title}";
-            Width = 520;
-            Height = 420;
+            Width = 760;
+            Height = 720;
+            MinWidth = 680;
+            MinHeight = 560;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            ResizeMode = ResizeMode.NoResize;
+            ResizeMode = ResizeMode.CanResize;
 
             var titleTextBox = new TextBox
             {
@@ -1152,14 +1356,22 @@ namespace NovelManagement.WPF.Views
             {
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Height = 140,
+                MinHeight = 260,
+                Height = 320,
                 Text = plot?.Description ?? string.Empty
             };
 
             typeComboBox.SelectedItem = plot?.Type ?? "支线";
             statusComboBox.SelectedItem = plot?.Status ?? "规划中";
             priorityComboBox.SelectedItem = plot?.Priority ?? "中";
+
+            var initialTitle = titleTextBox.Text;
+            var initialType = typeComboBox.SelectedItem?.ToString() ?? "支线";
+            var initialStatus = statusComboBox.SelectedItem?.ToString() ?? "规划中";
+            var initialPriority = priorityComboBox.SelectedItem?.ToString() ?? "中";
+            var initialDescription = descriptionTextBox.Text;
 
             var formPanel = new StackPanel { Margin = new Thickness(24) };
             formPanel.Children.Add(new TextBlock { Text = "剧情标题", Margin = new Thickness(0, 0, 0, 6) });
@@ -1173,11 +1385,82 @@ namespace NovelManagement.WPF.Views
             formPanel.Children.Add(new TextBlock { Text = "剧情描述", Margin = new Thickness(0, 12, 0, 6) });
             formPanel.Children.Add(descriptionTextBox);
 
-            var buttonPanel = new StackPanel
+            var buttonPanel = new WrapPanel
             {
-                Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 20, 0, 0)
+            };
+
+            var aiButton = new Button
+            {
+                Content = "AI自动补全",
+                Width = 100,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            var resetButton = new Button
+            {
+                Content = "重置内容",
+                Width = 100,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            aiButton.Click += async (_, _) =>
+            {
+                if (_aiAssistantService == null)
+                {
+                    MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var result = await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
+                {
+                    ["plotType"] = typeComboBox.SelectedItem?.ToString() ?? "支线",
+                    ["theme"] = titleTextBox.Text,
+                    ["requirements"] = $@"请补全一个剧情设定。
+标题：{titleTextBox.Text}
+剧情类型：{typeComboBox.SelectedItem}
+当前描述：{descriptionTextBox.Text}
+请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号：
+标题：
+剧情描述："
+                });
+
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var content = AiAutoFillFormatter.Normalize(result.Data.ToString());
+                if (string.IsNullOrWhiteSpace(titleTextBox.Text))
+                {
+                    var generatedTitle = AiAutoFillFormatter.ExtractSection(content, "标题", "名称");
+                    if (string.IsNullOrWhiteSpace(generatedTitle))
+                    {
+                        generatedTitle = AiAutoFillFormatter.ExtractFirstMeaningfulLine(content);
+                    }
+
+                    titleTextBox.Text = string.IsNullOrWhiteSpace(generatedTitle) ? "AI剧情" : generatedTitle;
+                }
+
+                if (string.IsNullOrWhiteSpace(descriptionTextBox.Text))
+                {
+                    descriptionTextBox.Text = AiAutoFillFormatter.ExtractSummary(content, "剧情描述", "描述", "简介");
+                }
+                else
+                {
+                    var summary = AiAutoFillFormatter.ExtractSummary(content, "剧情描述", "描述", "简介");
+                    descriptionTextBox.Text = string.IsNullOrWhiteSpace(summary)
+                        ? descriptionTextBox.Text
+                        : $"{descriptionTextBox.Text}{Environment.NewLine}{Environment.NewLine}{summary}";
+                }
+            };
+            resetButton.Click += (_, _) =>
+            {
+                titleTextBox.Text = initialTitle;
+                typeComboBox.SelectedItem = initialType;
+                statusComboBox.SelectedItem = initialStatus;
+                priorityComboBox.SelectedItem = initialPriority;
+                descriptionTextBox.Text = initialDescription;
             };
 
             var confirmButton = new Button
@@ -1210,12 +1493,24 @@ namespace NovelManagement.WPF.Views
                 IsCancel = true
             };
 
+            buttonPanel.Children.Add(aiButton);
+            buttonPanel.Children.Add(resetButton);
             buttonPanel.Children.Add(confirmButton);
             buttonPanel.Children.Add(cancelButton);
-            formPanel.Children.Add(buttonPanel);
 
-            Content = formPanel;
+            var contentPanel = new DockPanel();
+            DockPanel.SetDock(buttonPanel, Dock.Bottom);
+            contentPanel.Children.Add(buttonPanel);
+            contentPanel.Children.Add(new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = formPanel
+            });
+
+            Content = contentPanel;
         }
+
     }
 
     /// <summary>
@@ -1229,19 +1524,69 @@ namespace NovelManagement.WPF.Views
         public List<string> SelectedOptimizationGoals { get; set; } = new();
 
         /// <summary>
+        /// 是否将优化结果同时保存为章节草稿。
+        /// </summary>
+        public bool SaveAsChapterDraft { get; private set; }
+
+        /// <summary>
         /// 初始化剧情优化对话框。
         /// </summary>
         /// <param name="plot">待优化的剧情。</param>
         public PlotOptimizationDialog(PlotManagementView.PlotViewModel plot)
         {
             Title = $"优化剧情: {plot.Title}";
-            Width = 400;
-            Height = 350;
+            Width = 420;
+            Height = 360;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
 
-            SelectedOptimizationGoals = new List<string> { "完善剧情描述", "优化角色关系", "增强戏剧冲突", "改进节奏控制" };
-            var result = MessageBox.Show("是否使用默认优化目标？", "剧情优化", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            DialogResult = result == MessageBoxResult.Yes;
+            var goals = new[]
+            {
+                new CheckBox { Content = "完善剧情描述", IsChecked = true, Margin = new Thickness(0, 8, 0, 0) },
+                new CheckBox { Content = "优化角色关系", IsChecked = true, Margin = new Thickness(0, 8, 0, 0) },
+                new CheckBox { Content = "增强戏剧冲突", IsChecked = true, Margin = new Thickness(0, 8, 0, 0) },
+                new CheckBox { Content = "改进节奏控制", IsChecked = false, Margin = new Thickness(0, 8, 0, 0) }
+            };
+            var saveAsChapterDraftCheckBox = new CheckBox { Content = "同时保存为章节草稿", IsChecked = false, Margin = new Thickness(0, 12, 0, 0) };
+
+            var panel = new StackPanel { Margin = new Thickness(24) };
+            panel.Children.Add(new TextBlock { Text = "请选择要优化的目标：", FontSize = 15, FontWeight = FontWeights.Medium });
+            foreach (var checkbox in goals)
+            {
+                panel.Children.Add(checkbox);
+            }
+
+            panel.Children.Add(saveAsChapterDraftCheckBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 20, 0, 0)
+            };
+            var confirmButton = new Button { Content = "开始优化", Width = 96, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            confirmButton.Click += (_, _) =>
+            {
+                SelectedOptimizationGoals = goals.Where(g => g.IsChecked == true)
+                    .Select(g => g.Content?.ToString() ?? string.Empty)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToList();
+
+                if (SelectedOptimizationGoals.Count == 0)
+                {
+                    MessageBox.Show("请至少选择一个优化目标。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                SaveAsChapterDraft = saveAsChapterDraftCheckBox.IsChecked == true;
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button { Content = "取消", Width = 88, IsCancel = true };
+            buttonPanel.Children.Add(confirmButton);
+            buttonPanel.Children.Add(cancelButton);
+            panel.Children.Add(buttonPanel);
+            Content = panel;
         }
     }
 
@@ -1260,9 +1605,8 @@ namespace NovelManagement.WPF.Views
             Width = 700;
             Height = 500;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
-            MessageBox.Show("剧情连贯性检查结果已生成", "检查完成", MessageBoxButton.OK, MessageBoxImage.Information);
-            DialogResult = true;
+            var text = continuityData?.ToString() ?? "未返回检查结果。";
+            Content = PlotDialogHelpers.BuildResultLayout(text, allowSave: false, out _);
         }
     }
 
@@ -1271,6 +1615,16 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PlotSuggestionsDialog : Window
     {
+        /// <summary>
+        /// 当前建议文本。
+        /// </summary>
+        public string SuggestionsText { get; }
+
+        /// <summary>
+        /// 是否保存到选中剧情备注。
+        /// </summary>
+        public bool SaveToSelectedPlotNotes { get; private set; }
+
         /// <summary>
         /// 初始化剧情建议对话框。
         /// </summary>
@@ -1281,11 +1635,80 @@ namespace NovelManagement.WPF.Views
             Width = 600;
             Height = 450;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            SuggestionsText = suggestionsData?.ToString() ?? "未返回剧情建议。";
+            Content = PlotDialogHelpers.BuildResultLayout(SuggestionsText, allowSave: true, out var saveCheckBox);
 
-            MessageBox.Show("AI剧情建议已生成", "建议完成", MessageBoxButton.OK, MessageBoxImage.Information);
-            DialogResult = true;
+            Closed += (_, _) => SaveToSelectedPlotNotes = saveCheckBox?.IsChecked == true;
         }
     }
 
     #endregion
+}
+
+internal static class PlotDialogHelpers
+{
+    public static FrameworkElement BuildResultLayout(string text, bool allowSave, out CheckBox? saveCheckBox)
+    {
+        saveCheckBox = allowSave
+            ? new CheckBox { Content = "关闭时保存到当前剧情备注", Margin = new Thickness(0, 0, 0, 12), IsChecked = true }
+            : null;
+
+        var textBox = new TextBox
+        {
+            Text = text,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+
+        var panel = new DockPanel { Margin = new Thickness(24) };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+
+        var copyButton = new Button { Content = "复制结果", Width = 88, Margin = new Thickness(0, 0, 12, 0) };
+        copyButton.Click += (_, _) =>
+        {
+            Clipboard.SetText(text);
+            MessageBox.Show("结果已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        };
+
+        var closeButton = new Button { Content = "关闭", Width = 88, IsDefault = true };
+        closeButton.Click += (_, _) =>
+        {
+            var ownerWindow = Window.GetWindow(closeButton);
+            if (ownerWindow != null)
+            {
+                ownerWindow.DialogResult = true;
+                ownerWindow.Close();
+            }
+        };
+
+        buttons.Children.Add(copyButton);
+        buttons.Children.Add(closeButton);
+
+        var contentPanel = new StackPanel();
+        if (saveCheckBox != null)
+        {
+            contentPanel.Children.Add(saveCheckBox);
+        }
+
+        contentPanel.Children.Add(textBox);
+        contentPanel.Children.Add(buttons);
+        panel.Children.Add(contentPanel);
+        return panel;
+    }
+
+    public static List<string> SplitInputValues(string text)
+    {
+        return text.Split(new[] { '\r', '\n', '、', '，', ',', ';', '；' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => value.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct()
+            .ToList();
+    }
 }

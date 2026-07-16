@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.Ollama.Models;
+using NovelManagement.AI.Utilities;
 
 namespace NovelManagement.AI.Services.Ollama
 {
@@ -326,17 +327,21 @@ namespace NovelManagement.AI.Services.Ollama
                             if (chunkResponse != null)
                             {
                                 lastResponse = chunkResponse;
+                                var cleanChunkContent = AIOutputSanitizer.ExtractCleanOutput(chunkResponse.Message?.Content);
                                 
                                 var chunk = new ChatChunk
                                 {
                                     Id = Guid.NewGuid().ToString(),
-                                    Content = chunkResponse.Message?.Content ?? "",
+                                    Content = cleanChunkContent,
                                     IsComplete = chunkResponse.Done,
                                     FinishReason = chunkResponse.DoneReason
                                 };
                                 
-                                fullContent.Append(chunk.Content);
-                                onChunkReceived(chunk);
+                                if (!string.IsNullOrWhiteSpace(chunk.Content) || chunk.IsComplete)
+                                {
+                                    fullContent.Append(chunk.Content);
+                                    onChunkReceived(chunk);
+                                }
                                 
                                 if (chunkResponse.Done) break;
                             }
@@ -928,7 +933,8 @@ namespace NovelManagement.AI.Services.Ollama
             ollamaRequest.Options = new OllamaOptions
             {
                 Temperature = request.Temperature,
-                NumPredict = request.MaxTokens > 0 ? request.MaxTokens : null
+                NumPredict = request.MaxTokens > 0 ? request.MaxTokens : null,
+                NumCtx = _configuration.ContextSize > 0 ? _configuration.ContextSize : null
             };
 
             // 添加自定义参数
@@ -976,12 +982,16 @@ namespace NovelManagement.AI.Services.Ollama
                 };
             }
 
+            var rawContent = ollamaResponse.Message?.Content;
+            var cleanContent = AIOutputSanitizer.ExtractCleanOutput(rawContent);
+            var finishReason = ollamaResponse.DoneReason ?? (ollamaResponse.Done ? "stop" : "length");
+
             var response = new ChatResponse
             {
                 Id = Guid.NewGuid().ToString(),
                 Model = ollamaResponse.Model,
-                Content = ollamaResponse.Message?.Content ?? "",
-                FinishReason = ollamaResponse.DoneReason ?? (ollamaResponse.Done ? "stop" : "length"),
+                Content = cleanContent,
+                FinishReason = finishReason,
                 ResponseTime = DateTime.Now - startTime,
                 IsSuccess = true
             };

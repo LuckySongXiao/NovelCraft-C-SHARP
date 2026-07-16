@@ -217,21 +217,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="成文法系: "/>
-                                        <Run Text="{Binding WrittenLawCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding WrittenLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="判例法系: "/>
-                                        <Run Text="{Binding CaseLawCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding CaseLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="宗教法系: "/>
-                                        <Run Text="{Binding ReligiousLawCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding ReligiousLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>

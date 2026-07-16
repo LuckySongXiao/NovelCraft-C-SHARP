@@ -217,21 +217,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="修仙界: "/>
-                                        <Run Text="{Binding CultivationWorldCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding CultivationWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="凡人界: "/>
-                                        <Run Text="{Binding MortalWorldCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding MortalWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="其他界: "/>
-                                        <Run Text="{Binding OtherWorldCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding OtherWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>

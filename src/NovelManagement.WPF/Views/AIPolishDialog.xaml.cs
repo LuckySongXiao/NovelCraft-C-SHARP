@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -25,6 +27,7 @@ namespace NovelManagement.WPF.Views
         private bool _isPolishing;
         private ObservableCollection<PolishReplacement> _replacements;
         private string _polishedFullText = string.Empty;
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
         #endregion
 
@@ -285,8 +288,29 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // TODO: 实现润色历史记录功能
-                MessageBox.Show("润色历史记录功能正在开发中", "提示",
+                var historyDirectory = GetPolishHistoryDirectory();
+                Directory.CreateDirectory(historyDirectory);
+
+                var dialog = new PolishHistoryDialog(historyDirectory)
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.SelectedHistoryPath))
+                {
+                    return;
+                }
+
+                var record = LoadPolishHistoryRecord(dialog.SelectedHistoryPath);
+                if (record == null)
+                {
+                    MessageBox.Show("历史记录内容无效。", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                ApplyHistoryRecord(record);
+                MessageBox.Show($"已载入润色记录：{record.Title}", "加载成功",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -299,13 +323,11 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 批量润色按钮点击事件
         /// </summary>
-        private void BatchPolish_Click(object sender, RoutedEventArgs e)
+        private async void BatchPolish_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // TODO: 实现批量润色功能
-                MessageBox.Show("批量润色功能正在开发中", "提示",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                await BatchPolishContentAsync();
             }
             catch (Exception ex)
             {
@@ -430,10 +452,11 @@ namespace NovelManagement.WPF.Views
                     }
                     else
                     {
-                        // 如果润色内容为空，使用模拟内容
-                        GenerateMockReplacements();
-                        MessageBox.Show("AI润色返回空内容，已生成模拟内容", "提示",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        PolishProgressBar.Visibility = Visibility.Collapsed;
+                        PolishStatusTextBlock.Visibility = Visibility.Collapsed;
+                        MessageBox.Show("AI润色返回空内容，未生成可用结果。请调整要求或切换模型后重试。", "错误",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
                     }
 
                     UpdatePolishedWordCount();
@@ -441,6 +464,7 @@ namespace NovelManagement.WPF.Views
                     UpdateReplacementStats();
                     await GenerateSmartSuggestionsAsync();
                     await GenerateQualityAnalysisAsync();
+                    SavePolishHistoryRecord(BuildPolishHistoryRecord());
 
                     PolishProgressBar.Value = 100;
                     PolishStatusTextBlock.Text = "文本润色完成！";
@@ -457,14 +481,9 @@ namespace NovelManagement.WPF.Views
                 {
                     PolishProgressBar.Visibility = Visibility.Collapsed;
                     PolishStatusTextBlock.Visibility = Visibility.Collapsed;
-
-                    // 如果AI服务失败，使用模拟内容
-                    GenerateMockReplacements();
-                    await GenerateSmartSuggestionsAsync();
-                    await GenerateQualityAnalysisAsync();
-
-                    MessageBox.Show($"AI润色失败，已生成模拟内容：{result.Message}", "提示",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"AI润色失败：{result.Message}", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
                 }
             }
             catch (Exception ex)
@@ -496,40 +515,195 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成模拟润色内容（降级fallback：AI服务不可用时使用）
+        /// 按段落分块执行批量润色，适合较长正文。
         /// </summary>
-        private string GenerateMockPolishedContent()
+        private async Task BatchPolishContentAsync()
         {
-            var targetStyle = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致";
-            var intensity = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色";
-
-            // 简单的模拟润色：根据风格调整一些词汇
-            var polished = _originalContent;
-
-            if (targetStyle == "古典雅致")
+            if (_isPolishing)
             {
-                polished = polished.Replace("说", "道")
-                                 .Replace("看", "望")
-                                 .Replace("很", "甚")
-                                 .Replace("非常", "极为")
-                                 .Replace("突然", "忽然");
-            }
-            else if (targetStyle == "现代简洁")
-            {
-                polished = polished.Replace("忽然", "突然")
-                                 .Replace("甚", "很")
-                                 .Replace("极为", "非常")
-                                 .Replace("道", "说");
-            }
-            else if (targetStyle == "诗意优美")
-            {
-                polished = polished.Replace("天空", "苍穹")
-                                 .Replace("雷声", "雷鸣")
-                                 .Replace("山峰", "峰峦")
-                                 .Replace("威压", "威势");
+                return;
             }
 
-            return polished + "\n\n（已根据" + targetStyle + "风格进行" + intensity + "）";
+            try
+            {
+                _isPolishing = true;
+                PolishButton.IsEnabled = false;
+                PolishProgressBar.Visibility = Visibility.Visible;
+                PolishStatusTextBlock.Visibility = Visibility.Visible;
+                PolishStatusTextBlock.Text = "正在拆分长文本...";
+                PolishProgressBar.Value = 5;
+
+                if (_aiAssistantService == null)
+                {
+                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var chunks = SplitContentForBatchPolish(_originalContent);
+                if (chunks.Count == 0)
+                {
+                    chunks.Add(_originalContent);
+                }
+
+                var polishedChunks = new List<string>(chunks.Count);
+
+                for (var index = 0; index < chunks.Count; index++)
+                {
+                    var chunk = chunks[index];
+                    PolishStatusTextBlock.Text = $"正在批量润色第 {index + 1}/{chunks.Count} 段...";
+                    PolishProgressBar.Value = 10 + (index * 70.0 / chunks.Count);
+
+                    var parameters = BuildPolishParameters(chunk, index + 1, chunks.Count);
+                    var result = await _aiAssistantService.PolishTextAsync(parameters);
+                    var polishedChunk = result.IsSuccess && result.Data != null
+                        ? ExtractPolishedTextFromResult(result.Data)
+                        : string.Empty;
+
+                    if (string.IsNullOrWhiteSpace(polishedChunk))
+                    {
+                        throw new InvalidOperationException(
+                            $"第 {index + 1} 段润色失败：{result.Message ?? "AI 返回空内容"}");
+                    }
+
+                    polishedChunks.Add(polishedChunk.Trim());
+                }
+
+                PolishStatusTextBlock.Text = "正在合并批量润色结果...";
+                PolishProgressBar.Value = 85;
+
+                var mergedContent = string.Join(Environment.NewLine + Environment.NewLine, polishedChunks
+                    .Where(chunk => !string.IsNullOrWhiteSpace(chunk)));
+                if (string.IsNullOrWhiteSpace(mergedContent))
+                {
+                    throw new InvalidOperationException("批量润色未返回可用结果。");
+                }
+
+                ApplyPolishedResult(mergedContent);
+                await GenerateSmartSuggestionsAsync();
+                await GenerateQualityAnalysisAsync();
+                SavePolishHistoryRecord(BuildPolishHistoryRecord());
+
+                PolishProgressBar.Value = 100;
+                PolishStatusTextBlock.Text = $"批量润色完成，共处理 {chunks.Count} 段。";
+
+                await Task.Delay(1000);
+                PolishProgressBar.Visibility = Visibility.Collapsed;
+                PolishStatusTextBlock.Visibility = Visibility.Collapsed;
+
+                MessageBox.Show(
+                    $"批量润色完成，共处理 {chunks.Count} 段。",
+                    "成功",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                PolishProgressBar.Visibility = Visibility.Collapsed;
+                PolishStatusTextBlock.Visibility = Visibility.Collapsed;
+                MessageBox.Show($"批量润色失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isPolishing = false;
+                PolishButton.IsEnabled = true;
+
+                if (PolishProgressBar.Visibility == Visibility.Visible)
+                {
+                    PolishProgressBar.Visibility = Visibility.Collapsed;
+                    PolishStatusTextBlock.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        private Dictionary<string, object> BuildPolishParameters(string content, int chunkIndex = 1, int totalChunks = 1)
+        {
+            var specialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty;
+            if (totalChunks > 1)
+            {
+                var batchTip = $"当前为批量润色片段 {chunkIndex}/{totalChunks}，请保持与前后文风格一致，不要添加分段说明。";
+                specialRequirements = string.IsNullOrWhiteSpace(specialRequirements)
+                    ? batchTip
+                    : $"{specialRequirements}；{batchTip}";
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["OriginalContent"] = content,
+                ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
+                ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
+                ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
+                ["SpecialRequirements"] = specialRequirements,
+                ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
+                ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
+                ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
+                ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
+                ["AutoCorrect"] = AutoCorrectCheckBox.IsChecked == true,
+                ["EnhanceDescription"] = EnhanceDescriptionCheckBox.IsChecked == true,
+                ["OptimizeDialogue"] = OptimizeDialogueCheckBox.IsChecked == true,
+                ["PreserveStyle"] = PreserveStyleCheckBox.IsChecked == true
+            };
+        }
+
+        private void ApplyPolishedResult(string polishedContent)
+        {
+            PolishedContentTextBox.Text = polishedContent;
+            _polishedFullText = polishedContent;
+            GenerateTextDifferenceReplacements(_originalContent, polishedContent);
+            UpdatePolishedWordCount();
+            UpdateImprovementIndicator();
+            UpdateReplacementStats();
+        }
+
+        private List<string> SplitContentForBatchPolish(string content, int targetChunkLength = 1200, int maxChunkLength = 1800)
+        {
+            var chunks = new List<string>();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return chunks;
+            }
+
+            var paragraphs = Regex.Split(content.Replace("\r\n", "\n"), @"\n\s*\n")
+                .Select(paragraph => paragraph.Trim())
+                .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph))
+                .ToList();
+
+            if (paragraphs.Count == 0)
+            {
+                chunks.Add(content.Trim());
+                return chunks;
+            }
+
+            var currentChunk = new List<string>();
+            var currentLength = 0;
+
+            foreach (var paragraph in paragraphs)
+            {
+                var paragraphLength = paragraph.Length;
+                var nextLength = currentLength + paragraphLength + (currentChunk.Count > 0 ? 2 : 0);
+                if (currentChunk.Count > 0 && nextLength > maxChunkLength)
+                {
+                    chunks.Add(string.Join(Environment.NewLine + Environment.NewLine, currentChunk));
+                    currentChunk.Clear();
+                    currentLength = 0;
+                }
+
+                currentChunk.Add(paragraph);
+                currentLength += paragraphLength + (currentChunk.Count > 1 ? 2 : 0);
+
+                if (currentLength >= targetChunkLength)
+                {
+                    chunks.Add(string.Join(Environment.NewLine + Environment.NewLine, currentChunk));
+                    currentChunk.Clear();
+                    currentLength = 0;
+                }
+            }
+
+            if (currentChunk.Count > 0)
+            {
+                chunks.Add(string.Join(Environment.NewLine + Environment.NewLine, currentChunk));
+            }
+
+            return chunks.Where(chunk => !string.IsNullOrWhiteSpace(chunk)).ToList();
         }
 
         /// <summary>
@@ -883,46 +1057,6 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 生成模拟替换项（降级fallback：AI服务不可用或返回空时使用）
-        /// </summary>
-        private void GenerateMockReplacements()
-        {
-            _replacements.Clear();
-
-            var mockReplacements = new[]
-            {
-                new { Original = "说", Replacement = "道", Type = "词汇优化" },
-                new { Original = "看", Replacement = "望", Type = "词汇优化" },
-                new { Original = "很", Replacement = "甚", Type = "语言风格" },
-                new { Original = "非常", Replacement = "极为", Type = "语言风格" },
-                new { Original = "突然", Replacement = "忽然", Type = "表达优化" }
-            };
-
-            foreach (var mock in mockReplacements)
-            {
-                var position = _originalContent.IndexOf(mock.Original);
-                if (position >= 0)
-                {
-                    var replacement = new PolishReplacement
-                    {
-                        OriginalText = mock.Original,
-                        ReplacementText = mock.Replacement,
-                        Position = position,
-                        Length = mock.Original.Length,
-                        ReplacementType = mock.Type,
-                        IsSelected = true,
-                        Description = $"{mock.Type}：{mock.Original} → {mock.Replacement}",
-                        Context = GetContext(position, mock.Original.Length)
-                    };
-
-                    _replacements.Add(replacement);
-                }
-            }
-
-            GeneratePreviewText();
-        }
-
-        /// <summary>
         /// 更新替换项统计
         /// </summary>
         private void UpdateReplacementStats()
@@ -1225,8 +1359,202 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ApplyAllSmartSuggestions()
         {
-            // TODO: 实现应用所有智能建议的逻辑
-            // 这里可以根据建议类型对文本进行相应的优化
+            if (string.IsNullOrWhiteSpace(PolishedContentTextBox.Text) && string.IsNullOrWhiteSpace(_polishedFullText))
+            {
+                MessageBox.Show("当前没有可应用的润色内容。", "提示",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            foreach (var replacement in _replacements)
+            {
+                replacement.IsSelected = true;
+            }
+
+            GeneratePreviewText();
+
+            var optimizedText = ApplyHeuristicSuggestions(PolishedContentTextBox.Text);
+            if (!string.Equals(optimizedText, PolishedContentTextBox.Text, StringComparison.Ordinal))
+            {
+                PolishedContentTextBox.Text = optimizedText;
+                _polishedFullText = optimizedText;
+            }
+
+            UpdatePolishedWordCount();
+            UpdateImprovementIndicator();
+            UpdateReplacementStats();
+            SavePolishHistoryRecord(BuildPolishHistoryRecord());
+        }
+
+        private string ApplyHeuristicSuggestions(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var result = text;
+
+            if (AutoCorrectCheckBox.IsChecked == true)
+            {
+                result = NormalizeCommonPunctuation(result);
+            }
+
+            if (EnhanceDescriptionCheckBox.IsChecked == true)
+            {
+                result = EnhanceDescriptivePhrasing(result);
+            }
+
+            if (OptimizeDialogueCheckBox.IsChecked == true)
+            {
+                result = OptimizeDialogueFormatting(result);
+            }
+
+            if (PreserveStyleCheckBox.IsChecked != true)
+            {
+                result = Regex.Replace(result, @"\n{3,}", "\n\n");
+            }
+
+            return result.Trim();
+        }
+
+        private static string NormalizeCommonPunctuation(string text)
+        {
+            var normalized = text
+                .Replace("。。", "。")
+                .Replace("！！", "！")
+                .Replace("？？", "？")
+                .Replace("，。", "。")
+                .Replace("。！", "！")
+                .Replace("。？", "？");
+
+            normalized = Regex.Replace(normalized, @"[ \t]+\r?\n", Environment.NewLine);
+            normalized = Regex.Replace(normalized, @"\r?\n{3,}", Environment.NewLine + Environment.NewLine);
+            return normalized;
+        }
+
+        private static string EnhanceDescriptivePhrasing(string text)
+        {
+            var replacements = new Dictionary<string, string>
+            {
+                ["很好"] = "颇为出色",
+                ["很快"] = "转瞬之间",
+                ["很强"] = "强横非常",
+                ["很安静"] = "静得只余微弱回响",
+                ["很亮"] = "明亮得近乎耀眼"
+            };
+
+            var result = text;
+            foreach (var pair in replacements)
+            {
+                result = result.Replace(pair.Key, pair.Value, StringComparison.Ordinal);
+            }
+
+            return result;
+        }
+
+        private static string OptimizeDialogueFormatting(string text)
+        {
+            var result = text.Replace("\"", "“");
+            result = Regex.Replace(result, "“([^”\\n]+)“", "“$1”");
+            result = Regex.Replace(result, @"([。！？])([^\r\n“])", $"$1{Environment.NewLine}$2");
+            return result;
+        }
+
+        private PolishHistoryRecord BuildPolishHistoryRecord()
+        {
+            return new PolishHistoryRecord
+            {
+                Title = string.IsNullOrWhiteSpace(_originalContent)
+                    ? $"润色记录_{DateTime.Now:yyyyMMdd_HHmmss}"
+                    : $"{_originalContent.Substring(0, Math.Min(20, _originalContent.Length)).Replace(Environment.NewLine, " ")}...",
+                OriginalContent = _originalContent,
+                PolishedContent = PolishedContentTextBox.Text ?? string.Empty,
+                AIModel = (AIModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                TargetStyle = (TargetStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                PolishIntensity = (PolishIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                PreserveElements = (PreserveElementsComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                SpecialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty,
+                ReplacementCount = _replacements.Count,
+                SavedAt = DateTime.Now
+            };
+        }
+
+        private void SavePolishHistoryRecord(PolishHistoryRecord record)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(record.PolishedContent))
+                {
+                    return;
+                }
+
+                var historyDirectory = GetPolishHistoryDirectory();
+                Directory.CreateDirectory(historyDirectory);
+                var filePath = Path.Combine(historyDirectory, $"{record.SavedAt:yyyyMMdd_HHmmssfff}_{SanitizeFileName(record.Title)}.json");
+                File.WriteAllText(filePath, JsonSerializer.Serialize(record, _jsonSerializerOptions));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"保存润色历史失败: {ex.Message}");
+            }
+        }
+
+        private PolishHistoryRecord? LoadPolishHistoryRecord(string filePath)
+        {
+            var json = File.ReadAllText(filePath);
+            return JsonSerializer.Deserialize<PolishHistoryRecord>(json);
+        }
+
+        private void ApplyHistoryRecord(PolishHistoryRecord record)
+        {
+            OriginalContentTextBox.Text = record.OriginalContent;
+            PolishedContentTextBox.Text = record.PolishedContent;
+            _polishedFullText = record.PolishedContent;
+
+            SetComboBoxSelection(AIModelComboBox, record.AIModel);
+            SetComboBoxSelection(TargetStyleComboBox, record.TargetStyle);
+            SetComboBoxSelection(PolishIntensityComboBox, record.PolishIntensity);
+            SetComboBoxSelection(PreserveElementsComboBox, record.PreserveElements);
+            SpecialRequirementsTextBox.Text = record.SpecialRequirements;
+
+            UpdateOriginalWordCount();
+            UpdatePolishedWordCount();
+            UpdateImprovementIndicator();
+            GenerateTextDifferenceReplacements(record.OriginalContent, record.PolishedContent);
+            _ = GenerateSmartSuggestionsAsync();
+            _ = GenerateQualityAnalysisAsync();
+        }
+
+        private static void SetComboBoxSelection(ComboBox comboBox, string? content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
+            foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private static string GetPolishHistoryDirectory()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NovelManagement",
+                "history",
+                "polish");
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            return string.Concat(name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
         }
 
         /// <summary>
@@ -1297,8 +1625,23 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"生成文本差异替换项失败: {ex.Message}");
-                // 如果分析失败，使用模拟替换项
-                GenerateMockReplacements();
+                _replacements.Clear();
+                if (originalText != polishedText)
+                {
+                    _replacements.Add(new PolishReplacement
+                    {
+                        OriginalText = originalText,
+                        ReplacementText = polishedText,
+                        Position = 0,
+                        Length = originalText.Length,
+                        ReplacementType = "整体润色",
+                        IsSelected = true,
+                        Description = "差异分析失败，已退化为全文替换项",
+                        Context = "全文内容"
+                    });
+                }
+
+                UpdateReplacementStats();
             }
         }
 
@@ -1402,5 +1745,177 @@ namespace NovelManagement.WPF.Views
         /// 上下文（前后文）
         /// </summary>
         public string Context { get; set; } = string.Empty;
+    }
+
+    internal sealed class PolishHistoryRecord
+    {
+        public string Title { get; set; } = string.Empty;
+        public string OriginalContent { get; set; } = string.Empty;
+        public string PolishedContent { get; set; } = string.Empty;
+        public string AIModel { get; set; } = string.Empty;
+        public string TargetStyle { get; set; } = string.Empty;
+        public string PolishIntensity { get; set; } = string.Empty;
+        public string PreserveElements { get; set; } = string.Empty;
+        public string SpecialRequirements { get; set; } = string.Empty;
+        public int ReplacementCount { get; set; }
+        public DateTime SavedAt { get; set; }
+    }
+
+    internal sealed class PolishHistoryDialog : Window
+    {
+        private readonly string _historyDirectory;
+        private readonly ListBox _historyListBox;
+        private readonly TextBox _previewTextBox;
+        public string? SelectedHistoryPath { get; private set; }
+
+        public PolishHistoryDialog(string historyDirectory)
+        {
+            _historyDirectory = historyDirectory;
+            Title = "润色历史记录";
+            Width = 860;
+            Height = 560;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            _historyListBox = new ListBox { Margin = new Thickness(0, 0, 12, 0), DisplayMemberPath = nameof(PolishHistoryListItem.DisplayText) };
+            _previewTextBox = new TextBox
+            {
+                IsReadOnly = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            };
+
+            _historyListBox.SelectionChanged += (_, _) => UpdatePreview();
+            RefreshHistory();
+
+            var root = new Grid { Margin = new Thickness(20) };
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
+            root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var header = new TextBlock
+            {
+                Text = "请选择要查看或回填的润色记录：",
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            Grid.SetColumnSpan(header, 3);
+            root.Children.Add(header);
+
+            Grid.SetRow(_historyListBox, 1);
+            Grid.SetColumn(_historyListBox, 0);
+            root.Children.Add(_historyListBox);
+
+            Grid.SetRow(_previewTextBox, 1);
+            Grid.SetColumn(_previewTextBox, 2);
+            root.Children.Add(_previewTextBox);
+
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 16, 0, 0)
+            };
+
+            var deleteButton = new Button { Content = "删除", Width = 84, Margin = new Thickness(0, 0, 12, 0) };
+            deleteButton.Click += (_, _) =>
+            {
+                if (_historyListBox.SelectedItem is not PolishHistoryListItem item)
+                {
+                    MessageBox.Show("请先选择一条历史记录。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                if (MessageBox.Show($"确定删除记录“{item.Title}”吗？", "确认删除",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                File.Delete(item.FilePath);
+                RefreshHistory();
+                _previewTextBox.Clear();
+            };
+
+            var loadButton = new Button { Content = "载入", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            loadButton.Click += (_, _) =>
+            {
+                if (_historyListBox.SelectedItem is not PolishHistoryListItem item)
+                {
+                    MessageBox.Show("请先选择一条历史记录。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                SelectedHistoryPath = item.FilePath;
+                DialogResult = true;
+            };
+
+            var cancelButton = new Button { Content = "关闭", Width = 84, IsCancel = true };
+
+            buttons.Children.Add(deleteButton);
+            buttons.Children.Add(loadButton);
+            buttons.Children.Add(cancelButton);
+
+            Grid.SetRow(buttons, 2);
+            Grid.SetColumnSpan(buttons, 3);
+            root.Children.Add(buttons);
+
+            Content = root;
+        }
+
+        private void RefreshHistory()
+        {
+            Directory.CreateDirectory(_historyDirectory);
+            _historyListBox.ItemsSource = Directory.GetFiles(_historyDirectory, "*.json")
+                .Select(filePath => new PolishHistoryListItem
+                {
+                    FilePath = filePath,
+                    Title = Path.GetFileNameWithoutExtension(filePath),
+                    DisplayText = $"{Path.GetFileNameWithoutExtension(filePath)}\n{File.GetLastWriteTime(filePath):yyyy-MM-dd HH:mm:ss}"
+                })
+                .OrderByDescending(item => File.GetLastWriteTime(item.FilePath))
+                .ToList();
+        }
+
+        private void UpdatePreview()
+        {
+            if (_historyListBox.SelectedItem is not PolishHistoryListItem item)
+            {
+                _previewTextBox.Clear();
+                return;
+            }
+
+            try
+            {
+                var record = JsonSerializer.Deserialize<PolishHistoryRecord>(File.ReadAllText(item.FilePath));
+                if (record == null)
+                {
+                    _previewTextBox.Text = "记录内容无效。";
+                    return;
+                }
+
+                _previewTextBox.Text =
+                    $"标题: {record.Title}{Environment.NewLine}" +
+                    $"时间: {record.SavedAt:yyyy-MM-dd HH:mm:ss}{Environment.NewLine}" +
+                    $"模型: {record.AIModel}{Environment.NewLine}" +
+                    $"目标风格: {record.TargetStyle}{Environment.NewLine}" +
+                    $"润色强度: {record.PolishIntensity}{Environment.NewLine}" +
+                    $"替换建议数: {record.ReplacementCount}{Environment.NewLine}{Environment.NewLine}" +
+                    $"原文:{Environment.NewLine}{record.OriginalContent}{Environment.NewLine}{Environment.NewLine}" +
+                    $"润色后:{Environment.NewLine}{record.PolishedContent}";
+            }
+            catch (Exception ex)
+            {
+                _previewTextBox.Text = $"读取记录失败：{ex.Message}";
+            }
+        }
+    }
+
+    internal sealed class PolishHistoryListItem
+    {
+        public string FilePath { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string DisplayText { get; set; } = string.Empty;
     }
 }

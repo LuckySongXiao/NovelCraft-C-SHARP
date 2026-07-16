@@ -34,6 +34,9 @@ namespace NovelManagement.AI.Services.Zhipu.Models
         [JsonProperty("content")]
         public string Content { get; set; } = string.Empty;
 
+        [JsonProperty("reasoning_content")]
+        public string? ReasoningContent { get; set; }
+
         public static ZhipuMessage CreateUserMessage(string content) => new() { Role = "user", Content = content };
         public static ZhipuMessage CreateSystemMessage(string content) => new() { Role = "system", Content = content };
         public static ZhipuMessage CreateAssistantMessage(string content) => new() { Role = "assistant", Content = content };

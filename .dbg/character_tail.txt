@@ -1,0 +1,75 @@
+1061:            var keyEvents = AiAutoFillFormatter.ExtractSection(content, "关键事件", "重要事件", "事件");
+1062:            var characterType = AiAutoFillFormatter.ExtractSection(content, "角色类型", "类型");
+1063:            var cultivationLevel = AiAutoFillFormatter.ExtractSection(content, "修炼境界", "境界", "修为");
+1064:            var tags = AiAutoFillFormatter.ExtractSection(content, "标签");
+1065:            var notes = AiAutoFillFormatter.ExtractSection(content, "备注");
+1066:
+1067:            if (string.IsNullOrWhiteSpace(character.Name))
+1068:            {
+1069:                character.Name = !string.IsNullOrWhiteSpace(name)
+1070:                    ? name.Trim('�?, '-', ' ', ':', '�?, '�?, '�?)
+1071:                    : AiAutoFillFormatter.ExtractFirstMeaningfulLine(content) ?? "AI生成角色";
+1072:            }
+1073:
+1074:            if (string.IsNullOrWhiteSpace(character.Type) && !string.IsNullOrWhiteSpace(characterType))
+1075:            {
+1076:                character.Type = characterType;
+1077:            }
+1078:
+1079:            if (string.IsNullOrWhiteSpace(character.CultivationLevel) && !string.IsNullOrWhiteSpace(cultivationLevel))
+1080:            {
+1081:                character.CultivationLevel = cultivationLevel;
+1082:            }
+1083:
+1084:            character.Notes = FirstNonEmpty(character.Notes, notes, summary, content);
+1085:            character.Background = FirstNonEmpty(character.Background, background, summary, content);
+1086:            character.Appearance = FirstNonEmpty(character.Appearance, appearance, summary);
+1087:            character.Personality = FirstNonEmpty(character.Personality, personality, summary);
+1088:            character.Abilities = FirstNonEmpty(character.Abilities, abilities, summary);
+1089:            character.History = FirstNonEmpty(character.History, history, background, summary);
+1090:            character.KeyEvents = FirstNonEmpty(character.KeyEvents, keyEvents, history, summary);
+1091:            character.Tags = FirstNonEmpty(character.Tags, tags);
+1092:
+1093:            EnsureCharacterFallbackFields(character, summary ?? content);
+1094:        }
+1095:
+1096:        private static void EnsureCharacterFallbackFields(Character character, string? narrative)
+1097:        {
+1098:            var fallback = string.IsNullOrWhiteSpace(narrative) ? "由AI生成的角色，待进一步补全�? : narrative;
+1099:            character.Name = string.IsNullOrWhiteSpace(character.Name) ? "AI生成角色" : character.Name;
+1100:            character.Type = string.IsNullOrWhiteSpace(character.Type) ? "主角" : character.Type;
+1101:            character.CultivationLevel = string.IsNullOrWhiteSpace(character.CultivationLevel) ? "筑基�? : character.CultivationLevel;
+1102:            character.Notes = string.IsNullOrWhiteSpace(character.Notes) ? fallback : character.Notes;
+1103:            character.Background = string.IsNullOrWhiteSpace(character.Background) ? fallback : character.Background;
+1104:            character.Appearance = string.IsNullOrWhiteSpace(character.Appearance) ? fallback : character.Appearance;
+1105:            character.Personality = string.IsNullOrWhiteSpace(character.Personality) ? fallback : character.Personality;
+1106:            character.Abilities = string.IsNullOrWhiteSpace(character.Abilities) ? fallback : character.Abilities;
+1107:            character.History = string.IsNullOrWhiteSpace(character.History) ? fallback : character.History;
+1108:            character.KeyEvents = string.IsNullOrWhiteSpace(character.KeyEvents) ? fallback : character.KeyEvents;
+1109:        }
+1110:
+1111:        private static string? FirstNonEmpty(params string?[] values)
+1112:        {
+1113:            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+1114:        }
+1115:
+1116:    public class RelationshipAnalysisDialog : Window
+1117:    {
+1118:        /// <summary>
+1119:        /// 初始�?RelationshipAnalysisDialog 的新实例
+1120:        /// </summary>
+1121:        /// <param name="analysisData">关系分析结果数据</param>
+1122:        public RelationshipAnalysisDialog(object analysisData)
+1123:        {
+1124:            Title = "角色关系分析结果";
+1125:            Width = 600;
+1126:            Height = 400;
+1127:            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+1128:
+1129:            // 这里应该显示具体的分析结果，暂时简�?            MessageBox.Show("角色关系分析结果已生�?, "分析完成", MessageBoxButton.OK, MessageBoxImage.Information);
+1130:            DialogResult = true;
+1131:        }
+1132:    }
+1133:
+1134:    #endregion
+1135:}

@@ -9,6 +9,8 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public partial class NewProjectDialog : Window
     {
+        private const string DefaultTemplateName = "标准模板";
+
         /// <summary>
         /// 新建项目的数据模型
         /// </summary>
@@ -139,7 +141,7 @@ namespace NovelManagement.WPF.Views
                 EnableAI = EnableAICheckBox.IsChecked ?? false,
                 AutoSave = AutoSaveCheckBox.IsChecked ?? false,
                 VersionControl = VersionControlCheckBox.IsChecked ?? false,
-                Template = ((ComboBoxItem)ProjectTemplateComboBox.SelectedItem).Content.ToString() ?? string.Empty
+                Template = ((ComboBoxItem?)ProjectTemplateComboBox.SelectedItem)?.Content?.ToString() ?? DefaultTemplateName
             };
 
             // 解析目标字数
@@ -172,11 +174,6 @@ namespace NovelManagement.WPF.Views
                 ProjectData = CollectFormData();
                 IsConfirmed = true;
 
-                // TODO: 这里应该调用实际的项目创建服务
-                // await _projectService.CreateProjectAsync(ProjectData);
-
-                MessageBox.Show($"项目 '{ProjectData.Name}' 创建成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                
                 DialogResult = true;
                 Close();
             }

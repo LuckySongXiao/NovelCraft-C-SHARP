@@ -1,8 +1,10 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -184,7 +186,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ExportConfig_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出配置功能正在开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            _ = ExportConfigAsync();
         }
 
         /// <summary>
@@ -192,7 +194,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ImportConfig_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入配置功能正在开发中", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            _ = ImportConfigAsync();
         }
 
         #endregion
@@ -222,14 +224,18 @@ namespace NovelManagement.WPF.Views
         private void ApplyConfiguration(AIModelConfigService.ModelConfiguration config)
         {
             // 应用全局设置
-            DefaultModelComboBox.SelectedItem = config.DefaultModel;
+            SelectComboBoxItem(DefaultModelComboBox, config.DefaultModel);
             TimeoutSlider.Value = config.TimeoutSeconds;
             EnableCacheCheckBox.IsChecked = config.EnableCache;
             EnableLoggingCheckBox.IsChecked = config.EnableLogging;
+            ApiKeyPasswordBox.Password = config.ApiKey ?? string.Empty;
 
             // 应用功能特定设置
+            SelectComboBoxItem(DialogueModelComboBox, config.DialogueModel);
             DialogueCreativitySlider.Value = config.DialogueCreativity;
             DialogueMaxLengthSlider.Value = config.DialogueMaxLength;
+            SelectComboBoxItem(AnalysisModelComboBox, config.AnalysisModel);
+            SelectComboBoxItem(FactionModelComboBox, config.FactionModel);
         }
 
         /// <summary>
@@ -286,6 +292,111 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "更新性能指标失败");
+            }
+        }
+
+        private async Task ExportConfigAsync()
+        {
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "导出AI模型配置",
+                    Filter = "JSON文件|*.json",
+                    DefaultExt = "json",
+                    FileName = $"ai-model-config_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                SaveConfigButton.IsEnabled = false;
+                StatusText.Text = "正在导出配置...";
+                await _configService.ExportConfigurationAsync(GetCurrentConfiguration(), dialog.FileName);
+                StatusText.Text = $"配置已导出到 {Path.GetFileName(dialog.FileName)}";
+                MessageBox.Show($"配置已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导出配置失败");
+                StatusText.Text = "导出配置失败";
+                MessageBox.Show($"导出配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SaveConfigButton.IsEnabled = true;
+            }
+        }
+
+        private async Task ImportConfigAsync()
+        {
+            try
+            {
+                var dialog = new OpenFileDialog
+                {
+                    Title = "导入AI模型配置",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    DefaultExt = "json",
+                    CheckFileExists = true,
+                    Multiselect = false
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                SaveConfigButton.IsEnabled = false;
+                StatusText.Text = "正在导入配置...";
+                var config = await _configService.ImportConfigurationAsync(dialog.FileName);
+                ApplyConfiguration(config);
+                await _configService.SaveConfigurationAsync(config);
+                StatusText.Text = $"已导入并应用配置: {Path.GetFileName(dialog.FileName)}";
+                MessageBox.Show("配置导入成功，已自动应用并保存到本地。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导入配置失败");
+                StatusText.Text = "导入配置失败";
+                MessageBox.Show($"导入配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SaveConfigButton.IsEnabled = true;
+            }
+        }
+
+        private static void SelectComboBoxItem(ComboBox comboBox, string? expectedValue)
+        {
+            if (string.IsNullOrWhiteSpace(expectedValue))
+            {
+                if (comboBox.Items.Count > 0)
+                {
+                    comboBox.SelectedIndex = 0;
+                }
+
+                return;
+            }
+
+            foreach (var item in comboBox.Items)
+            {
+                if (item is ComboBoxItem comboBoxItem)
+                {
+                    var content = comboBoxItem.Content?.ToString();
+                    if (string.Equals(content, expectedValue, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(content) && content.StartsWith(expectedValue, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        comboBox.SelectedItem = comboBoxItem;
+                        return;
+                    }
+                }
+            }
+
+            if (comboBox.Items.Count > 0)
+            {
+                comboBox.SelectedIndex = 0;
             }
         }
 

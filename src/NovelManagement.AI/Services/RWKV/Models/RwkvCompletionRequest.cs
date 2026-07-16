@@ -87,6 +87,54 @@ namespace NovelManagement.AI.Services.RWKV.Models
     }
 
     /// <summary>
+    /// RWKV 批量续写单项结果
+    /// </summary>
+    public class RwkvBatchCompletionItem
+    {
+        /// <summary>
+        /// 对应输入提示词的索引
+        /// </summary>
+        [JsonPropertyName("index")]
+        public int Index { get; set; }
+
+        /// <summary>
+        /// 生成文本
+        /// </summary>
+        [JsonPropertyName("text")]
+        public string Text { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 生成 token 数
+        /// </summary>
+        [JsonPropertyName("tokens_generated")]
+        public int TokensGenerated { get; set; }
+    }
+
+    /// <summary>
+    /// RWKV 批量续写响应
+    /// </summary>
+    public class RwkvBatchCompletionResponse
+    {
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        [JsonPropertyName("success")]
+        public bool Success { get; set; } = true;
+
+        /// <summary>
+        /// 错误信息
+        /// </summary>
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+
+        /// <summary>
+        /// 批量结果
+        /// </summary>
+        [JsonPropertyName("items")]
+        public List<RwkvBatchCompletionItem> Items { get; set; } = new();
+    }
+
+    /// <summary>
     /// RWKV 服务状态响应
     /// </summary>
     public class RwkvStatusResponse

@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using NovelManagement.Core.Entities;
+using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
 {
@@ -33,7 +35,12 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                CharacterNameText.Text = Character.Name;
+                CharacterNameText.Text = AiAutoFillFormatter.ExtractSingleLineValue(
+                    Character.Name,
+                    "姓名", "名字", "角色名", "名称");
+                CharacterNameText.Text = string.IsNullOrWhiteSpace(CharacterNameText.Text)
+                    ? "未命名角色"
+                    : CharacterNameText.Text;
                 CharacterTypeChip.Content = Character.Type;
                 CharacterFactionChip.Content = Character.Faction?.Name ?? "无";
                 CharacterCultivationText.Text = Character.CultivationLevel ?? "未知";
@@ -52,7 +59,13 @@ namespace NovelManagement.WPF.Views
             try
             {
                 // 只有当输入的姓名与角色姓名完全匹配时才启用删除按钮
-                DeleteButton.IsEnabled = ConfirmNameTextBox.Text.Trim() == Character.Name;
+                var input = ConfirmNameTextBox.Text?.Trim() ?? string.Empty;
+                var expectedName = AiAutoFillFormatter.ExtractSingleLineValue(
+                    Character.Name,
+                    "姓名", "名字", "角色名", "名称");
+
+                DeleteButton.IsEnabled = string.IsNullOrWhiteSpace(input) ||
+                                         string.Equals(input, expectedName, StringComparison.OrdinalIgnoreCase);
             }
             catch (Exception ex)
             {
@@ -70,7 +83,7 @@ namespace NovelManagement.WPF.Views
             {
                 // 最后一次确认
                 var result = MessageBox.Show(
-                    $"您确定要删除角色 '{Character.Name}' 吗？\n\n此操作不可撤销！",
+                    $"您确定要删除角色 '{CharacterNameText.Text}' 吗？\n\n此操作不可撤销！",
                     "最终确认",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,

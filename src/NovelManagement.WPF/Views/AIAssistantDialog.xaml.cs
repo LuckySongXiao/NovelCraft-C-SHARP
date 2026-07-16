@@ -9,8 +9,12 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.AI.Interfaces;
+using NovelManagement.AI.Services;
+using NovelManagement.AI.Utilities;
 
 namespace NovelManagement.WPF.Views
 {
@@ -23,6 +27,8 @@ namespace NovelManagement.WPF.Views
 
         private readonly string _contextInfo;
         private readonly ILogger<AIAssistantDialog>? _logger;
+        private readonly IConfiguration? _configuration;
+        private readonly ModelManager? _modelManager;
         private bool _isProcessing = false;
 
         #endregion
@@ -53,10 +59,12 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _logger = App.ServiceProvider?.GetService<ILogger<AIAssistantDialog>>();
+                _configuration = App.ServiceProvider?.GetService<IConfiguration>();
+                _modelManager = App.ServiceProvider?.GetService<ModelManager>();
             }
             catch
             {
-                // 忽略日志记录器获取失败
+                // 忽略服务获取失败
             }
             
             // 设置焦点到输入框
@@ -84,7 +92,29 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("AI设置功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var configWindow = new Window
+                {
+                    Title = "AI配置管理",
+                    Width = 1200,
+                    Height = 800,
+                    WindowStartupLocation = Owner != null
+                        ? WindowStartupLocation.CenterOwner
+                        : WindowStartupLocation.CenterScreen,
+                    Owner = Owner ?? this,
+                    Content = new AIConfigurationView()
+                };
+
+                configWindow.ShowDialog();
+                UpdateStatus("已打开AI配置");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "打开 AI 配置窗口时发生错误");
+                MessageBox.Show($"打开AI配置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                UpdateStatus("错误");
+            }
         }
 
         /// <summary>
@@ -200,8 +230,7 @@ namespace NovelManagement.WPF.Views
                 // 清空输入框
                 InputTextBox.Clear();
 
-                // 模拟AI响应（实际应用中应该调用真实的AI服务）
-                var response = await SimulateAIResponse(message);
+                var response = await GetAIResponseAsync(message);
                 
                 // 添加AI响应到对话
                 AddAIMessage(response);
@@ -223,63 +252,86 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
-        /// 模拟AI响应
+        /// 调用真实 AI 服务
         /// </summary>
-        private async Task<string> SimulateAIResponse(string userMessage)
+        private async Task<string> GetAIResponseAsync(string userMessage)
         {
-            // 模拟网络延迟
-            await Task.Delay(1000);
+            if (_modelManager == null)
+            {
+                throw new InvalidOperationException("AI 模型管理器未初始化。");
+            }
 
-            // 根据用户消息生成模拟响应
-            if (userMessage.Contains("生成") || userMessage.Contains("创建"))
+            var preferredProvider = (ModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                ?? _configuration?["AI:DefaultProvider"]
+                ?? "DeepSeek";
+            var providerName = _modelManager.ResolvePreferredProviderName(preferredProvider);
+            if (string.IsNullOrWhiteSpace(providerName))
             {
-                return "我理解您想要生成新的设定。基于当前上下文，我建议创建一个具有以下特点的设定：\n\n" +
-                       "1. 与现有世界观保持一致\n" +
-                       "2. 具有独特的特色和吸引力\n" +
-                       "3. 为后续剧情发展留有空间\n\n" +
-                       "请告诉我您希望生成什么类型的设定，我会为您提供详细的建议。";
+                throw new InvalidOperationException("没有可用的 AI 提供者。");
             }
-            else if (userMessage.Contains("分析"))
+
+            var request = new ChatRequest
             {
-                return "根据您提供的上下文信息，我对当前设定进行了分析：\n\n" +
-                       "**优点：**\n" +
-                       "- 设定逻辑清晰，符合世界观\n" +
-                       "- 具有良好的扩展性\n\n" +
-                       "**建议改进：**\n" +
-                       "- 可以增加更多细节描述\n" +
-                       "- 考虑与其他设定的关联性\n\n" +
-                       "您希望我重点分析哪个方面？";
-            }
-            else if (userMessage.Contains("优化"))
+                Model = ResolveModelName(providerName),
+                SystemPrompt = BuildAssistantSystemPrompt(),
+                Messages = new List<ChatMessage>
+                {
+                    new()
+                    {
+                        Role = "user",
+                        Content = userMessage,
+                        Timestamp = DateTime.UtcNow
+                    }
+                },
+                Temperature = 0.7,
+                MaxTokens = 3000
+            };
+
+            var response = await _modelManager.ChatAsync(providerName, request);
+            if (!response.IsSuccess)
             {
-                return "基于当前设定，我提供以下优化建议：\n\n" +
-                       "1. **增强独特性**：添加更多独特元素，使设定更加出色\n" +
-                       "2. **完善细节**：补充必要的背景信息和具体描述\n" +
-                       "3. **平衡性调整**：确保设定在整个体系中保持平衡\n" +
-                       "4. **关联性强化**：与其他相关设定建立更紧密的联系\n\n" +
-                       "您希望我详细展开哪个方面的建议？";
+                throw new InvalidOperationException(response.ErrorMessage ?? "AI 响应失败。");
             }
-            else if (userMessage.Contains("一致性") || userMessage.Contains("检查"))
+
+            var cleanContent = AIOutputSanitizer.ExtractCleanOutput(response.Content);
+            if (string.IsNullOrWhiteSpace(cleanContent))
             {
-                return "我已对当前设定进行一致性检查：\n\n" +
-                       "**检查结果：**\n" +
-                       "✅ 与核心世界观一致\n" +
-                       "✅ 时间线逻辑正确\n" +
-                       "⚠️ 建议检查与相关设定的关联性\n\n" +
-                       "**发现的潜在问题：**\n" +
-                       "- 某些细节可能需要进一步明确\n" +
-                       "- 建议补充相关的背景设定\n\n" +
-                       "需要我详细说明任何特定的问题吗？";
+                throw new InvalidOperationException("AI 返回空内容。");
             }
-            else
+
+            return cleanContent;
+        }
+
+        private string BuildAssistantSystemPrompt()
+        {
+            var contextBlock = string.IsNullOrWhiteSpace(_contextInfo)
+                ? "当前未提供额外上下文。"
+                : _contextInfo;
+
+            return
+                "你是小说设定管理助手，负责帮助用户生成设定、分析设定、优化设定和做一致性检查。" +
+                "允许内部 thinking，但最终输出必须是干净、直接、可执行的中文答复，不要暴露思考过程。" +
+                $"{Environment.NewLine}{Environment.NewLine}当前上下文：{Environment.NewLine}{contextBlock}";
+        }
+
+        private string ResolveModelName(string providerName)
+        {
+            var defaultModel = _configuration?[$"AI:Providers:{providerName}:DefaultModel"];
+            if (string.IsNullOrWhiteSpace(defaultModel) && string.Equals(providerName, "DeepSeek", StringComparison.OrdinalIgnoreCase))
             {
-                return "感谢您的问题！我正在分析您的需求。基于当前的上下文信息，我可以为您提供以下帮助：\n\n" +
-                       "- 生成新的创意设定\n" +
-                       "- 分析现有设定的合理性\n" +
-                       "- 提供优化和改进建议\n" +
-                       "- 检查设定间的一致性\n\n" +
-                       "请告诉我您具体需要什么帮助，我会为您提供详细的建议和方案。";
+                defaultModel = _configuration?["AI:Providers:DeepSeek:Model"];
             }
+
+            if (string.IsNullOrWhiteSpace(defaultModel) && string.Equals(providerName, "LlamaCpp", StringComparison.OrdinalIgnoreCase))
+            {
+                var modelPath = _configuration?["AI:Providers:LlamaCpp:ModelPath"];
+                if (!string.IsNullOrWhiteSpace(modelPath))
+                {
+                    defaultModel = System.IO.Path.GetFileNameWithoutExtension(modelPath);
+                }
+            }
+
+            return defaultModel ?? string.Empty;
         }
 
         /// <summary>

@@ -150,19 +150,19 @@
                 <!-- 工作流控制按钮 -->
                 <materialDesign:Card Grid.Row="4" Padding="16">
                     <StackPanel>
-                        <Button Content="创建项目初始化工作流" 
+                        <Button Content="执行项目初始化工作流" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Margin="0,0,0,8"
                               Click="CreateProjectInitWorkflow_Click"/>
-                        <Button Content="创建章节创建工作流" 
+                        <Button Content="执行章节创建工作流" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Margin="0,0,0,8"
                               Click="CreateChapterWorkflow_Click"/>
-                        <Button Content="创建内容审查工作流" 
+                        <Button Content="执行内容审查工作流" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Margin="0,0,0,8"
                               Click="CreateReviewWorkflow_Click"/>
-                        <Button Content="创建一致性检查工作流" 
+                        <Button Content="执行一致性检查工作流" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Margin="0,0,0,0"
                               Click="CreateConsistencyWorkflow_Click"/>
@@ -317,7 +317,7 @@
                                 <StackPanel Margin="0,8,0,0">
                                     <TextBox x:Name="TestPromptTextBox"
                                            materialDesign:HintAssist.Hint="输入测试提示词"
-                                           Text="你好，请介绍一下你自己。"
+                                           Text="输入项目设定、章节大纲或待审查文本，然后点击下方工作流或发送测试。"
                                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                            AcceptsReturn="True"
                                            TextWrapping="Wrap"
@@ -432,9 +432,6 @@
                                   Style="{StaticResource MaterialDesignOutlinedButton}"
                                   Margin="0,0,8,0"
                                   Click="HideAllThinkingChains_Click"/>
-                            <Button Content="显示测试"
-                                  Style="{StaticResource MaterialDesignRaisedButton}"
-                                  Click="ShowTestThinkingChain_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </materialDesign:Card>

@@ -75,11 +75,11 @@
                                         Margin="0,0,0,16"
                                         SelectedIndex="0">
                                     <ComboBoxItem Content="TXT - 纯文本格式" Tag="TXT"/>
+                                    <ComboBoxItem Content="EXCEL - Excel表格格式" Tag="EXCEL"/>
                                     <ComboBoxItem Content="DOCX - Word文档格式" Tag="DOCX"/>
-                                    <ComboBoxItem Content="PDF - PDF文档格式" Tag="PDF"/>
-                                    <ComboBoxItem Content="EPUB - 电子书格式" Tag="EPUB"/>
                                     <ComboBoxItem Content="HTML - 网页格式" Tag="HTML"/>
                                     <ComboBoxItem Content="MARKDOWN - Markdown格式" Tag="MARKDOWN"/>
+                                    <ComboBoxItem Content="JSON - JSON数据格式" Tag="JSON"/>
                                 </ComboBox>
 
                                 <!-- 导出范围选择 -->
@@ -381,6 +381,7 @@
                                         Margin="0,0,0,16"
                                         SelectedIndex="0">
                                     <ComboBoxItem Content="EXCEL - Excel表格文件" Tag="EXCEL"/>
+                                    <ComboBoxItem Content="DOCX - Word文档文件" Tag="DOCX"/>
                                     <ComboBoxItem Content="CSV - 逗号分隔值文件" Tag="CSV"/>
                                     <ComboBoxItem Content="TXT - 纯文本文件" Tag="TXT"/>
                                     <ComboBoxItem Content="JSON - JSON数据文件" Tag="JSON"/>

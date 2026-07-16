@@ -31,7 +31,123 @@ namespace NovelManagement.WPF.Views
         private AIAssistantService? _aiAssistantService;
         private ProjectContextService? _projectContextService;
         private CurrentProjectGuard? _currentProjectGuard;
+        private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
         private ILogger<CharacterManagementView>? _logger;
+        private bool _isChapterSyncSubscribed;
+        private string? _pendingHighlightedCharacterName;
+
+        private static void EnrichGeneratedCharacter(Character character, string? rawContent)
+        {
+            var content = AiAutoFillFormatter.Normalize(rawContent);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                EnsureCharacterFallbackFields(character, null);
+                return;
+            }
+
+            var name = AiAutoFillFormatter.ExtractSection(content, "姓名", "名字", "角色名", "名称");
+            var summary = AiAutoFillFormatter.ExtractSummary(content, "简介", "描述", "角色描述", "概述", "人物简介");
+            var appearance = AiAutoFillFormatter.ExtractSection(content, "外貌", "外貌特征", "外观");
+            var personality = AiAutoFillFormatter.ExtractSection(content, "性格", "性格特点", "性情");
+            var background = AiAutoFillFormatter.ExtractSection(content, "背景", "背景故事", "身世", "出身");
+            var abilities = AiAutoFillFormatter.ExtractSection(content, "能力", "特殊能力", "技能", "功法");
+            var history = AiAutoFillFormatter.ExtractSection(content, "经历", "人生经历", "履历");
+            var keyEvents = AiAutoFillFormatter.ExtractSection(content, "关键事件", "重要事件", "事件");
+            var characterType = AiAutoFillFormatter.ExtractSection(content, "角色类型", "类型");
+            var cultivationLevel = AiAutoFillFormatter.ExtractSection(content, "修炼境界", "境界", "修为");
+            var tags = AiAutoFillFormatter.ExtractSection(content, "标签");
+            var notes = AiAutoFillFormatter.ExtractSection(content, "备注");
+
+            var cleanedExistingName = AiAutoFillFormatter.ExtractSingleLineValue(character.Name, "姓名", "名字", "角色名", "名称");
+            var cleanedGeneratedName = AiAutoFillFormatter.ExtractSingleLineValue(name, "姓名", "名字", "角色名", "名称");
+
+            if (string.IsNullOrWhiteSpace(character.Name) ||
+                AiAutoFillFormatter.HasFieldPrefix(character.Name, "姓名", "名字", "角色名", "名称"))
+            {
+                var fallbackName = AiAutoFillFormatter.ExtractSingleLineValue(
+                    AiAutoFillFormatter.ExtractFirstMeaningfulLine(content),
+                    "姓名", "名字", "角色名", "名称");
+                character.Name = !string.IsNullOrWhiteSpace(cleanedGeneratedName)
+                    ? cleanedGeneratedName
+                    : (string.IsNullOrWhiteSpace(fallbackName) ? "AI生成角色" : fallbackName);
+            }
+            else if (!string.IsNullOrWhiteSpace(cleanedExistingName))
+            {
+                character.Name = cleanedExistingName;
+            }
+
+            if (string.IsNullOrWhiteSpace(character.Type) && !string.IsNullOrWhiteSpace(characterType))
+            {
+                character.Type = characterType;
+            }
+
+            if (string.IsNullOrWhiteSpace(character.CultivationLevel) && !string.IsNullOrWhiteSpace(cultivationLevel))
+            {
+                character.CultivationLevel = cultivationLevel;
+            }
+
+            character.Notes = FirstNonEmpty(character.Notes, notes, summary, content);
+            character.Background = FirstNonEmpty(character.Background, background, summary, content);
+            character.Appearance = FirstNonEmpty(character.Appearance, appearance, summary);
+            character.Personality = FirstNonEmpty(character.Personality, personality, summary);
+            character.Abilities = FirstNonEmpty(character.Abilities, abilities, summary);
+            character.History = FirstNonEmpty(character.History, history, background, summary);
+            character.KeyEvents = FirstNonEmpty(character.KeyEvents, keyEvents, history, summary);
+            character.Tags = FirstNonEmpty(character.Tags, tags);
+
+            EnsureCharacterFallbackFields(character, summary ?? content);
+        }
+
+        private static void EnsureCharacterFallbackFields(Character character, string? narrative)
+        {
+            var fallback = string.IsNullOrWhiteSpace(narrative) ? "由AI生成的角色，待进一步补全。" : narrative;
+            character.Name = string.IsNullOrWhiteSpace(character.Name) ? "AI生成角色" : character.Name;
+            character.Type = string.IsNullOrWhiteSpace(character.Type) ? "主角" : character.Type;
+            character.CultivationLevel = string.IsNullOrWhiteSpace(character.CultivationLevel) ? "筑基期" : character.CultivationLevel;
+            character.Notes = string.IsNullOrWhiteSpace(character.Notes) ? fallback : character.Notes;
+            character.Background = string.IsNullOrWhiteSpace(character.Background) ? fallback : character.Background;
+            character.Appearance = string.IsNullOrWhiteSpace(character.Appearance) ? fallback : character.Appearance;
+            character.Personality = string.IsNullOrWhiteSpace(character.Personality) ? fallback : character.Personality;
+            character.Abilities = string.IsNullOrWhiteSpace(character.Abilities) ? fallback : character.Abilities;
+            character.History = string.IsNullOrWhiteSpace(character.History) ? fallback : character.History;
+            character.KeyEvents = string.IsNullOrWhiteSpace(character.KeyEvents) ? fallback : character.KeyEvents;
+        }
+
+        private static string? FirstNonEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        }
+
+        private static Character MergeOptimizedCharacter(Character originalCharacter, Character optimizedCharacter)
+        {
+            optimizedCharacter.Id = originalCharacter.Id;
+            optimizedCharacter.ProjectId = originalCharacter.ProjectId;
+            optimizedCharacter.CreatedAt = originalCharacter.CreatedAt;
+            optimizedCharacter.UpdatedAt = DateTime.UtcNow;
+            optimizedCharacter.Name = FirstNonEmpty(
+                AiAutoFillFormatter.ExtractSingleLineValue(optimizedCharacter.Name, "姓名", "名字", "角色名", "名称"),
+                AiAutoFillFormatter.ExtractSingleLineValue(originalCharacter.Name, "姓名", "名字", "角色名", "名称")) ?? "AI生成角色";
+            optimizedCharacter.Type = FirstNonEmpty(optimizedCharacter.Type, originalCharacter.Type) ?? "主角";
+            optimizedCharacter.Gender = FirstNonEmpty(optimizedCharacter.Gender, originalCharacter.Gender);
+            optimizedCharacter.Age ??= originalCharacter.Age;
+            optimizedCharacter.CultivationLevel = FirstNonEmpty(optimizedCharacter.CultivationLevel, originalCharacter.CultivationLevel) ?? "筑基期";
+            optimizedCharacter.FactionId ??= originalCharacter.FactionId;
+            optimizedCharacter.RaceId ??= originalCharacter.RaceId;
+            optimizedCharacter.Importance = optimizedCharacter.Importance <= 0 ? originalCharacter.Importance : optimizedCharacter.Importance;
+            optimizedCharacter.Appearance = FirstNonEmpty(optimizedCharacter.Appearance, originalCharacter.Appearance);
+            optimizedCharacter.Personality = FirstNonEmpty(optimizedCharacter.Personality, originalCharacter.Personality);
+            optimizedCharacter.Background = FirstNonEmpty(optimizedCharacter.Background, originalCharacter.Background);
+            optimizedCharacter.Abilities = FirstNonEmpty(optimizedCharacter.Abilities, originalCharacter.Abilities);
+            optimizedCharacter.AvatarPath = FirstNonEmpty(optimizedCharacter.AvatarPath, originalCharacter.AvatarPath);
+            optimizedCharacter.Tags = FirstNonEmpty(optimizedCharacter.Tags, originalCharacter.Tags);
+            optimizedCharacter.Notes = FirstNonEmpty(optimizedCharacter.Notes, originalCharacter.Notes);
+            optimizedCharacter.Status = FirstNonEmpty(optimizedCharacter.Status, originalCharacter.Status) ?? "Active";
+            optimizedCharacter.FirstAppearanceChapterId ??= originalCharacter.FirstAppearanceChapterId;
+            optimizedCharacter.LastAppearanceChapterId ??= originalCharacter.LastAppearanceChapterId;
+            optimizedCharacter.History = FirstNonEmpty(optimizedCharacter.History, originalCharacter.History);
+            optimizedCharacter.KeyEvents = FirstNonEmpty(optimizedCharacter.KeyEvents, originalCharacter.KeyEvents);
+            return optimizedCharacter;
+        }
 
         /// <summary>
         /// 选择角色命令
@@ -52,6 +168,8 @@ namespace NovelManagement.WPF.Views
             InitializeServices();
             InitializeCommands();
             LoadCharactersAsync();
+            Loaded += CharacterManagementView_Loaded;
+            Unloaded += CharacterManagementView_Unloaded;
 
             // 设置DataContext为当前实例，以便XAML中的命令绑定能够工作
             DataContext = this;
@@ -72,6 +190,7 @@ namespace NovelManagement.WPF.Views
                     _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                     _projectContextService = serviceProvider.GetService<ProjectContextService>();
                     _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                    _chapterContentSyncNotificationService = serviceProvider.GetService<ChapterContentSyncNotificationService>();
                     _logger = serviceProvider.GetService<ILogger<CharacterManagementView>>();
                 }
 
@@ -134,6 +253,7 @@ namespace NovelManagement.WPF.Views
                 _filteredCharacters = new List<Character>(_allCharacters);
                 UpdateCharacterList();
                 UpdateOverviewStatistics();
+                TryHighlightCharacterFromSync();
 
                 _logger?.LogInformation($"成功加载 {_allCharacters.Count} 个角色");
             }
@@ -159,6 +279,58 @@ namespace NovelManagement.WPF.Views
         {
             LoadCharactersAsync();
             return Task.CompletedTask;
+        }
+
+        private void CharacterManagementView_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_isChapterSyncSubscribed || _chapterContentSyncNotificationService == null)
+            {
+                return;
+            }
+
+            _chapterContentSyncNotificationService.ChapterContentSynced += OnChapterContentSynced;
+            _isChapterSyncSubscribed = true;
+        }
+
+        private void CharacterManagementView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (!_isChapterSyncSubscribed || _chapterContentSyncNotificationService == null)
+            {
+                return;
+            }
+
+            _chapterContentSyncNotificationService.ChapterContentSynced -= OnChapterContentSynced;
+            _isChapterSyncSubscribed = false;
+        }
+
+        private void OnChapterContentSynced(object? sender, ChapterContentSyncedEventArgs e)
+        {
+            var currentProjectId = GetCurrentProjectId();
+            if (currentProjectId == Guid.Empty || e.ProjectId != currentProjectId)
+            {
+                return;
+            }
+
+            _logger?.LogInformation("收到章节同步通知，刷新角色列表，ChapterId={ChapterId}", e.ChapterId);
+            _pendingHighlightedCharacterName = e.Result.UpdatedCharacterNames.FirstOrDefault();
+            _ = Dispatcher.InvokeAsync(LoadCharactersAsync);
+        }
+
+        private void TryHighlightCharacterFromSync()
+        {
+            if (string.IsNullOrWhiteSpace(_pendingHighlightedCharacterName))
+            {
+                return;
+            }
+
+            var matchedCharacter = _allCharacters.FirstOrDefault(character =>
+                string.Equals(character.Name, _pendingHighlightedCharacterName, StringComparison.OrdinalIgnoreCase));
+            _pendingHighlightedCharacterName = null;
+
+            if (matchedCharacter != null)
+            {
+                SelectCharacter(matchedCharacter);
+            }
         }
 
         /// <summary>
@@ -193,6 +365,7 @@ namespace NovelManagement.WPF.Views
         private void UpdateCharacterList()
         {
             CharacterListControl.ItemsSource = _filteredCharacters;
+            SyncSelectedCharacterReference();
         }
 
         private void UpdateOverviewStatistics()
@@ -288,8 +461,86 @@ namespace NovelManagement.WPF.Views
         {
             if (character != null)
             {
-                _selectedCharacter = character;
-                ShowCharacterDetails(character);
+                _selectedCharacter = ResolveCharacterFromCollection(character) ?? character;
+                ShowCharacterDetails(_selectedCharacter);
+            }
+        }
+
+        private Character? ResolveCurrentCharacterForAction(object? sender)
+        {
+            var selectedCharacter = ResolveCharacterFromCollection(_selectedCharacter);
+            if (selectedCharacter != null)
+            {
+                return selectedCharacter;
+            }
+
+            if (sender is FrameworkElement element)
+            {
+                var senderCharacter = ResolveCharacterFromCollection(element.DataContext as Character);
+                if (senderCharacter != null)
+                {
+                    return senderCharacter;
+                }
+            }
+
+            var detailCharacter = ResolveCharacterFromCollection(CharacterDetailCard?.DataContext as Character);
+            if (detailCharacter != null)
+            {
+                return detailCharacter;
+            }
+
+            var currentName = CharacterNameText?.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(currentName) &&
+                !string.Equals(currentName, "角色姓名", StringComparison.OrdinalIgnoreCase))
+            {
+                return _allCharacters.FirstOrDefault(character =>
+                    !string.IsNullOrWhiteSpace(character.Name) &&
+                    string.Equals(character.Name.Trim(), currentName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return null;
+        }
+
+        private Character? ResolveCharacterFromCollection(Character? character)
+        {
+            if (character == null)
+            {
+                return null;
+            }
+
+            var resolvedById = _allCharacters.FirstOrDefault(item => item.Id == character.Id);
+            if (resolvedById != null)
+            {
+                return resolvedById;
+            }
+
+            if (!string.IsNullOrWhiteSpace(character.Name))
+            {
+                return _allCharacters.FirstOrDefault(item =>
+                    string.Equals(item.Name?.Trim(), character.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+
+            return null;
+        }
+
+        private void SyncSelectedCharacterReference()
+        {
+            if (_selectedCharacter == null)
+            {
+                return;
+            }
+
+            var resolvedCharacter = ResolveCharacterFromCollection(_selectedCharacter);
+            if (resolvedCharacter == null)
+            {
+                return;
+            }
+
+            _selectedCharacter = resolvedCharacter;
+
+            if (CharacterDetailCard.Visibility == Visibility.Visible)
+            {
+                ShowCharacterDetails(_selectedCharacter);
             }
         }
 
@@ -556,17 +807,19 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (_selectedCharacter == null)
+                var currentCharacter = ResolveCurrentCharacterForAction(sender);
+                if (currentCharacter == null)
                 {
                     MessageBox.Show("请先选择要删除的角色", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
+                _selectedCharacter = currentCharacter;
+
                 // 如果有角色服务，先检查引用
                 if (_characterService != null)
                 {
-                    // 检查角色是否被引用
-                    var referenceInfo = await _characterService.CheckCharacterReferencesAsync(_selectedCharacter.Id);
+                    var referenceInfo = await _characterService.CheckCharacterReferencesAsync(currentCharacter.Id);
 
                     if (referenceInfo.IsReferenced)
                     {
@@ -685,6 +938,10 @@ namespace NovelManagement.WPF.Views
                             var generatedCharacter = ParseGeneratedCharacter(result.Data);
                             if (generatedCharacter != null)
                             {
+                                EnrichGeneratedCharacter(generatedCharacter, result.Data?.ToString());
+                            }
+                            if (generatedCharacter != null)
+                            {
                                 if (!EnsureCurrentProject("AI生成角色", out var currentProjectId))
                                 {
                                     return;
@@ -771,17 +1028,7 @@ namespace NovelManagement.WPF.Views
                                     return;
                                 }
 
-                                optimizedCharacter.Id = _selectedCharacter.Id;
-                                optimizedCharacter.ProjectId = _selectedCharacter.ProjectId;
-                                optimizedCharacter.CreatedAt = _selectedCharacter.CreatedAt;
-                                optimizedCharacter.UpdatedAt = DateTime.UtcNow;
-                                optimizedCharacter.Status = string.IsNullOrWhiteSpace(optimizedCharacter.Status)
-                                    ? _selectedCharacter.Status
-                                    : optimizedCharacter.Status;
-                                optimizedCharacter.Importance = optimizedCharacter.Importance <= 0
-                                    ? _selectedCharacter.Importance
-                                    : optimizedCharacter.Importance;
-                                optimizedCharacter.Tags = _selectedCharacter.Tags;
+                                optimizedCharacter = MergeOptimizedCharacter(_selectedCharacter, optimizedCharacter);
 
                                 var savedCharacter = await _characterService.UpdateCharacterAsync(optimizedCharacter);
 
@@ -888,7 +1135,9 @@ namespace NovelManagement.WPF.Views
                     return new Character
                     {
                         Id = Guid.NewGuid(),
-                        Name = string.IsNullOrWhiteSpace(firstLine) ? "AI生成角色" : firstLine.Trim('•', '-', ' '),
+                        Name = string.IsNullOrWhiteSpace(firstLine)
+                            ? "AI生成角色"
+                            : AiAutoFillFormatter.ExtractSingleLineValue(firstLine, "姓名", "名字", "角色名", "名称"),
                         Type = "主配角",
                         Background = text.Trim(),
                         CultivationLevel = "筑基期",

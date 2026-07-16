@@ -1,0 +1,73 @@
+                // 显示优化选项对话�?                var dialog = new CharacterOptimizationDialog(_selectedCharacter);
+                if (dialog.ShowDialog() == true)
+                {
+                    var optimizationGoals = dialog.SelectedOptimizationGoals;
+
+                    if (_aiAssistantService != null)
+                    {
+                        var parameters = new Dictionary<string, object>
+                        {
+                            ["characterData"] = _selectedCharacter,
+                            ["optimizationGoals"] = optimizationGoals
+                        };
+                        var result = await _aiAssistantService.OptimizeCharacterAsync(parameters);
+
+                        if (result.IsSuccess && result.Data != null)
+                        {
+                            // 解析优化后的角色数据
+                            var optimizedCharacter = ParseGeneratedCharacter(result.Data);
+                            if (optimizedCharacter != null)
+                            {
+                                if (_characterService == null)
+                                {
+                                    MessageBox.Show("角色服务未初始化，无法保存优化结果�?, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+
+                                optimizedCharacter.Id = _selectedCharacter.Id;
+                                optimizedCharacter.ProjectId = _selectedCharacter.ProjectId;
+                                optimizedCharacter.CreatedAt = _selectedCharacter.CreatedAt;
+                                optimizedCharacter.UpdatedAt = DateTime.UtcNow;
+                                optimizedCharacter.Status = string.IsNullOrWhiteSpace(optimizedCharacter.Status)
+                                    ? _selectedCharacter.Status
+                                    : optimizedCharacter.Status;
+                                optimizedCharacter.Importance = optimizedCharacter.Importance <= 0
+                                    ? _selectedCharacter.Importance
+                                    : optimizedCharacter.Importance;
+                                optimizedCharacter.Tags = _selectedCharacter.Tags;
+
+                                var savedCharacter = await _characterService.UpdateCharacterAsync(optimizedCharacter);
+
+                                var index = _allCharacters.FindIndex(c => c.Id == _selectedCharacter.Id);
+                                if (index >= 0)
+                                {
+                                    _allCharacters[index] = savedCharacter;
+                                }
+
+                                _selectedCharacter = savedCharacter;
+                                ApplyFilters();
+                                UpdateOverviewStatistics();
+                                ShowCharacterDetails(savedCharacter);
+
+                                _aiAssistantService.ShowSuccess($"成功优化角色: {savedCharacter.Name}");
+                                _logger?.LogInformation($"AI优化角色成功: {savedCharacter.Name}");
+                            }
+                            else
+                            {
+                                _aiAssistantService.ShowError("优化后的角色数据格式不正�?);
+                            }
+                        }
+                        else
+                        {
+                            _aiAssistantService.ShowError(result.Message ?? "AI优化角色失败");
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "AI优化角色异常");

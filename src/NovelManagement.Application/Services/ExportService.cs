@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using NovelManagement.Application.DTOs;
+using NovelManagement.Core.Entities;
 using NovelManagement.Core.Interfaces;
+using System.Reflection;
+using System.Text;
+using System.Net;
 
 namespace NovelManagement.Application.Services
 {
@@ -20,19 +19,14 @@ namespace NovelManagement.Application.Services
         private readonly ExcelProcessingService _excelService;
         private readonly WordProcessingService _wordService;
         private readonly Dictionary<Guid, OperationResultDto> _activeOperations;
+        private readonly Dictionary<Guid, List<OperationHistoryDto>> _historyByProject = new();
+        private readonly object _historyLock = new();
 
         /// <summary>
         /// 导出进度更新事件
         /// </summary>
         public event EventHandler<OperationResultDto>? ProgressUpdated;
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="unitOfWork">工作单元</param>
-        /// <param name="logger">日志记录器</param>
-        /// <param name="excelService">Excel处理服务</param>
-        /// <param name="wordService">Word处理服务</param>
         public ExportService(
             IUnitOfWork unitOfWork,
             ILogger<ExportService> logger,
@@ -49,9 +43,7 @@ namespace NovelManagement.Application.Services
         /// <summary>
         /// 开始导出操作
         /// </summary>
-        /// <param name="request">导出请求</param>
-        /// <returns>操作结果</returns>
-        public async Task<OperationResultDto> StartExportAsync(ExportRequestDto request)
+        public Task<OperationResultDto> StartExportAsync(ExportRequestDto request)
         {
             var operationId = Guid.NewGuid();
             var result = new OperationResultDto
@@ -61,33 +53,30 @@ namespace NovelManagement.Application.Services
                 StartTime = DateTime.Now,
                 CurrentStep = "准备导出..."
             };
-
+            result.Metadata["ProjectId"] = request.ProjectId;
+            result.Metadata["Format"] = request.Format.ToString();
             _activeOperations[operationId] = result;
 
             try
             {
-                _logger.LogInformation($"开始导出操作: {operationId}, 格式: {request.Format}, 范围: {request.Scope}");
-
-                // 异步执行导出，使用Task.Factory.StartNew避免DbContext并发问题
-                _ = Task.Factory.StartNew(async () => await ExecuteExportAsync(request, result), TaskCreationOptions.LongRunning).Unwrap();
-
-                return result;
+                _logger.LogInformation("开始导出操作: {OperationId}, 格式: {Format}, 范围: {Scope}", operationId, request.Format, request.Scope);
+                _ = Task.Run(() => ExecuteExportAsync(request, result));
+                return Task.FromResult(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"启动导出操作失败: {operationId}");
+                _logger.LogError(ex, "启动导出操作失败: {OperationId}", operationId);
                 result.Status = OperationStatus.Failed;
                 result.ErrorMessage = ex.Message;
                 result.EndTime = DateTime.Now;
-                return result;
+                RecordHistory(request.ProjectId, result, "Export", ex.Message);
+                return Task.FromResult(result);
             }
         }
 
         /// <summary>
         /// 获取操作状态
         /// </summary>
-        /// <param name="operationId">操作ID</param>
-        /// <returns>操作结果</returns>
         public OperationResultDto? GetOperationStatus(Guid operationId)
         {
             return _activeOperations.TryGetValue(operationId, out var result) ? result : null;
@@ -96,83 +85,48 @@ namespace NovelManagement.Application.Services
         /// <summary>
         /// 取消导出操作
         /// </summary>
-        /// <param name="operationId">操作ID</param>
-        /// <returns>是否成功</returns>
         public bool CancelExport(Guid operationId)
         {
-            if (_activeOperations.TryGetValue(operationId, out var result))
+            if (_activeOperations.TryGetValue(operationId, out var result)
+                && (result.Status == OperationStatus.InProgress || result.Status == OperationStatus.Pending))
             {
-                if (result.Status == OperationStatus.InProgress || result.Status == OperationStatus.Pending)
+                result.Status = OperationStatus.Cancelled;
+                result.EndTime = DateTime.Now;
+                result.CurrentStep = "操作已取消";
+                OnProgressUpdated(result);
+                if (TryGetProjectId(result, out var projectId))
                 {
-                    result.Status = OperationStatus.Cancelled;
-                    result.EndTime = DateTime.Now;
-                    result.CurrentStep = "操作已取消";
-                    
-                    OnProgressUpdated(result);
-                    
-                    _logger.LogInformation($"导出操作已取消: {operationId}");
-                    return true;
+                    RecordHistory(projectId, result, "Export", "用户取消导出");
                 }
+                _logger.LogInformation("导出操作已取消: {OperationId}", operationId);
+                return true;
             }
+
             return false;
         }
 
         /// <summary>
         /// 获取导出历史记录
         /// </summary>
-        /// <param name="projectId">项目ID</param>
-        /// <returns>历史记录列表</returns>
-        public async Task<List<OperationHistoryDto>> GetExportHistoryAsync(Guid projectId)
+        public Task<List<OperationHistoryDto>> GetExportHistoryAsync(Guid projectId)
         {
-            try
+            lock (_historyLock)
             {
-                // 这里应该从数据库获取历史记录，现在返回模拟数据
-                var history = new List<OperationHistoryDto>
-                {
-                    new OperationHistoryDto
-                    {
-                        OperationId = Guid.NewGuid(),
-                        ProjectId = projectId,
-                        ProjectName = "千面劫·宿命轮回",
-                        OperationType = "Export",
-                        Format = "DOCX",
-                        FilePath = @"C:\Exports\千面劫·宿命轮回.docx",
-                        FileSize = 2048576,
-                        Status = OperationStatus.Completed,
-                        StartTime = DateTime.Now.AddDays(-1),
-                        EndTime = DateTime.Now.AddDays(-1).AddMinutes(5),
-                        Notes = "完整项目导出"
-                    },
-                    new OperationHistoryDto
-                    {
-                        OperationId = Guid.NewGuid(),
-                        ProjectId = projectId,
-                        ProjectName = "千面劫·宿命轮回",
-                        OperationType = "Export",
-                        Format = "PDF",
-                        FilePath = @"C:\Exports\千面劫·宿命轮回.pdf",
-                        FileSize = 1536000,
-                        Status = OperationStatus.Completed,
-                        StartTime = DateTime.Now.AddDays(-3),
-                        EndTime = DateTime.Now.AddDays(-3).AddMinutes(8),
-                        Notes = "PDF格式导出"
-                    }
-                };
+                _historyByProject.TryGetValue(projectId, out var histories);
+                histories ??= new List<OperationHistoryDto>();
+                var active = _activeOperations.Values
+                    .Where(result => TryGetProjectId(result, out var activeProjectId) && activeProjectId == projectId)
+                    .Where(result => result.Status == OperationStatus.Pending || result.Status == OperationStatus.InProgress)
+                    .Select(result => ToHistoryDto(projectId, result, "Export", result.CurrentStep))
+                    .ToList();
 
-                return await Task.FromResult(history);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"获取导出历史记录失败: {projectId}");
-                return new List<OperationHistoryDto>();
+                return Task.FromResult(histories
+                    .Concat(active)
+                    .OrderByDescending(item => item.StartTime)
+                    .ToList());
             }
         }
 
-        /// <summary>
-        /// 执行导出操作
-        /// </summary>
-        /// <param name="request">导出请求</param>
-        /// <param name="result">操作结果</param>
         private async Task ExecuteExportAsync(ExportRequestDto request, OperationResultDto result)
         {
             try
@@ -182,39 +136,18 @@ namespace NovelManagement.Application.Services
                 result.Progress = 10;
                 OnProgressUpdated(result);
 
-                // 模拟数据收集
-                await Task.Delay(1000);
-
-                if (result.Status == OperationStatus.Cancelled) return;
-
-                // 根据导出范围获取数据
                 var exportData = await CollectExportDataAsync(request);
-                result.TotalItems = exportData.Count;
+                result.TotalItems = exportData.Sum(pair => pair.Value.Count);
                 result.CurrentStep = "正在生成文件...";
-                result.Progress = 30;
+                result.Progress = 35;
                 OnProgressUpdated(result);
 
-                await Task.Delay(1000);
-
-                if (result.Status == OperationStatus.Cancelled) return;
-
-                // 根据格式生成文件
                 var outputPath = await GenerateFileAsync(request, exportData, result);
-                
                 result.OutputPath = outputPath;
-                result.CurrentStep = "正在完成导出...";
-                result.Progress = 90;
-                OnProgressUpdated(result);
 
-                await Task.Delay(500);
-
-                if (result.Status == OperationStatus.Cancelled) return;
-
-                // 获取文件信息
                 if (File.Exists(outputPath))
                 {
-                    var fileInfo = new FileInfo(outputPath);
-                    result.FileSize = fileInfo.Length;
+                    result.FileSize = new FileInfo(outputPath).Length;
                 }
 
                 result.Status = OperationStatus.Completed;
@@ -222,111 +155,87 @@ namespace NovelManagement.Application.Services
                 result.Progress = 100;
                 result.CurrentStep = "导出完成";
                 result.IsSuccess = true;
-
                 OnProgressUpdated(result);
-
-                _logger.LogInformation($"导出操作完成: {result.OperationId}, 输出文件: {outputPath}");
+                RecordHistory(request.ProjectId, result, "Export", BuildExportNote(request, exportData));
+                _logger.LogInformation("导出操作完成: {OperationId}, 输出文件: {OutputPath}", result.OperationId, outputPath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"导出操作失败: {result.OperationId}");
-                
+                _logger.LogError(ex, "导出操作失败: {OperationId}", result.OperationId);
                 result.Status = OperationStatus.Failed;
                 result.EndTime = DateTime.Now;
                 result.ErrorMessage = ex.Message;
                 result.IsSuccess = false;
                 result.CurrentStep = "导出失败";
-
                 OnProgressUpdated(result);
+                RecordHistory(request.ProjectId, result, "Export", ex.Message);
+            }
+            finally
+            {
+                _activeOperations[result.OperationId] = result;
             }
         }
 
-        /// <summary>
-        /// 收集导出数据
-        /// </summary>
-        /// <param name="request">导出请求</param>
-        /// <returns>导出数据</returns>
         private async Task<Dictionary<string, List<object>>> CollectExportDataAsync(ExportRequestDto request)
         {
-            var data = new Dictionary<string, List<object>>();
-
-            try
+            var data = new Dictionary<string, List<object>>(StringComparer.OrdinalIgnoreCase);
+            var project = await _unitOfWork.Projects.GetByIdAsync(request.ProjectId);
+            if (project == null)
             {
-                // 根据导出范围收集数据
-                switch (request.Scope)
-                {
-                    case ExportScope.EntireProject:
-                        // 获取整个项目的数据
-                        data["Project"] = await GetProjectDataAsync(request.ProjectId);
-                        data["Volumes"] = await GetAllVolumesDataAsync(request.ProjectId);
-                        data["Chapters"] = await GetAllChaptersDataAsync(request.ProjectId);
-                        break;
-
-                    case ExportScope.SelectedVolumes:
-                        // 获取选中卷宗的数据
-                        var volumeData = new List<object>();
-                        foreach (var volumeId in request.SelectedVolumeIds)
-                        {
-                            volumeData.AddRange(await GetVolumeDataAsync(volumeId));
-                        }
-                        data["Volumes"] = volumeData;
-                        break;
-
-                    case ExportScope.SelectedChapters:
-                        // 获取选中章节的数据
-                        var chapterData = new List<object>();
-                        foreach (var chapterId in request.SelectedChapterIds)
-                        {
-                            chapterData.AddRange(await GetChapterDataAsync(chapterId));
-                        }
-                        data["Chapters"] = chapterData;
-                        break;
-                }
-
-                // 根据配置添加额外数据
-                if (request.IncludeCharacters)
-                {
-                    data["Characters"] = await GetCharacterDataAsync(request.ProjectId);
-                }
-
-                if (request.IncludeFactions)
-                {
-                    data["Factions"] = await GetFactionDataAsync(request.ProjectId);
-                }
-
-                if (request.IncludePlots)
-                {
-                    data["Plots"] = await GetPlotDataAsync(request.ProjectId);
-                }
-
-                if (request.IncludeSettings)
-                {
-                    data["WorldSettings"] = await GetSettingDataAsync(request.ProjectId);
-                }
+                throw new InvalidOperationException("未找到当前项目，无法执行导出。");
             }
-            catch (Exception ex)
+
+            data["Project"] = new List<object> { project };
+
+            var allVolumes = (await _unitOfWork.Volumes.GetByProjectIdAsync(request.ProjectId)).OrderBy(v => v.Order).ToList();
+            var allChapters = (await _unitOfWork.Chapters.GetByProjectIdAsync(request.ProjectId)).OrderBy(c => c.Volume?.Order).ThenBy(c => c.Order).ToList();
+
+            switch (request.Scope)
             {
-                _logger.LogError(ex, "收集导出数据失败");
-                throw;
+                case ExportScope.EntireProject:
+                    data["Volumes"] = allVolumes.Cast<object>().ToList();
+                    data["Chapters"] = allChapters.Cast<object>().ToList();
+                    break;
+                case ExportScope.SelectedVolumes:
+                    var selectedVolumes = allVolumes.Where(volume => request.SelectedVolumeIds.Contains(volume.Id)).ToList();
+                    data["Volumes"] = selectedVolumes.Cast<object>().ToList();
+                    data["Chapters"] = allChapters.Where(chapter => request.SelectedVolumeIds.Contains(chapter.VolumeId)).Cast<object>().ToList();
+                    break;
+                case ExportScope.SelectedChapters:
+                    var selectedChapters = allChapters.Where(chapter => request.SelectedChapterIds.Contains(chapter.Id)).ToList();
+                    data["Chapters"] = selectedChapters.Cast<object>().ToList();
+                    var selectedVolumeIds = selectedChapters.Select(chapter => chapter.VolumeId).Distinct().ToHashSet();
+                    data["Volumes"] = allVolumes.Where(volume => selectedVolumeIds.Contains(volume.Id)).Cast<object>().ToList();
+                    break;
+                default:
+                    throw new NotSupportedException($"暂不支持的导出范围: {request.Scope}");
+            }
+
+            if (request.IncludeCharacters)
+            {
+                data["Characters"] = (await _unitOfWork.Characters.GetByProjectIdAsync(request.ProjectId)).OrderBy(c => c.Name).Cast<object>().ToList();
+            }
+            if (request.IncludeFactions)
+            {
+                data["Factions"] = (await _unitOfWork.Factions.GetByProjectIdAsync(request.ProjectId)).OrderBy(f => f.Name).Cast<object>().ToList();
+            }
+            if (request.IncludePlots)
+            {
+                data["Plots"] = (await _unitOfWork.Plots.GetByProjectIdAsync(request.ProjectId)).OrderBy(p => p.Title).Cast<object>().ToList();
+            }
+            if (request.IncludeSettings)
+            {
+                data["WorldSettings"] = (await _unitOfWork.WorldSettings.GetByProjectIdAsync(request.ProjectId)).OrderBy(s => s.Order).ThenBy(s => s.Name).Cast<object>().ToList();
             }
 
             return data;
         }
 
-        /// <summary>
-        /// 生成导出文件
-        /// </summary>
-        /// <param name="request">导出请求</param>
-        /// <param name="data">导出数据</param>
-        /// <param name="result">操作结果</param>
-        /// <returns>输出文件路径</returns>
         private async Task<string> GenerateFileAsync(ExportRequestDto request, Dictionary<string, List<object>> data, OperationResultDto result)
         {
             var outputPath = request.OutputPath;
-
-            // 确保输出目录存在
             var directory = Path.GetDirectoryName(outputPath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
@@ -336,35 +245,24 @@ namespace NovelManagement.Application.Services
                 case ExportFormat.TXT:
                     await GenerateTxtFileAsync(outputPath, data, result);
                     break;
-
-                case ExportFormat.EXCEL:
-                    await _excelService.ExportToExcelAsync(outputPath, data, result);
-                    break;
-
-                case ExportFormat.DOCX:
-                    await _wordService.ExportToWordAsync(outputPath, data, result);
-                    break;
-
                 case ExportFormat.JSON:
                     await GenerateJsonFileAsync(outputPath, data, result);
                     break;
-
-                case ExportFormat.PDF:
-                    await GeneratePdfFileAsync(outputPath, data, result);
-                    break;
-
-                case ExportFormat.EPUB:
-                    await GenerateEpubFileAsync(outputPath, data, result);
-                    break;
-
                 case ExportFormat.HTML:
                     await GenerateHtmlFileAsync(outputPath, data, result);
                     break;
-
                 case ExportFormat.MARKDOWN:
                     await GenerateMarkdownFileAsync(outputPath, data, result);
                     break;
-
+                case ExportFormat.EXCEL:
+                    await _excelService.ExportToExcelAsync(outputPath, data, result);
+                    break;
+                case ExportFormat.DOCX:
+                    await _wordService.ExportToWordAsync(outputPath, data, result);
+                    break;
+                case ExportFormat.PDF:
+                case ExportFormat.EPUB:
+                    throw new NotSupportedException($"当前版本暂不支持 {request.Format} 真正导出，请先使用 TXT、JSON、HTML、MARKDOWN、EXCEL 或 DOCX。");
                 default:
                     throw new NotSupportedException($"不支持的导出格式: {request.Format}");
             }
@@ -372,218 +270,230 @@ namespace NovelManagement.Application.Services
             return outputPath;
         }
 
-        /// <summary>
-        /// 生成TXT文件
-        /// </summary>
         private async Task GenerateTxtFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
         {
-            var content = new StringBuilder();
-            content.AppendLine("千面劫·宿命轮回");
-            content.AppendLine("==================");
-            content.AppendLine();
-            content.AppendLine($"导出时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            content.AppendLine();
-
-            // 导出各类数据
-            foreach (var kvp in data)
-            {
-                content.AppendLine($"=== {kvp.Key} ===");
-                content.AppendLine($"数量：{kvp.Value.Count}");
-                content.AppendLine();
-
-                // 更新进度
-                result.ProcessedItems++;
-                result.Progress = 30 + (int)((double)result.ProcessedItems / data.Count * 60);
-                OnProgressUpdated(result);
-
-                await Task.Delay(100); // 模拟处理时间
-            }
-
-            await File.WriteAllTextAsync(outputPath, content.ToString(), Encoding.UTF8);
+            var builder = new StringBuilder();
+            AppendHeader(builder, data);
+            AppendSections(builder, data, result, false);
+            await File.WriteAllTextAsync(outputPath, builder.ToString(), Encoding.UTF8);
         }
 
-        /// <summary>
-        /// 生成JSON文件
-        /// </summary>
         private async Task GenerateJsonFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
         {
-            try
+            var exportObject = new Dictionary<string, object?>
             {
-                var exportData = new
-                {
-                    ProjectName = "千面劫·宿命轮回",
-                    ExportTime = DateTime.Now,
-                    Data = data
-                };
-
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(exportData, Newtonsoft.Json.Formatting.Indented);
-                await File.WriteAllTextAsync(outputPath, json, Encoding.UTF8);
-
-                result.ProcessedItems = data.Count;
-                result.Progress = 90;
-                OnProgressUpdated(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"生成JSON文件失败: {outputPath}");
-                throw;
-            }
+                ["ExportedAt"] = DateTime.Now,
+                ["Sections"] = data.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value.Select(ConvertToSerializableObject).ToList())
+            };
+            var json = JsonConvert.SerializeObject(exportObject, Formatting.Indented);
+            await File.WriteAllTextAsync(outputPath, json, Encoding.UTF8);
+            result.ProcessedItems = data.Count;
+            result.Progress = 95;
+            OnProgressUpdated(result);
         }
 
-        /// <summary>
-        /// 生成DOCX文件
-        /// </summary>
-        private async Task GenerateDocxFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
-        {
-            // 这里应该使用DocumentFormat.OpenXml或其他库生成DOCX文件
-            // 现在创建一个简单的文本文件作为示例
-            await GenerateTxtFileAsync(outputPath.Replace(".docx", ".txt"), data, result);
-            
-            // 模拟DOCX生成
-            await Task.Delay(2000);
-        }
-
-        /// <summary>
-        /// 生成PDF文件
-        /// </summary>
-        private async Task GeneratePdfFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
-        {
-            // 这里应该使用iTextSharp或其他库生成PDF文件
-            await GenerateTxtFileAsync(outputPath.Replace(".pdf", ".txt"), data, result);
-            
-            // 模拟PDF生成
-            await Task.Delay(3000);
-        }
-
-        /// <summary>
-        /// 生成EPUB文件
-        /// </summary>
-        private async Task GenerateEpubFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
-        {
-            // 这里应该使用EpubSharp或其他库生成EPUB文件
-            await GenerateTxtFileAsync(outputPath.Replace(".epub", ".txt"), data, result);
-            
-            // 模拟EPUB生成
-            await Task.Delay(2500);
-        }
-
-        /// <summary>
-        /// 生成HTML文件
-        /// </summary>
         private async Task GenerateHtmlFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
         {
-            var html = new StringBuilder();
-            html.AppendLine("<!DOCTYPE html>");
-            html.AppendLine("<html><head><title>千面劫·宿命轮回</title></head><body>");
-            html.AppendLine("<h1>千面劫·宿命轮回</h1>");
-
-            foreach (var kvp in data)
+            var builder = new StringBuilder();
+            builder.AppendLine("<!DOCTYPE html>");
+            builder.AppendLine("<html><head><meta charset=\"utf-8\"/><title>项目导出</title></head><body>");
+            builder.AppendLine("<h1>项目导出</h1>");
+            builder.AppendLine($"<p>导出时间：{WebUtility.HtmlEncode(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))}</p>");
+            var sections = data.ToList();
+            for (var i = 0; i < sections.Count; i++)
             {
-                html.AppendLine($"<h2>{kvp.Key}</h2>");
-                html.AppendLine($"<p>数量：{kvp.Value.Count}</p>");
+                builder.AppendLine($"<h2>{WebUtility.HtmlEncode(sections[i].Key)}</h2>");
+                if (sections[i].Value.Count == 0)
+                {
+                    builder.AppendLine("<p>暂无数据</p>");
+                }
+                else
+                {
+                    foreach (var item in sections[i].Value)
+                    {
+                        builder.AppendLine("<ul>");
+                        foreach (var line in DescribeItem(item))
+                        {
+                            builder.AppendLine($"<li>{WebUtility.HtmlEncode(line)}</li>");
+                        }
+                        builder.AppendLine("</ul>");
+                    }
+                }
 
-                result.ProcessedItems++;
-                result.Progress = 30 + (int)((double)result.ProcessedItems / data.Count * 60);
+                result.ProcessedItems = i + 1;
+                result.Progress = 20 + (int)((double)(i + 1) / Math.Max(sections.Count, 1) * 70);
                 OnProgressUpdated(result);
-
-                await Task.Delay(100);
             }
-
-            html.AppendLine("</body></html>");
-            await File.WriteAllTextAsync(outputPath, html.ToString(), Encoding.UTF8);
+            builder.AppendLine("</body></html>");
+            await File.WriteAllTextAsync(outputPath, builder.ToString(), Encoding.UTF8);
         }
 
-        /// <summary>
-        /// 生成Markdown文件
-        /// </summary>
         private async Task GenerateMarkdownFileAsync(string outputPath, Dictionary<string, List<object>> data, OperationResultDto result)
         {
-            var markdown = new StringBuilder();
-            markdown.AppendLine("# 千面劫·宿命轮回");
-            markdown.AppendLine();
-            markdown.AppendLine($"导出时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            markdown.AppendLine();
+            var builder = new StringBuilder();
+            builder.AppendLine("# 项目导出");
+            builder.AppendLine();
+            builder.AppendLine($"导出时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine();
+            AppendSections(builder, data, result, true);
+            await File.WriteAllTextAsync(outputPath, builder.ToString(), Encoding.UTF8);
+        }
 
-            foreach (var kvp in data)
+        private static void AppendHeader(StringBuilder builder, Dictionary<string, List<object>> data)
+        {
+            var project = data.TryGetValue("Project", out var projects) ? projects.OfType<Project>().FirstOrDefault() : null;
+            builder.AppendLine(project?.Name ?? "未命名项目");
+            builder.AppendLine(new string('=', 24));
+            builder.AppendLine($"导出时间：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine();
+        }
+
+        private void AppendSections(StringBuilder builder, Dictionary<string, List<object>> data, OperationResultDto result, bool markdown)
+        {
+            var sections = data.ToList();
+            for (var i = 0; i < sections.Count; i++)
             {
-                markdown.AppendLine($"## {kvp.Key}");
-                markdown.AppendLine();
-                markdown.AppendLine($"数量：{kvp.Value.Count}");
-                markdown.AppendLine();
+                builder.AppendLine(markdown ? $"## {sections[i].Key}" : $"=== {sections[i].Key} ===");
+                if (sections[i].Value.Count == 0)
+                {
+                    builder.AppendLine("暂无数据");
+                    builder.AppendLine();
+                    continue;
+                }
 
-                result.ProcessedItems++;
-                result.Progress = 30 + (int)((double)result.ProcessedItems / data.Count * 60);
+                foreach (var item in sections[i].Value)
+                {
+                    foreach (var line in DescribeItem(item))
+                    {
+                        builder.AppendLine(markdown ? $"- {line}" : line);
+                    }
+                    builder.AppendLine();
+                }
+
+                result.ProcessedItems = i + 1;
+                result.Progress = 20 + (int)((double)(i + 1) / Math.Max(sections.Count, 1) * 70);
                 OnProgressUpdated(result);
+            }
+        }
 
-                await Task.Delay(100);
+        private static IEnumerable<string> DescribeItem(object item)
+        {
+            if (item is IDictionary<string, object> dictionary)
+            {
+                foreach (var pair in dictionary)
+                {
+                    yield return $"{pair.Key}: {pair.Value}";
+                }
+                yield break;
             }
 
-            await File.WriteAllTextAsync(outputPath, markdown.ToString(), Encoding.UTF8);
+            foreach (var property in item.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.CanRead || !IsScalarType(property.PropertyType))
+                {
+                    continue;
+                }
+
+                var value = property.GetValue(item);
+                if (value == null)
+                {
+                    continue;
+                }
+
+                yield return $"{property.Name}: {FormatValue(value)}";
+            }
         }
 
-        #region 数据获取方法（模拟实现）
-
-        private async Task<List<object>> GetProjectDataAsync(Guid projectId)
+        private static object ConvertToSerializableObject(object item)
         {
-            // 模拟获取项目数据
-            await Task.Delay(100);
-            return Enumerable.Range(1, 20).Cast<object>().ToList();
+            if (item is IDictionary<string, object> dictionary)
+            {
+                return dictionary;
+            }
+
+            return item.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.CanRead && IsScalarType(property.PropertyType))
+                .ToDictionary(property => property.Name, property => FormatValue(property.GetValue(item)));
         }
 
-        private async Task<List<object>> GetVolumeDataAsync(Guid volumeId)
+        private static bool IsScalarType(Type type)
         {
-            await Task.Delay(50);
-            return Enumerable.Range(1, 5).Cast<object>().ToList();
+            var actualType = Nullable.GetUnderlyingType(type) ?? type;
+            return actualType.IsPrimitive
+                || actualType.IsEnum
+                || actualType == typeof(string)
+                || actualType == typeof(decimal)
+                || actualType == typeof(Guid)
+                || actualType == typeof(DateTime)
+                || actualType == typeof(DateTimeOffset)
+                || actualType == typeof(TimeSpan);
         }
 
-        private async Task<List<object>> GetChapterDataAsync(Guid chapterId)
+        private static object? FormatValue(object? value)
         {
-            await Task.Delay(20);
-            return new List<object> { new { ChapterId = chapterId } };
+            return value switch
+            {
+                null => null,
+                DateTime dateTime => dateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                DateTimeOffset dateTimeOffset => dateTimeOffset.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                _ => value
+            };
         }
 
-        private async Task<List<object>> GetCharacterDataAsync(Guid projectId)
+        private string BuildExportNote(ExportRequestDto request, Dictionary<string, List<object>> data)
         {
-            await Task.Delay(50);
-            return new List<object> { "角色数据" };
+            var sectionSummary = string.Join("，", data.Select(pair => $"{pair.Key}:{pair.Value.Count}"));
+            return $"格式={request.Format}; 范围={request.Scope}; {sectionSummary}";
         }
 
-        private async Task<List<object>> GetFactionDataAsync(Guid projectId)
+        private void RecordHistory(Guid projectId, OperationResultDto result, string operationType, string? notes)
         {
-            await Task.Delay(50);
-            return new List<object> { "势力数据" };
+            lock (_historyLock)
+            {
+                if (!_historyByProject.TryGetValue(projectId, out var histories))
+                {
+                    histories = new List<OperationHistoryDto>();
+                    _historyByProject[projectId] = histories;
+                }
+
+                histories.RemoveAll(item => item.OperationId == result.OperationId);
+                histories.Add(ToHistoryDto(projectId, result, operationType, notes));
+            }
         }
 
-        private async Task<List<object>> GetPlotDataAsync(Guid projectId)
+        private OperationHistoryDto ToHistoryDto(Guid projectId, OperationResultDto result, string operationType, string? notes)
         {
-            await Task.Delay(50);
-            return new List<object> { "剧情数据" };
+            return new OperationHistoryDto
+            {
+                OperationId = result.OperationId,
+                ProjectId = projectId,
+                ProjectName = string.Empty,
+                OperationType = operationType,
+                Format = result.Metadata.TryGetValue("Format", out var format) ? format?.ToString() ?? string.Empty : string.Empty,
+                FilePath = result.OutputPath,
+                FileSize = result.FileSize,
+                Status = result.Status,
+                StartTime = result.StartTime,
+                EndTime = result.EndTime,
+                ErrorMessage = result.ErrorMessage,
+                Notes = notes
+            };
         }
 
-        private async Task<List<object>> GetSettingDataAsync(Guid projectId)
+        private static bool TryGetProjectId(OperationResultDto result, out Guid projectId)
         {
-            await Task.Delay(50);
-            return new List<object> { "设定数据" };
+            projectId = Guid.Empty;
+            if (!result.Metadata.TryGetValue("ProjectId", out var value) || value == null)
+            {
+                return false;
+            }
+
+            return Guid.TryParse(value.ToString(), out projectId);
         }
 
-        private async Task<List<object>> GetAllVolumesDataAsync(Guid projectId)
-        {
-            await Task.Delay(100);
-            return new List<object> { "卷宗数据1", "卷宗数据2" };
-        }
-
-        private async Task<List<object>> GetAllChaptersDataAsync(Guid projectId)
-        {
-            await Task.Delay(100);
-            return new List<object> { "章节数据1", "章节数据2", "章节数据3" };
-        }
-
-        #endregion
-
-        /// <summary>
-        /// 触发进度更新事件
-        /// </summary>
-        /// <param name="result">操作结果</param>
         private void OnProgressUpdated(OperationResultDto result)
         {
             ProgressUpdated?.Invoke(this, result);

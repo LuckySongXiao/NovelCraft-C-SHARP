@@ -66,6 +66,10 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo.
+echo 提示: 如需生成生产发布包，请运行:
+echo powershell -ExecutionPolicy Bypass -File scripts\publish-production.ps1
+
+echo.
 echo ========================================
 echo 构建完成！
 echo 输出目录: publish

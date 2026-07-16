@@ -6,8 +6,10 @@ using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.RWKV;
+using NovelManagement.AI.Services.RWKV.Models;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
+using NovelManagement.AI.Utilities;
 using ThinkingChainModel = NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain;
 
 namespace NovelManagement.AI.Agents
@@ -17,7 +19,57 @@ namespace NovelManagement.AI.Agents
     /// </summary>
     public class WriterAgent : BaseAgent
     {
+        private const double RwkvNovelTemperature = 1.4;
+        private const double RwkvNovelTopP = 0.3;
+        private const double RwkvNovelPresencePenalty = 0.0;
+        private const double RwkvNovelFrequencyPenalty = 0.0;
+        private const int RwkvRollingContextChars = 1800;
+        private const int RwkvMinUsefulChunkChars = 30;
+        private const int RwkvMaxFinishingRounds = 3;
+        private const double RwkvStateTemperature = 0.2;
+        private const double RwkvStateTopP = 0.2;
+        private const int RwkvStateTopK = 20;
+        private const int RwkvMaxStateFacts = 8;
+        private const int RwkvBatchCandidateCount = 2;
+        private const int RwkvBatchChunkSize = 8;
         private readonly IRwkvLightningService? _rwkvService;
+
+        private sealed class RwkvGenerationSelectionResult
+        {
+            public RwkvCompletionResponse Response { get; init; } = new();
+            public bool UsedBatch { get; init; }
+            public bool FellBackToSingle { get; init; }
+            public int CandidateCount { get; init; }
+            public int SelectedCandidateIndex { get; init; } = -1;
+            public double SelectedScore { get; init; }
+        }
+
+        private sealed class ScoredRwkvBatchCandidate : RwkvBatchCompletionItem
+        {
+            public double Score { get; init; }
+        }
+
+        private sealed class RwkvBatchUsageStats
+        {
+            public int SelectedRounds { get; private set; }
+            public int FallbackRounds { get; private set; }
+            public int LastSelectedIndex { get; private set; } = -1;
+            public double LastSelectedScore { get; private set; }
+
+            public void Register(RwkvGenerationSelectionResult selection)
+            {
+                if (selection.UsedBatch && !selection.FellBackToSingle)
+                {
+                    SelectedRounds++;
+                    LastSelectedIndex = selection.SelectedCandidateIndex;
+                    LastSelectedScore = selection.SelectedScore;
+                }
+                else if (selection.FellBackToSingle)
+                {
+                    FallbackRounds++;
+                }
+            }
+        }
 
         /// <summary>
         /// 构造函数（用于依赖注入）
@@ -122,6 +174,21 @@ namespace NovelManagement.AI.Agents
             };
         }
 
+        protected override async Task<AgentTaskResult> ExecuteTaskWithThinkingAsync(string taskType, Dictionary<string, object> parameters, ThinkingChainModel? thinkingChain)
+        {
+            var useRwkvDirectly =
+                (taskType == "GenerateChapterContent" && ShouldUseRwkvForChapterWriting(parameters)) ||
+                (taskType == "ContinueChapter" && _rwkvService != null && _rwkvService.IsAvailable);
+
+            if (useRwkvDirectly)
+            {
+                _logger.LogInformation("写作任务 {TaskType} 使用 RWKV 直连链路，跳过决策类模型包装", taskType);
+                return await ExecuteTaskAsync(taskType, parameters);
+            }
+
+            return await base.ExecuteTaskWithThinkingAsync(taskType, parameters, thinkingChain);
+        }
+
         #endregion
 
         #region 具体任务实现
@@ -141,6 +208,12 @@ namespace NovelManagement.AI.Agents
                 var chapterNumber = parameters.GetValueOrDefault("chapterNumber", 1);
 
                 _logger.LogInformation($"开始生成第{chapterNumber}章内容");
+
+                if (ShouldUseRwkvForChapterWriting(parameters))
+                {
+                    _logger.LogInformation("章节生成使用 RWKV 多轮续写策略");
+                    return await GenerateChapterWithRwkvAsync(parameters);
+                }
 
                 // 添加思维步骤：分析大纲
                 AddThinkingStep("分析章节大纲", $"正在分析第{chapterNumber}章的大纲内容：{chapterOutline}", ThinkingStepType.Analysis, 0.9);
@@ -248,7 +321,7 @@ namespace NovelManagement.AI.Agents
                 if (_rwkvService != null && _rwkvService.IsAvailable)
                 {
                     _logger.LogInformation("使用 RWKV 进行续写");
-                    return await ContinueWithRwkvAsync(existingContent, continueDirection, continueLength, customWordCount);
+                    return await ContinueWithRwkvAsync(parameters, existingContent, continueDirection, continueLength, customWordCount);
                 }
 
                 // 降级：使用决策类AI模型（Ollama/DeepSeek/OpenAI兼容）进行续写
@@ -314,7 +387,7 @@ namespace NovelManagement.AI.Agents
         /// <summary>
         /// 使用 RWKV 进行续写（单次最多200字，可多次续写拼接）
         /// </summary>
-        private async Task<AgentTaskResult> ContinueWithRwkvAsync(string existingContent, string continueDirection, string continueLength, string customWordCount)
+        private async Task<AgentTaskResult> ContinueWithRwkvAsync(Dictionary<string, object> parameters, string existingContent, string continueDirection, string continueLength, string customWordCount)
         {
             try
             {
@@ -343,17 +416,29 @@ namespace NovelManagement.AI.Agents
                     targetWordCount, rounds, maxTokensPerCall);
 
                 var allContinuedText = new System.Text.StringBuilder();
-                var currentContent = existingContent;
+                var sessionId = BuildRwkvSessionId(parameters);
+                var stateEnabled = !string.IsNullOrWhiteSpace(sessionId);
+                var batchStats = new RwkvBatchUsageStats();
+
+                if (stateEnabled)
+                {
+                    await PrepareRwkvStateAsync(sessionId!, parameters, existingContent, continueDirection);
+                }
 
                 for (int round = 0; round < rounds; round++)
                 {
                     UpdateProgress(20 + (int)((double)(round + 1) / rounds * 70));
+                    var beforeMerge = allContinuedText.ToString();
+                    var beforeWordCount = CountChineseCharacters(beforeMerge);
 
-                    var result = await _rwkvService.CompleteAsync(
-                        prompt: currentContent,
-                        maxTokens: maxTokensPerCall,
-                        direction: round == 0 ? continueDirection : null // 仅第一轮使用续写方向引导
-                    );
+                    var selection = await GenerateRwkvWritingCandidateAsync(
+                        parameters,
+                        prompt: BuildRwkvContinuationPrompt(parameters, existingContent, beforeMerge, round == 0 ? continueDirection : null),
+                        direction: round == 0 ? continueDirection : null,
+                        existingText: $"{existingContent}\n{beforeMerge}",
+                        maxTokens: maxTokensPerCall);
+                    batchStats.Register(selection);
+                    var result = selection.Response;
 
                     if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
                     {
@@ -361,18 +446,82 @@ namespace NovelManagement.AI.Agents
                         break;
                     }
 
-                    allContinuedText.Append(result.Text);
+                    var mergedContinuation = MergeRwkvChunk(beforeMerge, result.Text);
+                    allContinuedText.Clear();
+                    allContinuedText.Append(mergedContinuation);
+                    var currentWordCount = CountChineseCharacters(mergedContinuation);
+                    var wordDelta = currentWordCount - beforeWordCount;
 
-                    // 将续写内容拼接到当前内容，作为下一轮的前文
-                    currentContent = existingContent + allContinuedText.ToString();
+                    if (wordDelta < RwkvMinUsefulChunkChars)
+                    {
+                        _logger.LogInformation("RWKV 第{Round}轮续写增量过小（{WordDelta}字），提前结束主续写循环", round + 1, wordDelta);
+                        break;
+                    }
+
+                    if (stateEnabled)
+                    {
+                        await AppendContinuationStateAsync(sessionId!, parameters, result.Text);
+                    }
 
                     // 检查是否已达到目标字数
-                    var currentWordCount = CountChineseCharacters(allContinuedText.ToString());
                     if (currentWordCount >= targetWordCount)
                     {
                         _logger.LogInformation("RWKV 续写已达到目标字数：{WordCount}/{Target}", currentWordCount, targetWordCount);
                         break;
                     }
+                }
+
+                while (CountChineseCharacters(allContinuedText.ToString()) < targetWordCount && allContinuedText.Length > 0)
+                {
+                    var currentText = allContinuedText.ToString();
+                    var currentWordCount = CountChineseCharacters(currentText);
+                    var finishingRound = 0;
+                    if (currentWordCount >= targetWordCount)
+                    {
+                        break;
+                    }
+
+                    while (currentWordCount < targetWordCount && finishingRound < RwkvMaxFinishingRounds)
+                    {
+                        finishingRound++;
+                        var remainingWords = targetWordCount - currentWordCount;
+                        var direction = BuildRwkvFillDirection(remainingWords, continueDirection, false);
+                        var maxTokens = Math.Min(maxTokensPerCall, Math.Max(80, remainingWords + 40));
+                        var fillSelection = await GenerateRwkvWritingCandidateAsync(
+                            parameters,
+                            prompt: BuildRwkvContinuationPrompt(parameters, existingContent, currentText, direction),
+                            direction: direction,
+                            existingText: $"{existingContent}\n{currentText}",
+                            maxTokens: maxTokens);
+                        batchStats.Register(fillSelection);
+                        var fillResult = fillSelection.Response;
+
+                        if (!fillResult.Success || string.IsNullOrWhiteSpace(fillResult.Text))
+                        {
+                            _logger.LogWarning("RWKV 收尾续写第{Round}轮失败或为空，停止补齐", finishingRound);
+                            break;
+                        }
+
+                        var merged = MergeRwkvChunk(currentText, fillResult.Text);
+                        var newWordCount = CountChineseCharacters(merged);
+                        if (newWordCount - currentWordCount < RwkvMinUsefulChunkChars)
+                        {
+                            _logger.LogInformation("RWKV 收尾续写第{Round}轮增量过小（{WordDelta}字），停止补齐", finishingRound, newWordCount - currentWordCount);
+                            break;
+                        }
+
+                        currentText = merged;
+                        currentWordCount = newWordCount;
+                        allContinuedText.Clear();
+                        allContinuedText.Append(currentText);
+
+                        if (stateEnabled)
+                        {
+                            await AppendContinuationStateAsync(sessionId!, parameters, fillResult.Text);
+                        }
+                    }
+
+                    break;
                 }
 
                 var continuedText = allContinuedText.ToString();
@@ -388,6 +537,11 @@ namespace NovelManagement.AI.Agents
                 }
 
                 finalWordCount = CountChineseCharacters(continuedText);
+                if (stateEnabled)
+                {
+                    await AppendContinuationStateAsync(sessionId!, parameters, continuedText);
+                }
+
                 UpdateProgress(100);
 
                 return new AgentTaskResult
@@ -402,7 +556,13 @@ namespace NovelManagement.AI.Agents
                         ["StyleConsistency"] = "RWKV Maintained",
                         ["ContinuationStyle"] = continueLength,
                         ["Engine"] = "RWKV",
-                        ["Rounds"] = rounds
+                        ["Rounds"] = rounds,
+                        ["RwkvSessionId"] = sessionId ?? string.Empty,
+                        ["RwkvBigBatchEnabled"] = IsRwkvBigBatchEnabled(parameters),
+                        ["RwkvBigBatchSelectedRounds"] = batchStats.SelectedRounds,
+                        ["RwkvBigBatchFallbackRounds"] = batchStats.FallbackRounds,
+                        ["RwkvBigBatchLastSelectedIndex"] = batchStats.LastSelectedIndex,
+                        ["RwkvBigBatchLastScore"] = batchStats.LastSelectedScore
                     }
                 };
             }
@@ -415,6 +575,1079 @@ namespace NovelManagement.AI.Agents
                     ErrorMessage = $"RWKV 续写失败: {ex.Message}"
                 };
             }
+        }
+
+        private async Task<AgentTaskResult> GenerateChapterWithRwkvAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                UpdateProgress(15);
+
+                var targetWordCount = GetTargetWordCountForGeneration(parameters);
+                var maxTokensPerCall = _rwkvService!.Configuration.MaxTokensPerCompletion;
+                var rounds = Math.Clamp((int)Math.Ceiling((double)targetWordCount / 180), 1, 12);
+                var generated = new System.Text.StringBuilder();
+                var sessionId = BuildRwkvSessionId(parameters) ?? $"rwkv-chapter-{Guid.NewGuid():N}";
+                var batchStats = new RwkvBatchUsageStats();
+                await PrepareRwkvStateAsync(sessionId, parameters, string.Empty, "根据章节设定继续完成当前章节正文");
+
+                for (int round = 0; round < rounds; round++)
+                {
+                    UpdateProgress(15 + (int)((double)(round + 1) / rounds * 75));
+                    var existingGenerated = generated.ToString();
+                    var beforeWordCount = CountChineseCharacters(existingGenerated);
+
+                    var prompt = BuildRwkvChapterWritingPrompt(parameters, existingGenerated, round, targetWordCount);
+                    var selection = await GenerateRwkvWritingCandidateAsync(
+                        parameters,
+                        prompt: prompt,
+                        direction: round == 0 ? "请开始正文，不要写标题，不要解释。" : "请承接上文继续正文，保持人物与剧情一致。",
+                        existingText: existingGenerated,
+                        maxTokens: maxTokensPerCall);
+                    batchStats.Register(selection);
+                    var result = selection.Response;
+
+                    if (!result.Success || string.IsNullOrWhiteSpace(result.Text))
+                    {
+                        _logger.LogWarning("RWKV 第{Round}轮章节生成失败或为空：{Error}", round + 1, result.Error);
+                        break;
+                    }
+
+                    var cleanedChunk = CleanupRwkvWritingChunk(result.Text);
+                    if (string.IsNullOrWhiteSpace(cleanedChunk))
+                    {
+                        break;
+                    }
+
+                    var merged = MergeRwkvChunk(existingGenerated, cleanedChunk);
+                    generated.Clear();
+                    generated.Append(merged);
+                    var currentWordCount = CountChineseCharacters(merged);
+                    var wordDelta = currentWordCount - beforeWordCount;
+                    if (wordDelta < RwkvMinUsefulChunkChars)
+                    {
+                        _logger.LogInformation("RWKV 第{Round}轮章节生成增量过小（{WordDelta}字），提前结束主生成循环", round + 1, wordDelta);
+                        break;
+                    }
+
+                    await AppendContinuationStateAsync(sessionId, parameters, cleanedChunk);
+                    if (currentWordCount >= targetWordCount)
+                    {
+                        break;
+                    }
+                }
+
+                var finishingRound = 0;
+                while (CountChineseCharacters(generated.ToString()) < targetWordCount &&
+                       generated.Length > 0 &&
+                       finishingRound < RwkvMaxFinishingRounds)
+                {
+                    finishingRound++;
+                    var currentText = generated.ToString();
+                    var currentWordCount = CountChineseCharacters(currentText);
+                    var remainingWords = targetWordCount - currentWordCount;
+                    var fillDirection = BuildRwkvFillDirection(remainingWords, "请承接上文继续正文，补足章节结尾或过渡内容。", true);
+                    var fillPrompt = BuildRwkvChapterWritingPrompt(parameters, currentText, rounds + finishingRound - 1, targetWordCount);
+                    var fillSelection = await GenerateRwkvWritingCandidateAsync(
+                        parameters,
+                        prompt: fillPrompt,
+                        direction: fillDirection,
+                        existingText: currentText,
+                        maxTokens: Math.Min(maxTokensPerCall, Math.Max(80, remainingWords + 40)));
+                    batchStats.Register(fillSelection);
+                    var fillResult = fillSelection.Response;
+
+                    if (!fillResult.Success || string.IsNullOrWhiteSpace(fillResult.Text))
+                    {
+                        _logger.LogWarning("RWKV 章节收尾第{Round}轮失败或为空，停止补齐", finishingRound);
+                        break;
+                    }
+
+                    var cleanedFillChunk = CleanupRwkvWritingChunk(fillResult.Text);
+                    if (string.IsNullOrWhiteSpace(cleanedFillChunk))
+                    {
+                        break;
+                    }
+
+                    var mergedFill = MergeRwkvChunk(currentText, cleanedFillChunk);
+                    var newWordCount = CountChineseCharacters(mergedFill);
+                    if (newWordCount - currentWordCount < RwkvMinUsefulChunkChars)
+                    {
+                        _logger.LogInformation("RWKV 章节收尾第{Round}轮增量过小（{WordDelta}字），停止补齐", finishingRound, newWordCount - currentWordCount);
+                        break;
+                    }
+
+                    generated.Clear();
+                    generated.Append(mergedFill);
+                    await AppendContinuationStateAsync(sessionId, parameters, cleanedFillChunk);
+                }
+
+                var content = FormatContinuedText(generated.ToString(), generated.ToString());
+                if (CountChineseCharacters(content) > targetWordCount * 1.15)
+                {
+                    content = TruncateToWordCount(content, targetWordCount);
+                }
+
+                await AppendContinuationStateAsync(sessionId, parameters, content);
+                UpdateProgress(100);
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = !string.IsNullOrWhiteSpace(content),
+                    Data = content,
+                    ErrorMessage = string.IsNullOrWhiteSpace(content) ? "RWKV 未生成可用章节内容" : string.Empty,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["ContentType"] = "ChapterContent",
+                        ["Quality"] = "RWKV MultiRound",
+                        ["WordCount"] = CountChineseCharacters(content),
+                        ["AIModel"] = "RWKV",
+                        ["Rounds"] = rounds,
+                        ["RwkvSessionId"] = sessionId,
+                        ["Temperature"] = RwkvNovelTemperature,
+                        ["TopP"] = RwkvNovelTopP,
+                        ["RwkvBigBatchEnabled"] = IsRwkvBigBatchEnabled(parameters),
+                        ["RwkvBigBatchSelectedRounds"] = batchStats.SelectedRounds,
+                        ["RwkvBigBatchFallbackRounds"] = batchStats.FallbackRounds,
+                        ["RwkvBigBatchLastSelectedIndex"] = batchStats.LastSelectedIndex,
+                        ["RwkvBigBatchLastScore"] = batchStats.LastSelectedScore
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RWKV 章节生成失败");
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"RWKV 章节生成失败: {ex.Message}"
+                };
+            }
+        }
+
+        private async Task PrepareRwkvStateAsync(string sessionId, Dictionary<string, object> parameters, string existingContent, string continueDirection)
+        {
+            if (_rwkvService == null)
+            {
+                return;
+            }
+
+            await _rwkvService.DeleteStateAsync(sessionId);
+
+            var warmupPrompt = BuildRwkvContextPrompt(parameters, existingContent, continueDirection);
+            var warmupResult = await _rwkvService.CompleteWithStateAsync(
+                sessionId,
+                warmupPrompt,
+                maxTokens: 8,
+                direction: "请只回复 OK",
+                temperature: RwkvStateTemperature,
+                topP: RwkvStateTopP,
+                presencePenalty: 0.0,
+                frequencyPenalty: 0.0,
+                topK: RwkvStateTopK);
+            if (!warmupResult.Success)
+            {
+                _logger.LogWarning("RWKV state 预热失败，会话 {SessionId}: {Error}", sessionId, warmupResult.Error);
+            }
+        }
+
+        private async Task AppendContinuationStateAsync(string sessionId, Dictionary<string, object> parameters, string continuedText)
+        {
+            if (_rwkvService == null || string.IsNullOrWhiteSpace(continuedText))
+            {
+                return;
+            }
+
+            var updatePrompt = BuildRwkvStateUpdatePrompt(parameters, continuedText);
+            if (string.IsNullOrWhiteSpace(updatePrompt))
+            {
+                return;
+            }
+
+            var updateResult = await _rwkvService.CompleteWithStateAsync(
+                sessionId,
+                updatePrompt,
+                maxTokens: 8,
+                direction: "请只回复 OK",
+                temperature: RwkvStateTemperature,
+                topP: RwkvStateTopP,
+                presencePenalty: 0.0,
+                frequencyPenalty: 0.0,
+                topK: RwkvStateTopK);
+            if (!updateResult.Success)
+            {
+                _logger.LogWarning("RWKV state 更新失败，会话 {SessionId}: {Error}", sessionId, updateResult.Error);
+            }
+        }
+
+        private string? BuildRwkvSessionId(Dictionary<string, object> parameters)
+        {
+            if (!parameters.TryGetValue("ProjectId", out var projectIdObj) || projectIdObj == null)
+            {
+                return null;
+            }
+
+            var projectKey = projectIdObj.ToString();
+            if (string.IsNullOrWhiteSpace(projectKey) || projectKey == Guid.Empty.ToString())
+            {
+                return null;
+            }
+
+            var chapterKey = ExtractChapterTitle(parameters);
+            chapterKey = string.IsNullOrWhiteSpace(chapterKey) ? "chapter" : SanitizeSessionSegment(chapterKey);
+            return $"project-{projectKey}-writer-{chapterKey}";
+        }
+
+        private string ExtractChapterTitle(Dictionary<string, object> parameters)
+        {
+            if (!parameters.TryGetValue("ChapterData", out var chapterData) || chapterData == null)
+            {
+                return string.Empty;
+            }
+
+            var property = chapterData.GetType().GetProperty("Title");
+            return property?.GetValue(chapterData)?.ToString() ?? string.Empty;
+        }
+
+        private string BuildRwkvContextPrompt(Dictionary<string, object> parameters, string existingContent, string continueDirection)
+        {
+            var stateCard = BuildRwkvPromptStateCard(parameters, existingContent);
+
+            return
+$@"System: 你是 NovelCraft 的故事状态缓存助手。请把以下“事实卡”写入当前会话记忆，后续续写必须优先遵守这些事实。不要扩写，不要创作，不要解释。
+
+事实卡：
+{stateCard}
+
+本次续写方向：
+{continueDirection}
+
+Assistant:";
+        }
+
+        private string BuildRwkvContinuationPrompt(Dictionary<string, object> parameters, string existingContent, string generatedContinuation, string? continueDirection)
+        {
+            var existingTail = LimitRwkvContext(existingContent);
+            var generatedTail = LimitRwkvContext(generatedContinuation);
+            var keyPlots = SerializeForRwkv(parameters.GetValueOrDefault("PlotOutlines"));
+            var characters = SerializeForRwkv(parameters.GetValueOrDefault("MainCharacters"));
+            var stateCard = BuildRwkvPromptStateCard(parameters, $"{existingTail}\n{generatedTail}");
+
+            return
+$@"Instruction: 你正在续写一部中文网络小说。请保持文风一致、剧情连贯、人物设定稳定，不要解释，不要重复前文，不要输出 Markdown 标题、列表、引用或分隔线。
+
+若你发现将要输出的句子与前文或已生成内容重复，请直接跳过重复句，继续推进新的动作、对话或信息。
+
+Key Plot:
+{keyPlots}
+
+Characters:
+{characters}
+
+State Memory:
+{stateCard}
+
+Direction:
+{continueDirection}
+
+Existing Content Tail:
+{existingTail}
+
+Generated Tail:
+{generatedTail}
+
+Response:";
+        }
+
+        private string BuildRwkvChapterWritingPrompt(Dictionary<string, object> parameters, string generatedContent, int round, int targetWordCount)
+        {
+            var chapterTitle = parameters.GetValueOrDefault("ChapterTitle", "").ToString();
+            var style = parameters.GetValueOrDefault("WritingStyle", "古风仙侠").ToString();
+            var outline = parameters.GetValueOrDefault("ChapterOutline", "").ToString();
+            var keyPlots = parameters.GetValueOrDefault("KeyPlots", "").ToString();
+            var characters = parameters.GetValueOrDefault("Characters", "").ToString();
+            var requirements = parameters.GetValueOrDefault("SpecialRequirements", "").ToString();
+            var generatedTail = LimitRwkvContext(generatedContent);
+            var stateCard = BuildRwkvPromptStateCard(parameters, generatedContent);
+
+            return
+$@"Instruction: 你是一名中文网络小说作家。请按照给定设定创作章节正文，风格要统一，叙事自然，避免列表化说明。不要输出 Markdown 标题、列表、引用或分隔线。目标总字数约 {targetWordCount} 字。
+
+如果某句、某段的含义已经在前文出现，请不要换一种说法重复表述，而是继续推进情节、补充动作细节或环境反馈。
+
+Title:
+{chapterTitle}
+
+Style:
+{style}
+
+Outline:
+{outline}
+
+Key Plot:
+{keyPlots}
+
+Characters:
+{characters}
+
+State Memory:
+{stateCard}
+
+Requirements:
+{requirements}
+
+Existing Generated Content Tail:
+{generatedTail}
+
+Round:
+{round + 1}
+
+Response:";
+        }
+
+        private string BuildRwkvStateUpdatePrompt(Dictionary<string, object> parameters, string continuedText)
+        {
+            var chapterTitle = ExtractChapterTitle(parameters);
+            var stateUpdateCard = BuildRwkvUpdateStateCard(parameters, continuedText);
+            if (string.IsNullOrWhiteSpace(stateUpdateCard))
+            {
+                return string.Empty;
+            }
+
+            return
+$@"System: 请将以下新增事实合并进当前故事状态缓存。只保留角色、目标、地点、冲突和最新推进，不要生成正文，不要分析，不要补充。请仅回复 OK。
+
+章节标题：
+{chapterTitle}
+
+新增事实卡：
+{stateUpdateCard}
+
+Assistant:";
+        }
+
+        private string BuildRwkvPromptStateCard(Dictionary<string, object> parameters, string recentText)
+        {
+            var facts = new List<string>();
+            AddRwkvStateFact(facts, $"章节标题：{ExtractChapterTitle(parameters)}");
+            AddRwkvStateFact(facts, $"章节大纲：{CompactRwkvStateValue(parameters.GetValueOrDefault("ChapterOutline"), 180)}");
+            AddRwkvStateFact(facts, $"关键剧情：{CompactRwkvStateValue(parameters.GetValueOrDefault("KeyPlots") ?? parameters.GetValueOrDefault("PlotOutlines"), 220)}");
+            AddRwkvStateFact(facts, $"主要角色：{CompactRwkvStateValue(parameters.GetValueOrDefault("Characters") ?? parameters.GetValueOrDefault("MainCharacters"), 220)}");
+            AddRwkvStateFact(facts, $"世界设定：{CompactRwkvStateValue(parameters.GetValueOrDefault("WorldSettings"), 180)}");
+            AddRwkvStateFact(facts, $"特殊要求：{CompactRwkvStateValue(parameters.GetValueOrDefault("SpecialRequirements"), 160)}");
+
+            foreach (var fact in ExtractRwkvStateFacts(recentText, 4))
+            {
+                AddRwkvStateFact(facts, $"最近进展：{fact}");
+            }
+
+            if (facts.Count == 0)
+            {
+                return "- 暂无可用状态";
+            }
+
+            return string.Join("\n", facts.Take(RwkvMaxStateFacts).Select(fact => $"- {fact}"));
+        }
+
+        private string BuildRwkvUpdateStateCard(Dictionary<string, object> parameters, string continuedText)
+        {
+            var facts = new List<string>();
+            AddRwkvStateFact(facts, $"章节标题：{ExtractChapterTitle(parameters)}");
+            foreach (var fact in ExtractRwkvStateFacts(continuedText, 6))
+            {
+                AddRwkvStateFact(facts, fact);
+            }
+
+            return facts.Count == 0
+                ? string.Empty
+                : string.Join("\n", facts.Take(RwkvMaxStateFacts).Select(fact => $"- {fact}"));
+        }
+
+        private static void AddRwkvStateFact(List<string> facts, string? fact)
+        {
+            if (string.IsNullOrWhiteSpace(fact))
+            {
+                return;
+            }
+
+            var cleanedFact = fact.Trim();
+            var normalizedFact = NormalizeRwkvComparableText(cleanedFact);
+            if (normalizedFact.Length < 6)
+            {
+                return;
+            }
+
+            if (facts.Any(existing => string.Equals(
+                    NormalizeRwkvComparableText(existing),
+                    normalizedFact,
+                    StringComparison.Ordinal)))
+            {
+                return;
+            }
+
+            facts.Add(cleanedFact);
+        }
+
+        private static IEnumerable<string> ExtractRwkvStateFacts(string text, int maxFacts)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return Array.Empty<string>();
+            }
+
+            var tail = LimitRwkvContext(text, 1200);
+            var facts = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var sentences = SplitRwkvSentences(tail).ToList();
+
+            for (int i = sentences.Count - 1; i >= 0 && facts.Count < maxFacts; i--)
+            {
+                var fact = NormalizeRwkvStateFact(sentences[i]);
+                if (string.IsNullOrWhiteSpace(fact))
+                {
+                    continue;
+                }
+
+                var normalized = NormalizeRwkvComparableText(fact);
+                if (normalized.Length < 10 || !seen.Add(normalized))
+                {
+                    continue;
+                }
+
+                facts.Add(fact);
+            }
+
+            facts.Reverse();
+            return facts;
+        }
+
+        private static string NormalizeRwkvStateFact(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = text.Replace("\r", " ")
+                .Replace("\n", " ")
+                .Replace("```", string.Empty, StringComparison.Ordinal)
+                .Replace("Response:", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("Instruction:", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim(' ', '\t', '-', '*', '"', '\'', '`');
+
+            cleaned = string.Join(" ", cleaned
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            return cleaned.Length > 120 ? cleaned[..120] : cleaned;
+        }
+
+        private static string CompactRwkvStateValue(object? value, int maxChars)
+        {
+            var raw = SerializeForRwkv(value);
+            if (string.IsNullOrWhiteSpace(raw) || raw == "[]")
+            {
+                return string.Empty;
+            }
+
+            var compact = string.Join(" ", raw
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            return compact.Length > maxChars ? compact[..maxChars] : compact;
+        }
+
+        private static string SerializeForRwkv(object? value)
+        {
+            if (value == null)
+            {
+                return "[]";
+            }
+
+            try
+            {
+                var json = JsonSerializer.Serialize(value);
+                return json.Length > 4000 ? json[..4000] : json;
+            }
+            catch
+            {
+                var text = value.ToString() ?? string.Empty;
+                return text.Length > 4000 ? text[..4000] : text;
+            }
+        }
+
+        private static string LimitRwkvContext(string text, int maxChars = RwkvRollingContextChars)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length <= maxChars)
+            {
+                return text;
+            }
+
+            return text[^maxChars..];
+        }
+
+        private bool ShouldUseRwkvForChapterWriting(Dictionary<string, object> parameters)
+        {
+            var aiModel = parameters.GetValueOrDefault("AIModel", "").ToString();
+            return _rwkvService != null &&
+                   _rwkvService.IsAvailable &&
+                   string.Equals(aiModel, "RWKV", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private int GetTargetWordCountForGeneration(Dictionary<string, object> parameters)
+        {
+            var targetWordCountText = parameters.GetValueOrDefault("TargetWordCount", "2000")?.ToString();
+            return int.TryParse(targetWordCountText, out var targetWordCount)
+                ? Math.Clamp(targetWordCount, 300, 3000)
+                : 2000;
+        }
+
+        private static string CleanupRwkvWritingChunk(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = text.Replace("Response:", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("Instruction:", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim();
+
+            if (cleaned.StartsWith("```", StringComparison.Ordinal))
+            {
+                cleaned = cleaned.Trim('`').Trim();
+            }
+
+            var lines = cleaned.Split('\n')
+                .Where(line =>
+                {
+                    var trimmed = line.TrimStart();
+                    if (trimmed.StartsWith("##", StringComparison.Ordinal) ||
+                        trimmed.StartsWith("---", StringComparison.Ordinal) ||
+                        trimmed.StartsWith("*", StringComparison.Ordinal) ||
+                        trimmed.Contains("续写方向", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.Contains("Key Plot Continuation Guideline", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.Contains("Existing Generated Content Tail", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.Contains("Response:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                })
+                .Select(line => line.TrimStart('>', ' '))
+                .ToArray();
+            cleaned = string.Join("\n", lines).Trim();
+
+            return RemoveRepeatedWritingUnits(string.Empty, cleaned);
+        }
+
+        private static string MergeRwkvChunk(string existingText, string newChunk)
+        {
+            if (string.IsNullOrWhiteSpace(existingText))
+            {
+                return CleanupRwkvWritingChunk(newChunk);
+            }
+
+            var normalizedExisting = existingText.TrimEnd();
+            var normalizedChunk = RemoveRepeatedWritingUnits(normalizedExisting, CleanupRwkvWritingChunk(newChunk));
+            if (string.IsNullOrWhiteSpace(normalizedChunk))
+            {
+                return normalizedExisting;
+            }
+
+            var maxOverlap = Math.Min(Math.Min(normalizedExisting.Length, normalizedChunk.Length), 120);
+            for (int overlap = maxOverlap; overlap >= 12; overlap--)
+            {
+                if (normalizedExisting.EndsWith(normalizedChunk[..overlap], StringComparison.Ordinal))
+                {
+                    return normalizedExisting + normalizedChunk[overlap..];
+                }
+            }
+
+            return normalizedExisting + normalizedChunk;
+        }
+
+        private static string RemoveRepeatedWritingUnits(string existingText, string newChunk)
+        {
+            if (string.IsNullOrWhiteSpace(newChunk))
+            {
+                return string.Empty;
+            }
+
+            var seenParagraphs = new HashSet<string>(GetComparableParagraphs(existingText), StringComparer.Ordinal);
+            var seenSentences = new HashSet<string>(GetComparableSentences(existingText), StringComparer.Ordinal);
+            var filteredParagraphs = new List<string>();
+
+            foreach (var paragraph in SplitRwkvParagraphs(newChunk))
+            {
+                var filteredSentences = new List<string>();
+                foreach (var sentence in SplitRwkvSentences(paragraph))
+                {
+                    var normalizedSentence = NormalizeRwkvComparableText(sentence);
+                    if (normalizedSentence.Length >= 10 &&
+                        IsComparableUnitDuplicate(normalizedSentence, seenSentences))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sentence))
+                    {
+                        filteredSentences.Add(sentence.Trim());
+                    }
+
+                    if (normalizedSentence.Length >= 10)
+                    {
+                        seenSentences.Add(normalizedSentence);
+                    }
+                }
+
+                var rebuiltParagraph = string.Join(string.Empty, filteredSentences).Trim();
+                if (string.IsNullOrWhiteSpace(rebuiltParagraph))
+                {
+                    continue;
+                }
+
+                var normalizedParagraph = NormalizeRwkvComparableText(rebuiltParagraph);
+                if (normalizedParagraph.Length >= 20 &&
+                    IsComparableUnitDuplicate(normalizedParagraph, seenParagraphs))
+                {
+                    continue;
+                }
+
+                filteredParagraphs.Add(rebuiltParagraph);
+                if (normalizedParagraph.Length >= 20)
+                {
+                    seenParagraphs.Add(normalizedParagraph);
+                }
+            }
+
+            return string.Join("\n", filteredParagraphs).Trim();
+        }
+
+        private static IEnumerable<string> GetComparableParagraphs(string text)
+        {
+            return SplitRwkvParagraphs(text)
+                .Select(NormalizeRwkvComparableText)
+                .Where(value => value.Length >= 20);
+        }
+
+        private static IEnumerable<string> GetComparableSentences(string text)
+        {
+            return SplitRwkvSentences(text)
+                .Select(NormalizeRwkvComparableText)
+                .Where(value => value.Length >= 10);
+        }
+
+        private static IEnumerable<string> SplitRwkvParagraphs(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return Array.Empty<string>();
+            }
+
+            return text.Replace("\r\n", "\n")
+                .Replace("\r", "\n")
+                .Split(new[] { "\n\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(paragraph => paragraph.Trim())
+                .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph));
+        }
+
+        private static IEnumerable<string> SplitRwkvSentences(string text)
+        {
+            var sentences = new List<string>();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return sentences;
+            }
+
+            var builder = new System.Text.StringBuilder();
+            foreach (var ch in text)
+            {
+                builder.Append(ch);
+                if (IsRwkvSentenceEnding(ch))
+                {
+                    var sentence = builder.ToString().Trim();
+                    if (!string.IsNullOrWhiteSpace(sentence))
+                    {
+                        sentences.Add(sentence);
+                    }
+
+                    builder.Clear();
+                }
+            }
+
+            if (builder.Length > 0)
+            {
+                var tail = builder.ToString().Trim();
+                if (!string.IsNullOrWhiteSpace(tail))
+                {
+                    sentences.Add(tail);
+                }
+            }
+
+            return sentences;
+        }
+
+        private static bool IsComparableUnitDuplicate(string candidate, IEnumerable<string> existingUnits)
+        {
+            foreach (var existing in existingUnits)
+            {
+                if (string.Equals(existing, candidate, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (candidate.Length >= 18 &&
+                    (existing.Contains(candidate, StringComparison.Ordinal) ||
+                     candidate.Contains(existing, StringComparison.Ordinal)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsRwkvSentenceEnding(char c)
+        {
+            return c is '。' or '！' or '？' or '!' or '?' or ';' or '；';
+        }
+
+        private static string NormalizeRwkvComparableText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var chars = text
+                .Where(ch => !char.IsWhiteSpace(ch) && !char.IsPunctuation(ch) && !char.IsSymbol(ch))
+                .ToArray();
+            return new string(chars).Trim();
+        }
+
+        private static string BuildRwkvFillDirection(int remainingWords, string? preferredDirection, bool isChapterWriting)
+        {
+            var baseDirection = string.IsNullOrWhiteSpace(preferredDirection)
+                ? (isChapterWriting ? "请承接上文继续正文。" : "请自然续写正文。")
+                : preferredDirection.Trim();
+
+            return $"{baseDirection} 请只补充剩余约 {remainingWords} 字的有效正文，不要重复已写内容，不要回顾前文，不要输出标题或解释。";
+        }
+
+        private async Task<RwkvGenerationSelectionResult> GenerateRwkvWritingCandidateAsync(
+            Dictionary<string, object> parameters,
+            string prompt,
+            string? direction,
+            string existingText,
+            int maxTokens)
+        {
+            if (_rwkvService == null)
+            {
+                return new RwkvGenerationSelectionResult
+                {
+                    Response = new RwkvCompletionResponse
+                    {
+                        Success = false,
+                        Error = "RWKV 服务不可用"
+                    }
+                };
+            }
+
+            var batchEnabled = IsRwkvBigBatchEnabled(parameters) && CanUseRwkvBigBatchForContext(existingText);
+            var candidatePrompts = batchEnabled
+                ? BuildRwkvBatchCandidatePrompts(prompt, direction)
+                : new List<string>();
+
+            if (candidatePrompts.Count >= 2)
+            {
+                var batchResult = await _rwkvService.CompleteBatchAsync(
+                    candidatePrompts,
+                    maxTokens: maxTokens,
+                    temperature: RwkvNovelTemperature,
+                    topP: RwkvNovelTopP,
+                    presencePenalty: RwkvNovelPresencePenalty,
+                    frequencyPenalty: RwkvNovelFrequencyPenalty,
+                    chunkSize: RwkvBatchChunkSize);
+
+                var bestCandidate = SelectBestRwkvBatchCandidate(existingText, batchResult);
+                if (bestCandidate != null)
+                {
+                    _logger.LogInformation("RWKV big_batch 已选出最佳候选，索引 {Index}，估算长度 {Length}", bestCandidate.Index, bestCandidate.Text.Length);
+                    return new RwkvGenerationSelectionResult
+                    {
+                        UsedBatch = true,
+                        CandidateCount = batchResult.Items.Count,
+                        SelectedCandidateIndex = bestCandidate.Index,
+                        SelectedScore = bestCandidate.Score,
+                        Response = new RwkvCompletionResponse
+                        {
+                            Success = true,
+                            Text = bestCandidate.Text,
+                            TokensGenerated = bestCandidate.TokensGenerated
+                        }
+                    };
+                }
+
+                if (!string.IsNullOrWhiteSpace(batchResult.Error))
+                {
+                    _logger.LogWarning("RWKV big_batch 未返回可用候选，回退单次生成：{Error}", batchResult.Error);
+                }
+                else
+                {
+                    _logger.LogWarning("RWKV big_batch 未返回可用候选，回退单次生成");
+                }
+            }
+
+            return new RwkvGenerationSelectionResult
+            {
+                UsedBatch = batchEnabled,
+                FellBackToSingle = batchEnabled,
+                CandidateCount = candidatePrompts.Count,
+                Response = await _rwkvService.CompleteAsync(
+                    prompt: prompt,
+                    maxTokens: maxTokens,
+                    direction: direction,
+                    temperature: RwkvNovelTemperature,
+                    topP: RwkvNovelTopP,
+                    presencePenalty: RwkvNovelPresencePenalty,
+                    frequencyPenalty: RwkvNovelFrequencyPenalty)
+            };
+        }
+
+        private List<string> BuildRwkvBatchCandidatePrompts(string prompt, string? direction)
+        {
+            var prompts = new List<string>
+            {
+                BuildRwkvBatchPromptVariant(prompt, direction, string.Empty)
+            };
+
+            if (RwkvBatchCandidateCount >= 2)
+            {
+                prompts.Add(BuildRwkvBatchPromptVariant(
+                    prompt,
+                    direction,
+                    "请优先推进剧情，增加新的动作、环境变化或线索，不要换个说法重复刚才的内容。"));
+            }
+
+            return prompts;
+        }
+
+        private string BuildRwkvBatchPromptVariant(string prompt, string? direction, string extraInstruction)
+        {
+            var mergedDirection = string.IsNullOrWhiteSpace(extraInstruction)
+                ? direction
+                : string.IsNullOrWhiteSpace(direction)
+                    ? extraInstruction
+                    : $"{direction} {extraInstruction}";
+
+            var builder = new System.Text.StringBuilder();
+            builder.Append(prompt);
+
+            if (!string.IsNullOrWhiteSpace(mergedDirection))
+            {
+                if (!prompt.EndsWith("\n", StringComparison.Ordinal))
+                {
+                    builder.AppendLine();
+                }
+
+                builder.AppendLine();
+                builder.Append($"<!-- 续写方向：{mergedDirection} -->");
+                builder.AppendLine();
+            }
+
+            return builder.ToString();
+        }
+
+        private ScoredRwkvBatchCandidate? SelectBestRwkvBatchCandidate(string existingText, RwkvBatchCompletionResponse batchResult)
+        {
+            if (!batchResult.Success || batchResult.Items.Count == 0)
+            {
+                return null;
+            }
+
+            ScoredRwkvBatchCandidate? bestItem = null;
+            double bestScore = double.MinValue;
+
+            foreach (var item in batchResult.Items)
+            {
+                var cleanedText = CleanupRwkvWritingChunk(item.Text);
+                if (string.IsNullOrWhiteSpace(cleanedText))
+                {
+                    continue;
+                }
+
+                if (!IsRwkvBatchCandidateUsable(existingText, cleanedText))
+                {
+                    continue;
+                }
+
+                var score = EvaluateRwkvCandidateScore(existingText, cleanedText);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestItem = new ScoredRwkvBatchCandidate
+                    {
+                        Index = item.Index,
+                        Text = cleanedText,
+                        TokensGenerated = item.TokensGenerated,
+                        Score = score
+                    };
+                }
+            }
+
+            return bestItem;
+        }
+
+        private bool IsRwkvBigBatchEnabled(Dictionary<string, object> parameters)
+        {
+            if (_rwkvService == null || !_rwkvService.IsAvailable)
+            {
+                return false;
+            }
+
+            var explicitDisable = parameters.GetValueOrDefault("DisableRwkvBigBatch")?.ToString();
+            if (bool.TryParse(explicitDisable, out var disabled) && disabled)
+            {
+                return false;
+            }
+
+            var explicitEnable = parameters.GetValueOrDefault("EnableRwkvBigBatch")?.ToString();
+            if (bool.TryParse(explicitEnable, out var enabled))
+            {
+                return enabled;
+            }
+
+            return true;
+        }
+
+        private double EvaluateRwkvCandidateScore(string existingText, string candidateText)
+        {
+            var mergedText = MergeRwkvChunk(existingText, candidateText);
+            var candidateWordCount = CountChineseCharacters(candidateText);
+            var wordDelta = Math.Max(0, CountChineseCharacters(mergedText) - CountChineseCharacters(existingText));
+            var hanCount = CountRwkvHanCharacters(candidateText);
+            var hanRatio = candidateText.Length == 0 ? 0 : (double)hanCount / candidateText.Length;
+
+            var existingSentences = new HashSet<string>(GetComparableSentences(existingText), StringComparer.Ordinal);
+            var candidateSentences = SplitRwkvSentences(candidateText)
+                .Select(sentence => NormalizeRwkvComparableText(sentence))
+                .Where(sentence => sentence.Length >= 10)
+                .ToList();
+            var duplicateSentenceCount = candidateSentences.Count(sentence => IsComparableUnitDuplicate(sentence, existingSentences));
+            var uniqueSentenceCount = candidateSentences.Count - duplicateSentenceCount;
+
+            var existingParagraphs = new HashSet<string>(GetComparableParagraphs(existingText), StringComparer.Ordinal);
+            var candidateParagraphs = SplitRwkvParagraphs(candidateText)
+                .Select(paragraph => NormalizeRwkvComparableText(paragraph))
+                .Where(paragraph => paragraph.Length >= 20)
+                .ToList();
+            var duplicateParagraphCount = candidateParagraphs.Count(paragraph => IsComparableUnitDuplicate(paragraph, existingParagraphs));
+
+            var penalty = 0.0;
+            if (candidateText.Contains("English:", StringComparison.OrdinalIgnoreCase) ||
+                candidateText.Contains("Japanese:", StringComparison.OrdinalIgnoreCase) ||
+                candidateText.Contains("Korean:", StringComparison.OrdinalIgnoreCase))
+            {
+                penalty += 60;
+            }
+
+            if (candidateText.Contains("Response:", StringComparison.OrdinalIgnoreCase) ||
+                candidateText.Contains("Instruction:", StringComparison.OrdinalIgnoreCase))
+            {
+                penalty += 40;
+            }
+
+            if (candidateText.Contains("<!--", StringComparison.Ordinal) ||
+                candidateText.Contains("-->", StringComparison.Ordinal))
+            {
+                penalty += 120;
+            }
+
+            if (hanRatio < 0.45)
+            {
+                penalty += 140;
+            }
+
+            return wordDelta * 1.8
+                   + candidateWordCount * 0.2
+                   + hanCount * 0.15
+                   + uniqueSentenceCount * 16
+                   - duplicateSentenceCount * 18
+                   - duplicateParagraphCount * 28
+                   - penalty;
+        }
+
+        private bool IsRwkvBatchCandidateUsable(string existingText, string candidateText)
+        {
+            if (string.IsNullOrWhiteSpace(candidateText))
+            {
+                return false;
+            }
+
+            if (candidateText.Contains("<!--", StringComparison.Ordinal) ||
+                candidateText.Contains("-->", StringComparison.Ordinal) ||
+                candidateText.Contains("English:", StringComparison.OrdinalIgnoreCase) ||
+                candidateText.Contains("Japanese:", StringComparison.OrdinalIgnoreCase) ||
+                candidateText.Contains("Korean:", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var hanCount = CountRwkvHanCharacters(candidateText);
+            if (hanCount < RwkvMinUsefulChunkChars)
+            {
+                return false;
+            }
+
+            var comparableLength = candidateText.Count(ch => !char.IsWhiteSpace(ch));
+            if (comparableLength > 0 && (double)hanCount / comparableLength < 0.45)
+            {
+                return false;
+            }
+
+            var sentenceCount = SplitRwkvSentences(candidateText).Count();
+            if (hanCount >= 120 && sentenceCount < 2)
+            {
+                return false;
+            }
+
+            var mergedText = MergeRwkvChunk(existingText, candidateText);
+            var effectiveDelta = CountRwkvHanCharacters(mergedText) - CountRwkvHanCharacters(existingText);
+            return effectiveDelta >= RwkvMinUsefulChunkChars;
+        }
+
+        private bool CanUseRwkvBigBatchForContext(string existingText)
+        {
+            return CountRwkvHanCharacters(existingText) >= 80;
+        }
+
+        private static int CountRwkvHanCharacters(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return 0;
+            }
+
+            var count = 0;
+            foreach (var ch in text)
+            {
+                if (ch >= 0x4e00 && ch <= 0x9fff)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static string SanitizeSessionSegment(string value)
+        {
+            var chars = value
+                .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+                .ToArray();
+            return new string(chars).Trim('-').ToLowerInvariant();
         }
 
         /// <summary>
@@ -1187,8 +2420,7 @@ namespace NovelManagement.AI.Agents
             if (string.IsNullOrEmpty(aiResponse))
                 return "";
 
-            // 移除可能的思维链标记
-            var text = aiResponse;
+            var text = AIOutputSanitizer.ExtractCleanOutput(aiResponse, "content", "text", "continued_text");
 
             // 移除常见的AI响应格式标记
             var markersToRemove = new[]
@@ -1310,39 +2542,7 @@ namespace NovelManagement.AI.Agents
         /// <returns>提取的章节内容</returns>
         private string ExtractChapterContentFromAIResponse(string aiResponse)
         {
-            if (string.IsNullOrWhiteSpace(aiResponse))
-                return "";
-
-            // 移除可能的JSON格式包装
-            var content = aiResponse.Trim();
-
-            // 如果响应是JSON格式，尝试提取content字段
-            if (content.StartsWith("{") && content.EndsWith("}"))
-            {
-                try
-                {
-                    var jsonDoc = JsonDocument.Parse(content);
-                    if (jsonDoc.RootElement.TryGetProperty("content", out var contentElement))
-                    {
-                        content = contentElement.GetString() ?? content;
-                    }
-                    else if (jsonDoc.RootElement.TryGetProperty("text", out var textElement))
-                    {
-                        content = textElement.GetString() ?? content;
-                    }
-                }
-                catch
-                {
-                    // 如果JSON解析失败，使用原始内容
-                }
-            }
-
-            // 清理内容格式
-            content = content.Replace("\\n", "\n")
-                           .Replace("\\t", "\t")
-                           .Replace("\\\"", "\"");
-
-            return content.Trim();
+            return AIOutputSanitizer.ExtractCleanOutput(aiResponse, "content", "text", "chapter_content");
         }
 
 

@@ -160,7 +160,7 @@
                                           Cursor="Hand">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick" 
-                                                        Command="{Binding DataContext.SelectFactionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Command="{Binding SelectFactionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"/>
                                         </Border.InputBindings>
                                         
@@ -186,7 +186,7 @@
 
                                             <!-- 势力信息 -->
                                             <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Name}" 
+                                                <TextBlock Text="{Binding DisplayName}" 
                                                          FontWeight="Medium" 
                                                          FontSize="14"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">

@@ -187,7 +187,8 @@
                             </StackPanel>
                         </Button>
                         
-                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                        <Button x:Name="AutoFixButton"
+                              Style="{StaticResource MaterialDesignOutlinedButton}"
                               Margin="0,0,8,0"
                               Click="AutoFix_Click">
                             <StackPanel Orientation="Horizontal">

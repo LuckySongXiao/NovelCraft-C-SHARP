@@ -27,8 +27,13 @@
 
         <!-- 操作工具栏 -->
         <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <WrapPanel Grid.Row="0" Margin="0,0,0,12">
                     <Button Style="{StaticResource MaterialDesignRaisedButton}"
                             Margin="0,0,12,0"
                             Click="NewPlot_Click">
@@ -109,10 +114,10 @@
                             <TextBlock Text="剧情建议"/>
                         </StackPanel>
                     </Button>
-                </StackPanel>
+                </WrapPanel>
 
                 <!-- 筛选和搜索 -->
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
                     <ComboBox x:Name="PlotTypeFilter"
                             materialDesign:HintAssist.Hint="剧情类型"
                             Width="120"
@@ -144,16 +149,16 @@
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="200"
                            TextChanged="SearchTextBox_TextChanged"/>
-                </StackPanel>
-            </DockPanel>
+                </WrapPanel>
+            </Grid>
         </materialDesign:Card>
 
         <!-- 主内容区域 -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="400"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300" MinWidth="220"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
 
             <!-- 左侧：剧情列表 -->
@@ -184,7 +189,9 @@
                     </Border>
 
                     <!-- 剧情列表 -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
                         <ItemsControl x:Name="PlotListControl">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -195,7 +202,7 @@
                                           Cursor="Hand">
                                         <Border.InputBindings>
                                             <MouseBinding MouseAction="LeftClick" 
-                                                        Command="{Binding DataContext.SelectPlotCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Command="{Binding SelectPlotCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"/>
                                         </Border.InputBindings>
                                         
@@ -270,6 +277,8 @@
             <Grid Grid.Column="2" x:Name="DetailArea">
                 <!-- 默认显示剧情统计信息 -->
                 <materialDesign:Card Padding="24" x:Name="DefaultCard">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock Text="剧情统计" 
                                  FontSize="24" 
@@ -423,6 +432,7 @@
                             </Border>
                         </ItemsControl>
                     </StackPanel>
+                    </ScrollViewer>
                 </materialDesign:Card>
             </Grid>
         </Grid>

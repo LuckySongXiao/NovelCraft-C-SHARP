@@ -13,9 +13,9 @@ namespace NovelManagement.AI.Services.RWKV.Models
         public string ProviderName => "RWKV";
 
         /// <summary>
-        /// rwkv_lightning_libtorch 推理服务地址（Python HTTP 服务）
+        /// rwkv_lightning 推理服务地址
         /// </summary>
-        public string BaseUrl { get; set; } = "http://localhost:8765";
+        public string BaseUrl { get; set; } = "http://localhost:8000";
 
         /// <summary>
         /// 模型文件路径
@@ -25,12 +25,22 @@ namespace NovelManagement.AI.Services.RWKV.Models
         /// <summary>
         /// 模型名称（用于显示）
         /// </summary>
-        public string ModelName { get; set; } = "RWKV-7B";
+        public string ModelName { get; set; } = "rwkv7";
 
         /// <summary>
         /// 推理策略（web 或 cuda）
         /// </summary>
         public string Strategy { get; set; } = "cuda fp16";
+
+        /// <summary>
+        /// 分词器词表路径（自动启动 rwkv_lightning.exe 时使用）
+        /// </summary>
+        public string VocabPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 可选访问密码
+        /// </summary>
+        public string Password { get; set; } = string.Empty;
 
         /// <summary>
         /// 单次续写最大 token 数
@@ -73,6 +83,16 @@ namespace NovelManagement.AI.Services.RWKV.Models
         public int MaxRetries { get; set; } = 3;
 
         /// <summary>
+        /// 上下文窗口大小
+        /// </summary>
+        public int ContextSize { get; set; } = 8192;
+
+        /// <summary>
+        /// 最大并发请求数
+        /// </summary>
+        public int MaxConcurrentRequests { get; set; } = 20;
+
+        /// <summary>
         /// 是否自动启动推理服务
         /// </summary>
         public bool AutoStartServer { get; set; } = false;
@@ -106,8 +126,12 @@ namespace NovelManagement.AI.Services.RWKV.Models
                 errors.Add("RWKV 服务地址不能为空");
             if (MaxTokensPerCompletion <= 0 || MaxTokensPerCompletion > 200)
                 errors.Add("单次续写最大 token 数必须在 1-200 之间");
-            if (Temperature <= 0 || Temperature > 2)
-                errors.Add("温度参数必须在 0-2 之间");
+            if (Temperature <= 0 || Temperature > 3)
+                errors.Add("温度参数必须在 0-3 之间");
+            if (ContextSize < 1024 || ContextSize > 32768)
+                errors.Add("RWKV 上下文大小必须在 1024-32768 之间");
+            if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 20)
+                errors.Add("RWKV 最大并发请求数必须在 1-20 之间");
             return errors;
         }
     }

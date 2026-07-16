@@ -1,8 +1,13 @@
+using System.IO;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.Ollama;
+using NovelManagement.AI.Services.Ollama.Models;
 using NovelManagement.AI.Services.MCP;
+using NovelManagement.AI.Services.OpenAICompatible;
+using NovelManagement.AI.Services.OpenAICompatible.Models;
 
 namespace NovelManagement.AI.Services
 {
@@ -14,7 +19,7 @@ namespace NovelManagement.AI.Services
         private readonly ILogger<ModelManager> _logger;
         private readonly Dictionary<string, IModelProvider> _providers;
         private readonly Dictionary<string, ProviderStatistics> _statistics;
-        private string _defaultProvider = "DeepSeek";
+        private string _defaultProvider = string.Empty;
         private bool _disposed = false;
 
         /// <summary>
@@ -60,6 +65,12 @@ namespace NovelManagement.AI.Services
                 // 订阅事件
                 provider.ConfigurationChanged += OnProviderConfigurationChanged;
                 provider.ConnectionStatusChanged += OnProviderConnectionStatusChanged;
+
+                if (string.IsNullOrWhiteSpace(_defaultProvider))
+                {
+                    _defaultProvider = provider.ProviderName;
+                    _logger.LogInformation("自动设置默认提供者: {ProviderName}", provider.ProviderName);
+                }
 
                 _logger.LogInformation("注册模型提供者成功: {ProviderName}", provider.ProviderName);
                 return true;
@@ -162,7 +173,10 @@ namespace NovelManagement.AI.Services
         /// <returns>默认提供者</returns>
         public IModelProvider? GetDefaultProvider()
         {
-            return GetProvider(_defaultProvider);
+            var resolvedProviderName = ResolvePreferredProviderName(_defaultProvider);
+            return string.IsNullOrWhiteSpace(resolvedProviderName)
+                ? null
+                : GetProvider(resolvedProviderName);
         }
 
         /// <summary>
@@ -173,7 +187,17 @@ namespace NovelManagement.AI.Services
         /// <returns>聊天响应</returns>
         public async Task<ChatResponse> ChatAsync(ChatRequest request, CancellationToken cancellationToken = default)
         {
-            return await ChatAsync(_defaultProvider, request, cancellationToken);
+            var providerName = ResolvePreferredProviderName(_defaultProvider);
+            if (string.IsNullOrWhiteSpace(providerName))
+            {
+                return new ChatResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "没有可用的模型提供者"
+                };
+            }
+
+            return await ChatAsync(providerName, request, cancellationToken);
         }
 
         /// <summary>
@@ -189,7 +213,10 @@ namespace NovelManagement.AI.Services
 
             try
             {
-                var provider = GetProvider(providerName);
+                var resolvedProviderName = ResolvePreferredProviderName(providerName);
+                var provider = string.IsNullOrWhiteSpace(resolvedProviderName)
+                    ? null
+                    : GetProvider(resolvedProviderName);
                 if (provider == null)
                 {
                     var errorResponse = new ChatResponse
@@ -217,12 +244,12 @@ namespace NovelManagement.AI.Services
                 }
 
                 var response = await provider.ChatAsync(request, cancellationToken);
-                
+
                 // 更新统计信息
-                UpdateStatistics(providerName, response);
+                UpdateStatistics(provider.ProviderName, response);
 
                 // 触发响应事件
-                ModelResponse?.Invoke(this, new ModelResponseEventArgs(providerName, request, response));
+                ModelResponse?.Invoke(this, new ModelResponseEventArgs(provider.ProviderName, request, response));
 
                 return response;
             }
@@ -256,7 +283,10 @@ namespace NovelManagement.AI.Services
 
             try
             {
-                var provider = GetProvider(providerName);
+                var resolvedProviderName = ResolvePreferredProviderName(providerName);
+                var provider = string.IsNullOrWhiteSpace(resolvedProviderName)
+                    ? null
+                    : GetProvider(resolvedProviderName);
                 if (provider == null)
                 {
                     var errorResponse = new ChatResponse
@@ -284,12 +314,12 @@ namespace NovelManagement.AI.Services
                 }
 
                 var response = await provider.ChatStreamAsync(request, onChunkReceived, cancellationToken);
-                
+
                 // 更新统计信息
-                UpdateStatistics(providerName, response);
+                UpdateStatistics(provider.ProviderName, response);
 
                 // 触发响应事件
-                ModelResponse?.Invoke(this, new ModelResponseEventArgs(providerName, request, response));
+                ModelResponse?.Invoke(this, new ModelResponseEventArgs(provider.ProviderName, request, response));
 
                 return response;
             }
@@ -340,6 +370,29 @@ namespace NovelManagement.AI.Services
             }
 
             return allModels;
+        }
+
+        /// <summary>
+        /// 解析首选提供者；若首选不可用，则回退到首个可用提供者，再回退到首个已注册提供者。
+        /// </summary>
+        public string? ResolvePreferredProviderName(string? preferredProviderName = null)
+        {
+            if (!string.IsNullOrWhiteSpace(preferredProviderName) &&
+                _providers.TryGetValue(preferredProviderName, out var preferredProvider))
+            {
+                if (preferredProvider.IsAvailable)
+                {
+                    return preferredProviderName;
+                }
+            }
+
+            var firstAvailable = _providers.Values.FirstOrDefault(provider => provider.IsAvailable);
+            if (firstAvailable != null)
+            {
+                return firstAvailable.ProviderName;
+            }
+
+            return _providers.Keys.FirstOrDefault();
         }
 
         /// <summary>
@@ -439,6 +492,64 @@ namespace NovelManagement.AI.Services
         }
 
         #endregion
+
+        /// <summary>
+        /// 使用最新配置重新初始化所有已注册的提供者
+        /// </summary>
+        public async Task ReinitializeAllProvidersAsync(IConfiguration configuration)
+        {
+            foreach (var provider in _providers.Values)
+            {
+                try
+                {
+                    var providerName = provider.ProviderName;
+                    var providerSection = configuration.GetSection($"AI:Providers:{providerName}");
+                    if (!providerSection.Exists())
+                    {
+                        continue;
+                    }
+
+                    if (provider is IOllamaApiService ollama)
+                    {
+                        var ollamaConfig = new OllamaConfiguration();
+                        providerSection.Bind(ollamaConfig);
+                        await ollama.InitializeAsync(ollamaConfig);
+                        _logger.LogInformation("热重载 Ollama 提供者成功");
+                    }
+                    else if (provider is OpenAICompatibleProvider openAiProvider)
+                    {
+                        var config = new OpenAICompatibleConfiguration();
+                        providerSection.Bind(config);
+                        config.ProviderName = providerName;
+                        config.ProviderKind = providerName;
+                        if (string.Equals(providerName, "DeepSeek", StringComparison.OrdinalIgnoreCase))
+                        {
+                            config.DefaultModel = providerSection["DefaultModel"] ?? providerSection["Model"] ?? config.DefaultModel;
+                        }
+                        else if (string.Equals(providerName, "RWKV", StringComparison.OrdinalIgnoreCase))
+                        {
+                            config.BaseUrl = $"{(providerSection["BaseUrl"] ?? "http://localhost:8000").TrimEnd('/')}/openai/v1";
+                            config.DefaultModel = providerSection["DefaultModel"]
+                                ?? providerSection["ModelName"]
+                                ?? Path.GetFileNameWithoutExtension(providerSection["ModelPath"] ?? string.Empty)
+                                ?? "rwkv7";
+                        }
+                        else if (string.Equals(providerName, "LlamaCpp", StringComparison.OrdinalIgnoreCase))
+                        {
+                            config.DefaultModel = providerSection["DefaultModel"]
+                                ?? Path.GetFileNameWithoutExtension(providerSection["ModelPath"] ?? string.Empty)
+                                ?? "local-gguf";
+                        }
+                        await openAiProvider.InitializeAsync(config);
+                        _logger.LogInformation("热重载 {ProviderName} 提供者成功", providerName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "热重载提供者 {ProviderName} 失败", provider.ProviderName);
+                }
+            }
+        }
 
         /// <summary>
         /// 释放资源

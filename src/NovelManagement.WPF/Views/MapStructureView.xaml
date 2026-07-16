@@ -232,21 +232,21 @@
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="总数量: "/>
-                                        <Run Text="{Binding TotalCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="世界地图: "/>
-                                        <Run Text="{Binding WorldMapCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding WorldMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="区域地图: "/>
-                                        <Run Text="{Binding RegionMapCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding RegionMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
                                         <Run Text="城市地图: "/>
-                                        <Run Text="{Binding CityMapCount}" FontWeight="Medium"/>
+                                        <Run Text="{Binding CityMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Grid>
@@ -484,7 +484,8 @@
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="1" 
-                                                                SelectedItem="{Binding Type}" 
+                                                                SelectedValuePath="Content"
+                                                                SelectedValue="{Binding Type, UpdateSourceTrigger=PropertyChanged}" 
                                                                 materialDesign:HintAssist.Hint="资源类型"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
@@ -497,7 +498,8 @@
                                                         </ComboBox>
                                                         
                                                         <ComboBox Grid.Column="2" 
-                                                                SelectedItem="{Binding Abundance}" 
+                                                                SelectedValuePath="Content"
+                                                                SelectedValue="{Binding Abundance, UpdateSourceTrigger=PropertyChanged}" 
                                                                 materialDesign:HintAssist.Hint="丰富度"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">

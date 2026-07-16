@@ -178,6 +178,7 @@ namespace NovelManagement.WPF.Services
         FactionManagement,
         PlotManagement,
         AICollaboration,
+        AIConfiguration,
         ImportExport,
         WorldSettingManagement,
         DialogGeneration

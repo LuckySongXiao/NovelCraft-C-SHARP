@@ -50,9 +50,10 @@
                              Width="150"
                              Margin="0,0,8,0"
                              SelectionChanged="ModelComboBox_SelectionChanged">
-                        <ComboBoxItem Content="DeepSeek-V3" Tag="deepseek-chat"/>
-                        <ComboBoxItem Content="Qwen2.5:7b" Tag="qwen2.5:7b"/>
-                        <ComboBoxItem Content="Llama3.2:3b" Tag="llama3.2:3b"/>
+                        <ComboBoxItem Content="DeepSeek" Tag="DeepSeek"/>
+                        <ComboBoxItem Content="llama.cpp" Tag="LlamaCpp"/>
+                        <ComboBoxItem Content="Ollama" Tag="Ollama"/>
+                        <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
                     </ComboBox>
                     
                     <Button x:Name="SettingsButton"

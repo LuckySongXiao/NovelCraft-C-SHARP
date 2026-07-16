@@ -1,6 +1,78 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
-    <!-- 通用样式定义 -->
-    
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+    <FontFamily x:Key="AppDefaultFontFamily">SimSun</FontFamily>
+
+    <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#F4F6FB"/>
+    <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#FAFBFF"/>
+    <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="AppSubtleBorderBrush" Color="#D9E1F2"/>
+    <SolidColorBrush x:Key="AppMutedTextBrush" Color="#667085"/>
+
+    <Style TargetType="{x:Type Window}">
+        <Setter Property="Background" Value="{StaticResource AppWindowBackgroundBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="TextElement.FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style TargetType="{x:Type UserControl}">
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="TextElement.FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+    </Style>
+
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+    </Style>
+
+    <Style TargetType="{x:Type PasswordBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+    </Style>
+
+    <Style TargetType="{x:Type ListView}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style TargetType="{x:Type DataGrid}">
+        <Setter Property="Background" Value="{StaticResource AppCardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="RowBackground" Value="#FCFDFF"/>
+        <Setter Property="AlternatingRowBackground" Value="#F5F8FE"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+    </Style>
+
+    <Style TargetType="{x:Type StatusBar}">
+        <Setter Property="Background" Value="{StaticResource AppPanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1,1,1,0"/>
+        <Setter Property="Padding" Value="8,4"/>
+    </Style>
+
+    <Style TargetType="{x:Type Expander}">
+        <Setter Property="Margin" Value="0,4,0,4"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+    </Style>
+
+    <Style TargetType="{x:Type materialDesign:Card}">
+        <Setter Property="Background" Value="{StaticResource AppCardBackgroundBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+        <Setter Property="UniformCornerRadius" Value="14"/>
+    </Style>
+
 </ResourceDictionary>

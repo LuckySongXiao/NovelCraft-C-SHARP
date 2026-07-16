@@ -640,17 +640,23 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                var prompt = GetWorkflowPrompt();
+                if (prompt == null)
+                {
+                    return;
+                }
+
                 var parameters = new Dictionary<string, object>
                 {
-                    ["theme"] = "修仙小说",
-                    ["genre"] = "古典仙侠",
-                    ["requirements"] = "创建一个完整的修仙世界"
+                    ["theme"] = prompt,
+                    ["genre"] = "长篇小说",
+                    ["requirements"] = prompt
                 };
 
                 var workflow = await _workflowEngine.CreatePredefinedWorkflowAsync("ProjectInitialization", parameters);
                 var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
 
-                AddLog($"项目初始化工作流已创建并执行: {(result.IsSuccess ? "成功" : "失败")}");
+                AddLog($"项目初始化工作流已执行: {(result.IsSuccess ? "成功" : "失败")} - {GetPromptSummary(prompt)}");
             }
             catch (Exception ex)
             {
@@ -665,16 +671,22 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                var prompt = GetWorkflowPrompt();
+                if (prompt == null)
+                {
+                    return;
+                }
+
                 var parameters = new Dictionary<string, object>
                 {
                     ["chapterNumber"] = 1,
-                    ["outline"] = "主角觉醒，踏入修仙之路"
+                    ["outline"] = prompt
                 };
 
                 var workflow = await _workflowEngine.CreatePredefinedWorkflowAsync("ChapterCreation", parameters);
                 var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
 
-                AddLog($"章节创建工作流已创建并执行: {(result.IsSuccess ? "成功" : "失败")}");
+                AddLog($"章节创建工作流已执行: {(result.IsSuccess ? "成功" : "失败")} - {GetPromptSummary(prompt)}");
             }
             catch (Exception ex)
             {
@@ -689,13 +701,20 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                var prompt = GetWorkflowPrompt();
+                if (prompt == null)
+                {
+                    return;
+                }
+
                 var parameters = new Dictionary<string, object>
                 {
-                    ["content"] = "待审查的内容"
+                    ["content"] = prompt
                 };
 
                 var workflow = await _workflowEngine.CreatePredefinedWorkflowAsync("ContentReview", parameters);
-                AddLog("内容审查工作流已创建");
+                var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
+                AddLog($"内容审查工作流已执行: {(result.IsSuccess ? "成功" : "失败")} - {GetPromptSummary(prompt)}");
             }
             catch (Exception ex)
             {
@@ -710,19 +729,45 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                var prompt = GetWorkflowPrompt();
+                if (prompt == null)
+                {
+                    return;
+                }
+
                 var parameters = new Dictionary<string, object>
                 {
-                    ["newContent"] = "新增内容",
-                    ["existingSettings"] = "现有设定"
+                    ["newContent"] = prompt,
+                    ["existingSettings"] = "请结合当前项目已有设定与上下文进行一致性检查。"
                 };
 
                 var workflow = await _workflowEngine.CreatePredefinedWorkflowAsync("ConsistencyCheck", parameters);
-                AddLog("一致性检查工作流已创建");
+                var result = await _workflowEngine.ExecuteWorkflowAsync(workflow);
+                AddLog($"一致性检查工作流已执行: {(result.IsSuccess ? "成功" : "失败")} - {GetPromptSummary(prompt)}");
             }
             catch (Exception ex)
             {
                 AddLog($"创建一致性检查工作流失败: {ex.Message}");
             }
+        }
+
+        private string? GetWorkflowPrompt()
+        {
+            var prompt = TestPromptTextBox?.Text?.Trim();
+            if (!string.IsNullOrWhiteSpace(prompt))
+            {
+                return prompt;
+            }
+
+            MessageBox.Show("请先在右侧快速测试区域输入项目设定、章节大纲或待处理文本。", "提示",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return null;
+        }
+
+        private static string GetPromptSummary(string prompt)
+        {
+            var normalized = prompt.Replace("\r", " ").Replace("\n", " ").Trim();
+            return normalized.Length <= 40 ? normalized : normalized[..40] + "...";
         }
 
         /// <summary>

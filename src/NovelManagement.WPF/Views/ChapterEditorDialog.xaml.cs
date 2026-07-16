@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using NovelManagement.WPF.Services;
@@ -25,7 +26,18 @@ namespace NovelManagement.WPF.Views
         private DateTime _lastSaved;
         private string _originalContent = string.Empty;
         private AIAssistantService? _aiAssistantService;
+        private CharacterService? _characterService;
         private ChapterService? _chapterService;
+        private ChapterContentSyncService? _chapterContentSyncService;
+        private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
+        private ProjectContextService? _projectContextService;
+        private VolumeService? _volumeService;
+        private List<string> _availableCharacterNames = new();
+        private List<string> _availableTags = new();
+        private bool _suppressCharacterSuggestionUpdate;
+        private bool _suppressTagSuggestionUpdate;
+        private DispatcherTimer? _statusMessageTimer;
+        private bool _isClosingAfterSave;
 
         #endregion
 
@@ -94,7 +106,12 @@ namespace NovelManagement.WPF.Views
                 }
 
                 // 初始化章节服务
+                _characterService = App.ServiceProvider?.GetService<CharacterService>();
+                _volumeService = App.ServiceProvider?.GetService<VolumeService>();
                 _chapterService = App.ServiceProvider?.GetService<ChapterService>();
+                _chapterContentSyncService = App.ServiceProvider?.GetService<ChapterContentSyncService>();
+                _chapterContentSyncNotificationService = App.ServiceProvider?.GetService<ChapterContentSyncNotificationService>();
+                _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
 
                 if (_aiAssistantService != null)
                 {
@@ -112,6 +129,11 @@ namespace NovelManagement.WPF.Views
                 else
                 {
                     System.Diagnostics.Debug.WriteLine("章节服务初始化失败：服务未注册");
+                }
+
+                if (_chapterContentSyncService == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("章节同步服务初始化失败：服务未注册");
                 }
             }
             catch (Exception ex)
@@ -137,13 +159,13 @@ namespace NovelManagement.WPF.Views
                 {
                     Id = Guid.NewGuid(),
                     Title = chapterName,
-                    Content = GetSampleContent(),
-                    Summary = "这是一个精彩的章节，主角将面临重大挑战...",
+                    Content = string.Empty,
+                    Summary = string.Empty,
                     Status = "写作中",
                     ImportanceLevel = 2,
-                    Characters = "林轩, 张伟, 神秘老者",
-                    Tags = "修炼, 突破, 危机",
-                    Notes = "注意描写主角的心理变化",
+                    Characters = string.Empty,
+                    Tags = string.Empty,
+                    Notes = string.Empty,
                     TargetWordCount = 2800,
                     VolumeId = defaultVolumeId,  // 设置默认卷ID
                     Order = 1  // 设置默认顺序
@@ -157,6 +179,7 @@ namespace NovelManagement.WPF.Views
                 _hasUnsavedChanges = false;
                 UpdateWordCount();
                 UpdateStatus();
+                await LoadEditorSuggestionsAsync();
 
                 System.Diagnostics.Debug.WriteLine($"新章节初始化完成，VolumeId: {ChapterData.VolumeId}");
             }
@@ -170,7 +193,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 初始化编辑器（现有章节）
         /// </summary>
-        private void InitializeEditorWithChapter(Chapter chapter)
+        private async void InitializeEditorWithChapter(Chapter chapter)
         {
             try
             {
@@ -178,14 +201,14 @@ namespace NovelManagement.WPF.Views
                 ChapterData = new ChapterEditData
                 {
                     Id = chapter.Id,
-                    Title = chapter.Title,
-                    Content = chapter.Content ?? GetSampleContent(),
-                    Summary = chapter.Summary ?? "这是一个精彩的章节，主角将面临重大挑战...",
+                    Title = chapter.Title ?? string.Empty,
+                    Content = chapter.Content ?? string.Empty,
+                    Summary = chapter.Summary ?? string.Empty,
                     Status = chapter.Status ?? "写作中",
                     ImportanceLevel = 2,
-                    Characters = "林轩, 张伟, 神秘老者",
-                    Tags = "修炼, 突破, 危机",
-                    Notes = chapter.Notes ?? "注意描写主角的心理变化",
+                    Characters = string.Empty,
+                    Tags = chapter.Tags ?? string.Empty,
+                    Notes = chapter.Notes ?? string.Empty,
                     TargetWordCount = 2800,
                     VolumeId = chapter.VolumeId,
                     Order = chapter.Order
@@ -199,6 +222,7 @@ namespace NovelManagement.WPF.Views
                 _hasUnsavedChanges = false;
                 UpdateWordCount();
                 UpdateStatus();
+                await LoadEditorSuggestionsAsync();
             }
             catch (Exception ex)
             {
@@ -237,6 +261,99 @@ namespace NovelManagement.WPF.Views
             TargetWordCount.Text = $"目标: {ChapterData.TargetWordCount:N0}";
         }
 
+        private async Task LoadEditorSuggestionsAsync()
+        {
+            await LoadCharacterSuggestionsAsync();
+            await LoadTagSuggestionsAsync();
+        }
+
+        private async Task LoadCharacterSuggestionsAsync()
+        {
+            if (_characterService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var projectId = await ResolveProjectIdAsync();
+                if (projectId == Guid.Empty)
+                {
+                    _availableCharacterNames = new List<string>();
+                    HideCharacterSuggestions();
+                    return;
+                }
+
+                var characters = await _characterService.GetCharactersByProjectIdAsync(projectId);
+                _availableCharacterNames = characters
+                    .Select(character => character.Name?.Trim())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
+                    .Cast<string>()
+                    .ToList();
+
+                UpdateCharacterSuggestions();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"加载角色建议失败：{ex.Message}");
+                _availableCharacterNames = new List<string>();
+                HideCharacterSuggestions();
+            }
+        }
+
+        private async Task LoadTagSuggestionsAsync()
+        {
+            if (_chapterService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var projectId = await ResolveProjectIdAsync();
+                if (projectId == Guid.Empty)
+                {
+                    _availableTags = new List<string>();
+                    HideTagSuggestions();
+                    return;
+                }
+
+                var chapters = await _chapterService.GetChaptersByProjectIdAsync(projectId);
+                _availableTags = chapters
+                    .SelectMany(chapter => ParseDelimitedValues(chapter.Tags))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(tag => tag, StringComparer.CurrentCultureIgnoreCase)
+                    .ToList();
+
+                UpdateTagSuggestions();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"加载标签建议失败：{ex.Message}");
+                _availableTags = new List<string>();
+                HideTagSuggestions();
+            }
+        }
+
+        private async Task<Guid> ResolveProjectIdAsync()
+        {
+            if (_projectContextService?.CurrentProjectId is Guid currentProjectId &&
+                currentProjectId != Guid.Empty)
+            {
+                return currentProjectId;
+            }
+
+            if (_volumeService == null || ChapterData.VolumeId == Guid.Empty)
+            {
+                return Guid.Empty;
+            }
+
+            var volume = await _volumeService.GetVolumeByIdAsync(ChapterData.VolumeId);
+            return volume?.ProjectId ?? Guid.Empty;
+        }
+
         /// <summary>
         /// 设置自动保存
         /// </summary>
@@ -256,28 +373,12 @@ namespace NovelManagement.WPF.Views
         private void SetupKeyBindings()
         {
             // Ctrl+S 保存
-            var saveBinding = new KeyBinding(new RelayCommand(SaveDraft), Key.S, ModifierKeys.Control);
+            var saveBinding = new KeyBinding(new RelayCommand(() => _ = SaveDraftAsync()), Key.S, ModifierKeys.Control);
             InputBindings.Add(saveBinding);
             
             // Ctrl+P 预览
             var previewBinding = new KeyBinding(new RelayCommand(Preview), Key.P, ModifierKeys.Control);
             InputBindings.Add(previewBinding);
-        }
-
-        /// <summary>
-        /// 获取示例内容
-        /// </summary>
-        private string GetSampleContent()
-        {
-            return @"    天空中乌云密布，雷声阵阵。林轩站在山峰之上，感受着天地间涌动的恐怖威压。
-
-    ""天劫...终于来了。""他深吸一口气，眼中闪过一丝坚定。
-
-    这是他修炼路上最重要的一关，成功便能突破到更高境界，失败则可能魂飞魄散。
-
-    第一道雷劫从天而降，带着毁天灭地的威势。林轩不敢大意，立即运转体内真气，准备迎接这生死考验...
-
-    （请在此处继续编写章节内容）";
         }
 
         #endregion
@@ -354,6 +455,128 @@ namespace NovelManagement.WPF.Views
             UpdateStatus();
         }
 
+        private void CharactersTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _hasUnsavedChanges = true;
+            UpdateStatus();
+
+            if (_suppressCharacterSuggestionUpdate)
+            {
+                return;
+            }
+
+            UpdateCharacterSuggestions();
+        }
+
+        private void CharactersTextBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            UpdateCharacterSuggestions();
+        }
+
+        private void CharactersTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (CharacterSuggestionsBorder.Visibility != Visibility.Visible ||
+                CharacterSuggestionsListBox.Items.Count == 0)
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.Down:
+                    CharacterSuggestionsListBox.Focus();
+                    CharacterSuggestionsListBox.SelectedIndex = Math.Min(
+                        Math.Max(CharacterSuggestionsListBox.SelectedIndex, 0) + 1,
+                        CharacterSuggestionsListBox.Items.Count - 1);
+                    e.Handled = true;
+                    break;
+                case Key.Enter:
+                case Key.Tab:
+                    ApplySelectedCharacterSuggestion();
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                    HideCharacterSuggestions();
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void CharacterSuggestionsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (Mouse.LeftButton == MouseButtonState.Pressed &&
+                CharacterSuggestionsListBox.SelectedItem is string)
+            {
+                ApplySelectedCharacterSuggestion();
+            }
+        }
+
+        private void CharacterSuggestionsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            ApplySelectedCharacterSuggestion();
+        }
+
+        private void TagsTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _hasUnsavedChanges = true;
+            UpdateStatus();
+
+            if (_suppressTagSuggestionUpdate)
+            {
+                return;
+            }
+
+            UpdateTagSuggestions();
+        }
+
+        private void TagsTextBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            UpdateTagSuggestions();
+        }
+
+        private void TagsTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (TagSuggestionsBorder.Visibility != Visibility.Visible ||
+                TagSuggestionsListBox.Items.Count == 0)
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.Down:
+                    TagSuggestionsListBox.Focus();
+                    TagSuggestionsListBox.SelectedIndex = Math.Min(
+                        Math.Max(TagSuggestionsListBox.SelectedIndex, 0) + 1,
+                        TagSuggestionsListBox.Items.Count - 1);
+                    e.Handled = true;
+                    break;
+                case Key.Enter:
+                case Key.Tab:
+                    ApplySelectedTagSuggestion();
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                    HideTagSuggestions();
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void TagSuggestionsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (Mouse.LeftButton == MouseButtonState.Pressed &&
+                TagSuggestionsListBox.SelectedItem is string)
+            {
+                ApplySelectedTagSuggestion();
+            }
+        }
+
+        private void TagSuggestionsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            ApplySelectedTagSuggestion();
+        }
+
         /// <summary>
         /// 自动保存定时器事件
         /// </summary>
@@ -361,14 +584,319 @@ namespace NovelManagement.WPF.Views
         {
             if (_hasUnsavedChanges)
             {
-                SaveDraft();
+                _ = SaveDraftAsync();
             }
+        }
+
+        private void ExtractMetadataButton_Click(object sender, RoutedEventArgs e)
+        {
+            var updated = PopulateMetadataFromContent(onlyWhenEmpty: false);
+            ShowTransientStatus(updated ? "状态: 已从内容匹配角色和标签" : "状态: 未匹配到新的角色或标签");
+        }
+
+        private void UpdateCharacterSuggestions()
+        {
+            if (_availableCharacterNames.Count == 0)
+            {
+                HideCharacterSuggestions();
+                return;
+            }
+
+            var currentToken = GetCurrentCharacterToken();
+            var selectedNames = ParseCharacterNames(CharactersTextBox.Text);
+
+            var suggestions = _availableCharacterNames
+                .Where(name => !selectedNames.Contains(name))
+                .Where(name => string.IsNullOrWhiteSpace(currentToken) ||
+                               name.Contains(currentToken, StringComparison.CurrentCultureIgnoreCase))
+                .Take(8)
+                .ToList();
+
+            if (suggestions.Count == 0)
+            {
+                HideCharacterSuggestions();
+                return;
+            }
+
+            CharacterSuggestionsListBox.ItemsSource = suggestions;
+            CharacterSuggestionsListBox.SelectedIndex = 0;
+            CharacterSuggestionsBorder.Visibility = Visibility.Visible;
+        }
+
+        private void HideCharacterSuggestions()
+        {
+            CharacterSuggestionsListBox.ItemsSource = null;
+            CharacterSuggestionsBorder.Visibility = Visibility.Collapsed;
+        }
+
+        private void ApplySelectedCharacterSuggestion()
+        {
+            if (CharacterSuggestionsListBox.SelectedItem is not string selectedName)
+            {
+                return;
+            }
+
+            _suppressCharacterSuggestionUpdate = true;
+            try
+            {
+                CharactersTextBox.Text = ReplaceCurrentCharacterToken(CharactersTextBox.Text, selectedName);
+                CharactersTextBox.CaretIndex = CharactersTextBox.Text.Length;
+                ChapterData.Characters = CharactersTextBox.Text;
+            }
+            finally
+            {
+                _suppressCharacterSuggestionUpdate = false;
+            }
+
+            HideCharacterSuggestions();
+            CharactersTextBox.Focus();
+        }
+
+        private void UpdateTagSuggestions()
+        {
+            if (_availableTags.Count == 0)
+            {
+                HideTagSuggestions();
+                return;
+            }
+
+            var currentToken = GetCurrentDelimitedToken(TagsTextBox.Text, TagsTextBox.CaretIndex);
+            var selectedTags = ParseDelimitedValues(TagsTextBox.Text);
+
+            var suggestions = _availableTags
+                .Where(tag => !selectedTags.Contains(tag))
+                .Where(tag => string.IsNullOrWhiteSpace(currentToken) ||
+                              tag.Contains(currentToken, StringComparison.CurrentCultureIgnoreCase))
+                .Take(8)
+                .ToList();
+
+            if (suggestions.Count == 0)
+            {
+                HideTagSuggestions();
+                return;
+            }
+
+            TagSuggestionsListBox.ItemsSource = suggestions;
+            TagSuggestionsListBox.SelectedIndex = 0;
+            TagSuggestionsBorder.Visibility = Visibility.Visible;
+        }
+
+        private void HideTagSuggestions()
+        {
+            TagSuggestionsListBox.ItemsSource = null;
+            TagSuggestionsBorder.Visibility = Visibility.Collapsed;
+        }
+
+        private void ApplySelectedTagSuggestion()
+        {
+            if (TagSuggestionsListBox.SelectedItem is not string selectedTag)
+            {
+                return;
+            }
+
+            _suppressTagSuggestionUpdate = true;
+            try
+            {
+                TagsTextBox.Text = ReplaceCurrentDelimitedToken(TagsTextBox.Text, selectedTag);
+                TagsTextBox.CaretIndex = TagsTextBox.Text.Length;
+                ChapterData.Tags = TagsTextBox.Text;
+            }
+            finally
+            {
+                _suppressTagSuggestionUpdate = false;
+            }
+
+            HideTagSuggestions();
+            TagsTextBox.Focus();
+        }
+
+        private static HashSet<string> ParseCharacterNames(string? text)
+        {
+            return ParseDelimitedValues(text);
+        }
+
+        private static HashSet<string> ParseDelimitedValues(string? text)
+        {
+            return (text ?? string.Empty)
+                .Split(new[] { ',', '，', ';', '；', '\n', '\r', '、' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private string GetCurrentCharacterToken()
+        {
+            return GetCurrentDelimitedToken(CharactersTextBox.Text, CharactersTextBox.CaretIndex);
+        }
+
+        private static string ReplaceCurrentCharacterToken(string? text, string selectedName)
+        {
+            return ReplaceCurrentDelimitedToken(text, selectedName);
+        }
+
+        private static string GetCurrentDelimitedToken(string? text, int caretIndex)
+        {
+            var value = text ?? string.Empty;
+            var safeCaretIndex = Math.Clamp(caretIndex, 0, value.Length);
+            var segment = value[..safeCaretIndex];
+            var separatorIndex = segment.LastIndexOfAny(new[] { ',', '，', ';', '；', '\n', '\r', '、' });
+            return segment[(separatorIndex + 1)..].Trim();
+        }
+
+        private static string ReplaceCurrentDelimitedToken(string? text, string selectedValue)
+        {
+            var value = text ?? string.Empty;
+            var trimmedValue = value.TrimEnd();
+
+            if (string.IsNullOrWhiteSpace(trimmedValue))
+            {
+                return selectedValue;
+            }
+
+            var separatorIndex = trimmedValue.LastIndexOfAny(new[] { ',', '，', ';', '；', '\n', '\r', '、' });
+            if (separatorIndex < 0)
+            {
+                return selectedValue;
+            }
+
+            var prefix = trimmedValue[..(separatorIndex + 1)].TrimEnd();
+            return $"{prefix} {selectedValue}".Trim();
+        }
+
+        private bool PopulateMetadataFromContent(bool onlyWhenEmpty)
+        {
+            var metadataSource = BuildMetadataSourceText();
+            if (string.IsNullOrWhiteSpace(metadataSource))
+            {
+                return false;
+            }
+
+            var updated = false;
+
+            if (!onlyWhenEmpty || string.IsNullOrWhiteSpace(CharactersTextBox.Text))
+            {
+                var matchedCharacters = MatchValuesInContent(_availableCharacterNames, metadataSource, minimumLength: 2);
+                if (matchedCharacters.Count > 0)
+                {
+                    UpdateCharactersText(MergeDelimitedValues(CharactersTextBox.Text, matchedCharacters));
+                    updated = true;
+                }
+            }
+
+            if (!onlyWhenEmpty || string.IsNullOrWhiteSpace(TagsTextBox.Text))
+            {
+                var matchedTags = MatchValuesInContent(_availableTags, metadataSource, minimumLength: 2);
+                if (matchedTags.Count > 0)
+                {
+                    UpdateTagsText(MergeDelimitedValues(TagsTextBox.Text, matchedTags));
+                    updated = true;
+                }
+            }
+
+            if (updated)
+            {
+                _hasUnsavedChanges = true;
+                UpdateStatus();
+                UpdateCharacterSuggestions();
+                UpdateTagSuggestions();
+            }
+
+            return updated;
+        }
+
+        private string BuildMetadataSourceText()
+        {
+            return string.Join(
+                Environment.NewLine,
+                new[]
+                {
+                    TitleTextBox.Text?.Trim(),
+                    SummaryTextBox.Text?.Trim(),
+                    ContentTextBox.Text?.Trim()
+                }.Where(text => !string.IsNullOrWhiteSpace(text)));
+        }
+
+        private static List<string> MatchValuesInContent(IEnumerable<string> candidates, string metadataSource, int minimumLength)
+        {
+            return candidates
+                .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+                .Select(candidate => candidate.Trim())
+                .Where(candidate => candidate.Length >= minimumLength)
+                .Select(candidate => new
+                {
+                    Value = candidate,
+                    Index = metadataSource.IndexOf(candidate, StringComparison.CurrentCultureIgnoreCase)
+                })
+                .Where(item => item.Index >= 0)
+                .OrderBy(item => item.Index)
+                .ThenByDescending(item => item.Value.Length)
+                .Select(item => item.Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string MergeDelimitedValues(string? originalText, IEnumerable<string> matchedValues)
+        {
+            var mergedValues = ParseDelimitedValues(originalText);
+            foreach (var value in matchedValues)
+            {
+                mergedValues.Add(value);
+            }
+
+            return string.Join(", ", mergedValues.OrderBy(value => value, StringComparer.CurrentCultureIgnoreCase));
+        }
+
+        private void UpdateCharactersText(string value)
+        {
+            _suppressCharacterSuggestionUpdate = true;
+            try
+            {
+                CharactersTextBox.Text = value;
+                CharactersTextBox.CaretIndex = CharactersTextBox.Text.Length;
+                ChapterData.Characters = CharactersTextBox.Text;
+            }
+            finally
+            {
+                _suppressCharacterSuggestionUpdate = false;
+            }
+        }
+
+        private void UpdateTagsText(string value)
+        {
+            _suppressTagSuggestionUpdate = true;
+            try
+            {
+                TagsTextBox.Text = value;
+                TagsTextBox.CaretIndex = TagsTextBox.Text.Length;
+                ChapterData.Tags = TagsTextBox.Text;
+            }
+            finally
+            {
+                _suppressTagSuggestionUpdate = false;
+            }
+        }
+
+        private void ShowTransientStatus(string message)
+        {
+            _statusMessageTimer?.Stop();
+            StatusLabel.Text = message;
+
+            _statusMessageTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2)
+            };
+            _statusMessageTimer.Tick += (_, _) =>
+            {
+                _statusMessageTimer?.Stop();
+                _statusMessageTimer = null;
+                UpdateStatus();
+            };
+            _statusMessageTimer.Start();
         }
 
         /// <summary>
         /// 保存草稿
         /// </summary>
-        private async void SaveDraft()
+        private async Task<ChapterContentSyncResult?> SaveDraftAsync()
         {
             try
             {
@@ -376,6 +904,7 @@ namespace NovelManagement.WPF.Views
                 ChapterData.Content = ContentTextBox.Text;
                 ChapterData.Title = TitleTextBox.Text;
                 ChapterData.Summary = SummaryTextBox.Text;
+                PopulateMetadataFromContent(onlyWhenEmpty: true);
                 ChapterData.Characters = CharactersTextBox.Text;
                 ChapterData.Tags = TagsTextBox.Text;
                 ChapterData.Notes = NotesTextBox.Text;
@@ -386,39 +915,33 @@ namespace NovelManagement.WPF.Views
                 }
 
                 // 真正保存到数据库
-                await SaveChapterToDatabaseAsync();
+                var syncResult = await SaveChapterToDatabaseAsync();
 
                 _lastSaved = DateTime.Now;
                 _hasUnsavedChanges = false;
                 UpdateStatus();
 
                 // 显示保存提示（短暂显示）
-                StatusLabel.Text = "状态: 草稿已保存";
-
-                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-                timer.Tick += (s, e) =>
-                {
-                    timer.Stop();
-                    UpdateStatus();
-                };
-                timer.Start();
+                ShowTransientStatus(BuildSaveStatusMessage(syncResult));
+                return syncResult;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"保存草稿失败：{ex.Message}", "错误",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
             }
         }
 
         /// <summary>
         /// 保存章节到数据库
         /// </summary>
-        private async Task SaveChapterToDatabaseAsync()
+        private async Task<ChapterContentSyncResult?> SaveChapterToDatabaseAsync()
         {
             if (_chapterService == null)
             {
                 System.Diagnostics.Debug.WriteLine("章节服务未初始化，无法保存到数据库");
-                return;
+                return null;
             }
 
             try
@@ -438,6 +961,7 @@ namespace NovelManagement.WPF.Views
 
                 // 检查是否是新章节还是更新现有章节
                 var existingChapter = await _chapterService.GetChapterByIdAsync(ChapterData.Id);
+                Chapter savedChapter;
                 if (existingChapter == null)
                 {
                     System.Diagnostics.Debug.WriteLine("创建新章节");
@@ -450,6 +974,7 @@ namespace NovelManagement.WPF.Views
                         Content = ChapterData.Content ?? "",
                         Summary = ChapterData.Summary,
                         Status = ChapterData.Status ?? "草稿",
+                        Tags = ChapterData.Tags,
                         Notes = ChapterData.Notes,
                         VolumeId = ChapterData.VolumeId,
                         Order = ChapterData.Order,
@@ -458,7 +983,7 @@ namespace NovelManagement.WPF.Views
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    await _chapterService.CreateChapterAsync(newChapter);
+                    savedChapter = await _chapterService.CreateChapterAsync(newChapter);
                     System.Diagnostics.Debug.WriteLine($"新章节已创建：{newChapter.Title}");
                 }
                 else
@@ -470,15 +995,20 @@ namespace NovelManagement.WPF.Views
                     existingChapter.Content = ChapterData.Content ?? "";
                     existingChapter.Summary = ChapterData.Summary;
                     existingChapter.Status = ChapterData.Status ?? "草稿";
+                    existingChapter.Tags = ChapterData.Tags;
                     existingChapter.Notes = ChapterData.Notes;
                     existingChapter.WordCount = ChapterData.Content?.Length ?? 0;
                     existingChapter.UpdatedAt = DateTime.UtcNow;
 
-                    await _chapterService.UpdateChapterAsync(existingChapter);
+                    savedChapter = await _chapterService.UpdateChapterAsync(existingChapter);
                     System.Diagnostics.Debug.WriteLine($"章节已更新：{existingChapter.Title}");
                 }
 
+                var syncResult = await TrySyncChapterContextAsync(savedChapter);
+                await PublishChapterSyncNotificationAsync(savedChapter, syncResult);
+
                 System.Diagnostics.Debug.WriteLine("章节保存成功");
+                return syncResult;
             }
             catch (Exception ex)
             {
@@ -494,6 +1024,95 @@ namespace NovelManagement.WPF.Views
 
                 throw new Exception($"保存到数据库失败: {errorMessage}", ex);
             }
+        }
+
+        private static string BuildSaveStatusMessage(ChapterContentSyncResult? syncResult)
+        {
+            if (syncResult == null)
+            {
+                return "状态: 草稿已保存";
+            }
+
+            return $"状态: 草稿已保存，{BuildSyncSummary(syncResult, includeNames: false)}";
+        }
+
+        private static string BuildSaveSuccessDialogMessage(ChapterContentSyncResult? syncResult)
+        {
+            if (syncResult == null)
+            {
+                return "章节已保存！";
+            }
+
+            return $"章节已保存！\n\n本次同步结果：\n{BuildSyncSummary(syncResult, includeNames: true, lineBreak: Environment.NewLine)}";
+        }
+
+        private static string BuildSyncSummary(ChapterContentSyncResult syncResult, bool includeNames, string lineBreak = "；")
+        {
+            return string.Join(
+                lineBreak,
+                new[]
+                {
+                    BuildSyncSummaryLine("人物", syncResult.UpdatedCharacterCount, syncResult.UpdatedCharacterNames, includeNames),
+                    BuildSyncSummaryLine("势力", syncResult.UpdatedFactionCount, syncResult.UpdatedFactionNames, includeNames),
+                    BuildSyncSummaryLine("剧情", syncResult.UpdatedPlotCount, syncResult.UpdatedPlotTitles, includeNames),
+                    BuildSyncSummaryLine("设定", syncResult.UpdatedWorldSettingCount, syncResult.UpdatedWorldSettingNames, includeNames)
+                });
+        }
+
+        private static string BuildSyncSummaryLine(string label, int count, IReadOnlyList<string> names, bool includeNames)
+        {
+            if (!includeNames || names.Count == 0)
+            {
+                return $"{label} {count}";
+            }
+
+            var previewNames = string.Join("、", names.Take(3));
+            var suffix = names.Count > 3 ? " 等" : string.Empty;
+            return $"{label} {count}：{previewNames}{suffix}";
+        }
+
+        private async Task<ChapterContentSyncResult?> TrySyncChapterContextAsync(Chapter chapter)
+        {
+            if (_chapterContentSyncService == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return await _chapterContentSyncService.SyncChapterAsync(chapter, ChapterData.Characters);
+            }
+            catch (Exception syncEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"章节上下文同步失败：{syncEx.Message}");
+                return null;
+            }
+        }
+
+        private async Task PublishChapterSyncNotificationAsync(Chapter chapter, ChapterContentSyncResult? syncResult)
+        {
+            if (_chapterContentSyncNotificationService == null || syncResult == null)
+            {
+                return;
+            }
+
+            var projectId = chapter.Volume?.ProjectId ?? Guid.Empty;
+            if (projectId == Guid.Empty && _volumeService != null)
+            {
+                var volume = await _volumeService.GetVolumeByIdAsync(chapter.VolumeId);
+                projectId = volume?.ProjectId ?? Guid.Empty;
+            }
+
+            if (projectId == Guid.Empty)
+            {
+                return;
+            }
+
+            _chapterContentSyncNotificationService.Publish(
+                projectId,
+                chapter.Id,
+                chapter.Title ?? string.Empty,
+                syncResult);
         }
 
         /// <summary>
@@ -519,7 +1138,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void SaveDraft_Click(object sender, RoutedEventArgs e)
         {
-            SaveDraft();
+            _ = SaveDraftAsync();
         }
 
         /// <summary>
@@ -533,14 +1152,14 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存并关闭按钮点击
         /// </summary>
-        private void SaveAndClose_Click(object sender, RoutedEventArgs e)
+        private async void SaveAndClose_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                SaveDraft();
+                var syncResult = await SaveDraftAsync();
                 IsSaved = true;
                 
-                MessageBox.Show("章节已保存！", "成功", 
+                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), "成功", 
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 DialogResult = true;
@@ -558,6 +1177,12 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+            if (_isClosingAfterSave)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
             if (_hasUnsavedChanges)
             {
                 var result = MessageBox.Show("有未保存的更改，是否保存？", "确认",
@@ -565,7 +1190,9 @@ namespace NovelManagement.WPF.Views
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    SaveDraft();
+                    e.Cancel = true;
+                    _ = SaveAndCloseAfterPromptAsync();
+                    return;
                 }
                 else if (result == MessageBoxResult.Cancel)
                 {
@@ -576,6 +1203,26 @@ namespace NovelManagement.WPF.Views
 
             _autoSaveTimer?.Stop();
             base.OnClosing(e);
+        }
+
+        private async Task SaveAndCloseAfterPromptAsync()
+        {
+            try
+            {
+                var syncResult = await SaveDraftAsync();
+                IsSaved = true;
+                _isClosingAfterSave = true;
+                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), "成功",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                _isClosingAfterSave = false;
+                MessageBox.Show($"保存章节失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion
@@ -749,6 +1396,15 @@ namespace NovelManagement.WPF.Views
                 var consistencyDialog = new ConsistencyCheckDialog(ChapterData, ContentTextBox.Text);
                 consistencyDialog.Owner = this;
                 consistencyDialog.ShowDialog();
+
+                if (consistencyDialog.AutoFixApplied &&
+                    !string.IsNullOrWhiteSpace(consistencyDialog.AutoFixedContent) &&
+                    !string.Equals(ContentTextBox.Text, consistencyDialog.AutoFixedContent, StringComparison.Ordinal))
+                {
+                    ContentTextBox.Text = consistencyDialog.AutoFixedContent;
+                    MessageBox.Show("已将一致性自动修复结果回写到章节正文。", "自动修复完成",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {

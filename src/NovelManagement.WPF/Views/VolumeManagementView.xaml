@@ -155,7 +155,7 @@
                                     <TextBlock Text="总卷数" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="3" 
+                                    <TextBlock Text="{Binding TotalVolumeCount}" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -166,7 +166,7 @@
                                     <TextBlock Text="总章节数" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="45" 
+                                    <TextBlock Text="{Binding TotalChapterCount}" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -177,7 +177,7 @@
                                     <TextBlock Text="总字数" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="125,000" 
+                                    <TextBlock Text="{Binding TotalWordCount, StringFormat={}{0:N0}}" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -188,7 +188,7 @@
                                     <TextBlock Text="平均章节字数" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="2,778" 
+                                    <TextBlock Text="{Binding AverageChapterWordCount, StringFormat={}{0:N0}}" 
                                              FontSize="32" 
                                              FontWeight="Bold"/>
                                 </StackPanel>
@@ -201,54 +201,34 @@
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
 
-                        <ItemsControl>
-                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
-                                  BorderThickness="0,0,0,1" 
-                                  Padding="0,0,0,8" 
-                                  Margin="0,0,0,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="第45章：天劫降临" FontWeight="Medium"/>
-                                        <TextBlock Text="第三卷：天劫降临" 
-                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                 FontSize="12"/>
-                                    </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1" 
-                                             Text="2小时前" 
-                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                             VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-
-                            <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
-                                  BorderThickness="0,0,0,1" 
-                                  Padding="0,0,0,8" 
-                                  Margin="0,0,0,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="第44章：血魔宗主" FontWeight="Medium"/>
-                                        <TextBlock Text="第三卷：天劫降临" 
-                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                 FontSize="12"/>
-                                    </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1" 
-                                             Text="1天前" 
-                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                             VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
+                        <ItemsControl ItemsSource="{Binding RecentUpdates}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                                          BorderThickness="0,0,0,1" 
+                                          Padding="0,0,0,8" 
+                                          Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Title}" FontWeight="Medium"/>
+                                                <TextBlock Text="{Binding Subtitle}" 
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         FontSize="12"/>
+                                            </StackPanel>
+                                            
+                                            <TextBlock Grid.Column="1" 
+                                                     Text="{Binding RelativeTime}" 
+                                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                     VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
                 </materialDesign:Card>

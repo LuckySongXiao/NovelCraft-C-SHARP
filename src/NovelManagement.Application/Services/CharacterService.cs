@@ -97,10 +97,6 @@ public class CharacterService
                 character.Race = null;
             }
 
-            // 清除章节外键字段，避免外键约束失败
-            character.FirstAppearanceChapterId = null;
-            character.LastAppearanceChapterId = null;
-
             // 设置创建时间
             character.CreatedAt = DateTime.UtcNow;
             character.UpdatedAt = DateTime.UtcNow;
@@ -150,6 +146,8 @@ public class CharacterService
             existingCharacter.Importance = character.Importance;
             existingCharacter.History = character.History;
             existingCharacter.KeyEvents = character.KeyEvents;
+            existingCharacter.FirstAppearanceChapterId = character.FirstAppearanceChapterId ?? existingCharacter.FirstAppearanceChapterId;
+            existingCharacter.LastAppearanceChapterId = character.LastAppearanceChapterId ?? existingCharacter.LastAppearanceChapterId;
 
             // 处理势力关系 - 从Tags字段提取势力信息
             if (!string.IsNullOrEmpty(character.Tags))
@@ -203,10 +201,6 @@ public class CharacterService
                 existingCharacter.FactionId = null;
                 existingCharacter.RaceId = null;
             }
-
-            // 清除章节外键字段，避免外键约束失败
-            existingCharacter.FirstAppearanceChapterId = null;
-            existingCharacter.LastAppearanceChapterId = null;
 
             // 设置更新时间（CreatedAt和Version保持不变）
             existingCharacter.UpdatedAt = DateTime.UtcNow;

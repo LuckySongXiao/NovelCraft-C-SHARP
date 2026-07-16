@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,6 +87,8 @@ namespace NovelManagement.WPF.Views
         private List<ProjectViewModel> _filteredProjects = new();
         private List<ProjectViewModel> _deletedProjects = new();
         private bool _showRecycleBin = false;
+        private readonly ProjectCatalogService? _projectCatalogService;
+        private readonly ProjectContextService? _projectContextService;
 
         /// <summary>
         /// 是否显示回收站（用于数据绑定）
@@ -122,7 +125,10 @@ namespace NovelManagement.WPF.Views
         public ProjectManagementView()
         {
             InitializeComponent();
-            LoadProjects();
+            DataContext = this;
+            _projectCatalogService = App.ServiceProvider?.GetService<ProjectCatalogService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            Loaded += async (_, _) => await ReloadProjectsAsync();
         }
 
         #region 数据加载
@@ -130,96 +136,46 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载项目数据
         /// </summary>
-        private void LoadProjects()
+        private async Task ReloadProjectsAsync()
         {
-            // 加载实际存在的项目数据
-            _allProjects = LoadExistingProjects();
-
-            // 加载已删除的项目（回收站）
-            _deletedProjects = LoadDeletedProjects();
-
-            // 根据当前视图模式过滤项目
-            FilterProjects();
-        }
-
-        /// <summary>
-        /// 加载实际存在的项目
-        /// </summary>
-        private List<ProjectViewModel> LoadExistingProjects()
-        {
-            var projects = new List<ProjectViewModel>();
-
             try
             {
-                // 这里应该从实际的项目存储位置加载项目
-                // 暂时使用模拟数据，但添加了项目路径检查
-                var sampleProjects = new List<ProjectViewModel>
-                {
-                    new ProjectViewModel
-                    {
-                        Id = 1,
-                        Name = "千面劫·宿命轮回",
-                        Description = "一个关于修仙者在宿命轮回中寻找真相的故事",
-                        Type = "修仙小说",
-                        Status = "进行中",
-                        LastUpdated = "2小时前",
-                        ProjectPath = @"C:\Projects\千面劫宿命轮回",
-                        IsDeleted = false
-                    },
-                    new ProjectViewModel
-                    {
-                        Id = 2,
-                        Name = "星际征途",
-                        Description = "人类在星际时代的冒险与征服",
-                        Type = "科幻小说",
-                        Status = "暂停",
-                        LastUpdated = "3天前",
-                        ProjectPath = @"C:\Projects\星际征途",
-                        IsDeleted = false
-                    },
-                    new ProjectViewModel
-                    {
-                        Id = 3,
-                        Name = "魔法学院传奇",
-                        Description = "年轻魔法师在学院中的成长历程",
-                        Type = "奇幻小说",
-                        Status = "已完成",
-                        LastUpdated = "1周前",
-                        ProjectPath = @"C:\Projects\魔法学院传奇",
-                        IsDeleted = false
-                    }
-                };
-
-                // 只返回实际存在的项目（这里简化处理，实际应该检查文件系统）
-                projects = sampleProjects.Where(p => !p.IsDeleted).ToList();
+                _allProjects = await LoadExistingProjectsAsync();
+                _deletedProjects = await LoadDeletedProjectsAsync();
+                FilterProjects();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"加载项目失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
 
-            return projects;
+        /// <summary>
+        /// 加载实际存在的项目
+        /// </summary>
+        private async Task<List<ProjectViewModel>> LoadExistingProjectsAsync()
+        {
+            if (_projectCatalogService == null)
+            {
+                return new List<ProjectViewModel>();
+            }
+
+            var items = await _projectCatalogService.GetActiveProjectsAsync();
+            return items.Select((item, index) => MapToViewModel(item, index + 1)).ToList();
         }
 
         /// <summary>
         /// 加载已删除的项目（回收站）
         /// </summary>
-        private List<ProjectViewModel> LoadDeletedProjects()
+        private async Task<List<ProjectViewModel>> LoadDeletedProjectsAsync()
         {
-            var deletedProjects = new List<ProjectViewModel>();
-
-            try
+            if (_projectCatalogService == null)
             {
-                // 这里应该从回收站存储位置加载已删除的项目
-                // 暂时使用模拟数据
-                // 实际实现中应该从配置文件或数据库中加载
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"加载回收站失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return new List<ProjectViewModel>();
             }
 
-            return deletedProjects;
+            var items = await _projectCatalogService.GetDeletedProjectsAsync();
+            return items.Select((item, index) => MapToViewModel(item, index + 1)).ToList();
         }
 
         /// <summary>
@@ -333,11 +289,12 @@ namespace NovelManagement.WPF.Views
             
             if (string.IsNullOrEmpty(searchText))
             {
-                _filteredProjects = new List<ProjectViewModel>(_allProjects);
+                _filteredProjects = new List<ProjectViewModel>(_showRecycleBin ? _deletedProjects : _allProjects);
             }
             else
             {
-                _filteredProjects = _allProjects.Where(p => 
+                var source = _showRecycleBin ? _deletedProjects : _allProjects;
+                _filteredProjects = source.Where(p => 
                     p.Name.ToLower().Contains(searchText) ||
                     p.Description.ToLower().Contains(searchText) ||
                     p.Type.ToLower().Contains(searchText)
@@ -354,35 +311,40 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 新建项目按钮点击事件
         /// </summary>
-        private void NewProject_Click(object sender, RoutedEventArgs e)
+        private async void NewProject_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new NewProjectDialog();
             dialog.Owner = Window.GetWindow(this);
 
             if (dialog.ShowDialog() == true && dialog.IsConfirmed && dialog.ProjectData != null)
             {
-                // 创建新的项目视图模型
-                var newProject = new ProjectViewModel
+                try
                 {
-                    Id = _allProjects.Count + 1,
-                    Name = dialog.ProjectData.Name,
-                    Description = dialog.ProjectData.Description,
-                    Type = dialog.ProjectData.Type,
-                    Status = "进行中",
-                    LastUpdated = "刚刚"
-                };
+                    if (_projectCatalogService == null)
+                    {
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
 
-                // 添加到项目列表
-                _allProjects.Add(newProject);
-                _filteredProjects.Add(newProject);
-                UpdateProjectList();
+                    var createdProject = await _projectCatalogService.CreateProjectAsync(dialog.ProjectData);
+                    await ReloadProjectsAsync();
+
+                    var createdViewModel = _allProjects.FirstOrDefault(p => p.ProjectGuid == createdProject.ProjectId);
+                    if (createdViewModel != null)
+                    {
+                        OpenProjectInternal(createdViewModel);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"创建项目失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         /// <summary>
         /// 导入项目按钮点击事件
         /// </summary>
-        private void ImportProject_Click(object sender, RoutedEventArgs e)
+        private async void ImportProject_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -395,23 +357,15 @@ namespace NovelManagement.WPF.Views
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 模拟导入过程
-                    var fileName = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
-                    var newProject = new ProjectViewModel
+                    if (_projectCatalogService == null)
                     {
-                        Id = _allProjects.Count + 1,
-                        Name = fileName,
-                        Description = $"从文件 {dialog.FileName} 导入的项目",
-                        Type = "导入项目",
-                        Status = "进行中",
-                        LastUpdated = "刚刚"
-                    };
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
 
-                    _allProjects.Add(newProject);
-                    _filteredProjects.Add(newProject);
-                    UpdateProjectList();
+                    var imported = await _projectCatalogService.ImportProjectAsync(dialog.FileName);
+                    await ReloadProjectsAsync();
 
-                    MessageBox.Show($"项目 '{fileName}' 导入成功！", "导入完成",
+                    MessageBox.Show($"项目 '{imported.Name}' 导入成功！", "导入完成",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -425,7 +379,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 导出项目按钮点击事件
         /// </summary>
-        private void ExportProject_Click(object sender, RoutedEventArgs e)
+        private async void ExportProject_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -446,7 +400,12 @@ namespace NovelManagement.WPF.Views
 
                 if (dialog.ShowDialog() == true)
                 {
-                    // 模拟导出过程
+                    if (_projectCatalogService == null)
+                    {
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
+
+                    await _projectCatalogService.ExportProjectsAsync(_filteredProjects.Select(p => p.ProjectGuid ?? Guid.Empty).Where(id => id != Guid.Empty), dialog.FileName);
                     MessageBox.Show($"已导出 {_filteredProjects.Count} 个项目到：\n{dialog.FileName}",
                         "导出完成", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -465,54 +424,14 @@ namespace NovelManagement.WPF.Views
         {
             if (sender is Button button && button.Tag is ProjectViewModel project)
             {
-                try
-                {
-                    var projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
-                    if (projectContextService != null)
-                    {
-                        var projectId = project.ProjectGuid ?? Guid.NewGuid();
-                        project.ProjectGuid = projectId;
-                        projectContextService.SetCurrentProject(projectId, project.Name);
-                    }
-
-                    // 获取主窗口并切换到项目概览
-                    var mainWindow = Window.GetWindow(this) as MainWindow;
-                    if (mainWindow != null)
-                    {
-                        mainWindow.NavigateTo(NavigationTarget.ProjectOverview, new NavigationContext
-                        {
-                            ProjectId = project.ProjectGuid,
-                            ProjectName = project.Name,
-                            Source = "ProjectManagement.OpenProject",
-                            Payload = project
-                        });
-                    }
-                    else
-                    {
-                        // 如果无法获取主窗口，创建新的项目概览窗口
-                        var projectWindow = new Window
-                        {
-                            Title = $"项目: {project.Name}",
-                            Width = 1200,
-                            Height = 800,
-                            WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                            Content = new ProjectOverviewView()
-                        };
-                        projectWindow.Show();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"打开项目失败：{ex.Message}", "错误",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                OpenProjectInternal(project);
             }
         }
 
         /// <summary>
         /// 编辑项目按钮点击事件
         /// </summary>
-        private void EditProject_Click(object sender, RoutedEventArgs e)
+        private async void EditProject_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is ProjectViewModel project)
             {
@@ -524,14 +443,18 @@ namespace NovelManagement.WPF.Views
 
                     if (dialog.ShowDialog() == true && dialog.IsConfirmed && dialog.ProjectData != null)
                     {
-                        // 更新项目信息
                         project.Name = dialog.ProjectData.Name;
                         project.Description = dialog.ProjectData.Description;
                         project.Type = dialog.ProjectData.Type;
                         project.LastUpdated = "刚刚";
+                        if (_projectCatalogService == null || project.ProjectGuid == null)
+                        {
+                            throw new InvalidOperationException("项目目录服务未初始化");
+                        }
 
-                        // 刷新列表显示
-                        UpdateProjectList();
+                        await _projectCatalogService.UpdateProjectAsync(MapToCatalogItem(project));
+
+                        await ReloadProjectsAsync();
 
                         MessageBox.Show($"项目 '{project.Name}' 更新成功！", "编辑完成",
                             MessageBoxButton.OK, MessageBoxImage.Information);
@@ -568,7 +491,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 移动项目到回收站
         /// </summary>
-        private void MoveToRecycleBin(ProjectViewModel project)
+        private async void MoveToRecycleBin(ProjectViewModel project)
         {
             var result = MessageBox.Show(
                 $"确定要将项目 '{project.Name}' 移到回收站吗？\n您可以稍后从回收站恢复此项目。",
@@ -580,17 +503,13 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
-                    // 标记为已删除
-                    project.IsDeleted = true;
-                    project.DeletedAt = DateTime.Now;
-                    project.DeletedBy = Environment.UserName;
+                    if (_projectCatalogService == null || project.ProjectGuid == null)
+                    {
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
 
-                    // 从活动项目列表移除，添加到回收站
-                    _allProjects.Remove(project);
-                    _deletedProjects.Add(project);
-
-                    // 刷新显示
-                    FilterProjects();
+                    await _projectCatalogService.SoftDeleteAsync(project.ProjectGuid.Value);
+                    await ReloadProjectsAsync();
 
                     MessageBox.Show($"项目 '{project.Name}' 已移到回收站", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -604,7 +523,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 永久删除项目
         /// </summary>
-        private void PermanentlyDeleteProject(ProjectViewModel project)
+        private async void PermanentlyDeleteProject(ProjectViewModel project)
         {
             var result = MessageBox.Show(
                 $"确定要永久删除项目 '{project.Name}' 吗？\n此操作不可撤销！",
@@ -616,14 +535,13 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
-                    // 从回收站移除
-                    _deletedProjects.Remove(project);
+                    if (_projectCatalogService == null || project.ProjectGuid == null)
+                    {
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
 
-                    // 这里应该删除实际的项目文件
-                    // DeleteProjectFiles(project.ProjectPath);
-
-                    // 刷新显示
-                    FilterProjects();
+                    await _projectCatalogService.PermanentlyDeleteAsync(project.ProjectGuid.Value);
+                    await ReloadProjectsAsync();
 
                     MessageBox.Show($"项目 '{project.Name}' 已永久删除", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -655,7 +573,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 恢复项目按钮点击事件
         /// </summary>
-        private void RestoreProject_Click(object sender, RoutedEventArgs e)
+        private async void RestoreProject_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.Tag is ProjectViewModel project)
             {
@@ -669,17 +587,13 @@ namespace NovelManagement.WPF.Views
                 {
                     try
                     {
-                        // 恢复项目
-                        project.IsDeleted = false;
-                        project.DeletedAt = null;
-                        project.DeletedBy = null;
+                        if (_projectCatalogService == null || project.ProjectGuid == null)
+                        {
+                            throw new InvalidOperationException("项目目录服务未初始化");
+                        }
 
-                        // 从回收站移除，添加到活动项目列表
-                        _deletedProjects.Remove(project);
-                        _allProjects.Add(project);
-
-                        // 刷新显示
-                        FilterProjects();
+                        await _projectCatalogService.RestoreAsync(project.ProjectGuid.Value);
+                        await ReloadProjectsAsync();
 
                         MessageBox.Show($"项目 '{project.Name}' 已恢复", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -694,7 +608,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 清空回收站按钮点击事件
         /// </summary>
-        private void EmptyRecycleBin_Click(object sender, RoutedEventArgs e)
+        private async void EmptyRecycleBin_Click(object sender, RoutedEventArgs e)
         {
             if (_deletedProjects.Count == 0)
             {
@@ -712,12 +626,13 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
-                    // 永久删除所有回收站项目
-                    var deletedCount = _deletedProjects.Count;
-                    _deletedProjects.Clear();
+                    if (_projectCatalogService == null)
+                    {
+                        throw new InvalidOperationException("项目目录服务未初始化");
+                    }
 
-                    // 刷新显示
-                    FilterProjects();
+                    var deletedCount = await _projectCatalogService.EmptyRecycleBinAsync();
+                    await ReloadProjectsAsync();
 
                     MessageBox.Show($"已永久删除 {deletedCount} 个项目", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -736,25 +651,23 @@ namespace NovelManagement.WPF.Views
         /// 添加新项目
         /// </summary>
         /// <param name="projectData">项目数据</param>
-        public void AddNewProject(NewProjectDialog.NewProjectModel projectData)
+        public async void AddNewProject(NewProjectDialog.NewProjectModel projectData)
         {
             try
             {
-                // 创建新的项目视图模型
-                var newProject = new ProjectViewModel
+                if (_projectCatalogService == null)
                 {
-                    Id = _allProjects.Count + 1,
-                    Name = projectData.Name,
-                    Description = projectData.Description,
-                    Type = projectData.Type,
-                    Status = "进行中",
-                    LastUpdated = "刚刚"
-                };
+                    throw new InvalidOperationException("项目目录服务未初始化");
+                }
 
-                // 添加到项目列表
-                _allProjects.Add(newProject);
-                _filteredProjects.Add(newProject);
-                UpdateProjectList();
+                var createdProject = await _projectCatalogService.CreateProjectAsync(projectData);
+                await ReloadProjectsAsync();
+
+                var createdViewModel = _allProjects.FirstOrDefault(p => p.ProjectGuid == createdProject.ProjectId);
+                if (createdViewModel != null)
+                {
+                    OpenProjectInternal(createdViewModel);
+                }
             }
             catch (Exception ex)
             {
@@ -764,5 +677,80 @@ namespace NovelManagement.WPF.Views
         }
 
         #endregion
+
+        private void OpenProjectInternal(ProjectViewModel project)
+        {
+            try
+            {
+                var projectId = project.ProjectGuid ?? Guid.NewGuid();
+                project.ProjectGuid = projectId;
+                _projectContextService?.SetCurrentProject(projectId, project.Name);
+                _ = _projectCatalogService?.TouchProjectAsync(projectId);
+
+                var mainWindow = Window.GetWindow(this) as MainWindow;
+                if (mainWindow != null)
+                {
+                    mainWindow.NavigateTo(NavigationTarget.ProjectOverview, new NavigationContext
+                    {
+                        ProjectId = project.ProjectGuid,
+                        ProjectName = project.Name,
+                        Source = "ProjectManagement.OpenProject",
+                        Payload = project
+                    });
+                }
+                else
+                {
+                    var projectWindow = new Window
+                    {
+                        Title = $"项目: {project.Name}",
+                        Width = 1200,
+                        Height = 800,
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                        Content = new ProjectOverviewView()
+                    };
+                    projectWindow.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开项目失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static ProjectViewModel MapToViewModel(ProjectCatalogItem item, int displayId)
+        {
+            return new ProjectViewModel
+            {
+                Id = displayId,
+                ProjectGuid = item.ProjectId,
+                Name = item.Name,
+                Description = item.Description,
+                Type = item.Type,
+                Status = item.Status,
+                LastUpdated = item.LastUpdated,
+                IsDeleted = item.IsDeleted,
+                DeletedAt = item.DeletedAt,
+                DeletedBy = item.DeletedBy,
+                ProjectPath = item.ProjectPath
+            };
+        }
+
+        private static ProjectCatalogItem MapToCatalogItem(ProjectViewModel item)
+        {
+            return new ProjectCatalogItem
+            {
+                ProjectId = item.ProjectGuid ?? Guid.Empty,
+                Name = item.Name,
+                Description = item.Description,
+                Type = item.Type,
+                Status = item.Status,
+                LastUpdated = item.LastUpdated,
+                IsDeleted = item.IsDeleted,
+                DeletedAt = item.DeletedAt,
+                DeletedBy = item.DeletedBy,
+                ProjectPath = item.ProjectPath
+            };
+        }
     }
 }

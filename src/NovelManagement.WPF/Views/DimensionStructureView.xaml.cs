@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using NovelManagement.WPF.Commands;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -15,43 +17,24 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 维度结构管理视图
     /// </summary>
-    public partial class DimensionStructureView : UserControl
+    public partial class DimensionStructureView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
-        #region 属性
-
-        /// <summary>
-        /// 维度列表
-        /// </summary>
-        public ObservableCollection<DimensionViewModel> Dimensions { get; set; }
-
-        /// <summary>
-        /// 当前选中的维度
-        /// </summary>
-        public DimensionViewModel SelectedDimension { get; set; }
-
-        /// <summary>
-        /// 传送门列表
-        /// </summary>
-        public ObservableCollection<PortalViewModel> Portals { get; set; }
-
-        /// <summary>
-        /// 选择维度命令
-        /// </summary>
-        public ICommand SelectDimensionCommand { get; set; }
-
-        /// <summary>
-        /// 日志记录器
-        /// </summary>
         private readonly ILogger<DimensionStructureView>? _logger;
-
-        /// <summary>
-        /// AI助手服务
-        /// </summary>
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly DimensionDataService? _dimensionDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
 
-        #endregion
+        public ObservableCollection<DimensionViewModel> Dimensions { get; } = new();
+        public ObservableCollection<PortalViewModel> Portals { get; } = new();
+        public DimensionViewModel? SelectedDimension { get; set; }
+        public ICommand SelectDimensionCommand { get; }
 
-        #region 构造函数
+        public int TotalCount => Dimensions.Count;
+        public int MaterialCount => Dimensions.Count(dimension => dimension.Type == "物质维度");
+        public int SpiritualCount => Dimensions.Count(dimension => dimension.Type == "精神维度");
+        public int StableCount => Dimensions.Count(dimension => dimension.Stability == "极稳定" || dimension.Stability == "稳定");
 
         /// <summary>
         /// 初始化维度结构管理视图。
@@ -60,418 +43,316 @@ namespace NovelManagement.WPF.Views
         {
             InitializeComponent();
 
-            // 获取服务
             try
             {
                 var serviceProvider = App.ServiceProvider;
                 _logger = serviceProvider?.GetService<ILogger<DimensionStructureView>>();
                 _aiAssistantService = serviceProvider?.GetService<IAIAssistantService>();
+                _dimensionDataService = serviceProvider?.GetService<DimensionDataService>();
+                _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
             }
             catch (Exception ex)
             {
-                // 如果获取服务失败，记录错误但不影响界面初始化
                 System.Diagnostics.Debug.WriteLine($"获取服务失败: {ex.Message}");
             }
 
-            InitializeData();
-            InitializeCommands();
-            LoadDimensions();
-        }
-
-        #endregion
-
-        #region 初始化
-
-        /// <summary>
-        /// 初始化数据
-        /// </summary>
-        private void InitializeData()
-        {
-            Dimensions = new ObservableCollection<DimensionViewModel>();
-            Portals = new ObservableCollection<PortalViewModel>();
-            
-            // 设置数据上下文
-            this.DataContext = this;
-        }
-
-        /// <summary>
-        /// 初始化命令
-        /// </summary>
-        private void InitializeCommands()
-        {
             SelectDimensionCommand = new RelayCommand<DimensionViewModel>(SelectDimension);
+            DataContext = this;
+            PortalListControl.ItemsSource = Portals;
+            _ = LoadDimensionsAsync();
         }
 
-        #endregion
-
-        #region 数据加载
-
-        /// <summary>
-        /// 加载维度数据
-        /// </summary>
-        private void LoadDimensions()
+        private async Task LoadDimensionsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var dimensions = new List<DimensionViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new DimensionViewModel
-                    {
-                        Id = 1,
-                        Name = "修仙界",
-                        Type = "物质维度",
-                        Stability = "稳定",
-                        AccessLevel = "限制",
-                        Description = "修仙者居住的主要维度，灵气浓郁，适合修炼",
-                        EnvironmentType = "灵气环境",
-                        Climate = "四季分明，灵气充沛",
-                        EnergyLevel = "高",
-                        DangerLevel = "中等",
-                        CreatedAt = DateTime.Now.AddDays(-365)
-                    },
-                    new DimensionViewModel
-                    {
-                        Id = 2,
-                        Name = "凡人界",
-                        Type = "物质维度",
-                        Stability = "极稳定",
-                        AccessLevel = "公开",
-                        Description = "普通人类居住的维度，灵气稀薄，科技发达",
-                        EnvironmentType = "自然环境",
-                        Climate = "多样化气候",
-                        EnergyLevel = "低",
-                        DangerLevel = "低",
-                        CreatedAt = DateTime.Now.AddDays(-300)
-                    },
-                    new DimensionViewModel
-                    {
-                        Id = 3,
-                        Name = "仙界",
-                        Type = "精神维度",
-                        Stability = "极稳定",
-                        AccessLevel = "机密",
-                        Description = "仙人居住的高等维度，法则完善，仙气浓郁",
-                        EnvironmentType = "仙气环境",
-                        Climate = "永恒春天",
-                        EnergyLevel = "极高",
-                        DangerLevel = "低",
-                        CreatedAt = DateTime.Now.AddDays(-250)
-                    },
-                    new DimensionViewModel
-                    {
-                        Id = 4,
-                        Name = "魔界",
-                        Type = "能量维度",
-                        Stability = "不稳定",
-                        AccessLevel = "禁止",
-                        Description = "魔族居住的维度，魔气浓郁，环境恶劣",
-                        EnvironmentType = "魔气环境",
-                        Climate = "永恒黑暗",
-                        EnergyLevel = "高",
-                        DangerLevel = "极高",
-                        CreatedAt = DateTime.Now.AddDays(-200)
-                    },
-                    new DimensionViewModel
-                    {
-                        Id = 5,
-                        Name = "虚空裂隙",
-                        Type = "空间维度",
-                        Stability = "极不稳定",
-                        AccessLevel = "未知",
-                        Description = "连接各个维度的空间裂隙，充满未知危险",
-                        EnvironmentType = "虚空环境",
-                        Climate = "无规律变化",
-                        EnergyLevel = "混乱",
-                        DangerLevel = "极高",
-                        CreatedAt = DateTime.Now.AddDays(-150)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "维度结构管理", out _);
+                    Dimensions.Clear();
+                    Portals.Clear();
+                    DimensionListControl.ItemsSource = Dimensions;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var dimensions = _dimensionDataService == null
+                    ? new List<DimensionViewModel>()
+                    : await _dimensionDataService.LoadDimensionsAsync(_currentProjectId);
 
                 Dimensions.Clear();
-                foreach (var dimension in dimensions)
+                foreach (var dimension in dimensions.OrderBy(dimension => dimension.Name))
                 {
+                    dimension.Portals ??= new List<PortalViewModel>();
                     Dimensions.Add(dimension);
                 }
 
-                // 设置列表数据源
                 DimensionListControl.ItemsSource = Dimensions;
-
-                // 更新统计信息
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "加载维度数据失败");
                 MessageBox.Show($"加载维度数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 更新统计信息
-        /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            DimensionListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
-        #endregion
-
-        #region 事件处理
-
-        /// <summary>
-        /// 搜索文本变化
-        /// </summary>
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FilterDimensions();
         }
 
-        /// <summary>
-        /// 维度类型筛选变化
-        /// </summary>
         private void DimensionTypeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             FilterDimensions();
         }
 
-        /// <summary>
-        /// 稳定性筛选变化
-        /// </summary>
         private void StabilityFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             FilterDimensions();
         }
 
-        /// <summary>
-        /// 筛选维度
-        /// </summary>
         private void FilterDimensions()
         {
-            var searchText = SearchTextBox?.Text?.ToLower() ?? "";
+            var searchText = SearchTextBox?.Text?.ToLowerInvariant() ?? string.Empty;
             var selectedType = (DimensionTypeFilterComboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString();
             var selectedStability = (StabilityFilterComboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
-            var filteredDimensions = Dimensions.Where(d =>
-                (string.IsNullOrEmpty(searchText) || 
-                 d.Name.ToLower().Contains(searchText) || 
-                 d.Description.ToLower().Contains(searchText) ||
-                 d.Type.ToLower().Contains(searchText)) &&
-                (selectedType == "全部类型" || selectedType == null || d.Type == selectedType) &&
-                (selectedStability == "全部稳定性" || selectedStability == null || d.Stability == selectedStability)
-            ).ToList();
+            var filteredDimensions = Dimensions.Where(dimension =>
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 dimension.Name.ToLowerInvariant().Contains(searchText) ||
+                 dimension.Description.ToLowerInvariant().Contains(searchText) ||
+                 dimension.Type.ToLowerInvariant().Contains(searchText)) &&
+                (selectedType == "全部类型" || selectedType == null || dimension.Type == selectedType) &&
+                (selectedStability == "全部稳定性" || selectedStability == null || dimension.Stability == selectedStability))
+                .ToList();
 
             DimensionListControl.ItemsSource = filteredDimensions;
         }
 
-        /// <summary>
-        /// 选择维度
-        /// </summary>
-        private void SelectDimension(DimensionViewModel dimension)
+        private void SelectDimension(DimensionViewModel? dimension)
         {
-            if (dimension == null) return;
+            if (dimension == null)
+            {
+                return;
+            }
 
             SelectedDimension = dimension;
             LoadDimensionDetails(dimension);
             ShowEditPanel();
         }
 
-        /// <summary>
-        /// 加载维度详情
-        /// </summary>
         private void LoadDimensionDetails(DimensionViewModel dimension)
         {
-            // 填充基本信息
             DimensionNameTextBox.Text = dimension.Name;
             DimensionDescriptionTextBox.Text = dimension.Description;
             EnvironmentTypeTextBox.Text = dimension.EnvironmentType;
             ClimateTextBox.Text = dimension.Climate;
             EnergyLevelTextBox.Text = dimension.EnergyLevel;
             DangerLevelTextBox.Text = dimension.DangerLevel;
-            
-            // 设置类型选择
-            foreach (ComboBoxItem item in DimensionTypeComboBox.Items)
-            {
-                if (item.Content.ToString() == dimension.Type)
-                {
-                    DimensionTypeComboBox.SelectedItem = item;
-                    break;
-                }
-            }
 
-            // 设置稳定性选择
-            foreach (ComboBoxItem item in StabilityComboBox.Items)
-            {
-                if (item.Content.ToString() == dimension.Stability)
-                {
-                    StabilityComboBox.SelectedItem = item;
-                    break;
-                }
-            }
+            SelectComboBoxItem(DimensionTypeComboBox, dimension.Type);
+            SelectComboBoxItem(StabilityComboBox, dimension.Stability);
+            SelectComboBoxItem(AccessLevelComboBox, dimension.AccessLevel);
 
-            // 设置访问等级选择
-            foreach (ComboBoxItem item in AccessLevelComboBox.Items)
-            {
-                if (item.Content.ToString() == dimension.AccessLevel)
-                {
-                    AccessLevelComboBox.SelectedItem = item;
-                    break;
-                }
-            }
-
-            // 加载传送门列表
-            LoadPortals(dimension.Id);
+            LoadPortals(dimension);
         }
 
-        /// <summary>
-        /// 加载传送门列表
-        /// </summary>
-        private void LoadPortals(int dimensionId)
+        private void LoadPortals(DimensionViewModel dimension)
         {
-            // 模拟数据 - 实际应用中应该从服务层获取
-            var portals = new List<PortalViewModel>();
-            
-            if (dimensionId == 1) // 修仙界
-            {
-                portals.AddRange(new[]
-                {
-                    new PortalViewModel { Name = "天门", TargetDimension = "仙界", Status = "正常" },
-                    new PortalViewModel { Name = "凡界通道", TargetDimension = "凡人界", Status = "正常" },
-                    new PortalViewModel { Name = "魔界裂缝", TargetDimension = "魔界", Status = "关闭" }
-                });
-            }
-            else if (dimensionId == 2) // 凡人界
-            {
-                portals.AddRange(new[]
-                {
-                    new PortalViewModel { Name = "修仙门", TargetDimension = "修仙界", Status = "限制" },
-                    new PortalViewModel { Name = "秘境入口", TargetDimension = "虚空裂隙", Status = "不稳定" }
-                });
-            }
-
             Portals.Clear();
-            foreach (var portal in portals)
+            foreach (var portal in dimension.Portals ?? Enumerable.Empty<PortalViewModel>())
             {
-                Portals.Add(portal);
+                Portals.Add(new PortalViewModel
+                {
+                    Name = portal.Name,
+                    TargetDimension = portal.TargetDimension,
+                    Status = portal.Status
+                });
             }
 
             PortalListControl.ItemsSource = Portals;
         }
 
-        /// <summary>
-        /// 显示编辑面板
-        /// </summary>
+        private static void SelectComboBoxItem(ComboBox comboBox, string? value)
+        {
+            foreach (ComboBoxItem item in comboBox.Items)
+            {
+                if (item.Content?.ToString() == value)
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+
+            if (comboBox.Items.Count > 0)
+            {
+                comboBox.SelectedIndex = 0;
+            }
+        }
+
         private void ShowEditPanel()
         {
             EmptyStatePanel.Visibility = Visibility.Collapsed;
             EditPanel.Visibility = Visibility.Visible;
         }
 
-        /// <summary>
-        /// 隐藏编辑面板
-        /// </summary>
         private void HideEditPanel()
         {
             EmptyStatePanel.Visibility = Visibility.Visible;
             EditPanel.Visibility = Visibility.Collapsed;
             SelectedDimension = null;
+            Portals.Clear();
         }
 
-        #endregion
-
-        #region 按钮事件
-
-        /// <summary>
-        /// 新建维度
-        /// </summary>
         private void AddDimension_Click(object sender, RoutedEventArgs e)
         {
             var newDimension = new DimensionViewModel
             {
-                Id = 0,
-                Name = "",
                 Type = "物质维度",
                 Stability = "稳定",
                 AccessLevel = "公开",
-                Description = "",
-                EnvironmentType = "",
-                Climate = "",
-                EnergyLevel = "",
-                DangerLevel = "",
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                Portals = new List<PortalViewModel>()
             };
 
             SelectedDimension = newDimension;
             LoadDimensionDetails(newDimension);
             ShowEditPanel();
-
-            // 清空传送门列表
-            Portals.Clear();
-            PortalListControl.ItemsSource = Portals;
-
-            // 聚焦到名称输入框
             DimensionNameTextBox.Focus();
         }
 
-        /// <summary>
-        /// 导入维度数据
-        /// </summary>
-        private void ImportDimension_Click(object sender, RoutedEventArgs e)
+        private async void ImportDimension_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导入功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导入维度结构"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "导入维度结构数据",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    DefaultExt = "json"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                if (_dimensionDataService == null)
+                {
+                    MessageBox.Show("维度数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var importedDimensions = await _dimensionDataService.ImportDimensionsAsync(dialog.FileName);
+                Dimensions.Clear();
+                foreach (var dimension in importedDimensions)
+                {
+                    dimension.Portals ??= new List<PortalViewModel>();
+                    Dimensions.Add(dimension);
+                }
+
+                await PersistDimensionsAsync();
+                FilterDimensions();
+                UpdateStatistics();
+                MessageBox.Show($"已成功导入 {Dimensions.Count} 个维度。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导入维度数据失败");
+                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        /// <summary>
-        /// 导出维度数据
-        /// </summary>
-        private void ExportDimension_Click(object sender, RoutedEventArgs e)
+        private async void ExportDimension_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("导出功能开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                if (!EnsureCurrentProject("导出维度结构"))
+                {
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "导出维度结构数据",
+                    Filter = "JSON文件|*.json",
+                    DefaultExt = "json",
+                    FileName = $"维度结构数据_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                if (_dimensionDataService == null)
+                {
+                    MessageBox.Show("维度数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                await _dimensionDataService.ExportDimensionsAsync(_currentProjectId, Dimensions, dialog.FileName);
+                MessageBox.Show($"维度结构数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导出维度数据失败");
+                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        /// <summary>
-        /// 添加传送门
-        /// </summary>
         private void AddPortal_Click(object sender, RoutedEventArgs e)
         {
-            var newPortal = new PortalViewModel
+            Portals.Add(new PortalViewModel
             {
-                Name = "",
-                TargetDimension = "",
                 Status = "正常"
-            };
-
-            Portals.Add(newPortal);
+            });
         }
 
-        /// <summary>
-        /// 删除传送门
-        /// </summary>
         private void RemovePortal_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.CommandParameter is PortalViewModel portal)
+            if (sender is Button { CommandParameter: PortalViewModel portal })
             {
                 Portals.Remove(portal);
             }
         }
 
-        /// <summary>
-        /// 保存维度
-        /// </summary>
-        private void SaveDimension_Click(object sender, RoutedEventArgs e)
+        private async void SaveDimension_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (SelectedDimension == null) return;
+                if (SelectedDimension == null)
+                {
+                    return;
+                }
 
-                // 验证输入
+                if (!EnsureCurrentProject("保存维度结构"))
+                {
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(DimensionNameTextBox.Text))
                 {
                     MessageBox.Show("请输入维度名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                // 更新维度信息
                 SelectedDimension.Name = DimensionNameTextBox.Text.Trim();
                 SelectedDimension.Description = DimensionDescriptionTextBox.Text.Trim();
                 SelectedDimension.Type = (DimensionTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "物质维度";
@@ -481,47 +362,86 @@ namespace NovelManagement.WPF.Views
                 SelectedDimension.Climate = ClimateTextBox.Text.Trim();
                 SelectedDimension.EnergyLevel = EnergyLevelTextBox.Text.Trim();
                 SelectedDimension.DangerLevel = DangerLevelTextBox.Text.Trim();
+                SelectedDimension.Portals = Portals
+                    .Where(portal => !string.IsNullOrWhiteSpace(portal.Name) || !string.IsNullOrWhiteSpace(portal.TargetDimension))
+                    .Select(portal => new PortalViewModel
+                    {
+                        Name = portal.Name.Trim(),
+                        TargetDimension = portal.TargetDimension.Trim(),
+                        Status = string.IsNullOrWhiteSpace(portal.Status) ? "正常" : portal.Status.Trim()
+                    })
+                    .ToList();
 
-                // 如果是新建维度，添加到列表
                 if (SelectedDimension.Id == 0)
                 {
-                    SelectedDimension.Id = Dimensions.Count > 0 ? Dimensions.Max(d => d.Id) + 1 : 1;
+                    SelectedDimension.Id = Dimensions.Count > 0 ? Dimensions.Max(dimension => dimension.Id) + 1 : 1;
                     Dimensions.Add(SelectedDimension);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistDimensionsAsync();
                 MessageBox.Show("维度保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // 刷新列表
                 FilterDimensions();
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "保存维度失败");
                 MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 取消编辑
-        /// </summary>
         private void CancelEdit_Click(object sender, RoutedEventArgs e)
         {
             HideEditPanel();
         }
 
-        #endregion
-
-        #region AI助手功能
-
-        /// <summary>
-        /// AI助手按钮点击事件
-        /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI维度结构"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedDimension != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前维度并保存\n否：AI生成新的维度并保存\n取消：打开原始AI助手",
+                        "AI维度结构",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GenerateDimensionWithAiAsync(choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的维度并保存\n否：打开原始AI助手",
+                    "AI维度结构",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GenerateDimensionWithAiAsync(false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -530,22 +450,19 @@ namespace NovelManagement.WPF.Views
             }
         }
 
-        /// <summary>
-        /// 显示AI助手对话框
-        /// </summary>
         private void ShowAIAssistantDialog()
         {
             var context = GetCurrentContext();
-            var contextString = System.Text.Json.JsonSerializer.Serialize(context, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var dialog = new AIAssistantDialog("维度结构管理", contextString);
-            dialog.Owner = Window.GetWindow(this);
+            var contextString = System.Text.Json.JsonSerializer.Serialize(
+                context,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var dialog = new AIAssistantDialog("维度结构管理", contextString)
+            {
+                Owner = Window.GetWindow(this)
+            };
             dialog.ShowDialog();
         }
 
-        /// <summary>
-        /// 获取当前上下文信息
-        /// </summary>
-        /// <returns>上下文信息</returns>
         private Dictionary<string, object> GetCurrentContext()
         {
             var context = new Dictionary<string, object>
@@ -567,90 +484,253 @@ namespace NovelManagement.WPF.Views
                 context["currentDimensionDescription"] = SelectedDimension.Description;
                 context["currentDimensionEnvironment"] = new
                 {
-                    EnvironmentType = SelectedDimension.EnvironmentType,
-                    Climate = SelectedDimension.Climate,
-                    EnergyLevel = SelectedDimension.EnergyLevel,
-                    DangerLevel = SelectedDimension.DangerLevel
+                    SelectedDimension.EnvironmentType,
+                    SelectedDimension.Climate,
+                    SelectedDimension.EnergyLevel,
+                    SelectedDimension.DangerLevel
                 };
                 context["currentDimensionPortals"] = Portals.ToList();
             }
 
-            // 添加统计信息
-            var typeStats = Dimensions.GroupBy(d => d.Type)
-                .ToDictionary(g => g.Key, g => g.Count());
-            context["typeStatistics"] = typeStats;
-
-            var stabilityStats = Dimensions.GroupBy(d => d.Stability)
-                .ToDictionary(g => g.Key, g => g.Count());
-            context["stabilityStatistics"] = stabilityStats;
-
+            context["typeStatistics"] = Dimensions.GroupBy(dimension => dimension.Type).ToDictionary(group => group.Key, group => group.Count());
+            context["stabilityStatistics"] = Dimensions.GroupBy(dimension => dimension.Stability).ToDictionary(group => group.Key, group => group.Count());
             return context;
         }
 
-        #endregion
-    }
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadDimensionsAsync();
+        }
 
-    #region 视图模型
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadDimensionsAsync();
+        }
+
+        private async Task PersistDimensionsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _dimensionDataService == null)
+            {
+                return;
+            }
+
+            foreach (var dimension in Dimensions)
+            {
+                dimension.Portals ??= new List<PortalViewModel>();
+            }
+
+            await _dimensionDataService.SaveDimensionsAsync(_currentProjectId, Dimensions);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GenerateDimensionWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedDimension != null ? $"优化维度：{SelectedDimension.Name}" : "生成维度结构",
+                ["theme"] = "请生成一个适合小说项目使用的维度设定，并输出名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级、传送门。",
+                ["requirements"] = optimizeCurrent && SelectedDimension != null
+                    ? $"请基于当前维度进行优化并输出结构化文本。当前维度：{SelectedDimension.Name}，类型：{SelectedDimension.Type}，稳定性：{SelectedDimension.Stability}，访问等级：{SelectedDimension.AccessLevel}，描述：{SelectedDimension.Description}"
+                    : "请输出一个完整维度设定，至少包含名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级，并列出至少2个传送门。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI维度结构", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedDimension = ParseDimensionFromAiResult(result.Data, optimizeCurrent ? SelectedDimension : null);
+            if (generatedDimension == null)
+            {
+                MessageBox.Show("AI结果无法解析为维度。", "AI维度结构", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedDimension != null)
+            {
+                generatedDimension.Id = SelectedDimension.Id;
+                generatedDimension.CreatedAt = SelectedDimension.CreatedAt;
+                var index = Dimensions.IndexOf(SelectedDimension);
+                if (index >= 0)
+                {
+                    Dimensions[index] = generatedDimension;
+                }
+                SelectedDimension = generatedDimension;
+            }
+            else
+            {
+                generatedDimension.Id = Dimensions.Count > 0 ? Dimensions.Max(dimension => dimension.Id) + 1 : 1;
+                generatedDimension.CreatedAt = DateTime.Now;
+                Dimensions.Add(generatedDimension);
+                SelectedDimension = generatedDimension;
+            }
+
+            await PersistDimensionsAsync();
+            FilterDimensions();
+            UpdateStatistics();
+            LoadDimensionDetails(generatedDimension);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存维度：{generatedDimension.Name}" : $"已使用 AI 生成并保存维度：{generatedDimension.Name}",
+                "AI维度结构",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private DimensionViewModel? ParseDimensionFromAiResult(object data, DimensionViewModel? baseDimension)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var dimension = new DimensionViewModel
+            {
+                Id = baseDimension?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseDimension?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成维度",
+                Type = ExtractField(text, "类型") ?? baseDimension?.Type ?? "物质维度",
+                Stability = ExtractField(text, "稳定性") ?? baseDimension?.Stability ?? "稳定",
+                AccessLevel = ExtractField(text, "访问等级") ?? baseDimension?.AccessLevel ?? "限制",
+                Description = ExtractField(text, "描述") ?? baseDimension?.Description ?? text.Trim(),
+                EnvironmentType = ExtractField(text, "环境类型") ?? baseDimension?.EnvironmentType ?? "复合环境",
+                Climate = ExtractField(text, "气候") ?? baseDimension?.Climate ?? "多变",
+                EnergyLevel = ExtractField(text, "能量等级") ?? baseDimension?.EnergyLevel ?? "高",
+                DangerLevel = ExtractField(text, "危险等级") ?? baseDimension?.DangerLevel ?? "中等",
+                CreatedAt = baseDimension?.CreatedAt ?? DateTime.Now,
+                Portals = ParsePortals(text)
+            };
+
+            if (dimension.Portals.Count == 0)
+            {
+                dimension.Portals = baseDimension?.Portals?.ToList() ?? new List<PortalViewModel>
+                {
+                    new() { Name = "主通道", TargetDimension = "相邻维度", Status = "正常" },
+                    new() { Name = "裂隙入口", TargetDimension = "未知区域", Status = "不稳定" }
+                };
+            }
+
+            return dimension;
+        }
+
+        private static List<PortalViewModel> ParsePortals(string text)
+        {
+            var portals = new List<PortalViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "门|通道|裂隙|入口|传送"))
+                {
+                    continue;
+                }
+
+                portals.Add(new PortalViewModel
+                {
+                    Name = TrimListMarker(line),
+                    TargetDimension = InferTargetDimension(line),
+                    Status = InferPortalStatus(line)
+                });
+
+                if (portals.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return portals;
+        }
+
+        private static string InferTargetDimension(string line)
+        {
+            var match = Regex.Match(line, @"通往(.+)$|连接(.+)$|前往(.+)$");
+            if (match.Success)
+            {
+                return match.Groups.Cast<Group>().Skip(1).FirstOrDefault(group => !string.IsNullOrWhiteSpace(group.Value))?.Value.Trim() ?? "未知维度";
+            }
+
+            return "未知维度";
+        }
+
+        private static string InferPortalStatus(string line)
+        {
+            if (line.Contains("关闭") || line.Contains("封闭"))
+            {
+                return "关闭";
+            }
+
+            if (line.Contains("损坏") || line.Contains("破碎"))
+            {
+                return "损坏";
+            }
+
+            if (line.Contains("不稳定") || line.Contains("紊乱"))
+            {
+                return "不稳定";
+            }
+
+            return "正常";
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+    }
 
     /// <summary>
     /// 维度视图模型
     /// </summary>
     public class DimensionViewModel
     {
-        /// <summary>
-        /// 维度标识。
-        /// </summary>
         public int Id { get; set; }
-
-        /// <summary>
-        /// 维度名称。
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// 维度类型。
-        /// </summary>
-        public string Type { get; set; }
-
-        /// <summary>
-        /// 维度稳定性。
-        /// </summary>
-        public string Stability { get; set; }
-
-        /// <summary>
-        /// 访问权限等级。
-        /// </summary>
-        public string AccessLevel { get; set; }
-
-        /// <summary>
-        /// 维度描述。
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// 环境类型。
-        /// </summary>
-        public string EnvironmentType { get; set; }
-
-        /// <summary>
-        /// 气候特征。
-        /// </summary>
-        public string Climate { get; set; }
-
-        /// <summary>
-        /// 能量等级。
-        /// </summary>
-        public string EnergyLevel { get; set; }
-
-        /// <summary>
-        /// 危险等级。
-        /// </summary>
-        public string DangerLevel { get; set; }
-
-        /// <summary>
-        /// 创建时间。
-        /// </summary>
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Stability { get; set; } = string.Empty;
+        public string AccessLevel { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string EnvironmentType { get; set; } = string.Empty;
+        public string Climate { get; set; } = string.Empty;
+        public string EnergyLevel { get; set; } = string.Empty;
+        public string DangerLevel { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public List<PortalViewModel> Portals { get; set; } = new();
     }
 
     /// <summary>
@@ -658,21 +738,8 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class PortalViewModel
     {
-        /// <summary>
-        /// 传送门名称。
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// 目标维度名称。
-        /// </summary>
-        public string TargetDimension { get; set; }
-
-        /// <summary>
-        /// 传送门状态。
-        /// </summary>
-        public string Status { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string TargetDimension { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
     }
-
-    #endregion
 }

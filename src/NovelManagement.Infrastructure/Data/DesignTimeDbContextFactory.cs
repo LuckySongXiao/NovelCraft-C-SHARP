@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using System;
+using System.IO;
 
 namespace NovelManagement.Infrastructure.Data;
 
@@ -11,9 +13,16 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<NovelManag
     public NovelManagementDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<NovelManagementDbContext>();
-        
-        // 使用SQLite作为默认数据库
-        optionsBuilder.UseSqlite("Data Source=novel_management.db");
+
+        var appDataRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "NovelManagement",
+            "data");
+
+        Directory.CreateDirectory(appDataRoot);
+
+        // 与运行时保持一致，避免迁移和正式库落到不同位置
+        optionsBuilder.UseSqlite($"Data Source={Path.Combine(appDataRoot, "NovelManagement.db")}");
         
         return new NovelManagementDbContext(optionsBuilder.Options);
     }

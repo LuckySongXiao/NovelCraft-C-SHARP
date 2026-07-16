@@ -182,6 +182,12 @@ namespace NovelManagement.AI.Services.Ollama.Models
         public int? NumPredict { get; set; }
 
         /// <summary>
+        /// 上下文窗口大小
+        /// </summary>
+        [JsonPropertyName("num_ctx")]
+        public int? NumCtx { get; set; }
+
+        /// <summary>
         /// 停止词
         /// </summary>
         [JsonPropertyName("stop")]

@@ -128,16 +128,13 @@
                                  Margin="0,0,0,16"/>
 
                         <ComboBox x:Name="ProjectTemplateComboBox"
-                                materialDesign:HintAssist.Hint="选择项目模板"
-                                materialDesign:HintAssist.IsFloating="True">
-                            <ComboBoxItem Content="空白项目" IsSelected="True"/>
-                            <ComboBoxItem Content="修仙小说模板"/>
-                            <ComboBoxItem Content="都市小说模板"/>
-                            <ComboBoxItem Content="科幻小说模板"/>
-                            <ComboBoxItem Content="奇幻小说模板"/>
+                                materialDesign:HintAssist.Hint="内置模板"
+                                materialDesign:HintAssist.IsFloating="True"
+                                IsEnabled="False">
+                            <ComboBoxItem Content="标准模板" IsSelected="True"/>
                         </ComboBox>
 
-                        <TextBlock Text="选择模板可以快速创建包含预设结构和设定的项目" 
+                        <TextBlock Text="当前项目管理暂提供一个内置标准模板，用于快速创建正式项目骨架" 
                                  FontSize="12" 
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  Margin="0,8,0,0"

@@ -12,7 +12,7 @@
         TextElement.FontSize="13"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
-        Background="{DynamicResource MaterialDesignPaper}"
+        Background="{StaticResource AppWindowBackgroundBrush}"
         FontFamily="{DynamicResource MaterialDesignFont}">
 
     <Grid>
@@ -25,7 +25,7 @@
         <!-- 标题栏 -->
         <materialDesign:ColorZone Grid.Row="0" 
                                   Mode="PrimaryMid" 
-                                  Padding="16">
+                                  Padding="20,16">
             <DockPanel>
                 <materialDesign:PackIcon Kind="Home"
                                        DockPanel.Dock="Left"
@@ -52,11 +52,13 @@
                         <materialDesign:PackIcon Kind="ArrowLeft" Width="20" Height="20"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            ToolTip="设置">
+                            ToolTip="AI模型配置与设置"
+                            Click="AIConfiguration_Click">
                         <materialDesign:PackIcon Kind="Settings" Width="20" Height="20"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            ToolTip="帮助">
+                            ToolTip="帮助"
+                            Click="Help_Click">
                         <materialDesign:PackIcon Kind="Help" Width="20" Height="20"/>
                     </Button>
                 </StackPanel>
@@ -76,7 +78,7 @@
                                       Mode="Light" 
                                       Padding="0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
+                    <StackPanel Margin="8,12,8,12">
                         <!-- 项目管理 -->
                         <Expander Header="项目管理" 
                                 Style="{StaticResource MaterialDesignExpander}"
@@ -217,6 +219,10 @@
                                       Style="{StaticResource MaterialDesignFlatButton}"
                                       HorizontalAlignment="Left"
                                       Click="AICollaboration_Click"/>
+                                <Button Content="AI模型配置"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      HorizontalAlignment="Left"
+                                      Click="AIConfiguration_Click"/>
                                 <Button Content="对话生成器"
                                       Style="{StaticResource MaterialDesignFlatButton}"
                                       HorizontalAlignment="Left"
@@ -265,7 +271,7 @@
                           Background="{DynamicResource MaterialDesignDivider}"/>
 
             <!-- 右侧内容区域 -->
-            <Grid Grid.Column="2" Margin="16" x:Name="MainContentArea">
+            <Grid Grid.Column="2" Margin="20" x:Name="MainContentArea">
                 <!-- 仪表盘默认内容 -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>

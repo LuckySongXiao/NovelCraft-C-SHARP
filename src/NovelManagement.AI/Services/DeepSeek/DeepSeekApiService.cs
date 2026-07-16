@@ -346,11 +346,11 @@ namespace NovelManagement.AI.Services.DeepSeek
         {
             try
             {
-                // DeepSeek支持的模型列表
                 var models = new List<string>
                 {
+                    "deepseek-v4-flash",
+                    "deepseek-v4-pro",
                     "deepseek-chat",
-                    "deepseek-coder",
                     "deepseek-reasoner"
                 };
 
@@ -392,12 +392,19 @@ namespace NovelManagement.AI.Services.DeepSeek
         /// <param name="configuration">配置对象</param>
         private void LoadConfigurationFromSettings(IConfiguration configuration)
         {
-            var section = configuration.GetSection("DeepSeek");
+            var section = configuration.GetSection("AI:Providers:DeepSeek");
+            if (!section.Exists())
+            {
+                section = configuration.GetSection("DeepSeek");
+            }
+
             if (section.Exists())
             {
                 _configuration.ApiKey = section["ApiKey"] ?? _configuration.ApiKey;
-                _configuration.BaseUrl = section["BaseUrl"] ?? _configuration.BaseUrl;
-                _configuration.DefaultModel = section["DefaultModel"] ?? _configuration.DefaultModel;
+                _configuration.BaseUrl = NormalizeBaseUrl(section["BaseUrl"] ?? _configuration.BaseUrl);
+                _configuration.DefaultModel = section["DefaultModel"]
+                    ?? section["Model"]
+                    ?? _configuration.DefaultModel;
                 
                 if (int.TryParse(section["TimeoutSeconds"], out var timeout))
                     _configuration.TimeoutSeconds = timeout;
@@ -423,9 +430,10 @@ namespace NovelManagement.AI.Services.DeepSeek
         private HttpClient CreateHttpClient()
         {
             var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_configuration.BaseUrl);
+            httpClient.BaseAddress = new Uri(NormalizeBaseUrl(_configuration.BaseUrl));
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration.ApiKey);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("NovelCraft/1.0");
             httpClient.Timeout = TimeSpan.FromSeconds(_configuration.TimeoutSeconds);
             
             return httpClient;
@@ -443,8 +451,8 @@ namespace NovelManagement.AI.Services.DeepSeek
             var json = JsonConvert.SerializeObject(request, Formatting.None);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
-            var response = await httpClient.PostAsync("/v1/chat/completions", content, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            var response = await httpClient.PostAsync("chat/completions", content, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
             
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
             return JsonConvert.DeserializeObject<DeepSeekResponse>(responseJson);
@@ -467,8 +475,8 @@ namespace NovelManagement.AI.Services.DeepSeek
             var json = JsonConvert.SerializeObject(request, Formatting.None);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
-            var response = await httpClient.PostAsync("/v1/chat/completions", content, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            var response = await httpClient.PostAsync("chat/completions", content, cancellationToken);
+            await EnsureSuccessStatusCodeAsync(response, cancellationToken);
             
             var fullResponse = new DeepSeekResponse
             {
@@ -596,6 +604,35 @@ namespace NovelManagement.AI.Services.DeepSeek
                     _usageStats.TodayTokensUsed += usage.TotalTokens;
                 }
             }
+        }
+
+        private static string NormalizeBaseUrl(string? baseUrl)
+        {
+            var normalized = string.IsNullOrWhiteSpace(baseUrl)
+                ? "https://api.deepseek.com"
+                : baseUrl.Trim();
+
+            normalized = normalized.TrimEnd('/');
+            return normalized.EndsWith("/v1", StringComparison.OrdinalIgnoreCase)
+                ? normalized + "/"
+                : normalized + "/";
+        }
+
+        private static async Task EnsureSuccessStatusCodeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var message = $"DeepSeek API 请求失败: HTTP {(int)response.StatusCode} {response.StatusCode}";
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                message += $", Body: {body}";
+            }
+
+            throw new HttpRequestException(message);
         }
 
         #endregion

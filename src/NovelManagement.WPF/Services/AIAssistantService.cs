@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.Logging;
@@ -137,6 +141,7 @@ namespace NovelManagement.WPF.Services
         private readonly FloatingTextManager _floatingTextManager;
         private readonly IAgentFactory _agentFactory;
         private readonly AIUsageStatisticsService _statisticsService;
+        private readonly IAIAgentRoleWorkflowService _agentRoleWorkflowService;
 
         /// <summary>
         /// 构造函数
@@ -149,6 +154,7 @@ namespace NovelManagement.WPF.Services
         /// <param name="floatingTextManager">悬浮文本管理器</param>
         /// <param name="agentFactory">Agent工厂</param>
         /// <param name="statisticsService">统计服务</param>
+        /// <param name="agentRoleWorkflowService">双代理编排服务</param>
         public AIAssistantService(
             ILogger<AIAssistantService> logger,
             IDeepSeekApiService deepSeekApiService,
@@ -157,7 +163,8 @@ namespace NovelManagement.WPF.Services
             IThinkingChainProcessor thinkingChainProcessor,
             FloatingTextManager floatingTextManager,
             IAgentFactory agentFactory,
-            AIUsageStatisticsService statisticsService)
+            AIUsageStatisticsService statisticsService,
+            IAIAgentRoleWorkflowService agentRoleWorkflowService)
         {
             _logger = logger;
             _deepSeekApiService = deepSeekApiService;
@@ -167,6 +174,7 @@ namespace NovelManagement.WPF.Services
             _floatingTextManager = floatingTextManager;
             _agentFactory = agentFactory;
             _statisticsService = statisticsService;
+            _agentRoleWorkflowService = agentRoleWorkflowService;
 
             // 异步初始化服务状态检查
             _ = Task.Run(InitializeServiceAsync);
@@ -254,6 +262,19 @@ namespace NovelManagement.WPF.Services
             {
                 _logger.LogInformation("开始AI生成角色");
 
+                #region debug-point C:generate-character-enter
+                await ReportDebugEventAsync(
+                    "C",
+                    "GenerateCharacterAsync",
+                    "进入角色自动补全/生成入口",
+                    new Dictionary<string, object?>
+                    {
+                        ["parameterKeys"] = parameters.Keys.OrderBy(key => key).ToArray(),
+                        ["name"] = parameters.TryGetValue("name", out var name) ? name?.ToString() : null,
+                        ["characterType"] = parameters.TryGetValue("characterType", out var type) ? type?.ToString() : null
+                    });
+                #endregion
+
                 // 创建Director Agent
                 var directorAgent = _agentFactory.CreateAgent<DirectorAgent>();
 
@@ -264,7 +285,9 @@ namespace NovelManagement.WPF.Services
                 var result = await directorAgent.ExecuteAsync("GenerateCharacter", parameters);
 
                 var executionTime = DateTime.Now - startTime;
-                var message = result.Metadata.TryGetValue("Message", out var msgObj) ? msgObj?.ToString() : "AI生成角色完成";
+                var message = result.IsSuccess
+                    ? (result.Metadata.TryGetValue("Message", out var msgObj) ? msgObj?.ToString() : "AI生成角色完成")
+                    : (result.ErrorMessage ?? (result.Metadata.TryGetValue("Message", out var errorMsgObj) ? errorMsgObj?.ToString() : "AI生成角色失败"));
 
                 var aiResult = new AIAssistantResult
                 {
@@ -278,6 +301,19 @@ namespace NovelManagement.WPF.Services
                 // 记录使用统计
                 _statisticsService.RecordUsage(functionName, result.IsSuccess, executionTime, 0, message);
 
+                #region debug-point C:generate-character-result
+                await ReportDebugEventAsync(
+                    "C",
+                    "GenerateCharacterAsync",
+                    $"角色自动补全/生成完成: success={result.IsSuccess}",
+                    new Dictionary<string, object?>
+                    {
+                        ["message"] = message,
+                        ["hasData"] = result.Data != null,
+                        ["executionMs"] = (int)executionTime.TotalMilliseconds
+                    });
+                #endregion
+
                 return aiResult;
             }
             catch (Exception ex)
@@ -287,6 +323,19 @@ namespace NovelManagement.WPF.Services
 
                 // 记录失败统计
                 _statisticsService.RecordUsage(functionName, false, executionTime, 0, ex.Message);
+
+                #region debug-point E:generate-character-exception
+                await ReportDebugEventAsync(
+                    "E",
+                    "GenerateCharacterAsync",
+                    $"角色自动补全/生成异常: {ex.Message}",
+                    new Dictionary<string, object?>
+                    {
+                        ["exceptionType"] = ex.GetType().FullName,
+                        ["executionMs"] = (int)executionTime.TotalMilliseconds,
+                        ["stack"] = ex.ToString()
+                    });
+                #endregion
 
                 return new AIAssistantResult
                 {
@@ -526,6 +575,21 @@ namespace NovelManagement.WPF.Services
             {
                 _logger.LogInformation("开始AI生成章节内容");
 
+                var workflowResult = await _agentRoleWorkflowService.TryExecuteAsync("GenerateChapterContent", parameters);
+                if (workflowResult != null)
+                {
+                    var workflowExecutionTime = DateTime.Now - startTime;
+                    _statisticsService.RecordUsage("GenerateChapter", workflowResult.IsSuccess, workflowExecutionTime, 0, workflowResult.Message);
+                    return new AIAssistantResult
+                    {
+                        IsSuccess = workflowResult.IsSuccess,
+                        Data = workflowResult.Content,
+                        Message = workflowResult.Message,
+                        Metadata = workflowResult.Metadata,
+                        ExecutionTime = workflowExecutionTime
+                    };
+                }
+
                 // 创建Writer Agent
                 var writerAgent = _agentFactory.CreateAgent<WriterAgent>();
 
@@ -543,6 +607,7 @@ namespace NovelManagement.WPF.Services
                     IsSuccess = result.IsSuccess,
                     Data = result.Data,
                     Message = message,
+                    Metadata = result.Metadata,
                     ThinkingChainId = writerAgent.CurrentThinkingChain?.Id.ToString(),
                     ExecutionTime = executionTime
                 };
@@ -576,6 +641,21 @@ namespace NovelManagement.WPF.Services
             {
                 _logger.LogInformation("开始AI续写章节内容");
 
+                var workflowResult = await _agentRoleWorkflowService.TryExecuteAsync("ContinueChapter", parameters);
+                if (workflowResult != null)
+                {
+                    var workflowExecutionTime = DateTime.Now - startTime;
+                    _statisticsService.RecordUsage("ContinueChapter", workflowResult.IsSuccess, workflowExecutionTime, 0, workflowResult.Message);
+                    return new AIAssistantResult
+                    {
+                        IsSuccess = workflowResult.IsSuccess,
+                        Data = workflowResult.Content,
+                        Message = workflowResult.Message,
+                        Metadata = workflowResult.Metadata,
+                        ExecutionTime = workflowExecutionTime
+                    };
+                }
+
                 // 创建Writer Agent
                 var writerAgent = _agentFactory.CreateAgent<WriterAgent>();
 
@@ -593,6 +673,7 @@ namespace NovelManagement.WPF.Services
                     IsSuccess = result.IsSuccess,
                     Data = result.Data,
                     Message = message,
+                    Metadata = result.Metadata,
                     ThinkingChainId = writerAgent.CurrentThinkingChain?.Id.ToString(),
                     ExecutionTime = executionTime
                 };
@@ -625,6 +706,21 @@ namespace NovelManagement.WPF.Services
             try
             {
                 _logger.LogInformation("开始AI润色文本内容");
+
+                var workflowResult = await _agentRoleWorkflowService.TryExecuteAsync("PolishText", parameters);
+                if (workflowResult != null)
+                {
+                    var workflowExecutionTime = DateTime.Now - startTime;
+                    _statisticsService.RecordUsage("PolishText", workflowResult.IsSuccess, workflowExecutionTime, 0, workflowResult.Message);
+                    return new AIAssistantResult
+                    {
+                        IsSuccess = workflowResult.IsSuccess,
+                        Data = workflowResult.Content,
+                        Message = workflowResult.Message,
+                        Metadata = workflowResult.Metadata,
+                        ExecutionTime = workflowExecutionTime
+                    };
+                }
 
                 // 创建Editor Agent
                 var editorAgent = _agentFactory.CreateAgent<EditorAgent>();
@@ -677,6 +773,48 @@ namespace NovelManagement.WPF.Services
             {
                 _logger.LogInformation("开始AI生成小说大纲");
 
+                #region debug-point C:generate-outline-enter
+                await ReportDebugEventAsync(
+                    "C",
+                    "GenerateOutlineAsync",
+                    "进入小说大纲生成入口",
+                    new Dictionary<string, object?>
+                    {
+                        ["parameterKeys"] = parameters.Keys.OrderBy(key => key).ToArray(),
+                        ["title"] = parameters.TryGetValue("title", out var title) ? title?.ToString() : null,
+                        ["theme"] = parameters.TryGetValue("theme", out var theme) ? theme?.ToString() : null
+                    });
+                #endregion
+
+                var workflowResult = await _agentRoleWorkflowService.TryExecuteAsync("GenerateOutline", parameters);
+                if (workflowResult != null)
+                {
+                    var workflowExecutionTime = DateTime.Now - startTime;
+                    _statisticsService.RecordUsage(functionName, workflowResult.IsSuccess, workflowExecutionTime, 0, workflowResult.Message);
+
+                    #region debug-point C:generate-outline-workflow-result
+                    await ReportDebugEventAsync(
+                        "C",
+                        "GenerateOutlineAsync",
+                        $"双代理大纲生成返回: success={workflowResult.IsSuccess}",
+                        new Dictionary<string, object?>
+                        {
+                            ["message"] = workflowResult.Message,
+                            ["executionMs"] = (int)workflowExecutionTime.TotalMilliseconds,
+                            ["metadataKeys"] = workflowResult.Metadata?.Keys.OrderBy(key => key).ToArray()
+                        });
+                    #endregion
+
+                    return new AIAssistantResult
+                    {
+                        IsSuccess = workflowResult.IsSuccess,
+                        Data = workflowResult.Content,
+                        Message = workflowResult.Message,
+                        Metadata = workflowResult.Metadata,
+                        ExecutionTime = workflowExecutionTime
+                    };
+                }
+
                 // 创建Director Agent
                 var directorAgent = _agentFactory.CreateAgent<DirectorAgent>();
 
@@ -701,6 +839,18 @@ namespace NovelManagement.WPF.Services
                 // 记录使用统计
                 _statisticsService.RecordUsage(functionName, result.IsSuccess, executionTime, 0, message);
 
+                #region debug-point C:generate-outline-director-result
+                await ReportDebugEventAsync(
+                    "C",
+                    "GenerateOutlineAsync",
+                    $"单代理大纲生成返回: success={result.IsSuccess}",
+                    new Dictionary<string, object?>
+                    {
+                        ["message"] = message,
+                        ["executionMs"] = (int)executionTime.TotalMilliseconds
+                    });
+                #endregion
+
                 return aiResult;
             }
             catch (Exception ex)
@@ -710,6 +860,19 @@ namespace NovelManagement.WPF.Services
 
                 // 记录失败统计
                 _statisticsService.RecordUsage(functionName, false, executionTime, 0, ex.Message);
+
+                #region debug-point E:generate-outline-exception
+                await ReportDebugEventAsync(
+                    "E",
+                    "GenerateOutlineAsync",
+                    $"小说大纲生成异常: {ex.Message}",
+                    new Dictionary<string, object?>
+                    {
+                        ["exceptionType"] = ex.GetType().FullName,
+                        ["executionMs"] = (int)executionTime.TotalMilliseconds,
+                        ["stack"] = ex.ToString()
+                    });
+                #endregion
 
                 return new AIAssistantResult
                 {
@@ -802,6 +965,82 @@ namespace NovelManagement.WPF.Services
                 _logger.LogWarning(ex, "显示思维链失败");
             }
         }
+
+        #region debug-point C:report-helper
+        private static async Task ReportDebugEventAsync(string hypothesisId, string location, string message, Dictionary<string, object?>? data = null)
+        {
+            try
+            {
+                var debugServerUrl = "http://127.0.0.1:7777/event";
+                var debugSessionId = "single-file-ai-ui";
+                var envPath = FindDebugEnvPath();
+                if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+                {
+                    foreach (var line in File.ReadAllLines(envPath, Encoding.UTF8))
+                    {
+                        if (line.StartsWith("DEBUG_SERVER_URL=", StringComparison.OrdinalIgnoreCase))
+                        {
+                            debugServerUrl = line["DEBUG_SERVER_URL=".Length..].Trim();
+                        }
+                        else if (line.StartsWith("DEBUG_SESSION_ID=", StringComparison.OrdinalIgnoreCase))
+                        {
+                            debugSessionId = line["DEBUG_SESSION_ID=".Length..].Trim();
+                        }
+                    }
+                }
+
+                var payload = JsonSerializer.Serialize(new
+                {
+                    sessionId = debugSessionId,
+                    runId = "pre-fix",
+                    hypothesisId,
+                    location,
+                    msg = $"[DEBUG] {message}",
+                    data,
+                    ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+
+                using var client = new System.Net.Http.HttpClient();
+                using var content = new System.Net.Http.StringContent(payload, Encoding.UTF8, "application/json");
+                await client.PostAsync(debugServerUrl, content);
+            }
+            catch
+            {
+                // ignore debug instrumentation failures
+            }
+        }
+
+        private static string? FindDebugEnvPath()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".dbg", "single-file-ai-ui.env"),
+                Path.Combine(Directory.GetCurrentDirectory(), ".dbg", "single-file-ai-ui.env")
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            var directory = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (directory != null)
+            {
+                var candidate = Path.Combine(directory.FullName, ".dbg", "single-file-ai-ui.env");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                directory = directory.Parent;
+            }
+
+            return null;
+        }
+        #endregion
     }
 
     /// <summary>
@@ -823,6 +1062,11 @@ namespace NovelManagement.WPF.Services
         /// 消息
         /// </summary>
         public string? Message { get; set; }
+
+        /// <summary>
+        /// 结果元数据
+        /// </summary>
+        public Dictionary<string, object> Metadata { get; set; } = new();
 
         /// <summary>
         /// 思维链ID

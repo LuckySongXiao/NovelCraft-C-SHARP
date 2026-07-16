@@ -7,6 +7,7 @@ using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
+using NovelManagement.AI.Utilities;
 using ThinkingChainModel = NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain;
 
 namespace NovelManagement.AI.Agents
@@ -52,7 +53,10 @@ namespace NovelManagement.AI.Agents
             return taskType switch
             {
                 "AnalyzeTheme" => await AnalyzeThemeAsync(parameters),
+                "GenerateCharacter" => await GenerateCharacterAsync(parameters),
                 "GenerateOutline" => await GenerateOutlineAsync(parameters),
+                "GeneratePlot" => await GeneratePlotAsync(parameters),
+                "GetPlotSuggestions" => await GetPlotSuggestionsAsync(parameters),
                 "CreateWorldSetting" => await CreateWorldSettingAsync(parameters),
                 "DesignCharacters" => await DesignCharactersAsync(parameters),
                 "PlanChapterStructure" => await PlanChapterStructureAsync(parameters),
@@ -83,6 +87,20 @@ namespace NovelManagement.AI.Agents
                     Description = "生成详细的故事大纲",
                     IsAvailable = true,
                     Priority = 1
+                },
+                new AgentCapability
+                {
+                    Name = "剧情生成",
+                    Description = "生成剧情梗概和关键冲突",
+                    IsAvailable = true,
+                    Priority = 1
+                },
+                new AgentCapability
+                {
+                    Name = "剧情建议",
+                    Description = "根据设定提供剧情推进建议",
+                    IsAvailable = true,
+                    Priority = 2
                 },
                 new AgentCapability
                 {
@@ -194,6 +212,75 @@ namespace NovelManagement.AI.Agents
         }
 
         /// <summary>
+        /// 生成角色
+        /// </summary>
+        /// <param name="parameters">参数</param>
+        /// <returns>角色结果</returns>
+        private async Task<AgentTaskResult> GenerateCharacterAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                UpdateProgress(10);
+
+                var characterType = parameters.GetValueOrDefault("characterType", "").ToString();
+                var faction = parameters.GetValueOrDefault("faction", "").ToString();
+                var cultivationLevel = parameters.GetValueOrDefault("cultivationLevel", "").ToString();
+
+                _logger.LogInformation("开始AI生成角色: {CharacterType}", characterType);
+                AddThinkingStep("分析角色需求", $"正在分析角色生成需求：类型={characterType}, 势力={faction}, 境界={cultivationLevel}", ThinkingStepType.Analysis, 0.9);
+
+                UpdateProgress(25);
+
+                var thinkingChain = new ThinkingChainModel
+                {
+                    Title = $"{Name} - 角色生成",
+                    Description = "执行角色生成任务",
+                    TaskId = Guid.NewGuid().ToString(),
+                    AgentId = Id
+                };
+
+                AddThinkingStep("调用AI模型", "根据角色条件生成完整角色设定", ThinkingStepType.Synthesis, 0.9);
+                UpdateProgress(45);
+
+                var result = await ExecuteTaskWithAIAsync("GenerateCharacter", parameters, thinkingChain);
+                UpdateProgress(80);
+
+                if (result.IsSuccess && result.Data != null)
+                {
+                    AddThinkingStep("完成总结", "成功生成角色设定", ThinkingStepType.Conclusion, 0.95);
+                    UpdateProgress(100);
+
+                    return new AgentTaskResult
+                    {
+                        IsSuccess = true,
+                        Data = result.Data,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["ContentType"] = "CharacterProfile",
+                            ["CharacterType"] = characterType ?? string.Empty,
+                            ["Faction"] = faction ?? string.Empty
+                        }
+                    };
+                }
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = result.ErrorMessage ?? "AI角色生成失败"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "角色生成失败");
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
         /// 生成大纲
         /// </summary>
         /// <param name="parameters">参数</param>
@@ -272,6 +359,138 @@ namespace NovelManagement.AI.Agents
             catch (Exception ex)
             {
                 _logger.LogError(ex, "大纲生成失败");
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// 生成剧情梗概
+        /// </summary>
+        /// <param name="parameters">参数</param>
+        /// <returns>剧情结果</returns>
+        private async Task<AgentTaskResult> GeneratePlotAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                UpdateProgress(10);
+
+                var theme = parameters.GetValueOrDefault("theme", "").ToString();
+                var genre = parameters.GetValueOrDefault("genre", "").ToString();
+                var requirements = parameters.GetValueOrDefault("requirements", "").ToString();
+
+                _logger.LogInformation("开始AI生成剧情: {Theme}, 类型: {Genre}", theme, genre);
+
+                AddThinkingStep("分析剧情需求", $"正在分析剧情生成需求：主题={theme}, 类型={genre}", ThinkingStepType.Analysis, 0.9);
+                UpdateProgress(25);
+
+                var thinkingChain = new ThinkingChainModel
+                {
+                    Title = $"{Name} - 剧情生成",
+                    Description = "执行剧情生成任务",
+                    TaskId = Guid.NewGuid().ToString(),
+                    AgentId = Id
+                };
+
+                AddThinkingStep("调用AI模型", $"根据需求生成剧情梗概：{requirements}", ThinkingStepType.Synthesis, 0.9);
+                UpdateProgress(45);
+
+                var aiResponse = await ExecuteCreativeTaskWithAIAsync("GeneratePlot", parameters);
+                UpdateProgress(85);
+
+                if (!string.IsNullOrWhiteSpace(aiResponse))
+                {
+                    var plotContent = ExtractPlotFromAIResponse(aiResponse);
+                    AddThinkingStep("完成总结", "成功生成剧情梗概", ThinkingStepType.Conclusion, 0.95);
+                    UpdateProgress(100);
+
+                    return new AgentTaskResult
+                    {
+                        IsSuccess = true,
+                        Data = plotContent,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["ContentType"] = "Plot",
+                            ["Theme"] = theme ?? string.Empty,
+                            ["Genre"] = genre ?? string.Empty,
+                            ["Message"] = "AI生成剧情完成"
+                        }
+                    };
+                }
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "AI剧情生成失败"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "剧情生成失败");
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// 获取剧情建议
+        /// </summary>
+        /// <param name="parameters">参数</param>
+        /// <returns>建议结果</returns>
+        private async Task<AgentTaskResult> GetPlotSuggestionsAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                UpdateProgress(10);
+
+                var theme = parameters.GetValueOrDefault("theme", "").ToString();
+                AddThinkingStep("分析现有信息", $"正在根据当前主题生成剧情建议：{theme}", ThinkingStepType.Analysis, 0.85);
+                UpdateProgress(30);
+
+                var thinkingChain = new ThinkingChainModel
+                {
+                    Title = $"{Name} - 剧情建议",
+                    Description = "执行剧情建议任务",
+                    TaskId = Guid.NewGuid().ToString(),
+                    AgentId = Id
+                };
+
+                var aiResponse = await ExecuteCreativeTaskWithAIAsync("GetPlotSuggestions", parameters);
+                UpdateProgress(85);
+
+                if (!string.IsNullOrWhiteSpace(aiResponse))
+                {
+                    var suggestionContent = ExtractPlotFromAIResponse(aiResponse);
+                    AddThinkingStep("完成总结", "成功生成剧情建议", ThinkingStepType.Conclusion, 0.95);
+                    UpdateProgress(100);
+
+                    return new AgentTaskResult
+                    {
+                        IsSuccess = true,
+                        Data = suggestionContent,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["ContentType"] = "PlotSuggestions",
+                            ["Message"] = "AI获取剧情建议完成"
+                        }
+                    };
+                }
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "AI剧情建议生成失败"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "剧情建议生成失败");
                 return new AgentTaskResult
                 {
                     IsSuccess = false,
@@ -439,6 +658,20 @@ namespace NovelManagement.AI.Agents
         {
             return taskType switch
             {
+                "GenerateCharacter" => @"
+    你是一位专业的小说角色设计师，擅长根据已有设定生成完整、可直接使用的角色资料。
+    请结合用户提供的角色类型、势力、境界、性格、背景和能力要求，输出自然、完整、结构清晰的角色设定。
+    严禁输出思考过程、分析过程、提示词、Markdown 标题、代码块、列表符号或无关说明。
+    仅按以下字段顺序输出，每个字段只输出字段名和正文：
+    姓名：
+    简介：
+    外貌：
+    性格：
+    背景：
+    能力：
+    经历：
+    关键事件：
+                ",
                 "GenerateOutline" => @"
                     你是一位专业的小说编剧和策划专家，擅长创作各种类型的小说大纲。
                     你的任务是根据用户提供的主题、类型和要求，创作一个完整、详细、引人入胜的小说大纲。
@@ -482,6 +715,7 @@ namespace NovelManagement.AI.Agents
         {
             return taskType switch
             {
+                "GenerateCharacter" => BuildCharacterGenerationPrompt(parameters),
                 "GenerateOutline" => BuildOutlineGenerationPrompt(parameters),
                 "AnalyzeTheme" => BuildThemeAnalysisPrompt(parameters),
                 "CreateWorldSetting" => BuildWorldSettingPrompt(parameters),
@@ -524,6 +758,49 @@ namespace NovelManagement.AI.Agents
 请按照系统提示中的格式输出完整的小说大纲。";
 
             return prompt;
+        }
+
+        private string BuildCharacterGenerationPrompt(Dictionary<string, object> parameters)
+        {
+            var name = parameters.GetValueOrDefault("name", "").ToString();
+            var characterType = parameters.GetValueOrDefault("characterType", "").ToString();
+            var faction = parameters.GetValueOrDefault("faction", "").ToString();
+            var cultivationLevel = parameters.GetValueOrDefault("cultivationLevel", "").ToString();
+            var description = parameters.GetValueOrDefault("description", "").ToString();
+            var appearance = parameters.GetValueOrDefault("appearance", "").ToString();
+            var personality = parameters.GetValueOrDefault("personality", "").ToString();
+            var background = parameters.GetValueOrDefault("background", "").ToString()
+                ?? parameters.GetValueOrDefault("backgroundStory", "").ToString();
+            var abilities = parameters.GetValueOrDefault("abilities", "").ToString()
+                ?? parameters.GetValueOrDefault("specialAbilities", "").ToString();
+            var history = parameters.GetValueOrDefault("history", "").ToString();
+            var keyEvents = parameters.GetValueOrDefault("keyEvents", "").ToString();
+            var existingCharacters = parameters.GetValueOrDefault("existingCharacters", "").ToString();
+
+            return $@"请生成一个适合小说项目直接使用的角色设定：
+
+【已知信息】
+姓名：{name}
+角色类型：{characterType}
+所属势力：{faction}
+修炼境界：{cultivationLevel}
+角色描述：{description}
+外貌特征：{appearance}
+性格特点：{personality}
+背景故事：{background}
+特殊能力：{abilities}
+经历：{history}
+关键事件：{keyEvents}
+
+【已有角色参考】
+{existingCharacters}
+
+【输出要求】
+1. 若姓名为空，请先为角色命名。
+2. 输出完整角色资料，重点补全缺失内容。
+3. 内容需包含：姓名、外貌、性格、背景、能力、经历、关键事件。
+4. 必须严格按以下字段输出：姓名、简介、外貌、性格、背景、能力、经历、关键事件。
+5. 不要输出思考过程，不要输出解释，不要输出 JSON，不要输出代码块，不要输出额外符号。";
         }
 
         /// <summary>
@@ -573,39 +850,67 @@ namespace NovelManagement.AI.Agents
         /// <returns>提取的大纲内容</returns>
         private string ExtractOutlineFromAIResponse(string aiResponse)
         {
-            if (string.IsNullOrWhiteSpace(aiResponse))
-                return "";
+            return AIOutputSanitizer.ExtractCleanOutput(aiResponse, "content", "text", "outline");
+        }
 
-            // 移除可能的JSON格式包装
-            var content = aiResponse.Trim();
-
-            // 如果响应是JSON格式，尝试提取content字段
-            if (content.StartsWith("{") && content.EndsWith("}"))
+        /// <summary>
+        /// 直接使用当前默认模型提供者执行剧情类任务，避免AI失败时发生递归回退。
+        /// </summary>
+        /// <param name="taskType">任务类型</param>
+        /// <param name="parameters">任务参数</param>
+        /// <returns>AI输出</returns>
+        private async Task<string> ExecuteCreativeTaskWithAIAsync(string taskType, Dictionary<string, object> parameters)
+        {
+            if (_modelManager == null)
             {
-                try
-                {
-                    var jsonDoc = System.Text.Json.JsonDocument.Parse(content);
-                    if (jsonDoc.RootElement.TryGetProperty("content", out var contentElement))
-                    {
-                        content = contentElement.GetString() ?? content;
-                    }
-                    else if (jsonDoc.RootElement.TryGetProperty("text", out var textElement))
-                    {
-                        content = textElement.GetString() ?? content;
-                    }
-                }
-                catch
-                {
-                    // 如果JSON解析失败，使用原始内容
-                }
+                throw new InvalidOperationException("模型管理器未配置，无法执行AI任务。");
             }
 
-            // 清理内容格式
-            content = content.Replace("\\n", "\n")
-                           .Replace("\\t", "\t")
-                           .Replace("\\\"", "\"");
+            var defaultProvider = _modelManager.GetDefaultProvider();
+            if (defaultProvider == null || !defaultProvider.IsAvailable)
+            {
+                throw new InvalidOperationException("当前没有可用的默认模型提供者。");
+            }
 
-            return content.Trim();
+            var chatRequest = new ChatRequest
+            {
+                Model = string.Empty,
+                SystemPrompt = BuildSystemPrompt(taskType),
+                Messages = new List<ChatMessage>
+                {
+                    new()
+                    {
+                        Role = "user",
+                        Content = BuildUserPrompt(taskType, parameters),
+                        Timestamp = DateTime.UtcNow
+                    }
+                },
+                Temperature = 0.7,
+                MaxTokens = 4000
+            };
+
+            var chatResponse = await _modelManager.ChatAsync(defaultProvider.ProviderName, chatRequest);
+            if (!chatResponse.IsSuccess)
+            {
+                throw new InvalidOperationException($"{defaultProvider.ProviderName} 模型调用失败: {chatResponse.ErrorMessage}");
+            }
+
+            if (string.IsNullOrWhiteSpace(chatResponse.Content))
+            {
+                throw new InvalidOperationException($"{defaultProvider.ProviderName} 模型返回空响应");
+            }
+
+            return chatResponse.Content;
+        }
+
+        /// <summary>
+        /// 从AI响应中提取剧情/建议内容
+        /// </summary>
+        /// <param name="aiResponse">AI响应</param>
+        /// <returns>提取后的剧情内容</returns>
+        private string ExtractPlotFromAIResponse(string aiResponse)
+        {
+            return AIOutputSanitizer.ExtractCleanOutput(aiResponse, "content", "text", "plot", "story", "suggestions");
         }
 
         #endregion

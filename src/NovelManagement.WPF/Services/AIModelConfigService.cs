@@ -92,6 +92,63 @@ namespace NovelManagement.WPF.Services
         }
 
         /// <summary>
+        /// 导出配置到指定文件。
+        /// </summary>
+        /// <param name="config">模型配置。</param>
+        /// <param name="filePath">目标文件路径。</param>
+        public async Task ExportConfigurationAsync(ModelConfiguration config, string filePath)
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                var json = JsonConvert.SerializeObject(config, Formatting.Indented);
+                await File.WriteAllTextAsync(filePath, json);
+                _logger?.LogInformation("AI模型配置导出成功: {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导出AI模型配置失败: {FilePath}", filePath);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 从指定文件导入配置。
+        /// </summary>
+        /// <param name="filePath">配置文件路径。</param>
+        /// <returns>模型配置。</returns>
+        public async Task<ModelConfiguration> ImportConfigurationAsync(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    throw new FileNotFoundException("未找到配置文件。", filePath);
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var config = JsonConvert.DeserializeObject<ModelConfiguration>(json);
+                if (config == null)
+                {
+                    throw new InvalidDataException("配置文件内容无效或为空。");
+                }
+
+                _logger?.LogInformation("AI模型配置导入成功: {FilePath}", filePath);
+                return config;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导入AI模型配置失败: {FilePath}", filePath);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// 测试连接
         /// </summary>
         /// <returns>是否连接成功</returns>

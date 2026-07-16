@@ -211,26 +211,53 @@
                                                   HorizontalAlignment="Center">
 
                                             <!-- 根据当前模式显示不同的按钮 -->
-                                            <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                  ToolTip="打开项目"
+                                            <Button ToolTip="打开项目"
                                                   Click="OpenProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="OpenProjectButton">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.ShowRecycleBin}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <materialDesign:PackIcon Kind="FolderOpen"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                  ToolTip="编辑项目"
+                                            <Button ToolTip="编辑项目"
                                                   Click="EditProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="EditProjectButton">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.ShowRecycleBin}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <materialDesign:PackIcon Kind="Edit"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                  ToolTip="恢复项目"
+                                            <Button ToolTip="恢复项目"
                                                   Click="RestoreProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="RestoreProjectButton"
                                                   Visibility="Collapsed">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.ShowRecycleBin}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <materialDesign:PackIcon Kind="Restore"/>
                                             </Button>
                                             <Button Style="{StaticResource MaterialDesignIconButton}"

@@ -143,6 +143,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _logger?.LogInformation("开始加载关系网络角色数据");
+                ResetSelectionState();
 
                 // 获取当前项目ID
                 var currentProjectId = GetCurrentProjectId();
@@ -152,8 +153,10 @@ namespace NovelManagement.WPF.Views
                     _allCharacters = new List<CharacterNodeViewModel>();
                     _allRelationships = new List<RelationshipViewModel>();
                     _filteredCharacters = new List<CharacterNodeViewModel>();
+                    PopulateFilterOptions();
                     UpdateCharacterList();
                     DrawNetworkGraph();
+                    ShowPlaceholderDetails("请选择项目后查看关系网络");
                     EnsureCurrentProject("关系网络", out _);
                     return;
                 }
@@ -172,6 +175,7 @@ namespace NovelManagement.WPF.Views
                     // 加载角色关系数据
                     await LoadCharacterRelationshipsAsync(characterList);
 
+                    ApplyCurrentLayout();
                     _filteredCharacters = new List<CharacterNodeViewModel>(_allCharacters);
 
                     _logger?.LogInformation("成功加载 {Count} 个角色到关系网络", _allCharacters.Count);
@@ -182,10 +186,17 @@ namespace NovelManagement.WPF.Views
                     _allCharacters = new List<CharacterNodeViewModel>();
                     _allRelationships = new List<RelationshipViewModel>();
                     _filteredCharacters = new List<CharacterNodeViewModel>();
+                    ShowPlaceholderDetails("角色服务不可用，无法加载真实关系网络");
                 }
 
-                UpdateCharacterList();
-                DrawNetworkGraph();
+                PopulateFilterOptions();
+                ApplyFilters();
+                if (_filteredCharacters.Count == 0)
+                {
+                    ShowPlaceholderDetails(_allCharacters.Count == 0
+                        ? "当前项目还没有角色，先去角色管理中创建角色"
+                        : "当前筛选条件下没有可显示的角色或关系");
+                }
             }
             catch (Exception ex)
             {
@@ -194,8 +205,11 @@ namespace NovelManagement.WPF.Views
                 _allCharacters = new List<CharacterNodeViewModel>();
                 _allRelationships = new List<RelationshipViewModel>();
                 _filteredCharacters = new List<CharacterNodeViewModel>();
+                ResetSelectionState();
+                PopulateFilterOptions();
                 UpdateCharacterList();
                 DrawNetworkGraph();
+                ShowPlaceholderDetails("加载失败，请检查项目数据或稍后重试");
 
                 MessageBox.Show($"加载角色数据失败：{ex.Message}", "警告",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -368,268 +382,6 @@ namespace NovelManagement.WPF.Views
                 "同门关系" => new SolidColorBrush(Colors.LightGreen),
                 _ => new SolidColorBrush(Colors.Gray)
             };
-        }
-
-        /// <summary>
-        /// 加载模拟数据
-        /// </summary>
-        private void LoadMockData()
-        {
-            // 模拟角色数据 - 与角色管理界面保持一致
-            _allCharacters = new List<CharacterNodeViewModel>
-            {
-                new CharacterNodeViewModel
-                {
-                    Id = 1,
-                    Name = "林轩",
-                    Type = "主角",
-                    Faction = "玄天宗",
-                    InitialLetter = "林",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Red),
-                    ConnectionCount = 7,
-                    RelationshipCount = 7,
-                    X = 400,
-                    Y = 300
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 2,
-                    Name = "苏梦瑶",
-                    Type = "女主角",
-                    Faction = "天音阁",
-                    InitialLetter = "苏",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Pink),
-                    ConnectionCount = 4,
-                    RelationshipCount = 4,
-                    X = 300,
-                    Y = 200
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 3,
-                    Name = "玄天老祖",
-                    Type = "主配角",
-                    Faction = "玄天宗",
-                    InitialLetter = "玄",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Gold),
-                    ConnectionCount = 3,
-                    RelationshipCount = 3,
-                    X = 500,
-                    Y = 200
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 4,
-                    Name = "血魔尊者",
-                    Type = "反派",
-                    Faction = "血魔宗",
-                    InitialLetter = "血",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.DarkRed),
-                    ConnectionCount = 3,
-                    RelationshipCount = 3,
-                    X = 600,
-                    Y = 300
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 5,
-                    Name = "王铁柱",
-                    Type = "配角",
-                    Faction = "玄天宗",
-                    InitialLetter = "王",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Green),
-                    ConnectionCount = 2,
-                    RelationshipCount = 2,
-                    X = 350,
-                    Y = 400
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 6,
-                    Name = "剑痴",
-                    Type = "配角",
-                    Faction = "散修",
-                    InitialLetter = "剑",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Silver),
-                    ConnectionCount = 2,
-                    RelationshipCount = 2,
-                    X = 450,
-                    Y = 400
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 7,
-                    Name = "诸葛明",
-                    Type = "配角",
-                    Faction = "天机阁",
-                    InitialLetter = "诸",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.Blue),
-                    ConnectionCount = 3,
-                    RelationshipCount = 3,
-                    X = 250,
-                    Y = 350
-                },
-                new CharacterNodeViewModel
-                {
-                    Id = 8,
-                    Name = "白狐仙子",
-                    Type = "配角",
-                    Faction = "妖族",
-                    InitialLetter = "白",
-                    ConnectionStrengthColor = new SolidColorBrush(Colors.White),
-                    ConnectionCount = 2,
-                    RelationshipCount = 2,
-                    X = 550,
-                    Y = 400
-                }
-            };
-
-            // 模拟关系数据 - 基于预写的八个角色
-            _allRelationships = new List<RelationshipViewModel>
-            {
-                // 林轩与苏梦瑶的爱情关系
-                new RelationshipViewModel
-                {
-                    Id = 1,
-                    FromCharacterId = 1,
-                    ToCharacterId = 2,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "苏梦瑶",
-                    RelationshipType = "爱情关系",
-                    Strength = 90,
-                    Description = "相遇后逐渐产生情愫，两情相悦",
-                    Status = "稳定",
-                    Color = new SolidColorBrush(Colors.Red)
-                },
-                // 林轩与玄天老祖的师徒关系
-                new RelationshipViewModel
-                {
-                    Id = 2,
-                    FromCharacterId = 1,
-                    ToCharacterId = 3,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "玄天老祖",
-                    RelationshipType = "师徒关系",
-                    Strength = 95,
-                    Description = "师父收徒，传授修仙之道",
-                    Status = "稳定",
-                    Color = new SolidColorBrush(Colors.Gold)
-                },
-                // 林轩与血魔尊者的敌对关系
-                new RelationshipViewModel
-                {
-                    Id = 3,
-                    FromCharacterId = 1,
-                    ToCharacterId = 4,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "血魔尊者",
-                    RelationshipType = "敌对关系",
-                    Strength = 85,
-                    Description = "正邪不两立，宿命之敌",
-                    Status = "紧张",
-                    Color = new SolidColorBrush(Colors.DarkRed)
-                },
-                // 林轩与王铁柱的兄弟关系
-                new RelationshipViewModel
-                {
-                    Id = 4,
-                    FromCharacterId = 1,
-                    ToCharacterId = 5,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "王铁柱",
-                    RelationshipType = "兄弟关系",
-                    Strength = 80,
-                    Description = "师兄弟情深，可以托付后背",
-                    Status = "稳定",
-                    Color = new SolidColorBrush(Colors.Green)
-                },
-                // 林轩与剑痴的师友关系
-                new RelationshipViewModel
-                {
-                    Id = 5,
-                    FromCharacterId = 1,
-                    ToCharacterId = 6,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "剑痴",
-                    RelationshipType = "师友关系",
-                    Strength = 70,
-                    Description = "剑道指导，亦师亦友",
-                    Status = "友好",
-                    Color = new SolidColorBrush(Colors.Silver)
-                },
-                // 林轩与诸葛明的朋友关系
-                new RelationshipViewModel
-                {
-                    Id = 6,
-                    FromCharacterId = 1,
-                    ToCharacterId = 7,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "诸葛明",
-                    RelationshipType = "朋友关系",
-                    Strength = 75,
-                    Description = "智者相助，提供策略建议",
-                    Status = "友好",
-                    Color = new SolidColorBrush(Colors.Blue)
-                },
-                // 林轩与白狐仙子的恩人关系
-                new RelationshipViewModel
-                {
-                    Id = 7,
-                    FromCharacterId = 1,
-                    ToCharacterId = 8,
-                    FromCharacterName = "林轩",
-                    ToCharacterName = "白狐仙子",
-                    RelationshipType = "恩人关系",
-                    Strength = 65,
-                    Description = "救命之恩，心存感激",
-                    Status = "友好",
-                    Color = new SolidColorBrush(Colors.White)
-                },
-                // 玄天老祖与血魔尊者的宿敌关系
-                new RelationshipViewModel
-                {
-                    Id = 8,
-                    FromCharacterId = 3,
-                    ToCharacterId = 4,
-                    FromCharacterName = "玄天老祖",
-                    ToCharacterName = "血魔尊者",
-                    RelationshipType = "宿敌关系",
-                    Strength = 90,
-                    Description = "正邪对立，有旧怨",
-                    Status = "敌对",
-                    Color = new SolidColorBrush(Colors.Black)
-                },
-                // 苏梦瑶与白狐仙子的朋友关系
-                new RelationshipViewModel
-                {
-                    Id = 9,
-                    FromCharacterId = 2,
-                    ToCharacterId = 8,
-                    FromCharacterName = "苏梦瑶",
-                    ToCharacterName = "白狐仙子",
-                    RelationshipType = "朋友关系",
-                    Strength = 60,
-                    Description = "同为女性，惺惺相惜",
-                    Status = "友好",
-                    Color = new SolidColorBrush(Colors.LightPink)
-                },
-                // 王铁柱与剑痴的同门关系
-                new RelationshipViewModel
-                {
-                    Id = 10,
-                    FromCharacterId = 5,
-                    ToCharacterId = 6,
-                    FromCharacterName = "王铁柱",
-                    ToCharacterName = "剑痴",
-                    RelationshipType = "同门关系",
-                    Strength = 55,
-                    Description = "修炼路上的同道中人",
-                    Status = "友好",
-                    Color = new SolidColorBrush(Colors.LightGreen)
-                }
-            };
-
-            _filteredCharacters = new List<CharacterNodeViewModel>(_allCharacters);
         }
 
         #endregion
@@ -1087,20 +839,41 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ApplyFilters()
         {
-            if (!IsLoaded || _allCharacters == null)
+            if (_allCharacters == null)
                 return;
 
-            var searchText = SearchTextBox?.Text?.ToLower() ?? "";
-            var selectedType = ((ComboBoxItem)RelationshipTypeFilter?.SelectedItem)?.Content?.ToString() ?? "全部关系";
-            var selectedFaction = ((ComboBoxItem)FactionFilter?.SelectedItem)?.Content?.ToString() ?? "全部势力";
+            var searchText = SearchTextBox?.Text?.Trim().ToLowerInvariant() ?? string.Empty;
+            var selectedType = GetSelectedComboBoxContent(RelationshipTypeFilter, "全部关系");
+            var selectedFaction = GetSelectedComboBoxContent(FactionFilter, "全部势力");
 
-            _filteredCharacters = _allCharacters.Where(c =>
-                (string.IsNullOrEmpty(searchText) || c.Name.ToLower().Contains(searchText)) &&
-                (selectedFaction == "全部势力" || c.Faction == selectedFaction)
-            ).ToList();
+            var factionFilteredCharacters = _allCharacters.Where(character =>
+                (string.IsNullOrWhiteSpace(searchText) || character.Name.ToLowerInvariant().Contains(searchText)) &&
+                (selectedFaction == "全部势力" || character.Faction == selectedFaction))
+                .ToList();
+
+            var filteredRelationships = _allRelationships
+                .Where(relationship => selectedType == "全部关系" || relationship.RelationshipType == selectedType)
+                .Where(relationship =>
+                    factionFilteredCharacters.Any(character => character.Id == relationship.FromCharacterId) &&
+                    factionFilteredCharacters.Any(character => character.Id == relationship.ToCharacterId))
+                .ToList();
+
+            if (selectedType == "全部关系")
+            {
+                _filteredCharacters = factionFilteredCharacters;
+            }
+            else
+            {
+                var relatedIds = filteredRelationships
+                    .SelectMany(relationship => new[] { relationship.FromCharacterId, relationship.ToCharacterId })
+                    .ToHashSet();
+                _filteredCharacters = factionFilteredCharacters
+                    .Where(character => relatedIds.Contains(character.Id))
+                    .ToList();
+            }
 
             UpdateCharacterList();
-            DrawNetworkGraph();
+            DrawNetworkGraph(filteredRelationships);
         }
 
         /// <summary>
@@ -1228,8 +1001,14 @@ namespace NovelManagement.WPF.Views
                 _selectedCharacter = null;
                 _selectedRelationship = null;
 
-                // 显示所有角色和关系
-                FilterRelationshipsByCharacter(null);
+                if (SearchTextBox != null)
+                {
+                    SearchTextBox.Text = string.Empty;
+                }
+
+                ResetComboBoxSelection(RelationshipTypeFilter, "全部关系");
+                ResetComboBoxSelection(FactionFilter, "全部势力");
+                ApplyFilters();
 
                 _logger?.LogInformation("已显示全部 {CharacterCount} 个角色和 {RelationshipCount} 个关系",
                     _allCharacters.Count, _allRelationships.Count);
@@ -1274,6 +1053,12 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
+                if (_allCharacters.Count < 2)
+                {
+                    MessageBox.Show("至少需要两个角色才能进行网络分析。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
                 var analysisDialog = new NetworkAnalysisDialog(_allCharacters, _allRelationships);
                 analysisDialog.Owner = Window.GetWindow(this);
                 analysisDialog.ShowDialog();
@@ -1621,10 +1406,55 @@ namespace NovelManagement.WPF.Views
             };
         }
 
+        private void ResetSelectionState()
+        {
+            _selectedCharacter = null;
+            _selectedRelationship = null;
+            EditRelationshipButton.IsEnabled = false;
+            DeleteRelationshipButton.IsEnabled = false;
+            ViewCharacterButton.IsEnabled = false;
+        }
+
+        private void ShowPlaceholderDetails(string message)
+        {
+            if (RelationshipDetailPanel == null)
+            {
+                return;
+            }
+
+            RelationshipDetailPanel.Children.Clear();
+            RelationshipDetailPanel.Children.Add(new TextBlock
+            {
+                Text = message,
+                FontStyle = FontStyles.Italic,
+                Foreground = new SolidColorBrush(Colors.Gray),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(12, 50, 12, 0)
+            });
+        }
+
         private void ApplyCanvasSettings()
         {
             NetworkCanvas.Width = Math.Max(600, _canvasWidth);
             NetworkCanvas.Height = Math.Max(400, _canvasHeight);
+        }
+
+        private void ApplyCurrentLayout()
+        {
+            if (_allCharacters.Count == 0)
+            {
+                return;
+            }
+
+            if (LayoutModeToggle?.IsChecked == true)
+            {
+                ApplyForceDirectedLayout();
+                return;
+            }
+
+            ApplyCircularLayout();
         }
 
         private async Task<List<DetectedRelationshipCandidate>> DetectRelationshipCandidatesAsync()
@@ -1820,6 +1650,73 @@ namespace NovelManagement.WPF.Views
         private static string BuildRelationshipKey(DetectedRelationshipCandidate relationship)
         {
             return $"{relationship.SourceCharacterId:N}|{relationship.TargetCharacterId:N}|{relationship.RelationshipType}";
+        }
+
+        private void PopulateFilterOptions()
+        {
+            PopulateComboBoxItems(
+                RelationshipTypeFilter,
+                "全部关系",
+                _allRelationships
+                    .Select(relationship => relationship.RelationshipType)
+                    .Where(type => !string.IsNullOrWhiteSpace(type))
+                    .Distinct()
+                    .OrderBy(type => type));
+
+            PopulateComboBoxItems(
+                FactionFilter,
+                "全部势力",
+                _allCharacters
+                    .Select(character => character.Faction)
+                    .Where(faction => !string.IsNullOrWhiteSpace(faction) && faction != "无势力")
+                    .Distinct()
+                    .OrderBy(faction => faction));
+        }
+
+        private static void PopulateComboBoxItems(ComboBox? comboBox, string defaultItem, IEnumerable<string> values)
+        {
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            var previousSelection = GetSelectedComboBoxContent(comboBox, defaultItem);
+            comboBox.Items.Clear();
+            comboBox.Items.Add(new ComboBoxItem { Content = defaultItem });
+
+            foreach (var value in values)
+            {
+                comboBox.Items.Add(new ComboBoxItem { Content = value });
+            }
+
+            ResetComboBoxSelection(comboBox, previousSelection);
+        }
+
+        private static string GetSelectedComboBoxContent(ComboBox? comboBox, string fallback)
+        {
+            return (comboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? fallback;
+        }
+
+        private static void ResetComboBoxSelection(ComboBox? comboBox, string preferredValue)
+        {
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Content?.ToString(), preferredValue, StringComparison.Ordinal))
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+
+            if (comboBox.Items.Count > 0)
+            {
+                comboBox.SelectedIndex = 0;
+            }
         }
 
         #endregion
@@ -2707,6 +2604,10 @@ namespace NovelManagement.WPF.Views
             Width = 600;
             Height = 400;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            var possibleRelationshipCount = characters.Count * (characters.Count - 1) / 2;
+            var networkDensity = possibleRelationshipCount > 0
+                ? (double)relationships.Count / possibleRelationshipCount
+                : 0;
 
             var content = new StackPanel { Margin = new Thickness(20) };
 
@@ -2732,7 +2633,7 @@ namespace NovelManagement.WPF.Views
 
             content.Children.Add(new TextBlock
             {
-                Text = $"网络密度：{(double)relationships.Count / (characters.Count * (characters.Count - 1) / 2):P2}",
+                Text = $"网络密度：{networkDensity:P2}",
                 Margin = new Thickness(0, 0, 0, 8)
             });
 

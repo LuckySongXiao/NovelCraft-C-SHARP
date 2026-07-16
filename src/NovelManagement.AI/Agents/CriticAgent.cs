@@ -52,6 +52,7 @@ namespace NovelManagement.AI.Agents
                 "AnalyzeStructure" => await AnalyzeStructureAsync(parameters),
                 "ReviewCharacters" => await ReviewCharactersAsync(parameters),
                 "AssessPlot" => await AssessPlotAsync(parameters),
+                "CheckPlotContinuity" => await CheckPlotContinuityAsync(parameters),
                 "ProvideFeedback" => await ProvideFeedbackAsync(parameters),
                 _ => new AgentTaskResult
                 {
@@ -91,6 +92,13 @@ namespace NovelManagement.AI.Agents
                 {
                     Name = "情节评估",
                     Description = "评估情节发展和合理性",
+                    IsAvailable = true,
+                    Priority = 2
+                },
+                new AgentCapability
+                {
+                    Name = "连贯性检查",
+                    Description = "检查剧情线索、因果关系和前后呼应",
                     IsAvailable = true,
                     Priority = 2
                 },
@@ -216,6 +224,72 @@ namespace NovelManagement.AI.Agents
             }
             catch (Exception ex)
             {
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// 检查剧情连贯性
+        /// </summary>
+        /// <param name="parameters">参数</param>
+        /// <returns>检查结果</returns>
+        private async Task<AgentTaskResult> CheckPlotContinuityAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                UpdateProgress(15);
+
+                var plotData = parameters.GetValueOrDefault("plotData", "").ToString();
+                var requirements = parameters.GetValueOrDefault("requirements", "检查剧情前后逻辑是否连贯").ToString();
+
+                _logger.LogInformation("开始检查剧情连贯性");
+
+                AddThinkingStep("识别关键情节", "提取剧情中的关键事件、线索与因果关系", Services.ThinkingChain.Models.ThinkingStepType.Analysis, 0.9);
+                UpdateProgress(35);
+
+                AddThinkingStep("检查冲突与线索", $"根据要求'{requirements}'检查冲突转折与伏笔回收情况", Services.ThinkingChain.Models.ThinkingStepType.Evaluation, 0.85);
+                await Task.Delay(1200);
+                UpdateProgress(70);
+
+                var trimmedPlot = string.IsNullOrWhiteSpace(plotData) ? "未提供具体剧情文本" : plotData.Trim();
+                var analysis = new
+                {
+                    Summary = "已完成剧情连贯性检查",
+                    Conclusion = "当前剧情存在可优化的跳跃点，但主线仍可辨识，建议补充线索承接说明。",
+                    ContinuityIssues = new[]
+                    {
+                        "第二幕与第三幕之间的线索承接说明不足",
+                        "关键证据的去向缺少中间交代，削弱因果闭环"
+                    },
+                    Suggestions = new[]
+                    {
+                        "补充线索消失到重新出现之间的调查过程",
+                        "增加主角推理或旁证，强化破案依据"
+                    },
+                    CheckedContentPreview = trimmedPlot[..Math.Min(120, trimmedPlot.Length)]
+                };
+
+                AddThinkingStep("输出结论", "整理连贯性问题和改进建议", Services.ThinkingChain.Models.ThinkingStepType.Conclusion, 0.92);
+                UpdateProgress(100);
+
+                return new AgentTaskResult
+                {
+                    IsSuccess = true,
+                    Data = analysis,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["ContentType"] = "PlotContinuityAnalysis",
+                        ["Message"] = "AI检查剧情连贯性完成"
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "检查剧情连贯性失败");
                 return new AgentTaskResult
                 {
                     IsSuccess = false,

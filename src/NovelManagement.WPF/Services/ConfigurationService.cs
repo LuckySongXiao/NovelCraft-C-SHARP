@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Services.DeepSeek.Models;
 
@@ -16,22 +17,26 @@ namespace NovelManagement.WPF.Services
         private readonly string _configDirectory;
         private readonly string _deepSeekConfigPath;
         private readonly string _uiConfigPath;
+        private readonly string _appStatePath;
 
         /// <summary>
         /// 构造函数
         /// </summary>
+        /// <param name="configuration">应用配置</param>
         /// <param name="logger">日志记录器</param>
-        public ConfigurationService(ILogger<ConfigurationService> logger)
+        public ConfigurationService(IConfiguration? configuration, ILogger<ConfigurationService> logger)
         {
             _logger = logger;
             
             // 配置文件目录
-            _configDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "NovelManagement");
+            _configDirectory = configuration?["Paths:ConfigDirectory"] ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NovelManagement",
+                "config");
             
             _deepSeekConfigPath = Path.Combine(_configDirectory, "deepseek-config.json");
             _uiConfigPath = Path.Combine(_configDirectory, "ui-config.json");
+            _appStatePath = Path.Combine(_configDirectory, "app-state.json");
 
             // 确保配置目录存在
             EnsureConfigDirectoryExists();
@@ -196,6 +201,9 @@ namespace NovelManagement.WPF.Services
                 if (File.Exists(_uiConfigPath))
                     File.Delete(_uiConfigPath);
 
+                if (File.Exists(_appStatePath))
+                    File.Delete(_appStatePath);
+
                 _logger.LogInformation("所有配置文件已清除");
                 return true;
             }
@@ -245,8 +253,63 @@ namespace NovelManagement.WPF.Services
             {
                 ConfigurationType.DeepSeek => File.Exists(_deepSeekConfigPath),
                 ConfigurationType.UI => File.Exists(_uiConfigPath),
+                ConfigurationType.AppState => File.Exists(_appStatePath),
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// 加载应用状态。
+        /// </summary>
+        public async Task<AppRuntimeState> LoadAppStateAsync()
+        {
+            try
+            {
+                if (!File.Exists(_appStatePath))
+                {
+                    return new AppRuntimeState();
+                }
+
+                var json = await File.ReadAllTextAsync(_appStatePath);
+                var state = JsonSerializer.Deserialize<AppRuntimeState>(json);
+                return state ?? new AppRuntimeState();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "加载应用状态失败，使用默认状态");
+                return new AppRuntimeState();
+            }
+        }
+
+        /// <summary>
+        /// 保存应用状态。
+        /// </summary>
+        public async Task<bool> SaveAppStateAsync(AppRuntimeState state)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(state, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(_appStatePath, json);
+                _logger.LogInformation("应用状态已保存");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "保存应用状态失败");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 获取应用状态文件路径。
+        /// </summary>
+        public string GetAppStatePath()
+        {
+            return _appStatePath;
         }
     }
 
@@ -324,7 +387,38 @@ namespace NovelManagement.WPF.Services
         /// <summary>
         /// UI配置
         /// </summary>
-        UI
+        UI,
+
+        /// <summary>
+        /// 应用状态
+        /// </summary>
+        AppState
+    }
+
+    /// <summary>
+    /// 应用运行状态。
+    /// </summary>
+    public class AppRuntimeState
+    {
+        /// <summary>
+        /// 是否已完成首次启动引导。
+        /// </summary>
+        public bool FirstRunCompleted { get; set; }
+
+        /// <summary>
+        /// 首次引导完成时间。
+        /// </summary>
+        public DateTime? FirstRunCompletedAt { get; set; }
+
+        /// <summary>
+        /// 最近一次导出的诊断包路径。
+        /// </summary>
+        public string? LastDiagnosticBundlePath { get; set; }
+
+        /// <summary>
+        /// 最近一次导出诊断包的时间。
+        /// </summary>
+        public DateTime? LastDiagnosticBundleAt { get; set; }
     }
 
 

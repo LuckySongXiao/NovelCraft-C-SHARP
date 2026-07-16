@@ -1,0 +1,13 @@
+        {
+            var explicitName = AiAutoFillFormatter.ExtractSection(
+                content,
+                "姓名", "名字", "角色�?, "名称");
+            if (!string.IsNullOrWhiteSpace(explicitName))
+            {
+                return explicitName.Trim('�?, '-', ' ', ':', '�?, '�?, '�?);
+            }
+
+            var firstMeaningfulLine = AiAutoFillFormatter.ExtractFirstMeaningfulLine(content);
+
+            return string.IsNullOrWhiteSpace(firstMeaningfulLine)
+                ? "AI生成角色"

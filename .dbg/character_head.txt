@@ -1,0 +1,26 @@
+21:    /// CharacterManagementView.xaml 的交互逻辑
+22:    /// </summary>
+23:    public partial class CharacterManagementView : UserControl, INavigationRefreshableView
+24:    {
+25:        private List<Character> _allCharacters = new();
+26:        private List<Character> _filteredCharacters = new();
+27:        private Character? _selectedCharacter;
+28:
+29:        // 服务
+30:        private CharacterService? _characterService;
+31:        private AIAssistantService? _aiAssistantService;
+32:        private ProjectContextService? _projectContextService;
+33:        private CurrentProjectGuard? _currentProjectGuard;
+34:        private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
+35:        private ILogger<CharacterManagementView>? _logger;
+36:        private bool _isChapterSyncSubscribed;
+37:        private string? _pendingHighlightedCharacterName;
+38:
+39:        /// <summary>
+40:        /// 选择角色命令
+41:        /// </summary>
+42:        public ICommand SelectCharacterCommand { get; private set; }
+43:
+44:        /// <summary>
+45:        /// 角色更新事件
+46:        /// </summary>

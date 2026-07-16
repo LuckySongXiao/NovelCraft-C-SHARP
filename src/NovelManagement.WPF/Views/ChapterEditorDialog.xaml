@@ -258,18 +258,79 @@
                         </ComboBox>
 
                         <!-- 相关角色 -->
-                        <TextBox x:Name="CharactersTextBox"
-                               materialDesign:HintAssist.Hint="相关角色"
-                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                               Margin="0,0,0,12"
-                               MaxLength="300"/>
+                        <StackPanel Margin="0,0,0,12">
+                            <TextBox x:Name="CharactersTextBox"
+                                   materialDesign:HintAssist.Hint="相关角色"
+                                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                   MaxLength="300"
+                                   TextChanged="CharactersTextBox_TextChanged"
+                                   GotKeyboardFocus="CharactersTextBox_GotKeyboardFocus"
+                                   PreviewKeyDown="CharactersTextBox_PreviewKeyDown"/>
+                            <Border x:Name="CharacterSuggestionsBorder"
+                                  Margin="0,4,0,0"
+                                  Padding="4"
+                                  Background="{DynamicResource MaterialDesignPaper}"
+                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                  BorderThickness="1"
+                                  CornerRadius="4"
+                                  Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="角色建议"
+                                             FontSize="12"
+                                             Margin="4,0,4,4"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <ListBox x:Name="CharacterSuggestionsListBox"
+                                             MaxHeight="120"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             SelectionChanged="CharacterSuggestionsListBox_SelectionChanged"
+                                             MouseDoubleClick="CharacterSuggestionsListBox_MouseDoubleClick"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
 
                         <!-- 标签 -->
-                        <TextBox x:Name="TagsTextBox"
-                               materialDesign:HintAssist.Hint="标签"
-                               Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                               Margin="0,0,0,12"
-                               MaxLength="200"/>
+                        <StackPanel Margin="0,0,0,12">
+                            <TextBox x:Name="TagsTextBox"
+                                   materialDesign:HintAssist.Hint="标签"
+                                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                   MaxLength="200"
+                                   TextChanged="TagsTextBox_TextChanged"
+                                   GotKeyboardFocus="TagsTextBox_GotKeyboardFocus"
+                                   PreviewKeyDown="TagsTextBox_PreviewKeyDown"/>
+                            <Border x:Name="TagSuggestionsBorder"
+                                  Margin="0,4,0,0"
+                                  Padding="4"
+                                  Background="{DynamicResource MaterialDesignPaper}"
+                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                  BorderThickness="1"
+                                  CornerRadius="4"
+                                  Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="标签建议"
+                                             FontSize="12"
+                                             Margin="4,0,4,4"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                    <ListBox x:Name="TagSuggestionsListBox"
+                                             MaxHeight="120"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             SelectionChanged="TagSuggestionsListBox_SelectionChanged"
+                                             MouseDoubleClick="TagSuggestionsListBox_MouseDoubleClick"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <Button x:Name="ExtractMetadataButton"
+                                Content="从内容匹配角色和标签"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,0,8"
+                                Click="ExtractMetadataButton_Click"/>
+                        <TextBlock Text="根据章节标题、摘要和正文，匹配当前项目中已有角色与历史标签"
+                                 FontSize="12"
+                                 Margin="0,0,0,12"
+                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                 TextWrapping="Wrap"/>
 
                         <!-- 备注 -->
                         <TextBox x:Name="NotesTextBox"

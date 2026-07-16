@@ -1,3 +1,4 @@
+using System;
 using NovelManagement.AI.Interfaces;
 
 namespace NovelManagement.AI.Services.OpenAICompatible.Models
@@ -39,7 +40,7 @@ namespace NovelManagement.AI.Services.OpenAICompatible.Models
         /// 智谱免费: glm-4-flash
         /// Ollama: 用户自定义模型名
         /// </remarks>
-        public string DefaultModel { get; set; } = "glm-4-flash";
+        public string DefaultModel { get; set; } = "glm-4.7-flash";
 
         /// <summary>
         /// 请求超时（秒）
@@ -83,8 +84,11 @@ namespace NovelManagement.AI.Services.OpenAICompatible.Models
             var errors = new List<string>();
             if (string.IsNullOrWhiteSpace(BaseUrl))
                 errors.Add("API 基础地址不能为空");
-            // Ollama 不需要 API Key，其他类型需要
-            if (ProviderKind != "Ollama" && string.IsNullOrWhiteSpace(ApiKey))
+            // 本地 OpenAI 兼容服务可不配置 API Key，其他类型需要
+            if (!string.Equals(ProviderKind, "Ollama", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(ProviderKind, "LlamaCpp", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(ProviderKind, "RWKV", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(ApiKey))
                 errors.Add("API Key 不能为空");
             return errors;
         }
@@ -92,7 +96,7 @@ namespace NovelManagement.AI.Services.OpenAICompatible.Models
         /// <summary>
         /// 创建智谱 AI 配置
         /// </summary>
-        public static OpenAICompatibleConfiguration CreateZhipuAIConfig(string apiKey, string model = "glm-4-flash")
+        public static OpenAICompatibleConfiguration CreateZhipuAIConfig(string apiKey, string model = "glm-4.7-flash")
         {
             return new OpenAICompatibleConfiguration
             {
@@ -120,6 +124,23 @@ namespace NovelManagement.AI.Services.OpenAICompatible.Models
                 DefaultModel = model,
                 DefaultTemperature = 0.7,
                 DefaultMaxTokens = 4000
+            };
+        }
+
+        /// <summary>
+        /// 创建小米米模配置
+        /// </summary>
+        public static OpenAICompatibleConfiguration CreateXiaoMiMiMoConfig(string apiKey, string model = "mimo-v2.5-pro")
+        {
+            return new OpenAICompatibleConfiguration
+            {
+                ProviderName = "XiaoMiMiMo",
+                ProviderKind = "XiaoMiMiMo",
+                BaseUrl = "https://api.xiaomimimo.com/v1",
+                ApiKey = apiKey,
+                DefaultModel = model,
+                DefaultTemperature = 1.0,
+                DefaultMaxTokens = 8192
             };
         }
     }

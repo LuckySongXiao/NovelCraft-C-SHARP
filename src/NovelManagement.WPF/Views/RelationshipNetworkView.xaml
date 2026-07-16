@@ -73,13 +73,6 @@
                             SelectedIndex="0"
                             SelectionChanged="RelationshipTypeFilter_SelectionChanged">
                         <ComboBoxItem Content="全部关系"/>
-                        <ComboBoxItem Content="亲情关系"/>
-                        <ComboBoxItem Content="爱情关系"/>
-                        <ComboBoxItem Content="友情关系"/>
-                        <ComboBoxItem Content="师徒关系"/>
-                        <ComboBoxItem Content="敌对关系"/>
-                        <ComboBoxItem Content="合作关系"/>
-                        <ComboBoxItem Content="从属关系"/>
                     </ComboBox>
 
                     <!-- 势力筛选 -->
@@ -91,10 +84,6 @@
                             SelectedIndex="0"
                             SelectionChanged="FactionFilter_SelectionChanged">
                         <ComboBoxItem Content="全部势力"/>
-                        <ComboBoxItem Content="玄天宗"/>
-                        <ComboBoxItem Content="魔道联盟"/>
-                        <ComboBoxItem Content="散修"/>
-                        <ComboBoxItem Content="皇室"/>
                     </ComboBox>
 
                     <!-- 搜索框 -->
@@ -103,11 +92,7 @@
                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
                            Width="200"
                            Margin="0,0,12,0"
-                           TextChanged="SearchTextBox_TextChanged">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
+                           TextChanged="SearchTextBox_TextChanged"/>
                 </StackPanel>
 
                 <!-- 右侧：操作按钮 -->

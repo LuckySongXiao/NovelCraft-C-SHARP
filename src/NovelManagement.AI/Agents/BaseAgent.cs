@@ -613,15 +613,16 @@ namespace NovelManagement.AI.Agents
 
                 string aiResponse;
 
-                // 优先使用ModelManager（OLLAMA）
-                if (_modelManager != null)
+                // 优先使用已解析出的可用模型提供者
+                var defaultProvider = _modelManager?.GetDefaultProvider();
+                if (_modelManager != null && defaultProvider != null && defaultProvider.IsAvailable)
                 {
-                    _logger.LogInformation($"使用OLLAMA模型执行任务: {taskType}");
+                    _logger.LogInformation("使用模型提供者 {ProviderName} 执行任务: {TaskType}", defaultProvider.ProviderName, taskType);
 
                     // 构建聊天请求
                     var chatRequest = new NovelManagement.AI.Interfaces.ChatRequest
                     {
-                        Model = "qwen2.5:7b", // 默认模型，可以从配置中获取
+                        Model = string.Empty,
                         SystemPrompt = systemPrompt,
                         Messages = new List<NovelManagement.AI.Interfaces.ChatMessage>
                         {
@@ -636,22 +637,22 @@ namespace NovelManagement.AI.Agents
                         MaxTokens = 4000
                     };
 
-                    // 使用ModelManager调用OLLAMA模型
-                    var chatResponse = await _modelManager.ChatAsync(chatRequest);
+                    // 使用解析后的默认提供者调用聊天接口
+                    var chatResponse = await _modelManager.ChatAsync(defaultProvider.ProviderName, chatRequest);
 
                     if (!chatResponse.IsSuccess)
                     {
-                        throw new Exception($"OLLAMA模型调用失败: {chatResponse.ErrorMessage}");
+                        throw new Exception($"{defaultProvider.ProviderName} 模型调用失败: {chatResponse.ErrorMessage}");
                     }
 
                     aiResponse = chatResponse.Content;
 
                     if (string.IsNullOrWhiteSpace(aiResponse))
                     {
-                        throw new Exception("OLLAMA模型返回空响应");
+                        throw new Exception($"{defaultProvider.ProviderName} 模型返回空响应");
                     }
                 }
-                else if (_deepSeekApiService != null)
+                else if (_deepSeekApiService != null && _deepSeekApiService.GetConfiguration().IsValid())
                 {
                     _logger.LogInformation($"使用DeepSeek API执行任务: {taskType}");
 

@@ -6,9 +6,10 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         Title="删除角色确认"
-        Height="400" Width="500"
+        Height="560" Width="760"
+        MinHeight="520" MinWidth="700"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         Style="{StaticResource MaterialDesignWindow}">
 
     <Grid Margin="24">
@@ -123,7 +124,7 @@
                              FontWeight="Medium" 
                              Margin="0,0,0,8"/>
                     <TextBox x:Name="ConfirmNameTextBox"
-                           materialDesign:HintAssist.Hint="输入角色姓名确认删除"
+                           materialDesign:HintAssist.Hint="可直接确认删除，或输入角色姓名再次确认"
                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
                            TextChanged="ConfirmNameTextBox_TextChanged"/>
                 </StackPanel>
@@ -145,8 +146,7 @@
                   Content="确认删除"
                   Background="{DynamicResource MaterialDesignValidationErrorBrush}"
                   BorderBrush="{DynamicResource MaterialDesignValidationErrorBrush}"
-                  Click="Delete_Click"
-                  IsEnabled="False"/>
+                  Click="Delete_Click"/>
         </StackPanel>
     </Grid>
 </Window>

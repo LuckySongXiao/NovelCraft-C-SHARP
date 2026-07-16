@@ -6,6 +6,7 @@ using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
+using NovelManagement.AI.Utilities;
 using ThinkingChainModel = NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain;
 
 namespace NovelManagement.AI.Agents
@@ -1147,39 +1148,7 @@ namespace NovelManagement.AI.Agents
         /// <returns>提取的润色文本</returns>
         private string ExtractPolishedTextFromAIResponse(string aiResponse)
         {
-            if (string.IsNullOrWhiteSpace(aiResponse))
-                return "";
-
-            // 移除可能的JSON格式包装
-            var content = aiResponse.Trim();
-
-            // 如果响应是JSON格式，尝试提取content字段
-            if (content.StartsWith("{") && content.EndsWith("}"))
-            {
-                try
-                {
-                    var jsonDoc = System.Text.Json.JsonDocument.Parse(content);
-                    if (jsonDoc.RootElement.TryGetProperty("content", out var contentElement))
-                    {
-                        content = contentElement.GetString() ?? content;
-                    }
-                    else if (jsonDoc.RootElement.TryGetProperty("text", out var textElement))
-                    {
-                        content = textElement.GetString() ?? content;
-                    }
-                }
-                catch
-                {
-                    // 如果JSON解析失败，使用原始内容
-                }
-            }
-
-            // 清理内容格式
-            content = content.Replace("\\n", "\n")
-                           .Replace("\\t", "\t")
-                           .Replace("\\\"", "\"");
-
-            return content.Trim();
+            return AIOutputSanitizer.ExtractCleanOutput(aiResponse, "content", "text", "polished_text");
         }
 
         #endregion

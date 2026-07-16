@@ -39,6 +39,7 @@
                                 Margin="0,0,8,0">
                             <ComboBoxItem Content="DeepSeek" IsSelected="True"/>
                             <ComboBoxItem Content="Ollama"/>
+                            <ComboBoxItem Content="RWKV"/>
                             <ComboBoxItem Content="GPT-4"/>
                         </ComboBox>
                         <!-- 模板管理 -->
@@ -238,6 +239,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -261,21 +263,44 @@
                         </StackPanel>
                     </DockPanel>
 
-                    <!-- 生成选项卡 -->
-                    <TabControl Grid.Row="1" Margin="0,0,0,8" Style="{StaticResource MaterialDesignTabControl}">
-                        <TabItem Header="内容">
-                            <Grid Height="0"/> <!-- 占位符 -->
-                        </TabItem>
-                        <TabItem Header="大纲">
-                            <Grid Height="0"/> <!-- 占位符 -->
-                        </TabItem>
-                        <TabItem Header="分析">
-                            <Grid Height="0"/> <!-- 占位符 -->
-                        </TabItem>
-                    </TabControl>
+                    <Expander x:Name="RwkvDebugExpander"
+                              Grid.Row="1"
+                              Header="RWKV调试信息"
+                              Margin="0,0,0,8"
+                              IsExpanded="False">
+                        <Border Padding="12"
+                                BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="引擎：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock x:Name="RwkvEngineInfoTextBlock" Grid.Row="0" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="会话：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock x:Name="RwkvSessionInfoTextBlock" Grid.Row="1" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="批量候选：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock x:Name="RwkvBigBatchInfoTextBlock" Grid.Row="2" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="最后选择：" FontWeight="Medium" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="RwkvBigBatchSelectionTextBlock" Grid.Row="3" Grid.Column="1" Text="-" TextWrapping="Wrap"/>
+                            </Grid>
+                        </Border>
+                    </Expander>
 
                     <!-- 生成内容 -->
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="3">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
@@ -300,7 +325,7 @@
                     </Grid>
 
                     <!-- 操作按钮 -->
-                    <StackPanel Grid.Row="3"
+                    <StackPanel Grid.Row="4"
                               Orientation="Horizontal"
                               HorizontalAlignment="Right"
                               Margin="0,16,0,0">

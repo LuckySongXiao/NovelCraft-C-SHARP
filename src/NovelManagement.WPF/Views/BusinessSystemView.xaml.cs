@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using NovelManagement.WPF.Commands;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -15,48 +17,25 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// 商业体系管理视图
     /// </summary>
-    public partial class BusinessSystemView : UserControl
+    public partial class BusinessSystemView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
-        #region 属性
-
-        /// <summary>
-        /// 商业体系列表
-        /// </summary>
-        public ObservableCollection<BusinessSystemViewModel> BusinessSystems { get; set; }
-
-        /// <summary>
-        /// 商品列表
-        /// </summary>
-        public ObservableCollection<BusinessProductViewModel> BusinessProducts { get; set; }
-
-        /// <summary>
-        /// 服务列表
-        /// </summary>
-        public ObservableCollection<BusinessServiceViewModel> BusinessServices { get; set; }
-
-        /// <summary>
-        /// 当前选中的商业体系
-        /// </summary>
-        public BusinessSystemViewModel SelectedBusiness { get; set; }
-
-        /// <summary>
-        /// 选择商业体系命令
-        /// </summary>
-        public ICommand SelectBusinessCommand { get; private set; }
-
-        /// <summary>
-        /// 日志记录器
-        /// </summary>
         private readonly ILogger<BusinessSystemView>? _logger;
-
-        /// <summary>
-        /// AI助手服务
-        /// </summary>
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly BusinessDataService? _businessDataService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly CurrentProjectGuard? _currentProjectGuard;
+        private Guid _currentProjectId;
 
-        #endregion
+        public ObservableCollection<BusinessSystemViewModel> BusinessSystems { get; } = new();
+        public ObservableCollection<BusinessProductViewModel> BusinessProducts { get; } = new();
+        public ObservableCollection<BusinessServiceViewModel> BusinessServices { get; } = new();
+        public BusinessSystemViewModel? SelectedBusiness { get; set; }
+        public ICommand SelectBusinessCommand { get; }
 
-        #region 构造函数
+        public int TotalCount => BusinessSystems.Count;
+        public int TradeCount => BusinessSystems.Count(system => system.Category == "贸易商行");
+        public int AuctionCount => BusinessSystems.Count(system => system.Category == "拍卖行");
+        public int CraftCount => BusinessSystems.Count(system => system.Category == "炼器坊");
 
         /// <summary>
         /// 初始化商业体系管理视图。
@@ -65,543 +44,426 @@ namespace NovelManagement.WPF.Views
         {
             InitializeComponent();
 
-            // 获取服务
             try
             {
                 var serviceProvider = App.ServiceProvider;
                 _logger = serviceProvider?.GetService<ILogger<BusinessSystemView>>();
                 _aiAssistantService = serviceProvider?.GetService<IAIAssistantService>();
+                _businessDataService = serviceProvider?.GetService<BusinessDataService>();
+                _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
             }
             catch (Exception ex)
             {
-                // 如果获取服务失败，记录错误但不影响界面初始化
                 System.Diagnostics.Debug.WriteLine($"获取服务失败: {ex.Message}");
             }
 
-            InitializeData();
-            InitializeCommands();
-            LoadBusinessSystems();
-        }
-
-        #endregion
-
-        #region 初始化
-
-        /// <summary>
-        /// 初始化数据
-        /// </summary>
-        private void InitializeData()
-        {
-            BusinessSystems = new ObservableCollection<BusinessSystemViewModel>();
-            BusinessProducts = new ObservableCollection<BusinessProductViewModel>();
-            BusinessServices = new ObservableCollection<BusinessServiceViewModel>();
-
-            // 设置数据上下文
-            this.DataContext = this;
-        }
-
-        /// <summary>
-        /// 初始化命令
-        /// </summary>
-        private void InitializeCommands()
-        {
             SelectBusinessCommand = new RelayCommand<BusinessSystemViewModel>(SelectBusinessSystem);
+            DataContext = this;
+            ProductListControl.ItemsSource = BusinessProducts;
+            ServiceListControl.ItemsSource = BusinessServices;
+            _ = LoadBusinessSystemsAsync();
         }
 
-        /// <summary>
-        /// 加载商业体系数据
-        /// </summary>
-        private void LoadBusinessSystems()
+        private async Task LoadBusinessSystemsAsync()
         {
             try
             {
-                // 模拟数据 - 实际应用中应该从服务层获取
-                var businesses = new List<BusinessSystemViewModel>
+                _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (_currentProjectId == Guid.Empty)
                 {
-                    new BusinessSystemViewModel
-                    {
-                        Id = 1,
-                        Name = "万宝商行",
-                        Category = "贸易商行",
-                        Location = "天元城",
-                        Owner = "李掌柜",
-                        Description = "经营各种修炼资源和法器的大型商行，在各大城市都有分店",
-                        ProductCount = 156,
-                        ServiceCount = 8,
-                        CreatedAt = DateTime.Now.AddDays(-30)
-                    },
-                    new BusinessSystemViewModel
-                    {
-                        Id = 2,
-                        Name = "天机拍卖行",
-                        Category = "拍卖行",
-                        Location = "天机城",
-                        Owner = "王拍卖师",
-                        Description = "专门拍卖珍稀宝物和高级功法的拍卖行，每月举办一次大型拍卖会",
-                        ProductCount = 89,
-                        ServiceCount = 5,
-                        CreatedAt = DateTime.Now.AddDays(-25)
-                    },
-                    new BusinessSystemViewModel
-                    {
-                        Id = 3,
-                        Name = "神工炼器坊",
-                        Category = "炼器坊",
-                        Location = "炼器城",
-                        Owner = "张炼器师",
-                        Description = "专业炼制各种法器和灵器的炼器坊，技艺精湛，声名远播",
-                        ProductCount = 67,
-                        ServiceCount = 12,
-                        CreatedAt = DateTime.Now.AddDays(-20)
-                    },
-                    new BusinessSystemViewModel
-                    {
-                        Id = 4,
-                        Name = "仙丹阁",
-                        Category = "丹药铺",
-                        Location = "丹药谷",
-                        Owner = "赵丹师",
-                        Description = "炼制各种丹药的专业店铺，从基础丹药到高级仙丹应有尽有",
-                        ProductCount = 234,
-                        ServiceCount = 6,
-                        CreatedAt = DateTime.Now.AddDays(-15)
-                    }
-                };
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "商业体系管理", out _);
+                    BusinessSystems.Clear();
+                    BusinessProducts.Clear();
+                    BusinessServices.Clear();
+                    BusinessListControl.ItemsSource = BusinessSystems;
+                    UpdateStatistics();
+                    HideEditPanel();
+                    return;
+                }
+
+                var businesses = _businessDataService == null
+                    ? new List<BusinessSystemViewModel>()
+                    : await _businessDataService.LoadBusinessSystemsAsync(_currentProjectId);
 
                 BusinessSystems.Clear();
-                foreach (var business in businesses)
+                foreach (var business in businesses.OrderBy(system => system.Name))
                 {
+                    business.Products ??= new List<BusinessProductViewModel>();
+                    business.Services ??= new List<BusinessServiceViewModel>();
+                    business.ProductCount = business.Products.Count;
+                    business.ServiceCount = business.Services.Count;
                     BusinessSystems.Add(business);
                 }
 
-                // 设置列表数据源
                 BusinessListControl.ItemsSource = BusinessSystems;
-
-                // 更新统计信息
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "加载商业体系数据失败");
                 MessageBox.Show($"加载商业体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 更新统计信息
-        /// </summary>
         private void UpdateStatistics()
         {
-            // 这里应该绑定到ViewModel的属性，暂时使用硬编码值
-            // 实际应用中应该计算真实的统计数据
+            BusinessListControl.Items.Refresh();
+            DataContext = null;
+            DataContext = this;
         }
 
-        #endregion
-
-        #region 搜索和筛选
-
-        /// <summary>
-        /// 搜索文本变化事件
-        /// </summary>
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FilterBusinessSystems();
         }
 
-        /// <summary>
-        /// 类别筛选变化事件
-        /// </summary>
         private void CategoryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             FilterBusinessSystems();
         }
 
-        /// <summary>
-        /// 筛选商业体系
-        /// </summary>
         private void FilterBusinessSystems()
         {
-            var searchText = SearchTextBox?.Text?.ToLower() ?? "";
+            var searchText = SearchTextBox?.Text?.ToLowerInvariant() ?? string.Empty;
             var selectedCategory = (CategoryFilterComboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
-            var filteredBusinesses = BusinessSystems.Where(b =>
-                (string.IsNullOrEmpty(searchText) || 
-                 b.Name.ToLower().Contains(searchText) || 
-                 b.Description.ToLower().Contains(searchText)) &&
-                (selectedCategory == "全部类别" || selectedCategory == null || b.Category == selectedCategory)
-            ).ToList();
+            var filteredBusinesses = BusinessSystems.Where(system =>
+                (string.IsNullOrWhiteSpace(searchText) ||
+                 system.Name.ToLowerInvariant().Contains(searchText) ||
+                 system.Description.ToLowerInvariant().Contains(searchText) ||
+                 system.Location.ToLowerInvariant().Contains(searchText)) &&
+                (selectedCategory == "全部类别" || selectedCategory == null || system.Category == selectedCategory))
+                .ToList();
 
             BusinessListControl.ItemsSource = filteredBusinesses;
         }
 
-        #endregion
-
-        #region 商业体系管理
-
-        /// <summary>
-        /// 添加商业体系
-        /// </summary>
         private void AddBusiness_Click(object sender, RoutedEventArgs e)
         {
-            try
+            SelectedBusiness = new BusinessSystemViewModel
             {
-                // 创建新的商业体系
-                SelectedBusiness = new BusinessSystemViewModel
-                {
-                    Id = 0, // 新建时ID为0
-                    Name = "",
-                    Category = "贸易商行",
-                    Location = "",
-                    Owner = "",
-                    Description = "",
-                    CreatedAt = DateTime.Now
-                };
+                Category = "贸易商行",
+                CreatedAt = DateTime.Now,
+                Products = new List<BusinessProductViewModel>(),
+                Services = new List<BusinessServiceViewModel>()
+            };
 
-                // 清空商品和服务列表
-                BusinessProducts.Clear();
-                BusinessServices.Clear();
-
-                // 显示编辑面板
-                ShowEditPanel();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"创建商业体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            BusinessProducts.Clear();
+            BusinessServices.Clear();
+            ShowEditPanel();
+            BusinessNameTextBox.Focus();
         }
 
-        /// <summary>
-        /// 导入商业数据
-        /// </summary>
-        private void ImportBusiness_Click(object sender, RoutedEventArgs e)
+        private async void ImportBusiness_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (!EnsureCurrentProject("导入商业体系"))
+                {
+                    return;
+                }
+
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = "导入商业体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json|所有文件|*.*",
                     DefaultExt = "json"
                 };
 
-                if (dialog.ShowDialog() == true)
+                if (dialog.ShowDialog() != true)
                 {
-                    // 这里应该实现实际的导入逻辑
-                    MessageBox.Show($"已选择文件：{dialog.FileName}\n导入功能将在后续版本中完善。",
-                        "导入", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
+
+                if (_businessDataService == null)
+                {
+                    MessageBox.Show("商业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var importedBusinesses = await _businessDataService.ImportBusinessSystemsAsync(dialog.FileName);
+                BusinessSystems.Clear();
+                foreach (var business in importedBusinesses)
+                {
+                    business.Products ??= new List<BusinessProductViewModel>();
+                    business.Services ??= new List<BusinessServiceViewModel>();
+                    business.ProductCount = business.Products.Count;
+                    business.ServiceCount = business.Services.Count;
+                    BusinessSystems.Add(business);
+                }
+
+                await PersistBusinessSystemsAsync();
+                FilterBusinessSystems();
+                UpdateStatistics();
+                MessageBox.Show($"已成功导入 {BusinessSystems.Count} 个商业体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "导入商业体系失败");
                 MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 导出商业数据
-        /// </summary>
-        private void ExportBusiness_Click(object sender, RoutedEventArgs e)
+        private async void ExportBusiness_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                if (!EnsureCurrentProject("导出商业体系"))
+                {
+                    return;
+                }
+
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出商业体系数据",
-                    Filter = "JSON文件|*.json|CSV文件|*.csv|所有文件|*.*",
+                    Filter = "JSON文件|*.json",
                     DefaultExt = "json",
                     FileName = $"商业体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
 
-                if (dialog.ShowDialog() == true)
+                if (dialog.ShowDialog() != true)
                 {
-                    // 这里应该实现实际的导出逻辑
-                    MessageBox.Show($"数据将导出到：{dialog.FileName}\n导出功能将在后续版本中完善。",
-                        "导出", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
+
+                if (_businessDataService == null)
+                {
+                    MessageBox.Show("商业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                await _businessDataService.ExportBusinessSystemsAsync(_currentProjectId, BusinessSystems, dialog.FileName);
+                MessageBox.Show($"商业体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "导出商业体系失败");
                 MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 选择商业体系
-        /// </summary>
-        private void SelectBusinessSystem(BusinessSystemViewModel business)
+        private void SelectBusinessSystem(BusinessSystemViewModel? business)
         {
-            if (business == null) return;
+            if (business == null)
+            {
+                return;
+            }
 
             SelectedBusiness = business;
             LoadBusinessSystemDetails(business);
             ShowEditPanel();
         }
 
-        /// <summary>
-        /// 加载商业体系详情
-        /// </summary>
         private void LoadBusinessSystemDetails(BusinessSystemViewModel business)
         {
-            // 填充基本信息
             BusinessNameTextBox.Text = business.Name;
             BusinessDescriptionTextBox.Text = business.Description;
             BusinessLocationTextBox.Text = business.Location;
             BusinessOwnerTextBox.Text = business.Owner;
-            
-            // 设置商业类别选择
+
             foreach (ComboBoxItem item in BusinessCategoryComboBox.Items)
             {
-                if (item.Content.ToString() == business.Category)
+                if (item.Content?.ToString() == business.Category)
                 {
                     BusinessCategoryComboBox.SelectedItem = item;
                     break;
                 }
             }
 
-            // 加载商品列表
-            LoadBusinessProducts(business.Id);
-            
-            // 加载服务列表
-            LoadBusinessServices(business.Id);
+            LoadBusinessProducts(business);
+            LoadBusinessServices(business);
         }
 
-        /// <summary>
-        /// 加载商品列表
-        /// </summary>
-        private void LoadBusinessProducts(int businessId)
+        private void LoadBusinessProducts(BusinessSystemViewModel business)
         {
-            // 模拟数据
-            var products = new List<BusinessProductViewModel>
-            {
-                new BusinessProductViewModel { Name = "筑基丹", Price = "1000灵石", Description = "帮助修炼者突破筑基期的丹药" },
-                new BusinessProductViewModel { Name = "飞剑", Price = "5000灵石", Description = "中品法器，锋利无比" }
-            };
-
             BusinessProducts.Clear();
-            foreach (var product in products)
+            foreach (var product in business.Products ?? Enumerable.Empty<BusinessProductViewModel>())
             {
-                BusinessProducts.Add(product);
+                BusinessProducts.Add(new BusinessProductViewModel
+                {
+                    Name = product.Name,
+                    Price = product.Price,
+                    Description = product.Description
+                });
             }
 
             ProductListControl.ItemsSource = BusinessProducts;
         }
 
-        /// <summary>
-        /// 加载服务列表
-        /// </summary>
-        private void LoadBusinessServices(int businessId)
+        private void LoadBusinessServices(BusinessSystemViewModel business)
         {
-            // 模拟数据
-            var services = new List<BusinessServiceViewModel>
-            {
-                new BusinessServiceViewModel { Name = "法器鉴定", Fee = "100灵石", Description = "鉴定法器品质和价值" },
-                new BusinessServiceViewModel { Name = "代为炼制", Fee = "材料费+手工费", Description = "代为炼制各种法器" }
-            };
-
             BusinessServices.Clear();
-            foreach (var service in services)
+            foreach (var service in business.Services ?? Enumerable.Empty<BusinessServiceViewModel>())
             {
-                BusinessServices.Add(service);
+                BusinessServices.Add(new BusinessServiceViewModel
+                {
+                    Name = service.Name,
+                    Fee = service.Fee,
+                    Description = service.Description
+                });
             }
 
             ServiceListControl.ItemsSource = BusinessServices;
         }
 
-        #endregion
-
-        #region 商品管理
-
-        /// <summary>
-        /// 添加商品
-        /// </summary>
         private void AddProduct_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var newProduct = new BusinessProductViewModel
-                {
-                    Name = "",
-                    Price = "",
-                    Description = ""
-                };
-
-                BusinessProducts.Add(newProduct);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"添加商品失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            BusinessProducts.Add(new BusinessProductViewModel());
         }
 
-        /// <summary>
-        /// 删除商品
-        /// </summary>
         private void RemoveProduct_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (sender is Button { CommandParameter: BusinessProductViewModel product })
             {
-                if (sender is Button button && button.CommandParameter is BusinessProductViewModel product)
-                {
-                    BusinessProducts.Remove(product);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"删除商品失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                BusinessProducts.Remove(product);
             }
         }
 
-        #endregion
-
-        #region 服务管理
-
-        /// <summary>
-        /// 添加服务
-        /// </summary>
         private void AddService_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var newService = new BusinessServiceViewModel
-                {
-                    Name = "",
-                    Fee = "",
-                    Description = ""
-                };
-
-                BusinessServices.Add(newService);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"添加服务失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            BusinessServices.Add(new BusinessServiceViewModel());
         }
 
-        /// <summary>
-        /// 删除服务
-        /// </summary>
         private void RemoveService_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (sender is Button { CommandParameter: BusinessServiceViewModel service })
             {
-                if (sender is Button button && button.CommandParameter is BusinessServiceViewModel service)
-                {
-                    BusinessServices.Remove(service);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"删除服务失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                BusinessServices.Remove(service);
             }
         }
 
-        #endregion
-
-        #region 保存和取消
-
-        /// <summary>
-        /// 保存商业体系
-        /// </summary>
-        private void SaveBusiness_Click(object sender, RoutedEventArgs e)
+        private async void SaveBusiness_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 验证输入
+                if (SelectedBusiness == null)
+                {
+                    return;
+                }
+
+                if (!EnsureCurrentProject("保存商业体系"))
+                {
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(BusinessNameTextBox.Text))
                 {
                     MessageBox.Show("请输入商业模式名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                // 更新商业体系信息
                 SelectedBusiness.Name = BusinessNameTextBox.Text.Trim();
                 SelectedBusiness.Description = BusinessDescriptionTextBox.Text.Trim();
                 SelectedBusiness.Location = BusinessLocationTextBox.Text.Trim();
                 SelectedBusiness.Owner = BusinessOwnerTextBox.Text.Trim();
                 SelectedBusiness.Category = (BusinessCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "贸易商行";
-                SelectedBusiness.ProductCount = BusinessProducts.Count;
-                SelectedBusiness.ServiceCount = BusinessServices.Count;
+                SelectedBusiness.Products = BusinessProducts
+                    .Where(product => !string.IsNullOrWhiteSpace(product.Name))
+                    .Select(product => new BusinessProductViewModel
+                    {
+                        Name = product.Name.Trim(),
+                        Price = product.Price.Trim(),
+                        Description = product.Description.Trim()
+                    })
+                    .ToList();
+                SelectedBusiness.Services = BusinessServices
+                    .Where(service => !string.IsNullOrWhiteSpace(service.Name))
+                    .Select(service => new BusinessServiceViewModel
+                    {
+                        Name = service.Name.Trim(),
+                        Fee = service.Fee.Trim(),
+                        Description = service.Description.Trim()
+                    })
+                    .ToList();
+                SelectedBusiness.ProductCount = SelectedBusiness.Products.Count;
+                SelectedBusiness.ServiceCount = SelectedBusiness.Services.Count;
 
-                // 如果是新建商业体系，添加到列表
                 if (SelectedBusiness.Id == 0)
                 {
-                    SelectedBusiness.Id = BusinessSystems.Count > 0 ? BusinessSystems.Max(b => b.Id) + 1 : 1;
+                    SelectedBusiness.Id = BusinessSystems.Count > 0 ? BusinessSystems.Max(system => system.Id) + 1 : 1;
                     BusinessSystems.Add(SelectedBusiness);
                 }
 
-                // 这里应该调用服务层保存数据
+                await PersistBusinessSystemsAsync();
                 MessageBox.Show("商业体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // 刷新列表
                 FilterBusinessSystems();
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "保存商业体系失败");
                 MessageBox.Show($"保存商业体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        /// <summary>
-        /// 取消编辑
-        /// </summary>
         private void CancelEdit_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // 清空表单
-                BusinessNameTextBox.Text = "";
-                BusinessDescriptionTextBox.Text = "";
-                BusinessLocationTextBox.Text = "";
-                BusinessOwnerTextBox.Text = "";
-                BusinessCategoryComboBox.SelectedIndex = 0;
-
-                // 清空列表
-                BusinessProducts.Clear();
-                BusinessServices.Clear();
-
-                // 隐藏编辑面板
-                HideEditPanel();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"取消编辑失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            HideEditPanel();
         }
 
-        #endregion
-
-        #region 界面控制
-
-        /// <summary>
-        /// 显示编辑面板
-        /// </summary>
         private void ShowEditPanel()
         {
             EmptyStatePanel.Visibility = Visibility.Collapsed;
             EditPanel.Visibility = Visibility.Visible;
         }
 
-        /// <summary>
-        /// 隐藏编辑面板
-        /// </summary>
         private void HideEditPanel()
         {
             EmptyStatePanel.Visibility = Visibility.Visible;
             EditPanel.Visibility = Visibility.Collapsed;
+            SelectedBusiness = null;
+            BusinessProducts.Clear();
+            BusinessServices.Clear();
         }
 
-        #endregion
-
-        #region AI助手功能
-
-        /// <summary>
-        /// AI助手按钮点击事件
-        /// </summary>
-        private void AIAssistant_Click(object sender, RoutedEventArgs e)
+        private async void AIAssistant_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                ShowAIAssistantDialog();
+                if (!EnsureCurrentProject("AI商业体系"))
+                {
+                    return;
+                }
+
+                if (_aiAssistantService == null)
+                {
+                    ShowAIAssistantDialog();
+                    return;
+                }
+
+                if (SelectedBusiness != null)
+                {
+                    var choice = MessageBox.Show(
+                        "是：AI优化当前商业体系并保存\n否：AI生成新的商业体系并保存\n取消：打开原始AI助手",
+                        "AI商业体系",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (choice == MessageBoxResult.Cancel)
+                    {
+                        ShowAIAssistantDialog();
+                        return;
+                    }
+
+                    await GenerateBusinessWithAiAsync(choice == MessageBoxResult.Yes);
+                    return;
+                }
+
+                var generateChoice = MessageBox.Show(
+                    "是：AI生成新的商业体系并保存\n否：打开原始AI助手",
+                    "AI商业体系",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (generateChoice == MessageBoxResult.Yes)
+                {
+                    await GenerateBusinessWithAiAsync(false);
+                }
+                else
+                {
+                    ShowAIAssistantDialog();
+                }
             }
             catch (Exception ex)
             {
@@ -610,22 +472,19 @@ namespace NovelManagement.WPF.Views
             }
         }
 
-        /// <summary>
-        /// 显示AI助手对话框
-        /// </summary>
         private void ShowAIAssistantDialog()
         {
             var context = GetCurrentContext();
-            var contextString = System.Text.Json.JsonSerializer.Serialize(context, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var dialog = new AIAssistantDialog("商业体系管理", contextString);
-            dialog.Owner = Window.GetWindow(this);
+            var contextString = System.Text.Json.JsonSerializer.Serialize(
+                context,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var dialog = new AIAssistantDialog("商业体系管理", contextString)
+            {
+                Owner = Window.GetWindow(this)
+            };
             dialog.ShowDialog();
         }
 
-        /// <summary>
-        /// 获取当前上下文信息
-        /// </summary>
-        /// <returns>上下文信息</returns>
         private Dictionary<string, object> GetCurrentContext()
         {
             var context = new Dictionary<string, object>
@@ -649,68 +508,252 @@ namespace NovelManagement.WPF.Views
                 context["businessServices"] = BusinessServices.ToList();
             }
 
-            // 添加统计信息
-            var categoryStats = BusinessSystems.GroupBy(b => b.Category)
-                .ToDictionary(g => g.Key, g => g.Count());
-            context["categoryStatistics"] = categoryStats;
-
+            context["categoryStatistics"] = BusinessSystems.GroupBy(system => system.Category).ToDictionary(group => group.Key, group => group.Count());
             return context;
         }
 
-        #endregion
-    }
+        public async Task RefreshOnProjectChangedAsync(Guid? projectId, string? projectName)
+        {
+            _currentProjectId = projectId ?? Guid.Empty;
+            await LoadBusinessSystemsAsync();
+        }
 
-    #region ViewModel类
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            _currentProjectId = context.ProjectId ?? Guid.Empty;
+            _ = LoadBusinessSystemsAsync();
+        }
+
+        private async Task PersistBusinessSystemsAsync()
+        {
+            if (_currentProjectId == Guid.Empty || _businessDataService == null)
+            {
+                return;
+            }
+
+            foreach (var business in BusinessSystems)
+            {
+                business.Products ??= new List<BusinessProductViewModel>();
+                business.Services ??= new List<BusinessServiceViewModel>();
+                business.ProductCount = business.Products.Count;
+                business.ServiceCount = business.Services.Count;
+            }
+
+            await _businessDataService.SaveBusinessSystemsAsync(_currentProjectId, BusinessSystems);
+        }
+
+        private bool EnsureCurrentProject(string actionName)
+        {
+            _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_currentProjectId != Guid.Empty)
+            {
+                return true;
+            }
+
+            _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), actionName, out _);
+            return false;
+        }
+
+        private async Task GenerateBusinessWithAiAsync(bool optimizeCurrent)
+        {
+            if (_aiAssistantService == null)
+            {
+                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var parameters = new Dictionary<string, object>
+            {
+                ["title"] = optimizeCurrent && SelectedBusiness != null ? $"优化商业体系：{SelectedBusiness.Name}" : "生成商业体系",
+                ["theme"] = "请生成一个适合小说项目使用的商业体系，并输出名称、类别、地点、经营者、描述、商品列表和服务列表。",
+                ["requirements"] = optimizeCurrent && SelectedBusiness != null
+                    ? $"请基于当前商业体系进行优化并输出结构化文本。当前体系：{SelectedBusiness.Name}，类别：{SelectedBusiness.Category}，地点：{SelectedBusiness.Location}，经营者：{SelectedBusiness.Owner}，描述：{SelectedBusiness.Description}"
+                    : "请输出一个完整商业体系，至少包含名称、类别、地点、经营者、描述、至少3个商品、至少2项服务。",
+                ["context"] = GetCurrentContext()
+            };
+
+            var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                MessageBox.Show(result.Message ?? "AI生成失败。", "AI商业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var generatedBusiness = ParseBusinessFromAiResult(result.Data, optimizeCurrent ? SelectedBusiness : null);
+            if (generatedBusiness == null)
+            {
+                MessageBox.Show("AI结果无法解析为商业体系。", "AI商业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (optimizeCurrent && SelectedBusiness != null)
+            {
+                generatedBusiness.Id = SelectedBusiness.Id;
+                generatedBusiness.CreatedAt = SelectedBusiness.CreatedAt;
+                var index = BusinessSystems.IndexOf(SelectedBusiness);
+                if (index >= 0)
+                {
+                    BusinessSystems[index] = generatedBusiness;
+                }
+                SelectedBusiness = generatedBusiness;
+            }
+            else
+            {
+                generatedBusiness.Id = BusinessSystems.Count > 0 ? BusinessSystems.Max(system => system.Id) + 1 : 1;
+                generatedBusiness.CreatedAt = DateTime.Now;
+                BusinessSystems.Add(generatedBusiness);
+                SelectedBusiness = generatedBusiness;
+            }
+
+            await PersistBusinessSystemsAsync();
+            FilterBusinessSystems();
+            UpdateStatistics();
+            LoadBusinessSystemDetails(generatedBusiness);
+            ShowEditPanel();
+            MessageBox.Show(
+                optimizeCurrent ? $"已使用 AI 优化并保存商业体系：{generatedBusiness.Name}" : $"已使用 AI 生成并保存商业体系：{generatedBusiness.Name}",
+                "AI商业体系",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        private BusinessSystemViewModel? ParseBusinessFromAiResult(object data, BusinessSystemViewModel? baseBusiness)
+        {
+            var text = data?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var business = new BusinessSystemViewModel
+            {
+                Id = baseBusiness?.Id ?? 0,
+                Name = ExtractField(text, "名称") ?? baseBusiness?.Name ?? ExtractFirstMeaningfulLine(text) ?? "AI生成商业体系",
+                Category = ExtractField(text, "类别") ?? baseBusiness?.Category ?? "贸易商行",
+                Location = ExtractField(text, "地点") ?? baseBusiness?.Location ?? "主城商圈",
+                Owner = ExtractField(text, "经营者") ?? baseBusiness?.Owner ?? "AI经营者",
+                Description = ExtractField(text, "描述") ?? baseBusiness?.Description ?? text.Trim(),
+                CreatedAt = baseBusiness?.CreatedAt ?? DateTime.Now,
+                Products = ParseProducts(text),
+                Services = ParseServices(text)
+            };
+
+            if (business.Products.Count == 0)
+            {
+                business.Products = baseBusiness?.Products?.ToList() ?? new List<BusinessProductViewModel>
+                {
+                    new() { Name = "灵石补给包", Price = "500灵石", Description = "常用修炼资源组合" },
+                    new() { Name = "制式法器", Price = "2000灵石", Description = "标准化常备法器" },
+                    new() { Name = "丹药礼盒", Price = "3500灵石", Description = "适合新晋修士的丹药组合" }
+                };
+            }
+
+            if (business.Services.Count == 0)
+            {
+                business.Services = baseBusiness?.Services?.ToList() ?? new List<BusinessServiceViewModel>
+                {
+                    new() { Name = "鉴宝服务", Fee = "200灵石", Description = "评估宝物品质与流通价值" },
+                    new() { Name = "寄售服务", Fee = "成交额抽成", Description = "代售稀有商品与修炼资源" }
+                };
+            }
+
+            business.ProductCount = business.Products.Count;
+            business.ServiceCount = business.Services.Count;
+            return business;
+        }
+
+        private static List<BusinessProductViewModel> ParseProducts(string text)
+        {
+            var products = new List<BusinessProductViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "丹|器|符|石|药|宝|材料|商品|货物"))
+                {
+                    continue;
+                }
+
+                products.Add(new BusinessProductViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Price = "待定",
+                    Description = line
+                });
+
+                if (products.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return products;
+        }
+
+        private static List<BusinessServiceViewModel> ParseServices(string text)
+        {
+            var services = new List<BusinessServiceViewModel>();
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (!Regex.IsMatch(line, "服务|鉴定|寄售|拍卖|炼制|定制|配送|维修"))
+                {
+                    continue;
+                }
+
+                services.Add(new BusinessServiceViewModel
+                {
+                    Name = TrimListMarker(line),
+                    Fee = "待定",
+                    Description = line
+                });
+
+                if (services.Count >= 8)
+                {
+                    break;
+                }
+            }
+
+            return services;
+        }
+
+        private static string? ExtractField(string text, string fieldName)
+        {
+            var match = Regex.Match(text, $"{fieldName}\\s*[:：]\\s*(.+)");
+            return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private static string? ExtractFirstMeaningfulLine(string text)
+        {
+            return text
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(TrimListMarker)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string TrimListMarker(string line)
+        {
+            return line.Trim().TrimStart('•', '-', '*', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '、', ' ');
+        }
+    }
 
     /// <summary>
     /// 商业体系视图模型
     /// </summary>
     public class BusinessSystemViewModel
     {
-        /// <summary>
-        /// 商业体系标识。
-        /// </summary>
         public int Id { get; set; }
-
-        /// <summary>
-        /// 商业体系名称。
-        /// </summary>
         public string Name { get; set; } = "";
-
-        /// <summary>
-        /// 商业类别。
-        /// </summary>
         public string Category { get; set; } = "";
-
-        /// <summary>
-        /// 所在地点。
-        /// </summary>
         public string Location { get; set; } = "";
-
-        /// <summary>
-        /// 经营者或所有者。
-        /// </summary>
         public string Owner { get; set; } = "";
-
-        /// <summary>
-        /// 商业体系描述。
-        /// </summary>
         public string Description { get; set; } = "";
-
-        /// <summary>
-        /// 商品数量。
-        /// </summary>
         public int ProductCount { get; set; }
-
-        /// <summary>
-        /// 服务数量。
-        /// </summary>
         public int ServiceCount { get; set; }
-
-        /// <summary>
-        /// 创建时间。
-        /// </summary>
         public DateTime CreatedAt { get; set; }
+        public List<BusinessProductViewModel> Products { get; set; } = new();
+        public List<BusinessServiceViewModel> Services { get; set; } = new();
     }
 
     /// <summary>
@@ -718,19 +761,8 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class BusinessProductViewModel
     {
-        /// <summary>
-        /// 商品名称。
-        /// </summary>
         public string Name { get; set; } = "";
-
-        /// <summary>
-        /// 商品价格。
-        /// </summary>
         public string Price { get; set; } = "";
-
-        /// <summary>
-        /// 商品描述。
-        /// </summary>
         public string Description { get; set; } = "";
     }
 
@@ -739,21 +771,8 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public class BusinessServiceViewModel
     {
-        /// <summary>
-        /// 服务名称。
-        /// </summary>
         public string Name { get; set; } = "";
-
-        /// <summary>
-        /// 服务费用。
-        /// </summary>
         public string Fee { get; set; } = "";
-
-        /// <summary>
-        /// 服务描述。
-        /// </summary>
         public string Description { get; set; } = "";
     }
-
-    #endregion
 }

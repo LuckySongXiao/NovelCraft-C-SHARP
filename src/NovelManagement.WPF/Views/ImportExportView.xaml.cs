@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using NovelManagement.Application.DTOs;
 using NovelManagement.Application.Services;
-using NovelManagement.Core.Interfaces;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -491,13 +490,13 @@ namespace NovelManagement.WPF.Views
             var dialog = new SaveFileDialog
             {
                 Title = "选择导出文件保存位置",
-                Filter = "所有支持的格式|*.txt;*.docx;*.pdf;*.epub;*.html;*.md|" +
+                Filter = "所有支持的格式|*.txt;*.xlsx;*.docx;*.html;*.md;*.json|" +
                         "文本文件|*.txt|" +
+                        "Excel文件|*.xlsx|" +
                         "Word文档|*.docx|" +
-                        "PDF文档|*.pdf|" +
-                        "电子书|*.epub|" +
                         "网页文件|*.html|" +
-                        "Markdown文件|*.md",
+                        "Markdown文件|*.md|" +
+                        "JSON文件|*.json",
                 FileName = "千面劫·宿命轮回"
             };
 
@@ -681,8 +680,9 @@ namespace NovelManagement.WPF.Views
             var dialog = new OpenFileDialog
             {
                 Title = "选择要导入的文件",
-                Filter = "所有支持的格式|*.xlsx;*.xls;*.csv;*.txt;*.json;*.xml|" +
+                Filter = "所有支持的格式|*.xlsx;*.xls;*.docx;*.csv;*.txt;*.json;*.xml|" +
                         "Excel文件|*.xlsx;*.xls|" +
+                        "Word文档|*.docx|" +
                         "CSV文件|*.csv|" +
                         "文本文件|*.txt|" +
                         "JSON文件|*.json|" +
@@ -699,10 +699,11 @@ namespace NovelManagement.WPF.Views
                 var formatIndex = extension switch
                 {
                     ".xlsx" or ".xls" => 0, // EXCEL
-                    ".csv" => 1, // CSV
-                    ".txt" => 2, // TXT
-                    ".json" => 3, // JSON
-                    ".xml" => 4, // XML
+                    ".docx" => 1, // DOCX
+                    ".csv" => 2, // CSV
+                    ".txt" => 3, // TXT
+                    ".json" => 4, // JSON
+                    ".xml" => 5, // XML
                     _ => 0
                 };
                 ImportFormatComboBox.SelectedIndex = formatIndex;
@@ -1005,38 +1006,4 @@ namespace NovelManagement.WPF.Views
         #endregion
     }
 
-    /// <summary>
-    /// 模拟的UnitOfWork实现
-    /// </summary>
-    internal class MockUnitOfWork : IUnitOfWork
-    {
-        // Repository属性 - 返回null，因为这只是演示用的Mock
-        public IProjectRepository Projects => null!;
-        public IVolumeRepository Volumes => null!;
-        public IChapterRepository Chapters => null!;
-        public ICharacterRepository Characters => null!;
-        public IFactionRepository Factions => null!;
-        public ICharacterRelationshipRepository CharacterRelationships => null!;
-        public ICharacterEventRepository CharacterEvents => null!;
-        public IFactionRelationshipRepository FactionRelationships => null!;
-        public IWorldSettingRepository WorldSettings => null!;
-        public ICultivationSystemRepository CultivationSystems => null!;
-        public ICultivationLevelRepository CultivationLevels => null!;
-        public IPoliticalSystemRepository PoliticalSystems => null!;
-        public IPoliticalPositionRepository PoliticalPositions => null!;
-        public IPlotRepository Plots => null!;
-        public IResourceRepository Resources => null!;
-        public IRaceRepository Races => null!;
-        public IRaceRelationshipRepository RaceRelationships => null!;
-        public ISecretRealmRepository SecretRealms => null!;
-        public IRelationshipNetworkRepository RelationshipNetworks => null!;
-        public ICurrencySystemRepository CurrencySystems => null!;
-
-        // 方法实现 - 简单的空实现
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
-        public Task BeginTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task CommitTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task RollbackTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public void Dispose() { }
-    }
 }

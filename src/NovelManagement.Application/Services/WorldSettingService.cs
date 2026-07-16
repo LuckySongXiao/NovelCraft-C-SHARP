@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.Extensions.Logging;
 using NovelManagement.Application.DTOs;
 using NovelManagement.Application.Interfaces;
@@ -13,70 +12,67 @@ namespace NovelManagement.Application.Services;
 public class WorldSettingService : IWorldSettingService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
     private readonly ILogger<WorldSettingService> _logger;
 
     public WorldSettingService(
         IUnitOfWork unitOfWork,
-        IMapper mapper,
         ILogger<WorldSettingService> logger)
     {
         _unitOfWork = unitOfWork;
-        _mapper = mapper;
         _logger = logger;
     }
 
     public async Task<IEnumerable<WorldSettingDto>> GetAllAsync(Guid projectId, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.GetByProjectIdAsync(projectId, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<WorldSettingDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var worldSetting = await _unitOfWork.WorldSettings.GetByIdAsync(id, cancellationToken);
-        return worldSetting != null ? _mapper.Map<WorldSettingDto>(worldSetting) : null;
+        return worldSetting != null ? MapToDto(worldSetting) : null;
     }
 
     public async Task<IEnumerable<WorldSettingDto>> GetByTypeAsync(Guid projectId, string type, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.GetByTypeAsync(projectId, type, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<IEnumerable<WorldSettingDto>> GetByCategoryAsync(Guid projectId, string category, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.GetByCategoryAsync(projectId, category, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<WorldSettingDto?> GetWithChildrenAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var worldSetting = await _unitOfWork.WorldSettings.GetWithChildrenAsync(id, cancellationToken);
-        return worldSetting != null ? _mapper.Map<WorldSettingDto>(worldSetting) : null;
+        return worldSetting != null ? MapToDto(worldSetting) : null;
     }
 
     public async Task<IEnumerable<WorldSettingDto>> GetRootSettingsAsync(Guid projectId, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.GetRootSettingsAsync(projectId, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<IEnumerable<WorldSettingDto>> GetByImportanceAsync(Guid projectId, int minImportance, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.GetByImportanceAsync(projectId, minImportance, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<IEnumerable<WorldSettingDto>> SearchAsync(Guid projectId, string searchTerm, CancellationToken cancellationToken = default)
     {
         var worldSettings = await _unitOfWork.WorldSettings.SearchAsync(projectId, searchTerm, cancellationToken);
-        return _mapper.Map<IEnumerable<WorldSettingDto>>(worldSettings);
+        return worldSettings.Select(MapToDto).ToList();
     }
 
     public async Task<WorldSettingDto> CreateAsync(CreateWorldSettingDto createDto, CancellationToken cancellationToken = default)
     {
-        var worldSetting = _mapper.Map<WorldSetting>(createDto);
+        var worldSetting = MapToEntity(createDto);
         worldSetting.Id = Guid.NewGuid();
         worldSetting.CreatedAt = DateTime.UtcNow;
         worldSetting.UpdatedAt = DateTime.UtcNow;
@@ -84,7 +80,7 @@ public class WorldSettingService : IWorldSettingService
         var createdWorldSetting = await _unitOfWork.WorldSettings.AddAsync(worldSetting, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<WorldSettingDto>(createdWorldSetting);
+        return MapToDto(createdWorldSetting);
     }
 
     public async Task<WorldSettingDto> UpdateAsync(UpdateWorldSettingDto updateDto, CancellationToken cancellationToken = default)
@@ -95,13 +91,13 @@ public class WorldSettingService : IWorldSettingService
             throw new ArgumentException($"世界设定 {updateDto.Id} 不存在");
         }
 
-        _mapper.Map(updateDto, existingWorldSetting);
+        MapToExistingEntity(updateDto, existingWorldSetting);
         existingWorldSetting.UpdatedAt = DateTime.UtcNow;
 
         var updatedWorldSetting = await _unitOfWork.WorldSettings.UpdateAsync(existingWorldSetting, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<WorldSettingDto>(updatedWorldSetting);
+        return MapToDto(updatedWorldSetting);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -167,7 +163,7 @@ public class WorldSettingService : IWorldSettingService
         var createdWorldSetting = await _unitOfWork.WorldSettings.AddAsync(copiedWorldSetting, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<WorldSettingDto>(createdWorldSetting);
+        return MapToDto(createdWorldSetting);
     }
 
     public async Task<WorldSettingDto> MoveAsync(Guid id, Guid? newParentId, CancellationToken cancellationToken = default)
@@ -184,7 +180,7 @@ public class WorldSettingService : IWorldSettingService
         var updatedWorldSetting = await _unitOfWork.WorldSettings.UpdateAsync(worldSetting, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<WorldSettingDto>(updatedWorldSetting);
+        return MapToDto(updatedWorldSetting);
     }
 
     public async Task<bool> UpdateOrderIndexAsync(Guid id, int newOrderIndex, CancellationToken cancellationToken = default)
@@ -217,5 +213,82 @@ public class WorldSettingService : IWorldSettingService
                            .Select(ws => ws.Category!)
                            .Distinct()
                            .OrderBy(c => c);
+    }
+
+    private static WorldSettingDto MapToDto(WorldSetting entity)
+    {
+        return new WorldSettingDto
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            Type = entity.Type,
+            Category = entity.Category,
+            Description = entity.Description,
+            Content = entity.Content,
+            Rules = entity.Rules,
+            History = entity.History,
+            RelatedSettings = entity.RelatedSettings,
+            Importance = entity.Importance,
+            ProjectId = entity.ProjectId,
+            ParentId = entity.ParentId,
+            ImagePath = entity.ImagePath,
+            Tags = entity.Tags,
+            Notes = entity.Notes,
+            Status = entity.Status,
+            OrderIndex = entity.Order,
+            IsPublic = entity.IsPublic,
+            Version = entity.Version,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt,
+            ParentName = entity.Parent?.Name,
+            Children = entity.Children.Select(MapToDto).ToList()
+        };
+    }
+
+    private static WorldSetting MapToEntity(CreateWorldSettingDto dto)
+    {
+        return new WorldSetting
+        {
+            Name = dto.Name,
+            Type = dto.Type,
+            Category = dto.Category,
+            Description = dto.Description,
+            Content = dto.Content,
+            Rules = dto.Rules,
+            History = dto.History,
+            RelatedSettings = dto.RelatedSettings,
+            Importance = dto.Importance,
+            ProjectId = dto.ProjectId,
+            ParentId = dto.ParentId,
+            ImagePath = dto.ImagePath,
+            Tags = dto.Tags,
+            Notes = dto.Notes,
+            Status = dto.Status,
+            Order = dto.OrderIndex,
+            IsPublic = dto.IsPublic,
+            Version = dto.Version
+        };
+    }
+
+    private static void MapToExistingEntity(UpdateWorldSettingDto dto, WorldSetting entity)
+    {
+        entity.Name = dto.Name;
+        entity.Type = dto.Type;
+        entity.Category = dto.Category;
+        entity.Description = dto.Description;
+        entity.Content = dto.Content;
+        entity.Rules = dto.Rules;
+        entity.History = dto.History;
+        entity.RelatedSettings = dto.RelatedSettings;
+        entity.Importance = dto.Importance;
+        entity.ProjectId = dto.ProjectId;
+        entity.ParentId = dto.ParentId;
+        entity.ImagePath = dto.ImagePath;
+        entity.Tags = dto.Tags;
+        entity.Notes = dto.Notes;
+        entity.Status = dto.Status;
+        entity.Order = dto.OrderIndex;
+        entity.IsPublic = dto.IsPublic;
+        entity.Version = dto.Version;
     }
 }

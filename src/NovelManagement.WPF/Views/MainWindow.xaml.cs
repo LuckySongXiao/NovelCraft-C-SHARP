@@ -103,9 +103,6 @@ public partial class MainWindow : Window
                 {
                     projectManagementView.AddNewProject(dialog.ProjectData);
                 }
-
-                MessageBox.Show($"项目 '{dialog.ProjectData.Name}' 创建成功！", "创建完成",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
@@ -131,7 +128,6 @@ public partial class MainWindow : Window
 
             if (dialog.ShowDialog() == true)
             {
-                // 模拟导入过程
                 var fileName = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
                 var projectData = new NewProjectDialog.NewProjectModel
                 {
@@ -153,9 +149,6 @@ public partial class MainWindow : Window
                 {
                     projectManagementView.AddNewProject(projectData);
                 }
-
-                MessageBox.Show($"项目 '{fileName}' 导入成功！", "导入完成",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
@@ -269,16 +262,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 创建一个新窗口来显示世界设定管理
-            var window = new Window
-            {
-                Title = "设定管理",
-                Width = 1200,
-                Height = 800,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                Content = new WorldSettingManagementView()
-            };
-            window.Show();
+            ShowWorldSettingManagement();
         }
         catch (Exception ex)
         {
@@ -321,6 +305,40 @@ public partial class MainWindow : Window
             MessageBox.Show($"打开AI协作失败：{ex.Message}", "错误",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    /// <summary>
+    /// AI模型配置按钮点击事件
+    /// </summary>
+    private void AIConfiguration_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            ShowAIConfiguration();
+        }
+        catch (Exception ex)
+        {
+            var detail = ex.InnerException?.Message;
+            var message = string.IsNullOrWhiteSpace(detail) ? ex.Message : $"{ex.Message}\n详细信息：{detail}";
+            MessageBox.Show($"打开AI模型配置失败：{message}", "错误",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// 帮助按钮点击事件
+    /// </summary>
+    private void Help_Click(object sender, RoutedEventArgs e)
+    {
+        var helpMessage =
+            "常用入口说明：\n" +
+            "1. 左侧导航用于项目、人物、设定、AI 协作等功能切换。\n" +
+            "2. 右上角齿轮用于打开 AI 模型配置中心。\n" +
+            "3. AI 模型配置会保存到当前用户的本地配置目录，不会覆盖发布目录。\n" +
+            "4. 修改模型配置后，部分选项需要重启应用才会完全生效。\n\n" +
+            "如果某个页面打不开，请把完整弹窗内容发给我继续修复。";
+
+        MessageBox.Show(helpMessage, "使用帮助", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -646,7 +664,22 @@ public partial class MainWindow : Window
     /// </summary>
     private void PublishManagement_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show("发布管理功能正在开发中...", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            var window = App.ServiceProvider?.GetService<OperationsManagementWindow>();
+            if (window == null)
+            {
+                MessageBox.Show("运维管理窗口未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            window.Owner = this;
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"打开发布与运维管理失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     /// <summary>
@@ -730,8 +763,13 @@ public partial class MainWindow : Window
             },
             NavigationTarget.AICollaboration => new NavigationViewRequest
             {
-                View = new AICollaborationView(),
+                View = new AIAssistantWorkspaceView(),
                 Title = "小说管理系统 - AI协作创作"
+            },
+            NavigationTarget.AIConfiguration => new NavigationViewRequest
+            {
+                View = new AIConfigurationView(),
+                Title = "小说管理系统 - AI模型配置"
             },
             NavigationTarget.ImportExport => new NavigationViewRequest
             {
@@ -829,6 +867,7 @@ public partial class MainWindow : Window
             NavigationTarget.FactionManagement => "势力管理",
             NavigationTarget.PlotManagement => "剧情管理",
             NavigationTarget.AICollaboration => "AI协作",
+            NavigationTarget.AIConfiguration => "AI模型配置",
             NavigationTarget.ImportExport => "导入导出",
             NavigationTarget.WorldSettingManagement => "世界设定",
             NavigationTarget.DialogGeneration => "对话生成",
@@ -988,6 +1027,18 @@ public partial class MainWindow : Window
             MessageBox.Show($"加载AI协作界面失败：{ex.Message}\n\n详细信息：{ex.StackTrace}",
                 "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    /// <summary>
+    /// 显示AI模型配置
+    /// </summary>
+    public void ShowAIConfiguration()
+    {
+        var window = new AIConfigurationHostWindow
+        {
+            Owner = this
+        };
+        window.Show();
     }
 
     /// <summary>
