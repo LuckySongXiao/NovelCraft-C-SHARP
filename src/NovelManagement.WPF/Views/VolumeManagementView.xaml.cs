@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,12 +23,30 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 树形节点数据模型
         /// </summary>
-        public class TreeNodeViewModel
+        public class TreeNodeViewModel : System.ComponentModel.INotifyPropertyChanged
         {
+            private string _name = string.Empty;
+
             /// <summary>
-            /// 节点显示名称。
+            /// 节点显示名称（支持变更通知，供树节点即时刷新）。
             /// </summary>
-            public string Name { get; set; } = string.Empty;
+            public string Name
+            {
+                get => _name;
+                set
+                {
+                    if (_name == value)
+                    {
+                        return;
+                    }
+
+                    _name = value;
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(Name)));
+                }
+            }
+
+            /// <inheritdoc/>
+            public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
             /// <summary>
             /// 节点附加信息。
@@ -66,8 +85,11 @@ namespace NovelManagement.WPF.Views
         private readonly VolumeService? _volumeService;
         private readonly ChapterService? _chapterService;
         private readonly ProjectContextService? _projectContextService;
+        private readonly ChapterNamingAgent? _chapterNamingAgent;
         private NavigationContext? _navigationContext;
         private Guid _currentProjectId;
+        private int _namingScanRunning;
+        private DateTime _lastNamingScanAt = DateTime.MinValue;
         public int TotalVolumeCount { get; private set; }
         public int TotalChapterCount { get; private set; }
         public int TotalWordCount { get; private set; }
@@ -86,6 +108,7 @@ namespace NovelManagement.WPF.Views
                 _volumeService = serviceProvider?.GetService<VolumeService>();
                 _chapterService = serviceProvider?.GetService<ChapterService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
+                _chapterNamingAgent = serviceProvider?.GetService<ChapterNamingAgent>();
                 DataContext = this;
                 _ = RefreshTreeDataAsync();
             }
@@ -120,7 +143,7 @@ namespace NovelManagement.WPF.Views
                     if (DetailArea != null && DefaultCard != null)
                     {
                         DetailArea.Children.Clear();
-                        DetailArea.Children.Add(DefaultCard);
+                        AddDetailCard(DefaultCard);
                     }
 
                     return;
@@ -166,6 +189,9 @@ namespace NovelManagement.WPF.Views
                 }
 
                 ApplyNavigationContext();
+
+                // 章节命名 Agent：主动扫描默认命名的章节并生成符合主题的标题（后台执行）
+                _ = RunChapterNamingScanAsync();
             }
             catch (Exception ex)
             {
@@ -297,6 +323,77 @@ namespace NovelManagement.WPF.Views
         {
             _navigationContext = context;
             ApplyNavigationContext();
+
+            // 再次进入视图时也触发章节命名扫描（内置 30 秒防抖）
+            _ = RunChapterNamingScanAsync();
+        }
+
+        /// <summary>
+        /// 触发章节命名 Agent 后台扫描：30 秒防抖 + 单飞锁，避免重复扫描。
+        /// </summary>
+        private async Task RunChapterNamingScanAsync()
+        {
+            if (_chapterNamingAgent == null || _currentProjectId == Guid.Empty)
+            {
+                return;
+            }
+
+            if ((DateTime.Now - _lastNamingScanAt).TotalSeconds < 30)
+            {
+                return;
+            }
+
+            if (Interlocked.Exchange(ref _namingScanRunning, 1) == 1)
+            {
+                return;
+            }
+
+            _lastNamingScanAt = DateTime.Now;
+            try
+            {
+                await _chapterNamingAgent.ScanAndNameAsync(_currentProjectId, OnChapterRenamed);
+            }
+            catch (Exception ex)
+            {
+                // 后台扫描失败静默处理（Agent 内部已记录日志）
+                System.Diagnostics.Debug.WriteLine($"章节命名扫描失败：{ex.Message}");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _namingScanRunning, 0);
+            }
+        }
+
+        /// <summary>
+        /// 章节命名成功的回调：即时更新树节点显示（保证在 UI 线程执行）。
+        /// </summary>
+        private void OnChapterRenamed(Core.Entities.Chapter chapter, string oldTitle, string newTitle)
+        {
+            try
+            {
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher != null && !dispatcher.CheckAccess())
+                {
+                    dispatcher.Invoke(() => OnChapterRenamed(chapter, oldTitle, newTitle));
+                    return;
+                }
+
+                var projectNode = _treeData.FirstOrDefault();
+                if (projectNode == null)
+                {
+                    return;
+                }
+
+                var node = FindNodeByGuid(projectNode, chapter.Id);
+                if (node != null)
+                {
+                    node.Name = $"第{chapter.Order}章：{newTitle}";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"更新章节树节点名称失败：{ex.Message}");
+            }
         }
 
         private void ApplyNavigationContext()
@@ -387,6 +484,20 @@ namespace NovelManagement.WPF.Views
         }
 
         /// <summary>
+        /// 将详情卡片包装为可滚动内容后加入详情区域，避免内容超高时底部按钮被裁切
+        /// </summary>
+        private void AddDetailCard(Card card)
+        {
+            if (DetailArea == null || card == null) return;
+            DetailArea.Children.Add(new ScrollViewer
+            {
+                Content = card,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            });
+        }
+
+        /// <summary>
         /// 显示节点详细信息
         /// </summary>
         private async Task ShowNodeDetailsAsync(TreeNodeViewModel node)
@@ -410,7 +521,7 @@ namespace NovelManagement.WPF.Views
                     default:
                         if (DetailArea != null && DefaultCard != null)
                         {
-                            DetailArea.Children.Add(DefaultCard);
+                            AddDetailCard(DefaultCard);
                         }
                         break;
                 }
@@ -432,7 +543,7 @@ namespace NovelManagement.WPF.Views
                 // 显示默认的项目统计卡片
                 if (DetailArea != null && DefaultCard != null)
                 {
-                    DetailArea.Children.Add(DefaultCard);
+                    AddDetailCard(DefaultCard);
                 }
             }
             catch (Exception ex)
@@ -457,7 +568,7 @@ namespace NovelManagement.WPF.Views
 
                 var chapters = (await _chapterService.GetChapterListAsync(volume.Id)).ToList();
                 var volumeCard = CreateVolumeDetailsCard(volume, chapters);
-                DetailArea.Children.Add(volumeCard);
+                AddDetailCard(volumeCard);
             }
             catch (Exception ex)
             {
@@ -480,7 +591,7 @@ namespace NovelManagement.WPF.Views
                 if (chapter == null) return;
 
                 var chapterCard = CreateChapterDetailsCard(chapter);
-                DetailArea.Children.Add(chapterCard);
+                AddDetailCard(chapterCard);
             }
             catch (Exception ex)
             {
@@ -974,6 +1085,9 @@ namespace NovelManagement.WPF.Views
                 IsReadOnly = true,
                 TextWrapping = TextWrapping.Wrap,
                 MinHeight = 100,
+                // 限制摘要框最大高度（超长摘要文本框内部滚动），避免把底部操作按钮区推出可视区域
+                MaxHeight = 220,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Style = (Style)FindResource("MaterialDesignOutlinedTextBox")
             };
             stackPanel.Children.Add(summaryText);

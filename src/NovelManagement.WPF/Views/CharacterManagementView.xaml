@@ -20,7 +20,7 @@
                      FontSize="32" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理小说中的角色信息和关系" 
+            <TextBlock Text="管理书籍中的角色信息和关系" 
                      FontSize="16" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>

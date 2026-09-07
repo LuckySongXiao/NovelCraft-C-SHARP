@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
+using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using NovelManagement.AI.Utilities;
@@ -25,13 +26,15 @@ namespace NovelManagement.AI.Agents
         /// <param name="deepSeekApiService">DeepSeek API服务</param>
         /// <param name="thinkingChainProcessor">思维链处理器</param>
         /// <param name="modelManager">模型管理器</param>
+        /// <param name="rwkvService">本地 RWKV 推理服务</param>
         public DirectorAgent(
             ILogger<DirectorAgent> logger,
             IMemoryManager memoryManager,
             IDeepSeekApiService deepSeekApiService,
             IThinkingChainProcessor thinkingChainProcessor,
-            NovelManagement.AI.Services.ModelManager modelManager)
-            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager)
+            NovelManagement.AI.Services.ModelManager modelManager,
+            IRwkvLightningService? rwkvService = null)
+            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager, rwkvService)
         {
         }
 
@@ -77,7 +80,7 @@ namespace NovelManagement.AI.Agents
                 new AgentCapability
                 {
                     Name = "主题分析",
-                    Description = "分析小说主题和核心要素",
+                    Description = "分析书籍主题和核心要素",
                     IsAvailable = true,
                     Priority = 1
                 },
@@ -313,7 +316,7 @@ namespace NovelManagement.AI.Agents
                 };
 
                 // 添加思维步骤：调用AI模型
-                AddThinkingStep("调用AI模型", "使用OLLAMA模型生成小说大纲", ThinkingStepType.Synthesis, 0.9);
+                AddThinkingStep("调用AI模型", "使用OLLAMA模型生成书籍大纲", ThinkingStepType.Synthesis, 0.9);
 
                 UpdateProgress(40);
 
@@ -329,7 +332,7 @@ namespace NovelManagement.AI.Agents
                     var outlineContent = ExtractOutlineFromAIResponse(aiResponse);
 
                     // 添加思维步骤：完成总结
-                    AddThinkingStep("完成总结", "成功生成小说大纲", ThinkingStepType.Conclusion, 0.95);
+                    AddThinkingStep("完成总结", "成功生成书籍大纲", ThinkingStepType.Conclusion, 0.95);
 
                     UpdateProgress(100);
 
@@ -659,7 +662,7 @@ namespace NovelManagement.AI.Agents
             return taskType switch
             {
                 "GenerateCharacter" => @"
-    你是一位专业的小说角色设计师，擅长根据已有设定生成完整、可直接使用的角色资料。
+    你是一位专业的书籍角色设计师，擅长根据已有设定生成完整、可直接使用的角色资料。
     请结合用户提供的角色类型、势力、境界、性格、背景和能力要求，输出自然、完整、结构清晰的角色设定。
     严禁输出思考过程、分析过程、提示词、Markdown 标题、代码块、列表符号或无关说明。
     仅按以下字段顺序输出，每个字段只输出字段名和正文：
@@ -673,8 +676,8 @@ namespace NovelManagement.AI.Agents
     关键事件：
                 ",
                 "GenerateOutline" => @"
-                    你是一位专业的小说编剧和策划专家，擅长创作各种类型的小说大纲。
-                    你的任务是根据用户提供的主题、类型和要求，创作一个完整、详细、引人入胜的小说大纲。
+                    你是一位专业的书籍编剧和策划专家，擅长创作各种类型的书籍大纲。
+                    你的任务是根据用户提供的主题、类型和要求，创作一个完整、详细、引人入胜的书籍大纲。
 
                     大纲创作要求：
                     1. 结构完整：包含开头、发展、高潮、结尾四个部分
@@ -686,7 +689,7 @@ namespace NovelManagement.AI.Agents
 
                     输出格式：
                     请按照以下结构输出大纲：
-                    【小说标题】
+                    【书籍标题】
                     【主题思想】
                     【故事梗概】
                     【主要角色】
@@ -694,7 +697,7 @@ namespace NovelManagement.AI.Agents
                     【关键情节】
                 ",
                 "AnalyzeTheme" => @"
-                    你是一位专业的文学主题分析专家，擅长深入分析小说的主题内涵。
+                    你是一位专业的文学主题分析专家，擅长深入分析书籍的主题内涵。
                     请根据用户提供的内容进行主题分析。
                 ",
                 "CreateWorldSetting" => @"
@@ -735,7 +738,7 @@ namespace NovelManagement.AI.Agents
             var mainCharacter = parameters.GetValueOrDefault("mainCharacter", "").ToString();
             var setting = parameters.GetValueOrDefault("setting", "").ToString();
 
-            var prompt = $@"请为我创作一个{novelType}类型的小说大纲：
+            var prompt = $@"请为我创作一个{novelType}类型的书籍大纲：
 
 【创作要求】
 主题：{theme}
@@ -755,7 +758,7 @@ namespace NovelManagement.AI.Agents
 5. 避免常见的俗套情节
 6. 确保逻辑合理，前后呼应
 
-请按照系统提示中的格式输出完整的小说大纲。";
+请按照系统提示中的格式输出完整的书籍大纲。";
 
             return prompt;
         }
@@ -777,7 +780,7 @@ namespace NovelManagement.AI.Agents
             var keyEvents = parameters.GetValueOrDefault("keyEvents", "").ToString();
             var existingCharacters = parameters.GetValueOrDefault("existingCharacters", "").ToString();
 
-            return $@"请生成一个适合小说项目直接使用的角色设定：
+            return $@"请生成一个适合书籍项目直接使用的角色设定：
 
 【已知信息】
 姓名：{name}

@@ -12,6 +12,7 @@ using NovelManagement.Application.Interfaces;
 using NovelManagement.Core.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NovelManagement.AI.Services.RWKV;
 
 namespace NovelManagement.WPF.Views
 {
@@ -216,6 +217,13 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
+                // 前置检查本地 RWKV 推理服务可用性，避免等待超时后报晦涩的连接错误
+                var rwkvReady = await CheckRwkvOnlineAsync();
+                if (!rwkvReady)
+                {
+                    return;
+                }
+
                 // 获取项目上下文数据
                 var contextData = await GetProjectContextDataAsync();
 
@@ -229,9 +237,14 @@ namespace NovelManagement.WPF.Views
                     ["ContinueDirection"] = ContinueDirectionTextBox.Text,
                     // 添加项目上下文数据
                     ["ProjectId"] = contextData.ProjectId,
+                    ["ProjectName"] = contextData.ProjectName,
+                    ["ProjectDescription"] = contextData.ProjectDescription,
+                    ["PromptSummary"] = contextData.PromptSummary,
                     ["PlotOutlines"] = contextData.PlotOutlines,
                     ["MainCharacters"] = contextData.MainCharacters,
-                    ["WorldSettings"] = contextData.WorldSettings
+                    ["WorldSettings"] = contextData.WorldSettings,
+                    // 指定本地 RWKV 推理（WriterAgent 按该值选择 RWKV 直连链路）
+                    ["AIModel"] = "RWKV"
                 };
 
                 // 调用AI服务进行续写
@@ -249,8 +262,8 @@ namespace NovelManagement.WPF.Views
                 }
                 else
                 {
-                    // AI服务失败，显示错误信息
-                    MessageBox.Show($"AI续写失败：{result.Message}\n\n请检查AI服务连接状态或重试。", "错误",
+                    // AI服务失败，显示友好错误信息
+                    MessageBox.Show($"AI续写失败：{BuildFriendlyAiError(result.Message)}", "错误",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -276,6 +289,63 @@ namespace NovelManagement.WPF.Views
         }
 
 
+
+        /// <summary>
+        /// 检查本地 RWKV 推理服务是否在线；离线时给出明确指引并返回 false
+        /// </summary>
+        private async Task<bool> CheckRwkvOnlineAsync()
+        {
+            try
+            {
+                var rwkvService = App.ServiceProvider?.GetService<IRwkvLightningService>();
+                if (rwkvService == null)
+                {
+                    MessageBox.Show("RWKV 推理服务未注册，请检查应用配置。", "AI服务不可用",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                // 3 秒竞速超时：服务离线时 GetStatusAsync 可能阻塞到 HttpClient 长超时（配置可达 600 秒）
+                var status = await AIPolishDialog.GetStatusWithFastTimeoutAsync(rwkvService);
+                if (status is not { Ready: true })
+                {
+                    MessageBox.Show(
+                        $"RWKV 推理服务不在线或无响应（{rwkvService.Configuration.BaseUrl}）。\n\n请到「AI模型配置」页启动 RWKV 服务后再试。",
+                        "AI服务不可用",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"检查 RWKV 推理服务状态失败：{ex.Message}", "AI服务不可用",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 将底层连接类异常转换为可操作的中文提示
+        /// </summary>
+        private static string BuildFriendlyAiError(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return "未知错误，请重试。";
+            }
+
+            if (message.Contains("An error occurred while sending", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("HttpRequestException", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("socket", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("connection", StringComparison.OrdinalIgnoreCase))
+            {
+                return "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。";
+            }
+
+            return message;
+        }
 
         /// <summary>
         /// 更新现有内容字数统计

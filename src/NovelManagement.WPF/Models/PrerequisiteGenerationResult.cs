@@ -50,6 +50,11 @@ namespace NovelManagement.WPF.Models
         /// </summary>
         public int ExistingFactionsCount { get; set; }
 
+        /// <summary>
+        /// 现有修炼体系数量
+        /// </summary>
+        public int ExistingCultivationSystemsCount { get; set; }
+
         #endregion
 
         #region 需要生成的标志
@@ -73,6 +78,11 @@ namespace NovelManagement.WPF.Models
         /// 是否需要生成势力
         /// </summary>
         public bool NeedsFactions { get; set; }
+
+        /// <summary>
+        /// 是否需要生成修炼体系
+        /// </summary>
+        public bool NeedsCultivationSystem { get; set; }
 
         #endregion
 
@@ -98,6 +108,11 @@ namespace NovelManagement.WPF.Models
         /// </summary>
         public int GeneratedFactionsCount { get; set; }
 
+        /// <summary>
+        /// 生成的修炼体系数量
+        /// </summary>
+        public int GeneratedCultivationSystemsCount { get; set; }
+
         #endregion
 
         #region 辅助属性
@@ -105,12 +120,12 @@ namespace NovelManagement.WPF.Models
         /// <summary>
         /// 是否有任何数据需要生成
         /// </summary>
-        public bool HasDataToGenerate => NeedsPlotOutlines || NeedsMainCharacters || NeedsWorldSettings || NeedsFactions;
+        public bool HasDataToGenerate => NeedsPlotOutlines || NeedsMainCharacters || NeedsWorldSettings || NeedsFactions || NeedsCultivationSystem;
 
         /// <summary>
         /// 总生成项目数量
         /// </summary>
-        public int TotalGeneratedCount => GeneratedPlotsCount + GeneratedCharactersCount + GeneratedWorldSettingsCount + GeneratedFactionsCount;
+        public int TotalGeneratedCount => GeneratedPlotsCount + GeneratedCharactersCount + GeneratedWorldSettingsCount + GeneratedFactionsCount + GeneratedCultivationSystemsCount;
 
         /// <summary>
         /// 获取生成摘要

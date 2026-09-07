@@ -89,6 +89,19 @@ public class ChapterContentSyncService
             chapterMarker,
             cancellationToken);
 
+        var matchedCharacterRelationships = await SyncCharacterRelationshipsAsync(
+            matchedCharacters,
+            summaryText,
+            chapterMarker,
+            cancellationToken);
+
+        var matchedFactionRelationships = await SyncFactionRelationshipsAsync(
+            matchedFactions,
+            matchedCharacters,
+            summaryText,
+            chapterMarker,
+            cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -124,7 +137,9 @@ public class ChapterContentSyncService
                 .Select(setting => setting.Name)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList()
+                .ToList(),
+            UpdatedCharacterRelationshipCount = matchedCharacterRelationships.Count,
+            UpdatedFactionRelationshipCount = matchedFactionRelationships.Count
         };
     }
 
@@ -214,6 +229,75 @@ public class ChapterContentSyncService
         return matchedFactions;
     }
 
+    private async Task<List<CharacterRelationship>> SyncCharacterRelationshipsAsync(
+        IReadOnlyList<Character> matchedCharacters,
+        string summaryText,
+        string chapterMarker,
+        CancellationToken cancellationToken)
+    {
+        var uniqueCharacters = matchedCharacters
+            .Where(character => character.Id != Guid.Empty)
+            .DistinctBy(character => character.Id)
+            .OrderBy(character => character.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var updatedRelationships = new List<CharacterRelationship>();
+        if (uniqueCharacters.Count < 2)
+        {
+            return updatedRelationships;
+        }
+
+        for (var i = 0; i < uniqueCharacters.Count - 1; i++)
+        {
+            for (var j = i + 1; j < uniqueCharacters.Count; j++)
+            {
+                var sourceCharacter = uniqueCharacters[i];
+                var targetCharacter = uniqueCharacters[j];
+                var relationship = await _unitOfWork.CharacterRelationships
+                    .GetByCharacterPairAsync(sourceCharacter.Id, targetCharacter.Id, cancellationToken);
+
+                if (relationship == null)
+                {
+                    relationship = new CharacterRelationship
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceCharacterId = sourceCharacter.Id,
+                        TargetCharacterId = targetCharacter.Id,
+                        RelationshipType = "同章互动",
+                        Status = "Active",
+                        RelationshipName = $"{sourceCharacter.Name}-{targetCharacter.Name}",
+                        Description = $"{chapterMarker} 中发生了新的同章互动。",
+                        DevelopmentHistory = $"{chapterMarker}：{summaryText}",
+                        KeyEvents = $"{chapterMarker}：{summaryText}",
+                        Impact = "由章节保存后的自动更新工艺同步生成",
+                        IsBidirectional = true,
+                        Importance = Math.Max(sourceCharacter.Importance, targetCharacter.Importance),
+                        Intensity = 5,
+                        StartDate = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _unitOfWork.CharacterRelationships.AddAsync(relationship, cancellationToken);
+                }
+                else
+                {
+                    relationship.Description = $"{chapterMarker} 中发生了新的同章互动。";
+                    relationship.DevelopmentHistory = AppendUniqueEntry(relationship.DevelopmentHistory, $"{chapterMarker}：{summaryText}");
+                    relationship.KeyEvents = AppendUniqueEntry(relationship.KeyEvents, $"{chapterMarker}：{summaryText}");
+                    relationship.Impact = AppendUniqueEntry(relationship.Impact, $"{chapterMarker}：关系随章节推进自动更新");
+                    relationship.Importance = Math.Max(relationship.Importance, Math.Max(sourceCharacter.Importance, targetCharacter.Importance));
+                    relationship.Intensity = Math.Min(10, Math.Max(relationship.Intensity, 5));
+                    relationship.UpdatedAt = DateTime.UtcNow;
+                }
+
+                updatedRelationships.Add(relationship);
+            }
+        }
+
+        return updatedRelationships;
+    }
+
     private async Task<List<Plot>> SyncPlotsAsync(
         Guid projectId,
         Chapter chapter,
@@ -299,6 +383,79 @@ public class ChapterContentSyncService
         }
 
         return matchedSettings;
+    }
+
+    private async Task<List<FactionRelationship>> SyncFactionRelationshipsAsync(
+        IReadOnlyList<Faction> matchedFactions,
+        IReadOnlyList<Character> matchedCharacters,
+        string summaryText,
+        string chapterMarker,
+        CancellationToken cancellationToken)
+    {
+        var chapterFactions = matchedFactions
+            .Concat(matchedCharacters
+                .Where(character => character.FactionId.HasValue && character.Faction != null)
+                .Select(character => character.Faction!))
+            .Where(faction => faction.Id != Guid.Empty)
+            .DistinctBy(faction => faction.Id)
+            .OrderBy(faction => faction.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var updatedRelationships = new List<FactionRelationship>();
+        if (chapterFactions.Count < 2)
+        {
+            return updatedRelationships;
+        }
+
+        for (var i = 0; i < chapterFactions.Count - 1; i++)
+        {
+            for (var j = i + 1; j < chapterFactions.Count; j++)
+            {
+                var sourceFaction = chapterFactions[i];
+                var targetFaction = chapterFactions[j];
+                var relationship = await _unitOfWork.FactionRelationships
+                    .GetByFactionPairAsync(sourceFaction.Id, targetFaction.Id, cancellationToken);
+
+                if (relationship == null)
+                {
+                    relationship = new FactionRelationship
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceFactionId = sourceFaction.Id,
+                        TargetFactionId = targetFaction.Id,
+                        RelationshipType = "章节互动",
+                        Status = "Active",
+                        RelationshipName = $"{sourceFaction.Name}-{targetFaction.Name}",
+                        Description = $"{chapterMarker} 中两方产生了新的章节关联。",
+                        DevelopmentHistory = $"{chapterMarker}：{summaryText}",
+                        KeyEvents = $"{chapterMarker}：{summaryText}",
+                        Impact = "由章节保存后的自动更新工艺同步生成",
+                        IsBidirectional = true,
+                        Importance = Math.Max(sourceFaction.Importance, targetFaction.Importance),
+                        Intensity = 5,
+                        StartDate = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _unitOfWork.FactionRelationships.AddAsync(relationship, cancellationToken);
+                }
+                else
+                {
+                    relationship.Description = $"{chapterMarker} 中两方产生了新的章节关联。";
+                    relationship.DevelopmentHistory = AppendUniqueEntry(relationship.DevelopmentHistory, $"{chapterMarker}：{summaryText}");
+                    relationship.KeyEvents = AppendUniqueEntry(relationship.KeyEvents, $"{chapterMarker}：{summaryText}");
+                    relationship.Impact = AppendUniqueEntry(relationship.Impact, $"{chapterMarker}：势力关系随章节推进自动更新");
+                    relationship.Importance = Math.Max(relationship.Importance, Math.Max(sourceFaction.Importance, targetFaction.Importance));
+                    relationship.Intensity = Math.Min(10, Math.Max(relationship.Intensity, 5));
+                    relationship.UpdatedAt = DateTime.UtcNow;
+                }
+
+                updatedRelationships.Add(relationship);
+            }
+        }
+
+        return updatedRelationships;
     }
 
     private static bool IsCharacterMatched(Character character, string context, IReadOnlySet<string> characterHints)
@@ -424,4 +581,8 @@ public sealed class ChapterContentSyncResult
     public int UpdatedWorldSettingCount { get; init; }
 
     public IReadOnlyList<string> UpdatedWorldSettingNames { get; init; } = [];
+
+    public int UpdatedCharacterRelationshipCount { get; init; }
+
+    public int UpdatedFactionRelationshipCount { get; init; }
 }

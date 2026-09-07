@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using NovelManagement.WPF.Views;
 using NovelManagement.WPF.Services;
+using NovelManagement.WPF.Services.Copilot;
 using NovelManagement.Infrastructure.Data;
 using NovelManagement.Infrastructure.Repositories;
 using NovelManagement.Application.Services;
@@ -31,6 +32,7 @@ using NovelManagement.AI.Services;
 using NovelManagement.AI.Services.Ollama;
 using NovelManagement.AI.Services.DeepSeek;
 using NovelManagement.AI.Services.ThinkingChain;
+using NovelManagement.AI.Services.RWKV;
 
 namespace NovelManagement.WPF;
 
@@ -128,6 +130,16 @@ public partial class App : System.Windows.Application
             // 获取主窗口并显示
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // 主题皮肤：启动时应用用户所选皮肤（auto 表示按系统本地时间自动切换 19:00–07:00 黑夜），并每 30 分钟复查
+            ThemeManager.Initialize(Log.ForContext("SourceContext", "ThemeManager"));
+            ThemeManager.ApplyStartupTheme();
+            var themeTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(30)
+            };
+            themeTimer.Tick += (_, _) => ThemeManager.ApplyByTime();
+            themeTimer.Start();
 
             Log.Information("应用程序启动成功");
             base.OnStartup(e);
@@ -296,6 +308,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<CurrentProjectGuard>();
                 services.AddSingleton<NavigationService>();
                 services.AddSingleton<ChapterContentSyncNotificationService>();
+                services.AddScoped<ChapterUpdateWorkflowService>();
                 services.AddSingleton<ProjectCatalogService>();
                 services.AddSingleton<DatabaseMaintenanceService>();
                 services.AddSingleton<StartupConfigurationValidationService>();
@@ -315,6 +328,7 @@ public partial class App : System.Windows.Application
             services.AddScoped<TimelineDataService>();
             services.AddScoped<ProjectReadModelService>();
             services.AddScoped<ProjectStatisticsService>();
+            services.AddScoped<ProjectHealthCheckService>();
                 services.AddSingleton<AIServiceStatusChecker>();
                 services.AddTransient<PrerequisiteGenerationService>();
                 services.AddTransient<ProjectContextAssembler>();
@@ -527,6 +541,8 @@ public partial class App : System.Windows.Application
         services.AddScoped<SecretRealmService>();
         services.AddScoped<RelationshipNetworkService>();
         services.AddScoped<CultivationSystemService>();
+        services.AddScoped<ICultivationSystemService>(provider => provider.GetRequiredService<CultivationSystemService>());
+        services.AddScoped<CultivationLevelBackfillService>();
         services.AddScoped<PoliticalSystemService>();
         services.AddScoped<CurrencySystemService>();
         services.AddScoped<WorldSettingService>();
@@ -672,11 +688,12 @@ public partial class App : System.Windows.Application
                     }
                     else if (string.Equals(providerKey, "RWKV", StringComparison.OrdinalIgnoreCase))
                     {
-                        providerConfig.BaseUrl = $"{(providerSection["BaseUrl"] ?? "http://localhost:8000").TrimEnd('/')}/openai/v1";
+                        var rwkvBaseUrl = (providerSection["BaseUrl"] ?? "http://localhost:8000").TrimEnd('/');
+                        providerConfig.BaseUrl = $"{rwkvBaseUrl}/openai/v1";
                         providerConfig.DefaultModel = providerSection["DefaultModel"]
                             ?? providerSection["ModelName"]
                             ?? Path.GetFileNameWithoutExtension(providerSection["ModelPath"] ?? string.Empty)
-                            ?? "rwkv7";
+                            ?? "rwkv7-g1i";
                     }
                     else if (string.Equals(providerKey, "LlamaCpp", StringComparison.OrdinalIgnoreCase))
                     {
@@ -720,7 +737,33 @@ public partial class App : System.Windows.Application
                 RegisterOpenAiCompatibleProvider("DeepSeek", "DeepSeek");
                 RegisterOpenAiCompatibleProvider("XiaoMiMiMo", "小米米模");
                 RegisterOpenAiCompatibleProvider("LlamaCpp", "llama.cpp");
-                RegisterOpenAiCompatibleProvider("RWKV", "RWKV");
+
+                // RWKV 走原生路由适配器：此 CUDA 构建没有 /openai/v1 兼容路由（404），
+                // 不能注册为 OpenAICompatibleProvider，改为包装 IRwkvLightningService。
+                var rwkvLightningService = serviceProvider.GetService<IRwkvLightningService>();
+                if (rwkvLightningService != null)
+                {
+                    var rwkvProviderLogger = loggerFactory.CreateLogger<RwkvModelProvider>();
+                    var rwkvProvider = new RwkvModelProvider(rwkvProviderLogger, rwkvLightningService);
+                    modelManager.RegisterProvider(rwkvProvider);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // RWKV 服务自身有异步初始化任务，这里延迟片刻再做连通确认
+                            await Task.Delay(3000);
+                            var testResult = await rwkvProvider.TestConnectionAsync();
+                            if (testResult.IsSuccess)
+                                logger.LogInformation("RWKV 模型提供者连接成功");
+                            else
+                                logger.LogWarning("RWKV 模型提供者暂不可用: {Error}", testResult.ErrorMessage);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "初始化 RWKV 模型提供者异常");
+                        }
+                    });
+                }
 
                 // 按配置设置默认提供者；若配置项未注册，则回退到当前可解析的可用提供者。
                 var configuredDefaultProvider = configuration["AI:DefaultProvider"];
@@ -764,10 +807,19 @@ public partial class App : System.Windows.Application
             services.AddSingleton<InferenceRuntimeCoordinator>();
             services.AddSingleton<ProjectArchiveService>();
             services.AddScoped<IAIAgentRoleWorkflowService, AIAgentRoleWorkflowService>();
+            services.AddSingleton<IOneClickNovelGenerationService, OneClickNovelGenerationService>();
+            services.AddSingleton<IFullNovelBatchGenerationService, FullNovelBatchGenerationService>();
+            // 章节命名 Agent：卷宗管理视图主动扫描默认命名的章节并生成主题标题
+            services.AddSingleton<ChapterNamingAgent>();
 
             // 确保AI助手服务正确注册
             services.AddScoped<AIAssistantService>();
             services.AddScoped<IAIAssistantService>(provider => provider.GetRequiredService<AIAssistantService>());
+
+            // AI 创作助手（对话式创作流水线）：Singleton 直注 Scoped 实体服务，对齐 FullNovelBatchGenerationService 先例
+            services.AddSingleton<CopilotIntentService>();
+            services.AddSingleton<CreationPipelineService>();
+            services.AddSingleton<CopilotSessionService>();
 
 
         }

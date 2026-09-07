@@ -44,7 +44,7 @@
                      FontSize="32" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理您的小说创作项目" 
+            <TextBlock Text="管理您的书籍创作项目" 
                      FontSize="16" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>

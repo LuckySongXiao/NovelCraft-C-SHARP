@@ -49,6 +49,7 @@ namespace NovelManagement.WPF.Views
         private readonly TreasureDataService? _treasureDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -91,6 +92,7 @@ namespace NovelManagement.WPF.Views
                 _treasureDataService = serviceProvider?.GetService<TreasureDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -622,6 +624,17 @@ namespace NovelManagement.WPF.Views
             return context;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "灵宝体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateTreasureWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -630,13 +643,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedTreasure != null ? $"优化灵宝：{SelectedTreasure.Name}" : "生成灵宝体系条目",
-                ["theme"] = "请生成一个适合小说项目使用的灵宝设定，并输出名称、类型、品级、灵性、描述、灵力、属性、特殊能力、使用限制、炼制材料、炼制方法、炼制难度。",
-                ["requirements"] = optimizeCurrent && SelectedTreasure != null
+                ["theme"] = "请生成一个适合书籍项目使用的灵宝设定，并输出名称、类型、品级、灵性、描述、灵力、属性、特殊能力、使用限制、炼制材料、炼制方法、炼制难度。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedTreasure != null
                     ? $"请基于当前灵宝进行优化并输出结构化文本。当前灵宝：{SelectedTreasure.Name}，类型：{SelectedTreasure.Type}，品级：{SelectedTreasure.Grade}，灵性：{SelectedTreasure.SpiritLevel}，描述：{SelectedTreasure.Description}"
-                    : "请输出一个完整灵宝设定，至少包含名称、类型、品级、灵性、描述、灵力、属性、特殊能力、使用限制、炼制材料、炼制方法、炼制难度。",
+                    : "请输出一个完整灵宝设定，至少包含名称、类型、品级、灵性、描述、灵力、属性、特殊能力、使用限制、炼制材料、炼制方法、炼制难度。"),
                 ["context"] = GetCurrentContext()
             };
 

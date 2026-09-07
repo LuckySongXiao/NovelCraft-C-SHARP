@@ -32,6 +32,7 @@ namespace NovelManagement.AI.Utilities
             content = TryExtractFromJson(content, preferredJsonKeys);
             content = UnescapeCommonSequences(content);
             content = StripThinkingBlocks(content);
+            content = StripPolitenessPreamble(content);
 
             return content.Trim();
         }
@@ -154,6 +155,34 @@ namespace NovelManagement.AI.Utilities
             var sanitized = Regex.Replace(content, @"<think>[\s\S]*?</think>", string.Empty, RegexOptions.IgnoreCase);
             sanitized = Regex.Replace(sanitized, @"<thinking>[\s\S]*?</thinking>", string.Empty, RegexOptions.IgnoreCase);
             return sanitized;
+        }
+
+        /// <summary>
+        /// 去掉小模型常见的客套前缀（如“好的，遵照您的指示，以下是……”），
+        /// 仅当首行命中模式且后续仍有正文时才移除，避免误删正文。
+        /// </summary>
+        private static string StripPolitenessPreamble(string content)
+        {
+            var newlineIndex = content.IndexOf('\n');
+            var firstLine = (newlineIndex >= 0 ? content[..newlineIndex] : content).Trim();
+            if (firstLine.Length == 0 || firstLine.Length > 120)
+            {
+                return content;
+            }
+
+            var isPoliteness = Regex.IsMatch(
+                firstLine,
+                @"^(好的|当然|没问题|明白了|收到|遵照|根据您|以下)",
+                RegexOptions.IgnoreCase);
+            var mentionsDelivery = firstLine.Contains("以下是") || firstLine.Contains("为您") || firstLine.Contains("遵照");
+
+            if (!isPoliteness || !mentionsDelivery)
+            {
+                return content;
+            }
+
+            var remainder = newlineIndex >= 0 ? content[(newlineIndex + 1)..].Trim() : string.Empty;
+            return string.IsNullOrWhiteSpace(remainder) ? content : remainder;
         }
     }
 }

@@ -106,6 +106,11 @@ public interface IUnitOfWork : IDisposable
     ICurrencySystemRepository CurrencySystems { get; }
 
     /// <summary>
+    /// 时间线事件仓储
+    /// </summary>
+    ITimelineEventRepository TimelineEvents { get; }
+
+    /// <summary>
     /// 保存更改
     /// </summary>
     /// <param name="cancellationToken">取消令牌</param>

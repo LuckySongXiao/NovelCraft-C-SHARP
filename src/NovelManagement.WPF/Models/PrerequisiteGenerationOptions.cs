@@ -28,6 +28,11 @@ namespace NovelManagement.WPF.Models
         public bool GenerateFactions { get; set; } = true;
 
         /// <summary>
+        /// 是否生成修炼体系（AI 自上而下设计自定义等级体系）
+        /// </summary>
+        public bool GenerateCultivationSystem { get; set; } = true;
+
+        /// <summary>
         /// 是否使用AI智能生成
         /// </summary>
         public bool UseAIGeneration { get; set; } = false;
@@ -38,7 +43,7 @@ namespace NovelManagement.WPF.Models
         public string AIPrompt { get; set; } = string.Empty;
 
         /// <summary>
-        /// 小说类型/风格
+        /// 书籍类型/风格
         /// </summary>
         public string NovelGenre { get; set; } = "修仙";
 

@@ -1,7 +1,7 @@
 namespace NovelManagement.Core.Exceptions;
 
 /// <summary>
-/// 小说管理系统基础异常类
+/// 书籍管理系统基础异常类
 /// </summary>
 public class NovelManagementException : Exception
 {

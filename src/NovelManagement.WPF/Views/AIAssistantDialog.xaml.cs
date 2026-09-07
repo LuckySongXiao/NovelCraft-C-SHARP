@@ -256,6 +256,24 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private async Task<string> GetAIResponseAsync(string userMessage)
         {
+            // 本地 RWKV 真实推理优先：无需外部 Provider 即可使用 AI 助手
+            var rwkvService = App.ServiceProvider?.GetService(typeof(NovelManagement.AI.Services.RWKV.IRwkvLightningService)) as NovelManagement.AI.Services.RWKV.IRwkvLightningService;
+            if (rwkvService != null && rwkvService.IsAvailable)
+            {
+                var rwkvPrompt =
+                    "User: " + BuildAssistantSystemPrompt() + "\n" +
+                    "用户问题：" + userMessage + "\n" +
+                    "请直接给出干净、可执行的中文答复，不要解释思考过程。\n\n" +
+                    "Assistant: <think></think\n";
+                var rwkvResponse = await rwkvService.CompleteAsync(rwkvPrompt, 800);
+                if (rwkvResponse.Success && !string.IsNullOrWhiteSpace(rwkvResponse.Text))
+                {
+                    return rwkvResponse.Text.Trim();
+                }
+
+                _logger?.LogWarning("RWKV 推理失败，回退外部 Provider: {Error}", rwkvResponse.Error);
+            }
+
             if (_modelManager == null)
             {
                 throw new InvalidOperationException("AI 模型管理器未初始化。");
@@ -309,7 +327,7 @@ namespace NovelManagement.WPF.Views
                 : _contextInfo;
 
             return
-                "你是小说设定管理助手，负责帮助用户生成设定、分析设定、优化设定和做一致性检查。" +
+                "你是书籍设定管理助手，负责帮助用户生成设定、分析设定、优化设定和做一致性检查。" +
                 "允许内部 thinking，但最终输出必须是干净、直接、可执行的中文答复，不要暴露思考过程。" +
                 $"{Environment.NewLine}{Environment.NewLine}当前上下文：{Environment.NewLine}{contextBlock}";
         }

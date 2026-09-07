@@ -1,0 +1,219 @@
+<UserControl x:Class="NovelManagement.WPF.Views.ProjectHealthCheckView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+             TextElement.FontWeight="Regular"
+             TextElement.FontSize="13"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="Auto"
+             Background="{DynamicResource MaterialDesignPaper}"
+             FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题与操作区 -->
+        <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ClipboardPulseOutline"
+                                                 Width="28" Height="28"
+                                                 VerticalAlignment="Center"
+                                                 Foreground="#D32F2F"/>
+                        <TextBlock Text="项目体检报告"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   Margin="8,0,0,0"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ProjectInfoText"
+                               Text="请先选择项目"
+                               FontSize="13"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ConsistencyCheckButton"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="ConsistencyCheckButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="LinkVariant" Margin="0,0,4,0"/>
+                            <TextBlock Text="一致性检查"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="QualityCheckButton"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="QualityCheckButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="StarCheckOutline" Margin="0,0,4,0"/>
+                            <TextBlock Text="质量检查"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="FullCheckButton"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,8,0"
+                            Click="FullCheckButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="0,0,4,0"/>
+                            <TextBlock Text="全部检查"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ReCheckButton"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Click="ReCheckButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
+                            <TextBlock Text="复检"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 汇总统计 -->
+        <materialDesign:Card Grid.Row="1" Padding="12,8" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="ErrorCountText" Text="错误 0" FontWeight="Bold" Foreground="#D32F2F" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="WarningCountText" Text="警告 0" FontWeight="Bold" Foreground="#F57C00" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="InfoCountText" Text="提示 0" FontWeight="Bold" Foreground="#1976D2" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="LastCheckTimeText" Text="尚未检查" Foreground="{DynamicResource MaterialDesignBodyLight}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </materialDesign:Card>
+
+        <!-- 报告主体：问题列表 + 详情 -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <materialDesign:Card Grid.Row="0" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="8,4,8,8">
+                        <TextBlock Text="检查结果（已按严重级别排序）"
+                                   FontSize="15"
+                                   FontWeight="Medium"
+                                   DockPanel.Dock="Left"/>
+                        <TextBlock x:Name="IssueCountText"
+                                   Text="0 个问题"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                   DockPanel.Dock="Right"
+                                   HorizontalAlignment="Right"/>
+                    </DockPanel>
+
+                    <ListView x:Name="IssuesList"
+                              Grid.Row="1"
+                              SelectionChanged="IssuesList_SelectionChanged"
+                              MouseDoubleClick="IssuesList_MouseDoubleClick">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource MaterialDesignGridViewItem}"/>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="级别" Width="70">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Severity}" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="错误">
+                                                                <Setter Property="Foreground" Value="#D32F2F"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="警告">
+                                                                <Setter Property="Foreground" Value="#F57C00"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Severity}" Value="提示">
+                                                                <Setter Property="Foreground" Value="#1976D2"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="分类" Width="110"
+                                                DisplayMemberBinding="{Binding Category}"/>
+                                <GridViewColumn Header="问题描述" Width="420">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Description}" TextWrapping="Wrap"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="目标" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding TargetType}"
+                                                           Margin="0,0,4,0"
+                                                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                                <TextBlock Text="{Binding TargetName}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </materialDesign:Card>
+
+            <materialDesign:Card Grid.Row="2" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="IssueDetailPanel">
+                            <TextBlock Text="选择上方问题查看详情与修复建议"
+                                       FontStyle="Italic"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,8,0,0">
+                        <Button x:Name="JumpButton"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                IsEnabled="False"
+                                Click="JumpButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ArrowTopRight" Margin="0,0,4,0"/>
+                                <TextBlock Text="跳转定位到相关页面"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

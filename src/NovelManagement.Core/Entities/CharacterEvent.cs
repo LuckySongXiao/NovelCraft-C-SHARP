@@ -35,7 +35,7 @@ public class CharacterEvent : BaseEntity
     public string EventType { get; set; } = "其他";
 
     /// <summary>
-    /// 事件发生时间（小说世界内的时间描述，如"修炼第三年"）
+    /// 事件发生时间（书籍世界内的时间描述，如"修炼第三年"）
     /// </summary>
     [MaxLength(200)]
     public string? StoryTime { get; set; }

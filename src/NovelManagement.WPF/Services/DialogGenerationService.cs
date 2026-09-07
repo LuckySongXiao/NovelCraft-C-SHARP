@@ -15,6 +15,7 @@ namespace NovelManagement.WPF.Services
         private readonly ILogger<DialogGenerationService>? _logger;
         private readonly AICacheService _cacheService;
         private readonly AIAssistantService? _aiAssistantService;
+        private readonly NovelManagement.AI.Extensions.IAgentFactory? _agentFactory;
 
         /// <summary>
         /// 对话生成结果
@@ -48,6 +49,8 @@ namespace NovelManagement.WPF.Services
             _cacheService = cacheService ?? new AICacheService(cacheLogger);
             // 获取AI助手服务（可选，用于真实AI生成）
             _aiAssistantService = App.ServiceProvider?.GetService(typeof(AIAssistantService)) as AIAssistantService;
+            // Agent 工厂（可选）：对话生成直连 EditorAgent 单次推理，绕开双代理工作流
+            _agentFactory = App.ServiceProvider?.GetService(typeof(NovelManagement.AI.Extensions.IAgentFactory)) as NovelManagement.AI.Extensions.IAgentFactory;
         }
 
         #endregion
@@ -94,15 +97,59 @@ namespace NovelManagement.WPF.Services
                 {
                     try
                     {
+                        // EditorAgent.BuildPolishTextPrompt 以 OriginalContent 为待处理文本，
+                        // 对话生成需把需求要素组合成完整指令，否则模型只会回“原始文本未提供”
+                        var dialogueInstruction = $@"请为以下场景生成一段角色对话：
+
+【角色】
+{characters}
+
+【角色关系】
+{(string.IsNullOrWhiteSpace(relationship) ? "未指定" : relationship)}
+
+【情境】
+{situation}
+
+【对话目的】
+{(string.IsNullOrWhiteSpace(purpose) ? "推进剧情" : purpose)}
+
+【情感基调】
+{(string.IsNullOrWhiteSpace(emotion) ? "自然" : emotion)}
+
+【输出要求】
+1. 对话风格：{(string.IsNullOrWhiteSpace(style) ? "自然流畅" : style)}
+2. 对话轮数：约 {length} 轮
+3. 每条对话使用「角色名：""对话内容""」格式，逐行输出
+4. 只输出对话内容，不要解释或旁白说明
+
+请直接输出对话内容：";
                         var aiParameters = new Dictionary<string, object>(parameters)
                         {
-                            ["taskType"] = "GenerateDialogue"
+                            ["taskType"] = "GenerateDialogue",
+                            ["OriginalContent"] = dialogueInstruction,
+                            ["TargetStyle"] = string.IsNullOrWhiteSpace(style) ? "自然流畅" : style
                         };
-                        var aiResult = await _aiAssistantService.PolishTextAsync(aiParameters);
-                        if (aiResult.IsSuccess && aiResult.Data is string aiText && !string.IsNullOrWhiteSpace(aiText))
+
+                        // 优先直连 EditorAgent 单次推理（双代理工作流的多段提示对当前模型
+                        // 输出质量差，易产出「SubAgent 最终输出：```」等残留）
+                        if (_agentFactory != null)
                         {
-                            aiGeneratedContent = aiText;
-                            _logger?.LogInformation("AI服务对话生成成功");
+                            var editorAgent = _agentFactory.CreateAgent<NovelManagement.AI.Agents.EditorAgent>();
+                            var agentResult = await editorAgent.ExecuteAsync("PolishText", aiParameters);
+                            if (agentResult.IsSuccess && agentResult.Data is string agentText && !string.IsNullOrWhiteSpace(agentText))
+                            {
+                                aiGeneratedContent = agentText;
+                                _logger?.LogInformation("EditorAgent 对话生成成功");
+                            }
+                        }
+                        else
+                        {
+                            var aiResult = await _aiAssistantService.PolishTextAsync(aiParameters);
+                            if (aiResult.IsSuccess && aiResult.Data is string aiText && !string.IsNullOrWhiteSpace(aiText))
+                            {
+                                aiGeneratedContent = aiText;
+                                _logger?.LogInformation("AI服务对话生成成功");
+                            }
                         }
                     }
                     catch (Exception ex)

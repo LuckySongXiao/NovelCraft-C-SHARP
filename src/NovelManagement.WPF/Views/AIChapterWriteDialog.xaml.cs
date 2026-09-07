@@ -375,6 +375,9 @@ namespace NovelManagement.WPF.Views
                     ["QuickMode"] = useQuickMode,
                     // 添加项目上下文数据
                     ["ProjectId"] = contextData.ProjectId,
+                    ["ProjectName"] = contextData.ProjectName,
+                    ["ProjectDescription"] = contextData.ProjectDescription,
+                    ["PromptSummary"] = contextData.PromptSummary,
                     ["PlotOutlines"] = contextData.PlotOutlines,
                     ["MainCharacters"] = contextData.MainCharacters,
                     ["WorldSettings"] = contextData.WorldSettings
@@ -497,7 +500,7 @@ namespace NovelManagement.WPF.Views
             var characters = parameters.GetValueOrDefault("Characters", "")?.ToString() ?? "";
             var requirements = parameters.GetValueOrDefault("SpecialRequirements", "")?.ToString() ?? "";
 
-            return $@"请根据以下要求创作一个{style}风格的小说章节：
+            return $@"请根据以下要求创作一个{style}风格的书籍章节：
 
 章节标题：{title}
 章节类型：{type}

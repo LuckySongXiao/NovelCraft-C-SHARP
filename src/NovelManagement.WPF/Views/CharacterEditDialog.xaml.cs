@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.Application.Interfaces;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Services;
 
@@ -19,6 +20,8 @@ namespace NovelManagement.WPF.Views
     public partial class CharacterEditDialog : Window
     {
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly ProjectContextService? _projectContextService;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private CharacterFormSnapshot _initialSnapshot = CharacterFormSnapshot.Empty;
 
         /// <summary>
@@ -48,6 +51,8 @@ namespace NovelManagement.WPF.Views
         {
             InitializeComponent();
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             IsNewCharacter = true;
             Character = new Character();
             Title = "新建角色";
@@ -63,6 +68,8 @@ namespace NovelManagement.WPF.Views
         {
             InitializeComponent();
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             IsNewCharacter = false;
             Character = new Character
             {
@@ -111,12 +118,70 @@ namespace NovelManagement.WPF.Views
             // 设置默认选中项
             if (TypeComboBox.Items.Count > 0)
                 TypeComboBox.SelectedIndex = 0;
-            
+
             if (FactionComboBox.Items.Count > 0)
                 FactionComboBox.SelectedIndex = 0;
-                
+
             if (CultivationLevelComboBox.Items.Count > 0)
                 CultivationLevelComboBox.SelectedIndex = 0;
+
+            // 异步加载项目自定义修炼体系的等级，替换预设修为等级选项
+            Loaded += async (_, _) => await LoadProjectCultivationLevelsAsync();
+        }
+
+        /// <summary>
+        /// 加载项目自定义修炼体系的等级填充修为等级下拉框（无体系时保留默认预设项）
+        /// </summary>
+        private bool _cultivationLevelsLoaded;
+
+        private async Task LoadProjectCultivationLevelsAsync()
+        {
+            if (_cultivationLevelsLoaded) return;
+            _cultivationLevelsLoaded = true;
+
+            try
+            {
+                var cultivationService = App.ServiceProvider?.GetService<ICultivationSystemService>();
+                if (cultivationService == null) return;
+
+                var projectId = Character.ProjectId != Guid.Empty
+                    ? Character.ProjectId
+                    : _projectContextService?.CurrentProjectId ?? Guid.Empty;
+                if (projectId == Guid.Empty) return;
+
+                var systems = await cultivationService.GetAllAsync(projectId);
+                var first = systems.FirstOrDefault();
+                if (first == null) return;
+
+                var withLevels = await cultivationService.GetWithLevelsAsync(first.Id);
+                var levels = (withLevels?.Levels ?? first.Levels)
+                    .OrderBy(l => l.OrderIndex)
+                    .ToList();
+                if (levels.Count == 0) return;
+
+                var currentValue = GetComboBoxValue(CultivationLevelComboBox);
+
+                CultivationLevelComboBox.Items.Clear();
+                foreach (var level in levels)
+                {
+                    CultivationLevelComboBox.Items.Add(new ComboBoxItem { Content = level.Name });
+                }
+
+                // 恢复选中：编辑模式匹配角色原修为；新建模式默认选最低阶
+                SetComboBoxSelection(CultivationLevelComboBox, Character.CultivationLevel);
+                if (CultivationLevelComboBox.SelectedIndex < 0 && !string.IsNullOrWhiteSpace(currentValue))
+                {
+                    SetComboBoxSelection(CultivationLevelComboBox, currentValue);
+                }
+                if (CultivationLevelComboBox.SelectedIndex < 0 && CultivationLevelComboBox.Items.Count > 0)
+                {
+                    CultivationLevelComboBox.SelectedIndex = 0;
+                }
+            }
+            catch (Exception)
+            {
+                // 加载失败时保留 XAML 中的默认预设项，不影响表单使用
+            }
         }
 
         /// <summary>
@@ -353,6 +418,21 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// AI 自动补全角色信息。
         /// </summary>
+        private async Task<string> BuildCharacterConstraintsAsync()
+        {
+            var projectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_projectReadModelService == null || projectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(
+                projectId,
+                "角色",
+                "只能生成角色相关内容，不得输出世界设定条目、剧情大纲或正文片段。");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async void AutoFillWithAI_Click(object sender, RoutedEventArgs e)
         {
             if (_aiAssistantService == null)
@@ -369,8 +449,10 @@ namespace NovelManagement.WPF.Views
 
             try
             {
+                var characterConstraints = await BuildCharacterConstraintsAsync();
                 var parameters = new Dictionary<string, object>
                 {
+                    ["requirements"] = characterConstraints,
                     ["characterType"] = GetComboBoxValue(TypeComboBox),
                     ["faction"] = GetComboBoxValue(FactionComboBox),
                     ["cultivationLevel"] = GetComboBoxValue(CultivationLevelComboBox),

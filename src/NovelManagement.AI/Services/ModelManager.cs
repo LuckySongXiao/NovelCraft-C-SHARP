@@ -528,11 +528,12 @@ namespace NovelManagement.AI.Services
                         }
                         else if (string.Equals(providerName, "RWKV", StringComparison.OrdinalIgnoreCase))
                         {
-                            config.BaseUrl = $"{(providerSection["BaseUrl"] ?? "http://localhost:8000").TrimEnd('/')}/openai/v1";
+                            var rwkvBaseUrl = (providerSection["BaseUrl"] ?? "http://localhost:8000").TrimEnd('/');
+                            config.BaseUrl = $"{rwkvBaseUrl}/openai/v1";
                             config.DefaultModel = providerSection["DefaultModel"]
                                 ?? providerSection["ModelName"]
                                 ?? Path.GetFileNameWithoutExtension(providerSection["ModelPath"] ?? string.Empty)
-                                ?? "rwkv7";
+                                ?? "rwkv7-g1i";
                         }
                         else if (string.Equals(providerName, "LlamaCpp", StringComparison.OrdinalIgnoreCase))
                         {

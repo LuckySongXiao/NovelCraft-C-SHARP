@@ -1,8 +1,16 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using MaterialDesignThemes.Wpf;
 using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.Application.Services;
 using NovelManagement.WPF.Events;
 using NovelManagement.WPF.Services;
+using NovelManagement.WPF.Services.Copilot;
+using NovelManagement.WPF.Views.Copilot;
 
 namespace NovelManagement.WPF.Views;
 
@@ -18,6 +26,16 @@ public partial class MainWindow : Window
     private RelationshipNetworkView? _relationshipNetworkView;
     private readonly NavigationService? _navigationService;
     private readonly ProjectContextService? _projectContextService;
+    private readonly ProjectCatalogService? _projectCatalogService;
+    private readonly ObservableCollection<ProjectNavMenuItem> _projectMenuItems = new();
+    private readonly ObservableCollection<RecentActivityItem> _recentActivities = new();
+    private readonly System.Windows.Threading.DispatcherTimer? _recentActivityTimer;
+    private bool _sidebarStateLoaded;
+    private bool _copilotOpen;
+
+    /// <summary>侧栏展开状态持久化文件路径（exe 旁，与 theme_settings.json 同目录）。</summary>
+    private static string SidebarStatePath =>
+        System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sidebar_state.json");
 
     #endregion
 
@@ -30,6 +48,7 @@ public partial class MainWindow : Window
 
         _navigationService = App.ServiceProvider?.GetService<NavigationService>();
         _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+        _projectCatalogService = App.ServiceProvider?.GetService<ProjectCatalogService>();
         _navigationService?.Configure(CreateNavigationRequest, RenderNavigationView);
         if (_navigationService != null)
         {
@@ -40,8 +59,42 @@ public partial class MainWindow : Window
             _projectContextService.ProjectChanged += OnProjectChanged;
         }
 
+        // 动态项目导航列表
+        ProjectMenuItemsControl.ItemsSource = _projectMenuItems;
+        _ = LoadProjectMenuAsync();
+
+        // 最近活动：真实项目更新动态（启动加载 + 每分钟自动刷新）
+        RecentActivitiesControl.ItemsSource = _recentActivities;
+        _ = LoadRecentActivitiesAsync();
+        _recentActivityTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        _recentActivityTimer.Tick += (_, _) =>
+        {
+            _ = LoadRecentActivitiesAsync();
+            StatusBarTimeText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        };
+        _recentActivityTimer.Start();
+        StatusBarTimeText.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
         // 订阅窗口关闭事件
         this.Closing += MainWindow_Closing;
+
+        // AI 创作助手：接线导航回调与项目上下文（会话服务为 Singleton，消息流跨页面存活）
+        var copilotSession = App.ServiceProvider?.GetService<CopilotSessionService>();
+        if (copilotSession != null)
+        {
+            copilotSession.NavigationRequested = (target, context) => _navigationService?.NavigateTo(target, context);
+            if (_projectContextService?.HasCurrentProject == true)
+            {
+                copilotSession.OpenForProject(
+                    _projectContextService.CurrentProjectId!.Value,
+                    _projectContextService.CurrentProjectName ?? string.Empty);
+            }
+        }
+        CopilotDrawer.CloseRequested += (_, _) => SetCopilotPanelOpen(false);
+
+        // 窗口加载后恢复侧栏固定组展开状态（项目组经菜单项属性由绑定恢复）
+        Loaded += (_, _) => RestoreFixedGroupState();
+
         UpdateNavigationDisplay();
     }
 
@@ -52,6 +105,8 @@ public partial class MainWindow : Window
     {
         try
         {
+            _recentActivityTimer?.Stop();
+
             if (_projectContextService != null)
             {
                 _projectContextService.ProjectChanged -= OnProjectChanged;
@@ -386,22 +441,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void QualityCheck_Click(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            var result = MessageBox.Show("开始进行项目质量检查？\n这将检查角色一致性、剧情逻辑等问题。",
-                "质量检查", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                // 模拟质量检查过程
-                MessageBox.Show("质量检查完成！\n发现问题：\n- 角色张三在第3章和第5章的描述不一致\n- 时间线存在逻辑错误\n\n详细报告已生成。",
-                    "检查结果", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"质量检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        ShowQualityCheck();
     }
 
     /// <summary>
@@ -409,21 +449,38 @@ public partial class MainWindow : Window
     /// </summary>
     private void ConsistencyCheck_Click(object sender, RoutedEventArgs e)
     {
+        ShowConsistencyCheck();
+    }
+
+    public void ShowQualityCheck()
+    {
         try
         {
-            var result = MessageBox.Show("开始进行一致性检查？\n这将检查世界观、角色设定、剧情连贯性等。",
-                "一致性检查", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
+            NavigateTo(NavigationTarget.ProjectHealthCheck, new NavigationContext
             {
-                // 模拟一致性检查过程
-                MessageBox.Show("一致性检查完成！\n检查结果：\n✓ 世界观设定一致\n✓ 角色性格连贯\n⚠ 发现2处时间线冲突\n\n建议修复时间线问题。",
-                    "检查结果", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+                Source = "QualityCheck",
+                Payload = ProjectHealthCheckMode.Quality
+            });
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"一致性检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"打开质量检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public void ShowConsistencyCheck()
+    {
+        try
+        {
+            NavigateTo(NavigationTarget.ProjectHealthCheck, new NavigationContext
+            {
+                Source = "ConsistencyCheck",
+                Payload = ProjectHealthCheckMode.Consistency
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"打开一致性检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -566,7 +623,7 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(equipmentSystemView);
 
             // 更新窗口标题
-            this.Title = "小说管理系统 - 装备体系管理";
+            this.Title = "书籍管理系统 - 装备体系管理";
         }
         catch (Exception ex)
         {
@@ -590,7 +647,7 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(techniqueSystemView);
 
             // 更新窗口标题
-            this.Title = "小说管理系统 - 功法体系管理";
+            this.Title = "书籍管理系统 - 功法体系管理";
         }
         catch (Exception ex)
         {
@@ -614,7 +671,7 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(businessSystemView);
 
             // 更新窗口标题
-            this.Title = "小说管理系统 - 商业体系管理";
+            this.Title = "书籍管理系统 - 商业体系管理";
         }
         catch (Exception ex)
         {
@@ -630,15 +687,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            // 清空主内容区域
-            MainContentArea.Children.Clear();
-
-            // 添加时间线视图
-            var timelineView = new TimelineView();
-            MainContentArea.Children.Add(timelineView);
-
-            // 更新窗口标题
-            this.Title = "小说管理系统 - 时间线管理";
+            ShowTimeline();
         }
         catch (Exception ex)
         {
@@ -729,62 +778,72 @@ public partial class MainWindow : Window
             NavigationTarget.ProjectManagement => new NavigationViewRequest
             {
                 View = new ProjectManagementView(),
-                Title = "小说管理系统 - 项目管理"
+                Title = "书籍管理系统 - 项目管理"
             },
             NavigationTarget.ProjectOverview => new NavigationViewRequest
             {
                 View = new ProjectOverviewView(),
-                Title = "小说管理系统 - 项目概览"
+                Title = "书籍管理系统 - 项目概览"
             },
             NavigationTarget.VolumeManagement => new NavigationViewRequest
             {
                 View = new VolumeManagementView(),
-                Title = "小说管理系统 - 卷宗管理"
+                Title = "书籍管理系统 - 卷宗管理"
             },
             NavigationTarget.CharacterManagement => new NavigationViewRequest
             {
                 View = GetOrCreateCharacterManagementView(),
-                Title = "小说管理系统 - 角色管理"
+                Title = "书籍管理系统 - 角色管理"
+            },
+            NavigationTarget.Timeline => new NavigationViewRequest
+            {
+                View = new TimelineView(),
+                Title = "书籍管理系统 - 时间线管理"
             },
             NavigationTarget.RelationshipNetwork => new NavigationViewRequest
             {
                 View = GetOrCreateRelationshipNetworkView(),
-                Title = "小说管理系统 - 关系网络"
+                Title = "书籍管理系统 - 关系网络"
             },
             NavigationTarget.FactionManagement => new NavigationViewRequest
             {
                 View = new FactionManagementView(),
-                Title = "小说管理系统 - 势力管理"
+                Title = "书籍管理系统 - 势力管理"
             },
             NavigationTarget.PlotManagement => new NavigationViewRequest
             {
                 View = new PlotManagementView(),
-                Title = "小说管理系统 - 剧情管理"
+                Title = "书籍管理系统 - 剧情管理"
             },
             NavigationTarget.AICollaboration => new NavigationViewRequest
             {
                 View = new AIAssistantWorkspaceView(),
-                Title = "小说管理系统 - AI协作创作"
+                Title = "书籍管理系统 - AI协作创作"
             },
             NavigationTarget.AIConfiguration => new NavigationViewRequest
             {
                 View = new AIConfigurationView(),
-                Title = "小说管理系统 - AI模型配置"
+                Title = "书籍管理系统 - AI模型配置"
             },
             NavigationTarget.ImportExport => new NavigationViewRequest
             {
                 View = new ImportExportView(),
-                Title = "小说管理系统 - 导入导出管理"
+                Title = "书籍管理系统 - 导入导出管理"
             },
             NavigationTarget.WorldSettingManagement => new NavigationViewRequest
             {
                 View = new WorldSettingManagementView(),
-                Title = "小说管理系统 - 世界设定管理"
+                Title = "书籍管理系统 - 世界设定管理"
             },
             NavigationTarget.DialogGeneration => new NavigationViewRequest
             {
                 View = new DialogGenerationView(),
-                Title = "小说管理系统 - AI对话生成器"
+                Title = "书籍管理系统 - AI对话生成器"
+            },
+            NavigationTarget.ProjectHealthCheck => new NavigationViewRequest
+            {
+                View = new ProjectHealthCheckView(),
+                Title = "书籍管理系统 - 项目体检报告"
             },
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
         };
@@ -817,9 +876,691 @@ public partial class MainWindow : Window
 
     private async void OnProjectChanged(object? sender, ProjectChangedEventArgs e)
     {
+        // 事件可能从后台线程触发（批量生成服务），统一调度到 UI 线程执行
+        if (!Dispatcher.CheckAccess())
+        {
+            await Dispatcher.InvokeAsync(() => OnProjectChanged(sender, e));
+            return;
+        }
+
+        UpdateCurrentProjectDisplay(e.NewProjectName);
+
+        // AI 创作助手跟随项目切换（切换项目时清空消息流重建会话）
+        CopilotDrawer.BindProject(e.NewProjectId, e.NewProjectName ?? string.Empty);
+
+        // 项目切换后刷新最近活动动态
+        _ = LoadRecentActivitiesAsync();
+
+        // 自动展开当前项目组（项目管理页「打开项目」/一键生成等路径统一生效）
+        if (e.NewProjectId.HasValue)
+        {
+            var menuItem = _projectMenuItems.FirstOrDefault(m => m.ProjectId == e.NewProjectId.Value);
+            if (menuItem != null && !menuItem.IsExpanded)
+            {
+                menuItem.IsExpanded = true;
+                SaveSidebarState();
+            }
+        }
+
         if (_navigationService != null)
         {
             await _navigationService.RefreshCurrentViewAsync(e.NewProjectId, e.NewProjectName);
+        }
+    }
+
+    #region AI 创作助手抽屉
+
+    /// <summary>
+    /// 标题栏 AI 创作助手按钮：展开/收起抽屉。
+    /// </summary>
+    private void CopilotToggle_Click(object sender, RoutedEventArgs e) =>
+        SetCopilotPanelOpen(!_copilotOpen);
+
+    /// <summary>
+    /// 切换 AI 创作助手抽屉列宽与可见性（收起时列宽归零释放空间）。
+    /// </summary>
+    private void SetCopilotPanelOpen(bool open)
+    {
+        _copilotOpen = open;
+        CopilotColumn.Width = open ? new GridLength(380) : new GridLength(0);
+        CopilotSplitterColumn.Width = open ? new GridLength(5) : new GridLength(0);
+        CopilotDrawer.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        CopilotSplitter.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    #endregion
+
+    #region 侧栏展开状态持久化
+
+    /// <summary>侧栏展开状态持久化模型。</summary>
+    private sealed class SidebarState
+    {
+        /// <summary>顶层固定组展开状态（键 = 组名）。</summary>
+        public Dictionary<string, bool> FixedGroups { get; set; } = new();
+
+        /// <summary>项目组展开的项目 ID 列表。</summary>
+        public List<string> ExpandedProjects { get; set; } = new();
+
+        /// <summary>项目嵌套组展开状态（键 = 项目 ID，值 = 展开的组名列表）。</summary>
+        public Dictionary<string, List<string>> ProjectSubGroups { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 读取侧栏展开状态文件（文件缺失或损坏时返回空状态）。
+    /// </summary>
+    private SidebarState LoadSidebarState()
+    {
+        try
+        {
+            if (System.IO.File.Exists(SidebarStatePath))
+            {
+                var json = System.IO.File.ReadAllText(SidebarStatePath);
+                var state = System.Text.Json.JsonSerializer.Deserialize<SidebarState>(json);
+                if (state != null)
+                {
+                    return state;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"读取侧栏状态失败: {ex.Message}");
+        }
+        return new SidebarState();
+    }
+
+    /// <summary>
+    /// 保存侧栏展开状态（项目组 + 嵌套组从菜单项集合取值，固定组从视觉树收集）。
+    /// </summary>
+    private void SaveSidebarState()
+    {
+        try
+        {
+            var state = new SidebarState();
+            foreach (var item in _projectMenuItems)
+            {
+                if (item.IsExpanded)
+                {
+                    state.ExpandedProjects.Add(item.ProjectId.ToString());
+                }
+
+                var subs = new List<string>();
+                if (item.SettingsGroupExpanded) subs.Add("设定管理");
+                if (item.PeopleGroupExpanded) subs.Add("人物管理");
+                if (subs.Count > 0)
+                {
+                    state.ProjectSubGroups[item.ProjectId.ToString()] = subs;
+                }
+            }
+
+            foreach (var fe in CollectFixedGroupExpanders())
+            {
+                var name = fe.Tag as string;
+                if (!string.IsNullOrEmpty(name))
+                {
+                    state.FixedGroups[name] = fe.IsExpanded;
+                }
+            }
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+            System.IO.File.WriteAllText(SidebarStatePath, System.Text.Json.JsonSerializer.Serialize(state, options));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"保存侧栏状态失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 收集主窗口侧栏中带「固定组:」Tag 的顶层 Expander。
+    /// </summary>
+    private IEnumerable<Expander> CollectFixedGroupExpanders()
+    {
+        var result = new List<Expander>();
+        CollectFixedGroupExpanders(this, result);
+        return result;
+    }
+
+    private static void CollectFixedGroupExpanders(System.Windows.DependencyObject node, List<Expander> result)
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(node, i);
+            if (child is Expander expander && expander.Tag is string tag && tag.StartsWith("固定组:", StringComparison.Ordinal))
+            {
+                result.Add(expander);
+            }
+            CollectFixedGroupExpanders(child, result);
+        }
+    }
+
+    /// <summary>
+    /// 侧栏 Expander 展开状态变化统一处理：更新所属菜单项属性并持久化。
+    /// 支持三种 Expander：顶层固定组（Tag=「固定组:组名」）、项目组（DataContext=菜单项）、项目嵌套组（Tag=组名）。
+    /// </summary>
+    private void SidebarExpander_StateChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_sidebarStateLoaded || sender is not Expander expander)
+        {
+            return;
+        }
+
+        // 项目组：直接取菜单项
+        if (expander.DataContext is ProjectNavMenuItem item)
+        {
+            SaveSidebarState();
+            return;
+        }
+
+        // 项目嵌套组：向上找所属项目组 Expander
+        var tag = expander.Tag as string;
+        if (tag == "设定管理" || tag == "人物管理")
+        {
+            var owner = FindOwnerProjectItem(expander);
+            if (owner != null)
+            {
+                if (tag == "设定管理") owner.SettingsGroupExpanded = expander.IsExpanded;
+                if (tag == "人物管理") owner.PeopleGroupExpanded = expander.IsExpanded;
+            }
+        }
+
+        SaveSidebarState();
+    }
+
+    /// <summary>
+    /// 沿可视树向上查找所属项目组 Expander 的菜单项。
+    /// </summary>
+    private ProjectNavMenuItem? FindOwnerProjectItem(System.Windows.DependencyObject node)
+    {
+        var current = System.Windows.Media.VisualTreeHelper.GetParent(node);
+        while (current != null)
+        {
+            if (current is Expander expander && expander.DataContext is ProjectNavMenuItem item)
+            {
+                return item;
+            }
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 恢复顶层固定组展开状态（Loaded 时调用；项目组/嵌套组经菜单项属性由绑定恢复）。
+    /// </summary>
+    private void RestoreFixedGroupState()
+    {
+        try
+        {
+            var state = LoadSidebarState();
+            foreach (var fe in CollectFixedGroupExpanders())
+            {
+                var name = fe.Tag as string;
+                if (!string.IsNullOrEmpty(name) && state.FixedGroups.TryGetValue(name, out var expanded))
+                {
+                    fe.IsExpanded = expanded;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"恢复固定组状态失败: {ex.Message}");
+        }
+        finally
+        {
+            _sidebarStateLoaded = true;
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 从数据库加载最近活动：项目更新 + 当前项目最新章节/角色变更，按时间倒序展示。
+    /// </summary>
+    private async Task LoadRecentActivitiesAsync()
+    {
+        try
+        {
+            var activities = new List<RecentActivityItem>();
+
+            // 项目级更新动态
+            if (_projectCatalogService != null)
+            {
+                var projects = await _projectCatalogService.GetActiveProjectsAsync();
+                foreach (var project in projects.OrderByDescending(p => p.LastUpdatedAt).Take(5))
+                {
+                    activities.Add(new RecentActivityItem
+                    {
+                        Icon = PackIconKind.Book,
+                        Message = $"项目《{project.Name}》有内容更新",
+                        Timestamp = project.LastUpdatedAt
+                    });
+                }
+            }
+
+            // 当前项目的章节 / 角色更新动态
+            var projectId = _projectContextService?.CurrentProjectId;
+            if (projectId.HasValue && App.ServiceProvider != null)
+            {
+                using var scope = App.ServiceProvider.CreateScope();
+                var chapterService = scope.ServiceProvider.GetService<ChapterService>();
+                if (chapterService != null)
+                {
+                    var chapters = (await chapterService.GetChaptersByProjectIdAsync(projectId.Value))
+                        .OrderByDescending(c => c.UpdatedAt)
+                        .Take(5);
+                    foreach (var chapter in chapters)
+                    {
+                        activities.Add(new RecentActivityItem
+                        {
+                            Icon = PackIconKind.FileDocument,
+                            Message = $"更新了章节：{chapter.Title}",
+                            Timestamp = ToLocalTime(chapter.UpdatedAt)
+                        });
+                    }
+                }
+
+                var characterService = scope.ServiceProvider.GetService<CharacterService>();
+                if (characterService != null)
+                {
+                    var characters = (await characterService.GetCharactersByProjectIdAsync(projectId.Value))
+                        .OrderByDescending(c => c.UpdatedAt)
+                        .Take(5);
+                    foreach (var character in characters)
+                    {
+                        activities.Add(new RecentActivityItem
+                        {
+                            Icon = PackIconKind.Account,
+                            Message = $"角色资料更新：{character.Name}",
+                            Timestamp = ToLocalTime(character.UpdatedAt)
+                        });
+                    }
+                }
+            }
+
+            var top = activities
+                .OrderByDescending(a => a.Timestamp)
+                .Take(10)
+                .ToList();
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _recentActivities.Clear();
+                foreach (var activity in top)
+                {
+                    _recentActivities.Add(activity);
+                }
+
+                if (RecentActivityEmptyText != null)
+                {
+                    RecentActivityEmptyText.Visibility = top.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"加载最近活动失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 供外部（项目/章节/角色变更后）刷新最近活动动态。
+    /// </summary>
+    public Task RefreshRecentActivitiesAsync() => LoadRecentActivitiesAsync();
+
+    private static DateTime ToLocalTime(DateTime value)
+        => value.Kind == DateTimeKind.Utc ? value.ToLocalTime() : value;
+
+    /// <summary>
+    /// 从数据库加载项目列表到左侧导航（新建书籍会自动出现）。
+    /// </summary>
+    private async Task LoadProjectMenuAsync()
+    {
+        try
+        {
+            if (_projectCatalogService == null)
+            {
+                return;
+            }
+
+            var projects = await _projectCatalogService.GetActiveProjectsAsync();
+            await Dispatcher.InvokeAsync(() =>
+            {
+                var state = LoadSidebarState();
+                _projectMenuItems.Clear();
+                foreach (var project in projects)
+                {
+                    var idStr = project.ProjectId.ToString();
+                    var menuItem = new ProjectNavMenuItem
+                    {
+                        ProjectId = project.ProjectId,
+                        Name = project.Name,
+                        Type = project.Type,
+                        Description = $"{project.Type} | {project.Status} | {project.LastUpdated}",
+                        IsExpanded = state.ExpandedProjects.Contains(idStr)
+                    };
+                    if (state.ProjectSubGroups.TryGetValue(idStr, out var subs))
+                    {
+                        menuItem.SettingsGroupExpanded = subs.Contains("设定管理");
+                        menuItem.PeopleGroupExpanded = subs.Contains("人物管理");
+                    }
+                    _projectMenuItems.Add(menuItem);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"加载项目导航列表失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 供外部（项目管理页、一键生成）在项目增删后刷新左侧导航与最近活动。
+    /// </summary>
+    public async Task RefreshProjectMenuAsync()
+    {
+        await LoadProjectMenuAsync();
+        await LoadRecentActivitiesAsync();
+    }
+
+    /// <summary>
+    /// 左侧项目导航菜单统一入口：先切换当前项目，再分派到原有导航逻辑。
+    /// </summary>
+    private void ProjectMenuItemNav_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (sender is not FrameworkElement element)
+            {
+                return;
+            }
+
+            var menuItem = FindProjectNavMenuItem(element);
+            if (menuItem != null)
+            {
+                SwitchToProject(menuItem);
+            }
+
+            switch (element.Tag?.ToString())
+            {
+                case "ProjectOverview": ProjectOverview_Click(sender, e); break;
+                case "WorldSettingManagement": WorldSettingManagement_Click(sender, e); break;
+                case "CultivationSystem": CultivationSystem_Click(sender, e); break;
+                case "PoliticalSystem": PoliticalSystem_Click(sender, e); break;
+                case "ProfessionSystem": ProfessionSystem_Click(sender, e); break;
+                case "JudicialSystem": JudicialSystem_Click(sender, e); break;
+                case "PopulationSystem": PopulationSystem_Click(sender, e); break;
+                case "TreasureSystem": TreasureSystem_Click(sender, e); break;
+                case "DimensionStructure": DimensionStructure_Click(sender, e); break;
+                case "MapStructure": MapStructure_Click(sender, e); break;
+                case "PetSystem": PetSystem_Click(sender, e); break;
+                case "EquipmentSystem": EquipmentSystem_Click(sender, e); break;
+                case "TechniqueSystem": TechniqueSystem_Click(sender, e); break;
+                case "BusinessSystem": BusinessSystem_Click(sender, e); break;
+                case "Timeline": Timeline_Click(sender, e); break;
+                case "PlotManagement": PlotManagement_Click(sender, e); break;
+                case "ContentManagement": ContentManagement_Click(sender, e); break;
+                case "RelationshipNetwork": RelationshipNetwork_Click(sender, e); break;
+                case "FactionManagement": FactionManagement_Click(sender, e); break;
+                case "VolumeManagement": VolumeManagement_Click(sender, e); break;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"打开项目页面失败：{ex.Message}", "错误",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private static ProjectNavMenuItem? FindProjectNavMenuItem(System.Windows.DependencyObject? start)
+    {
+        var current = start;
+        while (current != null)
+        {
+            if (current is System.Windows.FrameworkElement element && element.DataContext is ProjectNavMenuItem menuItem)
+            {
+                return menuItem;
+            }
+
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current)
+                      ?? System.Windows.LogicalTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+
+    private void SwitchToProject(ProjectNavMenuItem menuItem)
+    {
+        var currentId = _projectContextService?.CurrentProjectId;
+        if (currentId == menuItem.ProjectId)
+        {
+            return;
+        }
+
+        _projectContextService?.SetCurrentProject(menuItem.ProjectId, menuItem.Name);
+        UpdateCurrentProjectDisplay(menuItem.Name);
+
+        // 女频文检测：类型/书名命中女频关键词时自动切换红粉花漾少女风皮肤，否则恢复用户所选皮肤
+        ThemeManager.ApplyNovelGenre($"{menuItem.Type} {menuItem.Name}");
+
+        // 刷新最近访问时间（不等待，避免阻塞导航）
+        _ = _projectCatalogService?.TouchProjectAsync(menuItem.ProjectId);
+    }
+
+    private void UpdateCurrentProjectDisplay(string? projectName)
+    {
+        var display = string.IsNullOrWhiteSpace(projectName) ? "未选择" : projectName;
+        if (CurrentProjectStatusText != null)
+        {
+            CurrentProjectStatusText.Text = $"当前项目: {display}";
+        }
+
+        if (DashboardProjectNameText != null)
+        {
+            DashboardProjectNameText.Text = display;
+        }
+
+        if (DashboardProjectSubtitleText != null && _projectContextService != null)
+        {
+            DashboardProjectSubtitleText.Text = _projectContextService.CurrentProjectId.HasValue ? "当前打开的项目" : "";
+        }
+    }
+
+    /// <summary>
+    /// 主题配置按钮：打开主题配置与皮肤设定窗口。
+    /// </summary>
+    private void ThemeSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new ThemeSettingsWindow { Owner = this };
+        window.ShowDialog();
+    }
+
+    /// <summary>
+    /// 一键生成书籍按钮：RWKV 自命名新书 + 双 Agent 生成大纲与第一章。
+    /// </summary>
+    private async void OneClickGenerate_Click(object sender, RoutedEventArgs e)
+    {
+        var generationService = App.ServiceProvider?.GetService<IOneClickNovelGenerationService>();
+        if (generationService == null)
+        {
+            MessageBox.Show("一键生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var progressWindow = new SimpleProgressDialog("一键生成书籍") { Owner = this };
+        var progress = new Progress<string>(message => progressWindow.UpdateMessage(message));
+        progressWindow.Show();
+
+        try
+        {
+            var result = await generationService.GenerateAsync(progress);
+            await RefreshProjectMenuAsync();
+            progressWindow.Close();
+
+            MessageBox.Show(
+                result.IsSuccess ? result.Message : $"一键生成失败：{result.Message}",
+                result.IsSuccess ? "一键生成完成" : "错误",
+                MessageBoxButton.OK,
+                result.IsSuccess ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            progressWindow.Close();
+            MessageBox.Show($"一键生成失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// 长篇批量生成按钮：启动整本书籍后台批量生成（3卷×30章×每章≥3000字，支持断点续跑）。
+    /// </summary>
+    private async void FullNovelBatchStart_Click(object sender, RoutedEventArgs e)
+    {
+        var batchService = App.ServiceProvider?.GetService<IFullNovelBatchGenerationService>();
+        if (batchService == null)
+        {
+            MessageBox.Show("长篇批量生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        if (batchService.IsRunning)
+        {
+            MessageBox.Show("批量生成任务已在运行中，可用「生成进度」按钮查看。", "提示",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new BatchGenerationOptionsDialog { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var options = dialog.Options;
+        var modeText = options.UnlimitedMode
+            ? "无限续写模式"
+            : $"{(options.NextThreeChaptersThenNewVolume ? "快速切卷（每卷 3 章后切新卷）" : "标准模式")}，每卷 {options.ChaptersPerVolume} 章";
+        var confirm = MessageBox.Show(
+            $"将启动长篇批量生成：{modeText} × 每章 ≥{options.ChapterTargetWords} 字。\n" +
+            "采样采用 RWKV 官方创意参数 + DRY 抗复读采样，\n" +
+            "章节正文使用“切片创作 + 拼接”工艺（16K 上下文限制）。\n\n" +
+            "任务在后台运行，期间可正常使用软件其他功能。\n" +
+            "若存在未完成的批量任务将自动从断点继续。\n\n确定开始？",
+            "长篇批量生成", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await batchService.StartAsync(options);
+            if (result.Success)
+            {
+                MessageBox.Show(result.Message, "已启动", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(result.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"启动批量生成失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// 生成进度按钮：展示整本批量生成任务当前状态。
+    /// </summary>
+    private void FullNovelBatchStatus_Click(object sender, RoutedEventArgs e)
+    {
+        var batchService = App.ServiceProvider?.GetService<IFullNovelBatchGenerationService>();
+        if (batchService == null)
+        {
+            MessageBox.Show("长篇批量生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var s = batchService.GetStatus();
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine($"状态：{(s.IsRunning ? "运行中" : "未运行")}");
+        builder.AppendLine($"阶段：{s.Phase}");
+        if (!string.IsNullOrWhiteSpace(s.BookTitle))
+        {
+            builder.AppendLine($"书名：{s.BookTitle}");
+        }
+
+        builder.AppendLine($"规格：{s.VolumeCount} 卷 × {s.ChaptersPerVolume} 章");
+        if (s.CompletedChapters > 0 || s.FailedChapters > 0 || s.CurrentChapter > 0)
+        {
+            builder.AppendLine($"位置：第 {Math.Max(s.CurrentVolume, 1)} 卷 第 {Math.Max(s.CurrentChapter, 1)} 章");
+            builder.AppendLine($"已完成：{s.CompletedChapters} 章，失败：{s.FailedChapters} 章");
+        }
+
+        if (s.LastChapterScore.HasValue)
+        {
+            builder.AppendLine($"最近章节评分：{s.LastChapterScore.Value:F1}/10");
+        }
+
+        if (!string.IsNullOrWhiteSpace(s.RecentMessage))
+        {
+            builder.AppendLine();
+            builder.AppendLine($"最近消息：{s.RecentMessage}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(s.LastError))
+        {
+            builder.AppendLine($"最近错误：{s.LastError}");
+        }
+
+        if (s.StartedAt.HasValue)
+        {
+            builder.AppendLine();
+            builder.AppendLine($"开始时间：{s.StartedAt:HH:mm:ss}，已运行 {(DateTime.Now - s.StartedAt.Value).TotalMinutes:F0} 分钟");
+        }
+
+        MessageBox.Show(builder.ToString(), "长篇批量生成进度", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    /// <summary>
+    /// 轻量进度对话框（代码构建，无 XAML）。
+    /// </summary>
+    private sealed class SimpleProgressDialog : Window
+    {
+        private readonly System.Windows.Controls.TextBlock _messageText;
+
+        public SimpleProgressDialog(string title)
+        {
+            Title = title;
+            Width = 460;
+            SizeToContent = SizeToContent.Height;
+            WindowStyle = WindowStyle.ToolWindow;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+
+            _messageText = new System.Windows.Controls.TextBlock
+            {
+                Text = "准备中...",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(24, 18, 24, 12)
+            };
+
+            var progressBar = new System.Windows.Controls.ProgressBar
+            {
+                IsIndeterminate = true,
+                Height = 14,
+                Margin = new Thickness(24, 0, 24, 18)
+            };
+
+            Content = new StackPanel { Children = { _messageText, progressBar } };
+        }
+
+        public void UpdateMessage(string message)
+        {
+            _messageText.Text = message;
         }
     }
 
@@ -863,6 +1604,7 @@ public partial class MainWindow : Window
             NavigationTarget.ProjectOverview => "项目概览",
             NavigationTarget.VolumeManagement => "卷宗管理",
             NavigationTarget.CharacterManagement => "角色管理",
+            NavigationTarget.Timeline => "时间线管理",
             NavigationTarget.RelationshipNetwork => "关系网络",
             NavigationTarget.FactionManagement => "势力管理",
             NavigationTarget.PlotManagement => "剧情管理",
@@ -937,6 +1679,14 @@ public partial class MainWindow : Window
     public void ShowRelationshipNetwork()
     {
         NavigateTo(NavigationTarget.RelationshipNetwork);
+    }
+
+    /// <summary>
+    /// 显示时间线管理
+    /// </summary>
+    public void ShowTimeline()
+    {
+        NavigateTo(NavigationTarget.Timeline);
     }
 
     /// <summary>
@@ -1115,7 +1865,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(professionSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 职业体系管理";
+        this.Title = "书籍管理系统 - 职业体系管理";
     }
 
     /// <summary>
@@ -1131,7 +1881,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(judicialSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 司法体系管理";
+        this.Title = "书籍管理系统 - 司法体系管理";
     }
 
     /// <summary>
@@ -1147,7 +1897,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(populationSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 生民体系管理";
+        this.Title = "书籍管理系统 - 生民体系管理";
     }
 
     /// <summary>
@@ -1163,7 +1913,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(cultivationSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 修炼体系管理";
+        this.Title = "书籍管理系统 - 修炼体系管理";
     }
 
     /// <summary>
@@ -1179,7 +1929,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(politicalSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 政治体系管理";
+        this.Title = "书籍管理系统 - 政治体系管理";
     }
 
     /// <summary>
@@ -1195,7 +1945,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(treasureSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 灵宝体系管理";
+        this.Title = "书籍管理系统 - 灵宝体系管理";
     }
 
     /// <summary>
@@ -1211,7 +1961,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(dimensionStructureView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 维度结构管理";
+        this.Title = "书籍管理系统 - 维度结构管理";
     }
 
     /// <summary>
@@ -1227,7 +1977,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(mapStructureView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 地图结构管理";
+        this.Title = "书籍管理系统 - 地图结构管理";
     }
 
     /// <summary>
@@ -1243,8 +1993,82 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(petSystemView);
 
         // 更新窗口标题
-        this.Title = "小说管理系统 - 宠物体系管理";
+        this.Title = "书籍管理系统 - 宠物体系管理";
     }
 
     #endregion
+}
+
+/// <summary>
+/// 左侧导航项目菜单项。
+/// </summary>
+public class ProjectNavMenuItem : System.ComponentModel.INotifyPropertyChanged
+{
+    private bool _isExpanded;
+
+    public Guid ProjectId { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>项目类型（用于女频文皮肤自动检测）。</summary>
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>项目组展开状态（持久化到 sidebar_state.json，重启恢复）。</summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
+        }
+    }
+
+    /// <summary>「设定管理」嵌套组展开状态。</summary>
+    public bool SettingsGroupExpanded { get => _settingsGroupExpanded; set { if (_settingsGroupExpanded == value) return; _settingsGroupExpanded = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(SettingsGroupExpanded))); } }
+    private bool _settingsGroupExpanded;
+
+    /// <summary>「人物管理」嵌套组展开状态。</summary>
+    public bool PeopleGroupExpanded { get => _peopleGroupExpanded; set { if (_peopleGroupExpanded == value) return; _peopleGroupExpanded = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(PeopleGroupExpanded))); } }
+    private bool _peopleGroupExpanded;
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+}
+
+/// <summary>
+/// 仪表盘最近活动条目（真实项目更新动态）。
+/// </summary>
+public class RecentActivityItem
+{
+    public PackIconKind Icon { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public string RelativeTime => FormatRelativeTime(Timestamp);
+
+    private static string FormatRelativeTime(DateTime time)
+    {
+        var delta = DateTime.Now - time;
+        if (delta.TotalMinutes < 1)
+        {
+            return "刚刚";
+        }
+
+        if (delta.TotalMinutes < 60)
+        {
+            return $"{(int)delta.TotalMinutes}分钟前";
+        }
+
+        if (delta.TotalHours < 24)
+        {
+            return $"{(int)delta.TotalHours}小时前";
+        }
+
+        if (delta.TotalDays < 30)
+        {
+            return $"{(int)delta.TotalDays}天前";
+        }
+
+        return time.ToString("MM-dd HH:mm");
+    }
 }

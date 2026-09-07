@@ -155,6 +155,86 @@ namespace NovelManagement.WPF.Views
             SettingCompletionTextBlock.Text = workspace.SettingCompletionText;
             CharacterListTextBlock.Text = workspace.CharacterOverviewText;
             OutlineContentTextBlock.Text = workspace.OutlineOverviewText;
+            UpdateProcessFlow(workspace);
+        }
+
+        private void UpdateProcessFlow(ProjectWorkspaceReadModel workspace)
+        {
+            var statistics = workspace.Statistics;
+            var hasProjectBase = workspace.HasProjectBaseInfo;
+            var hasWorldSettings = statistics.WorldSettingCount > 0;
+            var hasOutline = statistics.PlotCount > 0;
+            var supportCount = statistics.CharacterCount + statistics.FactionCount;
+            var hasSupport = supportCount > 0;
+            var hasWriting = statistics.VolumeCount + statistics.ChapterCount > 0;
+
+            ProjectBaseStageTextBlock.Text = hasProjectBase
+                ? $"已就绪\n类型：{workspace.ProjectType}"
+                : "待补充\n请先完善项目名称与类型";
+
+            WorldStageTextBlock.Text = hasWorldSettings
+                ? $"进行中/已完成\n当前 {statistics.WorldSettingCount} 条设定"
+                : "待开始\n建议先补齐世界观";
+
+            OutlineStageTextBlock.Text = hasOutline
+                ? $"进行中/已完成\n当前 {statistics.PlotCount} 条剧情"
+                : "待开始\n应基于世界观生成";
+
+            SupportStageTextBlock.Text = hasSupport
+                ? $"可并行推进\n角色 {statistics.CharacterCount} / 势力 {statistics.FactionCount}"
+                : "待开始\n建议在大纲后补齐";
+
+            WritingStageTextBlock.Text = hasWriting
+                ? $"进行中/已完成\n卷 {statistics.VolumeCount} / 章 {statistics.ChapterCount}"
+                : "未开始\n请在基础设定后写作";
+
+            ParallelStageHintTextBlock.Text = hasOutline
+                ? "并行提示：当前已进入配套设定阶段，角色、势力、修炼体系、政治体系等可以同步补齐，但都应遵循项目基础信息、世界观与大纲。"
+                : "并行提示：先完成项目基础信息、世界观和大纲，再并行补齐角色、势力与其他配套设定。";
+
+            ClosedLoopHintTextBlock.Text = hasWriting
+                ? "闭环提示：写作推进后，应回到剧情、人物、势力、世界设定和一致性检查入口做校正，再进入下一轮卷章写作。"
+                : "闭环提示：当卷章开始推进后，系统应进入“写作 → 同步上下文 → 检查一致性 → 回补设定/大纲”的闭环。";
+
+            AutoUpdateFlowTextBlock.Text = hasWriting
+                ? "更新工艺：章节保存后，系统会先自动同步剧情、设定、角色履历、势力履历、人物关系、势力关系与时间线。"
+                : "更新工艺：进入卷章写作后，每次章节保存都应触发剧情、设定、履历、关系和时间线的自动更新。";
+
+            WorkflowReviewHintTextBlock.Text = hasWriting
+                ? "复核工艺：自动更新完成后，建议依次检查时间线管理、关系网络、角色管理、势力管理、一致性检查和质量检查页面，确认自动更新结果。"
+                : "复核工艺：当前还未进入写作阶段。待章节开始推进后，再进入“自动更新 → 人工复核 → 回补设定/剧情”的闭环。";
+
+            NextActionTextBlock.Text = ResolveNextActionText(hasProjectBase, hasWorldSettings, hasOutline, hasSupport, hasWriting);
+        }
+
+        private static string ResolveNextActionText(bool hasProjectBase, bool hasWorldSettings, bool hasOutline, bool hasSupport, bool hasWriting)
+        {
+            if (!hasProjectBase)
+            {
+                return "下一步建议：先完善项目基础信息，再进入世界设定与 AI 生成。";
+            }
+
+            if (!hasWorldSettings)
+            {
+                return "下一步建议：优先补齐世界观。可以进入“世界设定”或“流程工作台”生成前置设定。";
+            }
+
+            if (!hasOutline)
+            {
+                return "下一步建议：基于当前世界观生成剧情大纲，再继续补齐角色和势力。";
+            }
+
+            if (!hasSupport)
+            {
+                return "下一步建议：当前已具备基础世界观和大纲，可以并行补齐角色、势力及其他细分设定。";
+            }
+
+            if (!hasWriting)
+            {
+                return "下一步建议：进入卷章管理开始写作，并在写作后持续回补剧情和设定。";
+            }
+
+            return "下一步建议：项目已进入创作闭环，建议按“写作 → 自动更新时间线/关系/履历 → 复核时间线与关系网络 → 一致性检查 → 回补设定/大纲”的节奏持续推进。";
         }
 
         #region 事件处理
@@ -193,6 +273,102 @@ namespace NovelManagement.WPF.Views
             }
         }
 
+        private void ManageFactions_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                TryNavigateToMainWindow("势力管理", NavigationTarget.FactionManagement);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开势力管理失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ManageSupportSettings_Click(object sender, RoutedEventArgs e)
+        {
+            ManageCharacters_Click(sender, e);
+        }
+
+        private void TimelineReview_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                TryNavigateToMainWindow("时间线管理", NavigationTarget.Timeline);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开时间线管理失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void RelationshipReview_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                TryNavigateToMainWindow("关系网络", NavigationTarget.RelationshipNetwork);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开关系网络失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ConsistencyReview_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var mainWindow = GetMainWindow();
+                if (mainWindow == null)
+                {
+                    MessageBox.Show("无法获取主窗口", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (!TryGetCurrentProjectId("一致性检查", out _))
+                {
+                    return;
+                }
+
+                mainWindow.ShowConsistencyCheck();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开一致性检查失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void QualityReview_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var mainWindow = GetMainWindow();
+                if (mainWindow == null)
+                {
+                    MessageBox.Show("无法获取主窗口", "错误",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (!TryGetCurrentProjectId("质量检查", out _))
+                {
+                    return;
+                }
+
+                mainWindow.ShowQualityCheck();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开质量检查失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         /// <summary>
         /// 剧情大纲按钮点击事件
         /// </summary>
@@ -221,6 +397,27 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 MessageBox.Show($"打开AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OpenProcessWorkbench_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!TryGetCurrentProjectId("前置条件生成", out var currentProjectId))
+                {
+                    return;
+                }
+
+                var dialog = new PrerequisiteGenerationDialog(currentProjectId);
+                dialog.Owner = Window.GetWindow(this);
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开流程工作台失败：{ex.Message}", "错误",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

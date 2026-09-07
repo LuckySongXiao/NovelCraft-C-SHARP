@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -95,7 +96,7 @@ internal static class AiAutoFillFormatter
                     continue;
                 }
 
-                if (LooksLikeHeading(nextLine))
+                if (LooksLikeHeading(nextLine) || LooksLikeInlineHeadingWithValue(nextLine))
                 {
                     break;
                 }
@@ -142,7 +143,10 @@ internal static class AiAutoFillFormatter
 
         return content.Split('\n')
             .Select(line => line.Trim())
-            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line) && !LooksLikeHeading(line));
+            .FirstOrDefault(line =>
+                !string.IsNullOrWhiteSpace(line) &&
+                !LooksLikeHeading(line) &&
+                !LooksLikeInlineHeadingWithValue(line));
     }
 
     public static string CleanFieldValue(string? value, params string[] headings)
@@ -157,7 +161,7 @@ internal static class AiAutoFillFormatter
         {
             cleaned = Regex.Replace(
                 cleaned,
-                $"^(?:【)?{Regex.Escape(heading)}(?:】)?\\s*[:：]\\s*",
+                $"^(?:【)?{Regex.Escape(heading)}(?:】)?\\s*[:：]?\\s*",
                 string.Empty,
                 RegexOptions.IgnoreCase);
         }
@@ -174,8 +178,8 @@ internal static class AiAutoFillFormatter
         }
 
         return cleaned
-            .Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => NormalizeLine(line))
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(NormalizeLine)
             .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?
             .Trim() ?? string.Empty;
     }
@@ -188,8 +192,9 @@ internal static class AiAutoFillFormatter
         }
 
         var normalized = NormalizeLine(value);
-        return headings.Where(heading => !string.IsNullOrWhiteSpace(heading)).Any(heading =>
-            Regex.IsMatch(
+        return headings
+            .Where(heading => !string.IsNullOrWhiteSpace(heading))
+            .Any(heading => Regex.IsMatch(
                 normalized,
                 $"^(?:【)?{Regex.Escape(heading)}(?:】)?\\s*[:：]",
                 RegexOptions.IgnoreCase));
@@ -233,7 +238,7 @@ internal static class AiAutoFillFormatter
         var normalized = line.Trim();
         normalized = normalized.TrimStart('#').Trim();
         normalized = Regex.Replace(normalized, @"^\d+[\.\)、]\s*", string.Empty);
-        normalized = Regex.Replace(normalized, @"^[\-\*\•]+\s*", string.Empty);
+        normalized = Regex.Replace(normalized, @"^[\-\*•]+\s*", string.Empty);
         return normalized.Trim();
     }
 
@@ -258,7 +263,7 @@ internal static class AiAutoFillFormatter
     private static bool TryMatchHeading(string line, IEnumerable<string> headings, out string inlineValue)
     {
         inlineValue = string.Empty;
-        foreach (var heading in headings)
+        foreach (var heading in headings.Where(heading => !string.IsNullOrWhiteSpace(heading)))
         {
             foreach (var marker in new[] { $"{heading}：", $"{heading}:", $"【{heading}】", $"{heading} ", $"{heading}\t" })
             {
@@ -290,11 +295,23 @@ internal static class AiAutoFillFormatter
             return true;
         }
 
-        if (Regex.IsMatch(line, @"^[\u4e00-\u9fa5A-Za-z0-9]{1,20}\s*[:：]\s*$"))
+        if (Regex.IsMatch(line, @"^[\u4e00-\u9fa5A-Za-z0-9_（）()\-]{1,20}\s*[:：]\s*$"))
         {
             return true;
         }
 
         return false;
+    }
+
+    private static bool LooksLikeInlineHeadingWithValue(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return false;
+        }
+
+        return Regex.IsMatch(
+            line,
+            @"^(?:【)?[\u4e00-\u9fa5A-Za-z0-9_（）()\-]{1,20}(?:】)?\s*[:：]\s*\S+");
     }
 }

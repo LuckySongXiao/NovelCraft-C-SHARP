@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AI章节续写" Height="700" Width="900"
+        Title="AI章节续写" Height="780" Width="900"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -44,9 +44,9 @@
             <!-- 左侧：现有内容和设置 -->
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="3*"/>
                     <RowDefinition Height="8"/>
-                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
 
                 <!-- 现有内容 -->
@@ -82,10 +82,11 @@
 
                 <!-- 续写设置 -->
                 <materialDesign:Card Grid.Row="2" Padding="16">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="续写设置" 
-                                 FontSize="16" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="续写设置"
+                                 FontSize="16"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <!-- 续写长度 -->
@@ -127,6 +128,7 @@
                             </StackPanel>
                         </Button>
                     </StackPanel>
+                    </ScrollViewer>
                 </materialDesign:Card>
             </Grid>
 

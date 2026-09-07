@@ -365,7 +365,7 @@ public class OperationsManagementWindow : Window
             HealthStatus.Healthy => Brushes.ForestGreen,
             HealthStatus.Warning => Brushes.DarkOrange,
             HealthStatus.Unhealthy => Brushes.IndianRed,
-            _ => Brushes.Black
+            _ => Brushes.Gray
         };
     }
 }

@@ -4,15 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:views="clr-namespace:NovelManagement.WPF.Views.Copilot"
         mc:Ignorable="d"
-        Title="小说管理系统 - 仪表盘" Height="900" Width="1400"
+        Title="书籍管理系统 - 仪表盘" Height="900" Width="1400"
         WindowStartupLocation="CenterScreen"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="13"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
-        Background="{StaticResource AppWindowBackgroundBrush}"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
         FontFamily="{DynamicResource MaterialDesignFont}">
 
     <Grid>
@@ -22,9 +23,11 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 标题栏 -->
+        <!-- 标题栏（颜色随主题皮肤可自定义） -->
         <materialDesign:ColorZone Grid.Row="0" 
                                   Mode="PrimaryMid" 
+                                  Background="{DynamicResource AppTitleBarBackgroundBrush}"
+                                  Foreground="{DynamicResource AppTitleBarForegroundBrush}"
                                   Padding="20,16">
             <DockPanel>
                 <materialDesign:PackIcon Kind="Home"
@@ -33,7 +36,7 @@
                                        VerticalAlignment="Center"
                                        Margin="0,0,16,0"/>
                 <StackPanel>
-                    <TextBlock Text="小说管理系统 - 仪表盘" 
+                    <TextBlock Text="书籍管理系统 - 仪表盘" 
                              FontSize="20" 
                              FontWeight="Medium"/>
                     <TextBlock x:Name="CurrentLocationTextBlock"
@@ -50,6 +53,18 @@
                             Click="Back_Click"
                             IsEnabled="False">
                         <materialDesign:PackIcon Kind="ArrowLeft" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="CopilotToggleButton"
+                            Style="{StaticResource MaterialDesignToolButton}"
+                            ToolTip="AI 创作助手（对话式创作）"
+                            Click="CopilotToggle_Click">
+                        <materialDesign:PackIcon Kind="Robot" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="ThemeSettingsButton"
+                            Style="{StaticResource MaterialDesignToolButton}"
+                            ToolTip="主题配置与皮肤设定"
+                            Click="ThemeSettings_Click">
+                        <materialDesign:PackIcon Kind="Palette" Width="20" Height="20"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
                             ToolTip="AI模型配置与设置"
@@ -71,18 +86,24 @@
                 <ColumnDefinition Width="300"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="CopilotSplitterColumn" Width="0"/>
+                <ColumnDefinition x:Name="CopilotColumn" Width="0"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 左侧导航栏 -->
+            <!-- 左侧导航栏（颜色随主题皮肤可自定义） -->
             <materialDesign:ColorZone Grid.Column="0" 
                                       Mode="Light" 
+                                      Background="{DynamicResource AppNavPanelBackgroundBrush}"
                                       Padding="0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8,12,8,12">
                         <!-- 项目管理 -->
-                        <Expander Header="项目管理" 
+                        <Expander Header="项目管理"
                                 Style="{StaticResource MaterialDesignExpander}"
                                 IsExpanded="True"
+                                Tag="固定组:项目管理"
+                                Expanded="SidebarExpander_StateChanged"
+                                Collapsed="SidebarExpander_StateChanged"
                                 Margin="8">
                             <StackPanel Margin="16,8,0,8">
                                 <Button Content="项目管理"
@@ -98,118 +119,173 @@
                                       HorizontalAlignment="Left"
                                       Click="ImportProject_Click"/>
 
-                                <!-- 项目列表 -->
-                                <Expander Header="千面劫·宿命轮回" 
-                                        Style="{StaticResource MaterialDesignExpander}"
-                                        IsExpanded="True"
-                                        Margin="0,8,0,0">
-                                    <StackPanel Margin="16,8,0,8">
-                                        <Button Content="项目概览" 
-                                              Style="{StaticResource MaterialDesignFlatButton}" 
-                                              HorizontalAlignment="Left"
-                                              Click="ProjectOverview_Click"/>
-                                        <Button Content="卷宗管理" 
-                                              Style="{StaticResource MaterialDesignFlatButton}" 
-                                              HorizontalAlignment="Left"
-                                              Click="VolumeManagement_Click"/>
-                                        <!-- 人物管理子菜单 -->
-                                        <Expander Header="人物管理"
-                                                Style="{StaticResource MaterialDesignExpander}"
-                                                Margin="0,8,0,0">
-                                            <StackPanel Margin="16,8,0,8">
-                                                <Button Content="角色管理"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="ContentManagement_Click"/>
-                                                <Button Content="关系网络"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="RelationshipNetwork_Click"/>
-                                            </StackPanel>
-                                        </Expander>
+                                <!-- 项目列表（动态加载自数据库，新建书籍会自动出现在此处） -->
+                                <ItemsControl x:Name="ProjectMenuItemsControl">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Expander Header="{Binding Name}"
+                                                    Style="{StaticResource MaterialDesignExpander}"
+                                                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                                    Expanded="SidebarExpander_StateChanged"
+                                                    Collapsed="SidebarExpander_StateChanged"
+                                                    Margin="0,8,0,0"
+                                                    ToolTip="{Binding Description}">
+                                                <StackPanel Margin="16,8,0,8">
+                                                    <Button Content="项目概览"
+                                                          Style="{StaticResource MaterialDesignFlatButton}"
+                                                          HorizontalAlignment="Left"
+                                                          Tag="ProjectOverview"
+                                                          Click="ProjectMenuItemNav_Click"/>
 
-                                        <Button Content="势力管理"
-                                              Style="{StaticResource MaterialDesignFlatButton}"
-                                              HorizontalAlignment="Left"
-                                              Click="FactionManagement_Click"/>
-                                        <Button Content="剧情管理"
-                                              Style="{StaticResource MaterialDesignFlatButton}"
-                                              HorizontalAlignment="Left"
-                                              Click="PlotManagement_Click"/>
+                                                    <!-- 设定管理子菜单 -->
+                                                    <Expander Header="设定管理"
+                                                            Style="{StaticResource MaterialDesignExpander}"
+                                                            IsExpanded="{Binding SettingsGroupExpanded, Mode=TwoWay}"
+                                                            Expanded="SidebarExpander_StateChanged"
+                                                            Collapsed="SidebarExpander_StateChanged"
+                                                            Margin="0,8,0,0">
+                                                        <StackPanel Margin="16,8,0,8">
+                                                            <Button Content="世界设定"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="WorldSettingManagement"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="修炼体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="CultivationSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="政治体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="PoliticalSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="职业体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="ProfessionSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="司法体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="JudicialSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="生民体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="PopulationSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="灵宝体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="TreasureSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="维度结构"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="DimensionStructure"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="地图结构"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="MapStructure"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="宠物体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="PetSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="装备体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="EquipmentSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="功法体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="TechniqueSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="商业体系"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="BusinessSystem"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="时间线"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="Timeline"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                        </StackPanel>
+                                                    </Expander>
 
-                                        <!-- 设定管理子菜单 -->
-                                        <Expander Header="设定管理"
-                                                Style="{StaticResource MaterialDesignExpander}"
-                                                Margin="0,8,0,0">
-                                            <StackPanel Margin="16,8,0,8">
-                                                <Button Content="世界设定"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="WorldSettingManagement_Click"/>
-                                                <Button Content="修炼体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="CultivationSystem_Click"/>
-                                                <Button Content="政治体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="PoliticalSystem_Click"/>
-                                                <Button Content="职业体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="ProfessionSystem_Click"/>
-                                                <Button Content="司法体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="JudicialSystem_Click"/>
-                                                <Button Content="生民体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="PopulationSystem_Click"/>
-                                                <Button Content="灵宝体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="TreasureSystem_Click"/>
-                                                <Button Content="维度结构"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="DimensionStructure_Click"/>
-                                                <Button Content="地图结构"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="MapStructure_Click"/>
-                                                <Button Content="宠物体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="PetSystem_Click"/>
-                                                <Button Content="装备体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="EquipmentSystem_Click"/>
-                                                <Button Content="功法体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="TechniqueSystem_Click"/>
-                                                <Button Content="商业体系"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="BusinessSystem_Click"/>
-                                                <Button Content="时间线"
-                                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                                      HorizontalAlignment="Left"
-                                                      Click="Timeline_Click"/>
-                                            </StackPanel>
-                                        </Expander>
-                                    </StackPanel>
-                                </Expander>
+                                                    <Button Content="剧情管理"
+                                                          Style="{StaticResource MaterialDesignFlatButton}"
+                                                          HorizontalAlignment="Left"
+                                                          Tag="PlotManagement"
+                                                          Click="ProjectMenuItemNav_Click"/>
+
+                                                    <!-- 人物管理子菜单 -->
+                                                    <Expander Header="人物管理"
+                                                            Style="{StaticResource MaterialDesignExpander}"
+                                                            IsExpanded="{Binding PeopleGroupExpanded, Mode=TwoWay}"
+                                                            Expanded="SidebarExpander_StateChanged"
+                                                            Collapsed="SidebarExpander_StateChanged"
+                                                            Margin="0,8,0,0">
+                                                        <StackPanel Margin="16,8,0,8">
+                                                            <Button Content="角色管理"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="ContentManagement"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                            <Button Content="关系网络"
+                                                                  Style="{StaticResource MaterialDesignFlatButton}"
+                                                                  HorizontalAlignment="Left"
+                                                                  Tag="RelationshipNetwork"
+                                                                  Click="ProjectMenuItemNav_Click"/>
+                                                        </StackPanel>
+                                                    </Expander>
+
+                                                    <Button Content="势力管理"
+                                                          Style="{StaticResource MaterialDesignFlatButton}"
+                                                          HorizontalAlignment="Left"
+                                                          Tag="FactionManagement"
+                                                          Click="ProjectMenuItemNav_Click"/>
+                                                    <Button Content="卷宗管理"
+                                                          Style="{StaticResource MaterialDesignFlatButton}"
+                                                          HorizontalAlignment="Left"
+                                                          Tag="VolumeManagement"
+                                                          Click="ProjectMenuItemNav_Click"/>
+                                                </StackPanel>
+                                            </Expander>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Expander>
 
                         <!-- AI助手 -->
                         <Expander Header="AI助手"
                                 Style="{StaticResource MaterialDesignExpander}"
+                                Tag="固定组:AI助手"
+                                Expanded="SidebarExpander_StateChanged"
+                                Collapsed="SidebarExpander_StateChanged"
                                 Margin="8">
                             <StackPanel Margin="16,8,0,8">
+                                <Button Content="一键生成书籍"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      HorizontalAlignment="Left"
+                                      Click="OneClickGenerate_Click"
+                                      ToolTip="由 RWKV 双 Agent 自动命名新书并生成大纲与第一章"/>
+                                <Button Content="长篇批量生成"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      HorizontalAlignment="Left"
+                                      Click="FullNovelBatchStart_Click"
+                                      ToolTip="RWKV 官方创意参数 + 切片创作：3卷×30章×每章≥3000字，后台运行，支持断点续跑"/>
+                                <Button Content="生成进度"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      HorizontalAlignment="Left"
+                                      Click="FullNovelBatchStatus_Click"
+                                      ToolTip="查看整本长篇批量生成任务的当前进度与评分"/>
                                 <Button Content="前置条件生成"
                                       Style="{StaticResource MaterialDesignFlatButton}"
                                       HorizontalAlignment="Left"
@@ -243,8 +319,11 @@
                         </Expander>
 
                         <!-- 导入导出 -->
-                        <Expander Header="导入导出" 
+                        <Expander Header="导入导出"
                                 Style="{StaticResource MaterialDesignExpander}"
+                                Tag="固定组:导入导出"
+                                Expanded="SidebarExpander_StateChanged"
+                                Collapsed="SidebarExpander_StateChanged"
                                 Margin="8">
                             <StackPanel Margin="16,8,0,8">
                                 <Button Content="导出项目" 
@@ -278,11 +357,11 @@
                         <!-- 欢迎区域 -->
                         <materialDesign:Card Margin="0,0,0,16" Padding="24">
                             <StackPanel>
-                                <TextBlock Text="欢迎使用小说管理系统" 
+                                <TextBlock Text="欢迎使用书籍管理系统" 
                                          FontSize="28" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
-                                <TextBlock Text="基于AI Agent协作的智能小说创作平台" 
+                                <TextBlock Text="基于AI Agent协作的智能书籍创作平台" 
                                          FontSize="16" 
                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                          Margin="0,0,0,16"/>
@@ -339,10 +418,10 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="千面劫·宿命轮回"
+                                            <TextBlock x:Name="DashboardProjectNameText" Text="未选择项目"
                                                      FontSize="16"
                                                      FontWeight="Medium"/>
-                                            <TextBlock Text="修仙小说 | 创建于 2024-06-03"
+                                            <TextBlock x:Name="DashboardProjectSubtitleText" Text=""
                                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                      Margin="0,4,0,8"/>
                                             <StackPanel Orientation="Horizontal">
@@ -367,7 +446,7 @@
                             </StackPanel>
                         </materialDesign:Card>
 
-                        <!-- 最近活动 -->
+                        <!-- 最近活动：显示最近相关项目的真实更新动态（章节/角色/项目变更） -->
                         <materialDesign:Card Padding="24">
                             <StackPanel>
                                 <TextBlock Text="最近活动"
@@ -375,48 +454,46 @@
                                          FontWeight="Medium"
                                          Margin="0,0,0,16"/>
 
-                                <ItemsControl>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <materialDesign:PackIcon Kind="FileDocument"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,12,0"/>
-                                        <TextBlock Text="更新了第45章：天劫降临"
-                                                 VerticalAlignment="Center"/>
-                                        <TextBlock Text="2小时前"
-                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                 VerticalAlignment="Center"
-                                                 Margin="12,0,0,0"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <materialDesign:PackIcon Kind="Account"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,12,0"/>
-                                        <TextBlock Text="添加了新角色：玄天老祖"
-                                                 VerticalAlignment="Center"/>
-                                        <TextBlock Text="5小时前"
-                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                 VerticalAlignment="Center"
-                                                 Margin="12,0,0,0"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <materialDesign:PackIcon Kind="Robot"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,12,0"/>
-                                        <TextBlock Text="AI助手完成了剧情一致性检查"
-                                                 VerticalAlignment="Center"/>
-                                        <TextBlock Text="1天前"
-                                                 Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                                 VerticalAlignment="Center"
-                                                 Margin="12,0,0,0"/>
-                                    </StackPanel>
+                                <ItemsControl x:Name="RecentActivitiesControl">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <materialDesign:PackIcon Kind="{Binding Icon}"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="0,0,12,0"/>
+                                                <TextBlock Text="{Binding Message}"
+                                                         VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding RelativeTime}"
+                                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                         VerticalAlignment="Center"
+                                                         Margin="12,0,0,0"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <TextBlock x:Name="RecentActivityEmptyText"
+                                         Text="暂无活动记录"
+                                         FontStyle="Italic"
+                                         Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                         Visibility="Collapsed"/>
                             </StackPanel>
                         </materialDesign:Card>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+
+            <!-- AI 创作助手抽屉分隔条 -->
+            <GridSplitter Grid.Column="3"
+                          x:Name="CopilotSplitter"
+                          Visibility="Collapsed"
+                          HorizontalAlignment="Stretch"
+                          Background="{DynamicResource MaterialDesignDivider}"/>
+
+            <!-- AI 创作助手抽屉（对话式创作流水线） -->
+            <views:CopilotPanel Grid.Column="4"
+                                x:Name="CopilotDrawer"
+                                Visibility="Collapsed"/>
         </Grid>
 
         <!-- 状态栏 -->
@@ -433,14 +510,14 @@
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <TextBlock Text="当前项目: 千面劫·宿命轮回"/>
+                <TextBlock x:Name="CurrentProjectStatusText" Text="当前项目: 未选择"/>
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
                 <TextBlock Text="版本 1.0.0"/>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="2024-06-03 10:30:00"/>
+                <TextBlock x:Name="StatusBarTimeText"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
+using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Services.ThinkingChain;
 
 namespace NovelManagement.AI.Agents
@@ -21,13 +22,15 @@ namespace NovelManagement.AI.Agents
         /// <param name="deepSeekApiService">DeepSeek API服务</param>
         /// <param name="thinkingChainProcessor">思维链处理器</param>
         /// <param name="modelManager">模型管理器</param>
+        /// <param name="rwkvService">本地 RWKV 推理服务</param>
         public CriticAgent(
             ILogger<CriticAgent> logger,
             IMemoryManager memoryManager,
             IDeepSeekApiService deepSeekApiService,
             IThinkingChainProcessor thinkingChainProcessor,
-            NovelManagement.AI.Services.ModelManager modelManager)
-            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager)
+            NovelManagement.AI.Services.ModelManager modelManager,
+            IRwkvLightningService? rwkvService = null)
+            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager, rwkvService)
         {
         }
 

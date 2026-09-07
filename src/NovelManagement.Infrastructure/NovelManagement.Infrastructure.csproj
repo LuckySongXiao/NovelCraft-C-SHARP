@@ -11,9 +11,9 @@
 
   <PropertyGroup>
     <AssemblyTitle>NovelManagement.Infrastructure</AssemblyTitle>
-    <AssemblyDescription>小说管理系统基础设施层</AssemblyDescription>
+    <AssemblyDescription>书籍管理系统基础设施层</AssemblyDescription>
     <AssemblyCompany>NovelManagement</AssemblyCompany>
-    <AssemblyProduct>小说管理系统</AssemblyProduct>
+    <AssemblyProduct>书籍管理系统</AssemblyProduct>
     <AssemblyCopyright>Copyright © 2024</AssemblyCopyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>

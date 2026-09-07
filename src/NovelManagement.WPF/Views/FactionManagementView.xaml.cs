@@ -25,8 +25,13 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// FactionManagementView.xaml 的交互逻辑
     /// </summary>
-    public partial class FactionManagementView : UserControl, INavigationRefreshableView
+    public partial class FactionManagementView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
+        /// <summary>
+        /// 待定位势力ID（导航携带）。
+        /// </summary>
+        private Guid? _pendingHighlightFactionId;
+
         /// <summary>
         /// 势力数据模型
         /// </summary>
@@ -197,7 +202,10 @@ namespace NovelManagement.WPF.Views
             _projectContextService = serviceProvider.GetService<ProjectContextService>();
             _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
             _chapterContentSyncNotificationService = serviceProvider.GetService<ChapterContentSyncNotificationService>();
-            _factionAnalysisService = serviceProvider.GetService<FactionAnalysisService>() ?? new FactionAnalysisService();
+            _factionAnalysisService = serviceProvider.GetService<FactionAnalysisService>()
+                ?? new FactionAnalysisService(
+                    serviceProvider.GetService<ILogger<FactionAnalysisService>>(),
+                    rwkvService: serviceProvider.GetService<NovelManagement.AI.Services.RWKV.IRwkvLightningService>());
 
             _currentProjectId = GetCurrentProjectId();
 
@@ -265,6 +273,7 @@ namespace NovelManagement.WPF.Views
                 UpdateFactionList();
                 RenderStatisticsPanel();
                 TryHighlightFactionFromSync();
+                TryHighlightFactionFromNavigation();
 
                 _logger?.LogInformation("成功加载 {Count} 个势力", _allFactions.Count);
             }
@@ -341,6 +350,51 @@ namespace NovelManagement.WPF.Views
             if (matchedFaction != null)
             {
                 SelectFaction(matchedFaction);
+            }
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时接收上下文，记录待定位的势力。
+        /// </summary>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            if (context.Payload is EntityHighlightNavigationPayload payload && payload.TargetId.HasValue)
+            {
+                _pendingHighlightFactionId = payload.TargetId;
+                _logger?.LogInformation("收到势力定位导航参数: {FactionId}", payload.TargetId);
+                // 数据可能已（同步）加载完成，立即尝试定位；否则由加载完成回调兜底
+                TryHighlightFactionFromNavigation();
+            }
+        }
+
+        /// <summary>
+        /// 数据加载完成后按导航参数选中并定位目标势力。
+        /// </summary>
+        private void TryHighlightFactionFromNavigation()
+        {
+            if (_pendingHighlightFactionId == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var targetId = _pendingHighlightFactionId.Value;
+                _pendingHighlightFactionId = null;
+
+                var matchedFaction = _allFactions.FirstOrDefault(faction => faction.FactionId == targetId);
+                if (matchedFaction == null)
+                {
+                    _logger?.LogWarning("导航定位势力失败，未找到 FactionId: {FactionId}", targetId);
+                    return;
+                }
+
+                SelectFaction(matchedFaction);
+                _logger?.LogInformation("已按导航参数定位势力: {Name} (FactionId: {FactionId})", matchedFaction.Name, targetId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导航定位势力时发生异常");
             }
         }
 
@@ -1311,6 +1365,7 @@ namespace NovelManagement.WPF.Views
     {
         private readonly Guid _projectId;
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private readonly IEnumerable<FactionManagementView.FactionViewModel> _existingFactions;
         private readonly FactionManagementView.FactionViewModel? _originalFaction;
         private readonly TextBox _nameTextBox = new();
@@ -1334,6 +1389,7 @@ namespace NovelManagement.WPF.Views
             _existingFactions = existingFactions.ToList();
             _originalFaction = faction;
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
 
             Title = faction == null ? "新建势力" : $"编辑势力 - {faction.Name}";
             Width = 620;
@@ -1472,7 +1528,7 @@ namespace NovelManagement.WPF.Views
 
                 DialogResult = true;
             };
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = "返回", Width = 84, IsCancel = true };
 
             buttonPanel.Children.Add(aiButton);
             buttonPanel.Children.Add(resetButton);
@@ -1495,26 +1551,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var prompt = await BuildAiPromptAsync();
             var result = await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
             {
                 ["plotType"] = "势力设定",
-                ["theme"] = _nameTextBox.Text,
-                ["requirements"] = $@"请补全一个小说中的势力设定。
-名称：{_nameTextBox.Text}
-类型：{_typeComboBox.SelectedItem}
-描述：{_descriptionTextBox.Text}
-领地：{_territoryTextBox.Text}
-资源：{_resourcesTextBox.Text}
-请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号：
-名称：
-势力描述：
-领地：
-总部：
-资源：
-历史：
-特色能力：
-标签：
-备注："
+                ["theme"] = string.IsNullOrWhiteSpace(_nameTextBox.Text)
+                    ? (_typeComboBox.SelectedItem?.ToString() ?? "势力设定")
+                    : _nameTextBox.Text.Trim(),
+                ["requirements"] = prompt
             });
 
             if (!result.IsSuccess || result.Data == null)
@@ -1544,6 +1588,86 @@ namespace NovelManagement.WPF.Views
             }
 
             MessageBox.Show("已完成势力信息自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private async Task<string> BuildAiPromptAsync()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("请补全一个书籍中的势力设定。");
+            builder.AppendLine("请优先补全缺失信息，并与现有内容保持一致。");
+            builder.AppendLine("内容必须属于世界设定层的势力组织，不要输出剧情大纲、正文片段、人物小传或无关模块。");
+            builder.AppendLine("请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号。");
+            builder.AppendLine();
+
+            if (_projectReadModelService != null && _projectId != Guid.Empty)
+            {
+                try
+                {
+                    var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_projectId);
+                    if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                    {
+                        builder.AppendLine(projectContext.PromptSummary);
+                        builder.AppendLine();
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            var parentFactionName = _parentFactionComboBox.SelectedItem?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentFactionName) && parentFactionName != "(无)")
+            {
+                var parentFaction = _existingFactions.FirstOrDefault(item => item.Name == parentFactionName);
+                if (parentFaction != null)
+                {
+                    builder.AppendLine("【父势力约束】");
+                    builder.AppendLine($"名称：{parentFaction.Name}");
+                    builder.AppendLine($"类型：{parentFaction.Type}");
+                    builder.AppendLine($"描述：{parentFaction.Description}");
+                    builder.AppendLine($"领地：{parentFaction.Territory}");
+                    builder.AppendLine($"资源：{parentFaction.Resources}");
+                    builder.AppendLine($"总部：{parentFaction.Headquarters}");
+                    builder.AppendLine($"历史：{parentFaction.History}");
+                    builder.AppendLine($"特色能力：{parentFaction.SpecialAbilities}");
+                    builder.AppendLine($"标签：{parentFaction.Tags}");
+                    builder.AppendLine();
+                }
+            }
+
+            builder.AppendLine("当前信息：");
+            builder.AppendLine($"名称：{_nameTextBox.Text}");
+            builder.AppendLine($"类型：{_typeComboBox.SelectedItem}");
+            builder.AppendLine($"父势力：{_parentFactionComboBox.SelectedItem}");
+            builder.AppendLine($"实力等级：{(int)_powerLevelSlider.Value}");
+            builder.AppendLine($"成员数量：{_memberCountTextBox.Text}");
+            builder.AppendLine($"领地：{_territoryTextBox.Text}");
+            builder.AppendLine($"总部：{_headquartersTextBox.Text}");
+            builder.AppendLine($"势力描述：{_descriptionTextBox.Text}");
+            builder.AppendLine($"资源：{_resourcesTextBox.Text}");
+            builder.AppendLine($"历史：{_historyTextBox.Text}");
+            builder.AppendLine($"特色能力：{_abilitiesTextBox.Text}");
+            builder.AppendLine($"标签：{_tagsTextBox.Text}");
+            builder.AppendLine($"状态：{_statusComboBox.SelectedItem}");
+            builder.AppendLine($"备注：{_notesTextBox.Text}");
+            builder.AppendLine();
+            builder.AppendLine("生成要求：");
+            builder.AppendLine("1. 必须优先遵循项目基础信息、已有世界设定和大纲约束。");
+            builder.AppendLine("2. 只能补全势力组织相关字段，不得生成无关世界设定分支。");
+            builder.AppendLine("3. 如果选择了父势力，新内容必须与父势力主题和结构保持一致。");
+            builder.AppendLine("4. 若与现有输入冲突，优先保持现有输入语义一致。");
+            builder.AppendLine();
+            builder.AppendLine("请按以下字段输出：");
+            builder.AppendLine("名称：");
+            builder.AppendLine("势力描述：");
+            builder.AppendLine("领地：");
+            builder.AppendLine("总部：");
+            builder.AppendLine("资源：");
+            builder.AppendLine("历史：");
+            builder.AppendLine("特色能力：");
+            builder.AppendLine("标签：");
+            builder.AppendLine("备注：");
+            return builder.ToString().Trim();
         }
 
         private void ResetForm()

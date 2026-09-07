@@ -4,14 +4,28 @@
 
     <FontFamily x:Key="AppDefaultFontFamily">SimSun</FontFamily>
 
-    <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#F4F6FB"/>
-    <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#FAFBFF"/>
-    <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#FFFFFFFF"/>
-    <SolidColorBrush x:Key="AppSubtleBorderBrush" Color="#D9E1F2"/>
-    <SolidColorBrush x:Key="AppMutedTextBrush" Color="#667085"/>
+    <!--  主题画刷：默认黑夜值；ThemeManager 按时间在运行时覆盖（DynamicResource 引用） -->
+    <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#1F262F"/>
+    <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#262E38"/>
+    <SolidColorBrush x:Key="AppCardBackgroundBrush" Color="#2A323D"/>
+    <!--  输入框/下拉框背景：黑夜=深底，白昼=白底（ThemeManager 运行时按皮肤覆盖） -->
+    <SolidColorBrush x:Key="AppInputBackgroundBrush" Color="#242C36"/>
+    <SolidColorBrush x:Key="AppSubtleBorderBrush" Color="#3F4B5B"/>
+    <SolidColorBrush x:Key="AppMutedTextBrush" Color="#8A97A8"/>
+    <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="#242C36"/>
+    <SolidColorBrush x:Key="DataGridAltRowBackgroundBrush" Color="#2A323D"/>
+    <!--  主文字前景：黑夜=浅字，白昼=深字（与背景相反，ThemeManager 运行时覆盖） -->
+    <SolidColorBrush x:Key="AppForegroundTextBrush" Color="#E6EDF6"/>
+    <!--  成功/建议语义色：黑夜=亮绿（深底可读），白昼/红粉=深绿（浅底可读），ThemeManager 运行时按皮肤覆盖 -->
+    <SolidColorBrush x:Key="AppSuccessBrush" Color="#66BB6A"/>
+    <!--  窗口框架颜色：标题栏/侧边导航（默认黑夜值，ThemeManager 运行时按皮肤覆盖） -->
+    <SolidColorBrush x:Key="AppTitleBarBackgroundBrush" Color="#2A3441"/>
+    <SolidColorBrush x:Key="AppTitleBarForegroundBrush" Color="#E6EDF6"/>
+    <SolidColorBrush x:Key="AppNavPanelBackgroundBrush" Color="#262E38"/>
 
     <Style TargetType="{x:Type Window}">
-        <Setter Property="Background" Value="{StaticResource AppWindowBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppWindowBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
         <Setter Property="TextElement.FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
         <Setter Property="UseLayoutRounding" Value="True"/>
@@ -21,43 +35,56 @@
     <Style TargetType="{x:Type UserControl}">
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
         <Setter Property="TextElement.FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
     <Style TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
     </Style>
 
-    <Style TargetType="{x:Type TextBox}">
+    <!--  输入控件：BasedOn MaterialDesign 保持 MD 模板（深色主题下为深底浅字），
+          避免默认 WPF 模板白底；背景/前景互为反色，随皮肤切换 -->
+    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource MaterialDesignTextBox}">
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppInputBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppSubtleBorderBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource AppForegroundTextBrush}"/>
     </Style>
 
-    <Style TargetType="{x:Type PasswordBox}">
+    <Style TargetType="{x:Type PasswordBox}" BasedOn="{StaticResource MaterialDesignPasswordBox}">
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppInputBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppSubtleBorderBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource AppForegroundTextBrush}"/>
     </Style>
 
-    <Style TargetType="{x:Type ComboBox}">
+    <Style TargetType="{x:Type ComboBox}" BasedOn="{StaticResource MaterialDesignComboBox}">
         <Setter Property="FontFamily" Value="{StaticResource AppDefaultFontFamily}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundTextBrush}"/>
     </Style>
 
-    <Style TargetType="{x:Type ListView}">
+    <Style TargetType="{x:Type ListView}" BasedOn="{StaticResource MaterialDesignListView}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppSubtleBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
     <Style TargetType="{x:Type DataGrid}">
-        <Setter Property="Background" Value="{StaticResource AppCardBackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppCardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppSubtleBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="RowBackground" Value="#FCFDFF"/>
-        <Setter Property="AlternatingRowBackground" Value="#F5F8FE"/>
+        <Setter Property="RowBackground" Value="{DynamicResource DataGridRowBackgroundBrush}"/>
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource DataGridAltRowBackgroundBrush}"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
     </Style>
 
     <Style TargetType="{x:Type StatusBar}">
-        <Setter Property="Background" Value="{StaticResource AppPanelBackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppSubtleBorderBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AppSubtleBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1,1,1,0"/>
         <Setter Property="Padding" Value="8,4"/>
     </Style>
@@ -68,7 +95,7 @@
     </Style>
 
     <Style TargetType="{x:Type materialDesign:Card}">
-        <Setter Property="Background" Value="{StaticResource AppCardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource AppCardBackgroundBrush}"/>
         <Setter Property="Margin" Value="0,0,0,16"/>
         <Setter Property="Padding" Value="20"/>
         <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>

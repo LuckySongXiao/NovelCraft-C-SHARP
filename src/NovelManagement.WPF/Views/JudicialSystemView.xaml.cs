@@ -54,6 +54,7 @@ namespace NovelManagement.WPF.Views
         private readonly JudicialDataService? _judicialDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -96,6 +97,7 @@ namespace NovelManagement.WPF.Views
                 _judicialDataService = serviceProvider?.GetService<JudicialDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -664,6 +666,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "司法体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateJudicialSystemWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -672,13 +685,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedJudicialSystem != null ? $"优化司法体系：{SelectedJudicialSystem.Name}" : "生成司法体系",
-                ["theme"] = "请生成一个适合小说项目使用的司法体系，并输出名称、法律体系类型、管辖区、维度、描述、法院列表。",
-                ["requirements"] = optimizeCurrent && SelectedJudicialSystem != null
+                ["theme"] = "请生成一个适合书籍项目使用的司法体系，并输出名称、法律体系类型、管辖区、维度、描述、法院列表。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedJudicialSystem != null
                     ? $"请基于当前司法体系进行优化并输出结构化文本。当前体系：{SelectedJudicialSystem.Name}，类型：{SelectedJudicialSystem.LegalSystemType}，管辖区：{SelectedJudicialSystem.Jurisdiction}，描述：{SelectedJudicialSystem.Description}"
-                    : "请输出一个完整司法体系，至少包含名称、法律体系类型、管辖区、维度、描述、至少3个法院。",
+                    : "请输出一个完整司法体系，至少包含名称、法律体系类型、管辖区、维度、描述、至少3个法院。"),
                 ["context"] = GetCurrentContext()
             };
 

@@ -1,0 +1,87 @@
+<Window x:Class="NovelManagement.WPF.Views.Copilot.ChapterRefPickerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="关联章节"
+        Width="480"
+        Height="430"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题与说明 -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <materialDesign:PackIcon Kind="BookOpenVariant"
+                                         Width="22" Height="22"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,8,0"
+                                         Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                <TextBlock Text="关联目标章节"
+                           FontSize="20"
+                           FontWeight="Bold"/>
+            </StackPanel>
+            <TextBlock Text="依次选择书籍、分卷与章节。关联后，创作助手的后续输入将直接作用于该章节：输入要求即处理（润色/重写/扩写/续写等），也可针对章节提问；输入「取消关联」可解除。"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+        </StackPanel>
+
+        <!-- 书籍 -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="书籍" FontSize="12" Margin="0,0,0,4"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            <ComboBox x:Name="ProjectComboBox"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      DisplayMemberPath="Name"
+                      SelectionChanged="ProjectComboBox_SelectionChanged"/>
+        </StackPanel>
+
+        <!-- 分卷 -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,12">
+            <TextBlock Text="分卷" FontSize="12" Margin="0,0,0,4"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            <ComboBox x:Name="VolumeComboBox"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      DisplayMemberPath="Text"
+                      SelectionChanged="VolumeComboBox_SelectionChanged"/>
+        </StackPanel>
+
+        <!-- 章节 -->
+        <StackPanel Grid.Row="3" Margin="0,0,0,12">
+            <TextBlock Text="章节" FontSize="12" Margin="0,0,0,4"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            <ComboBox x:Name="ChapterComboBox"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      DisplayMemberPath="Text"
+                      SelectionChanged="ChapterComboBox_SelectionChanged"/>
+        </StackPanel>
+
+        <!-- 操作按钮 -->
+        <DockPanel Grid.Row="5">
+            <Button DockPanel.Dock="Right"
+                    Content="关联"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    x:Name="ConfirmButton"
+                    IsEnabled="False"
+                    IsDefault="True"
+                    Margin="8,0,0,0"
+                    Click="Confirm_Click"/>
+            <Button DockPanel.Dock="Right"
+                    Content="取消"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    IsCancel="True"/>
+        </DockPanel>
+    </Grid>
+</Window>

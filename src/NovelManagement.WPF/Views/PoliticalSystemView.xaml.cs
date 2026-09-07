@@ -891,6 +891,7 @@ namespace NovelManagement.WPF.Views
     {
         private readonly Guid _projectId;
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private readonly PoliticalSystemViewModel? _originalModel;
         private readonly TextBox _nameTextBox = new();
         private readonly ComboBox _typeComboBox = new();
@@ -915,6 +916,7 @@ namespace NovelManagement.WPF.Views
         {
             _projectId = projectId;
             _aiAssistantService = aiAssistantService;
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             _originalModel = model;
 
             Title = model == null ? "新建政治体系" : $"编辑政治体系 - {model.Name}";
@@ -1137,7 +1139,7 @@ namespace NovelManagement.WPF.Views
 
                 DialogResult = true;
             };
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = "返回", Width = 84, IsCancel = true };
             buttons.Children.Add(aiButton);
             buttons.Children.Add(resetButton);
             buttons.Children.Add(okButton);
@@ -1159,27 +1161,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var prompt = await BuildAiPromptAsync();
             var result = await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
             {
                 ["plotType"] = "政治体系设定",
-                ["theme"] = _nameTextBox.Text,
-                ["requirements"] = $@"请补全一个政治体系设定。
-名称：{_nameTextBox.Text}
-类型：{_typeComboBox.SelectedItem}
-领土：{_territoryTextBox.Text}
-描述：{_descriptionTextBox.Text}
-请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号：
-名称：
-体系描述：
-政治层级：
-法律制度：
-选举制度：
-行政体系：
-军事体系：
-经济制度：
-社会阶层：
-标签：
-备注："
+                ["theme"] = string.IsNullOrWhiteSpace(_nameTextBox.Text)
+                    ? (_typeComboBox.SelectedItem?.ToString() ?? "政治体系")
+                    : _nameTextBox.Text.Trim(),
+                ["requirements"] = prompt
             });
 
             if (!result.IsSuccess || result.Data == null)
@@ -1215,6 +1204,68 @@ namespace NovelManagement.WPF.Views
             }
 
             MessageBox.Show("已完成政治体系自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private async Task<string> BuildAiPromptAsync()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("请补全一个政治体系设定。");
+            builder.AppendLine("请优先补全缺失信息，并与现有内容保持一致。");
+            builder.AppendLine("内容必须属于世界设定层的政治体系，不要输出剧情大纲、正文片段、人物小传或无关模块。");
+            builder.AppendLine("请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号。");
+            builder.AppendLine();
+
+            if (_projectReadModelService != null && _projectId != Guid.Empty)
+            {
+                try
+                {
+                    var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_projectId);
+                    if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                    {
+                        builder.AppendLine(projectContext.PromptSummary);
+                        builder.AppendLine();
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            builder.AppendLine("当前信息：");
+            builder.AppendLine($"名称：{_nameTextBox.Text}");
+            builder.AppendLine($"类型：{_typeComboBox.SelectedItem}");
+            builder.AppendLine($"领土：{_territoryTextBox.Text}");
+            builder.AppendLine($"首都/中心：{_capitalTextBox.Text}");
+            builder.AppendLine($"人口：{_populationTextBox.Text}");
+            builder.AppendLine($"描述：{_descriptionTextBox.Text}");
+            builder.AppendLine($"政治层级：{_hierarchyTextBox.Text}");
+            builder.AppendLine($"法律制度：{_legalSystemTextBox.Text}");
+            builder.AppendLine($"选举制度：{_electionSystemTextBox.Text}");
+            builder.AppendLine($"行政体系：{_administrativeSystemTextBox.Text}");
+            builder.AppendLine($"军事体系：{_militarySystemTextBox.Text}");
+            builder.AppendLine($"经济制度：{_economicSystemTextBox.Text}");
+            builder.AppendLine($"社会阶层：{_socialHierarchyTextBox.Text}");
+            builder.AppendLine($"标签：{_tagsTextBox.Text}");
+            builder.AppendLine($"备注：{_notesTextBox.Text}");
+            builder.AppendLine();
+            builder.AppendLine("生成要求：");
+            builder.AppendLine("1. 必须优先遵循项目基础信息、已有世界设定和大纲约束。");
+            builder.AppendLine("2. 只能补全政治体系相关字段，不得生成无关世界设定分支。");
+            builder.AppendLine("3. 若与现有输入冲突，优先保持现有输入语义一致。");
+            builder.AppendLine();
+            builder.AppendLine("请按以下字段输出：");
+            builder.AppendLine("名称：");
+            builder.AppendLine("体系描述：");
+            builder.AppendLine("政治层级：");
+            builder.AppendLine("法律制度：");
+            builder.AppendLine("选举制度：");
+            builder.AppendLine("行政体系：");
+            builder.AppendLine("军事体系：");
+            builder.AppendLine("经济制度：");
+            builder.AppendLine("社会阶层：");
+            builder.AppendLine("标签：");
+            builder.AppendLine("备注：");
+            return builder.ToString().Trim();
         }
 
         private string BuildTags()

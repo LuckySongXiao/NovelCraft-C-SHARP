@@ -19,8 +19,13 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// PlotManagementView.xaml 的交互逻辑
     /// </summary>
-    public partial class PlotManagementView : UserControl, INavigationRefreshableView
+    public partial class PlotManagementView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
+        /// <summary>
+        /// 待定位剧情ID（导航携带）。
+        /// </summary>
+        private Guid? _pendingHighlightPlotId;
+
         /// <summary>
         /// 剧情数据模型
         /// </summary>
@@ -115,6 +120,7 @@ namespace NovelManagement.WPF.Views
         private PlotService? _plotService;
         private ProjectContextService? _projectContextService;
         private CurrentProjectGuard? _currentProjectGuard;
+        private ProjectReadModelService? _projectReadModelService;
         private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
         private AIAssistantService? _aiAssistantService;
         private VolumeService? _volumeService;
@@ -159,6 +165,7 @@ namespace NovelManagement.WPF.Views
                 _plotService = serviceProvider.GetService<PlotService>();
                 _projectContextService = serviceProvider.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider.GetService<ProjectReadModelService>();
                 _chapterContentSyncNotificationService = serviceProvider.GetService<ChapterContentSyncNotificationService>();
                 _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                 _volumeService = serviceProvider.GetService<VolumeService>();
@@ -210,6 +217,7 @@ namespace NovelManagement.WPF.Views
                 UpdatePlotList();
                 ShowPlotStatistics();
                 TryHighlightPlotFromSync();
+                TryHighlightPlotFromNavigation();
             }
             catch (Exception ex)
             {
@@ -411,7 +419,7 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
-                var dialog = new PlotEditDialog();
+                var dialog = new PlotEditDialog(_currentProjectId);
                 dialog.Owner = Window.GetWindow(this);
                 if (dialog.ShowDialog() != true)
                 {
@@ -521,7 +529,8 @@ namespace NovelManagement.WPF.Views
                         ["targetChapters"] = dialog.TargetChapters,
                         ["relatedCharacters"] = dialog.RelatedCharacters,
                         ["plotElements"] = dialog.PlotElements,
-                        ["existingPlots"] = _allPlots.Select(p => new { p.Title, p.Type, p.Description }).ToList()
+                        ["existingPlots"] = _allPlots.Select(p => new { p.Title, p.Type, p.Description }).ToList(),
+                        ["requirements"] = await BuildPlotGenerationRequirementsAsync(dialog)
                     };
 
                     if (_aiAssistantService != null)
@@ -918,6 +927,51 @@ namespace NovelManagement.WPF.Views
             }
         }
 
+        /// <summary>
+        /// 在导航到当前视图时接收上下文，记录待定位的剧情。
+        /// </summary>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            if (context.Payload is EntityHighlightNavigationPayload payload && payload.TargetId.HasValue)
+            {
+                _pendingHighlightPlotId = payload.TargetId;
+                _logger?.LogInformation("收到剧情定位导航参数: {PlotId}", payload.TargetId);
+                // 数据可能已（同步）加载完成，立即尝试定位；否则由加载完成回调兜底
+                TryHighlightPlotFromNavigation();
+            }
+        }
+
+        /// <summary>
+        /// 数据加载完成后按导航参数选中并定位目标剧情。
+        /// </summary>
+        private void TryHighlightPlotFromNavigation()
+        {
+            if (_pendingHighlightPlotId == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var targetId = _pendingHighlightPlotId.Value;
+                _pendingHighlightPlotId = null;
+
+                var matchedPlot = _allPlots.FirstOrDefault(plot => plot.PlotId == targetId);
+                if (matchedPlot == null)
+                {
+                    _logger?.LogWarning("导航定位剧情失败，未找到 PlotId: {PlotId}", targetId);
+                    return;
+                }
+
+                SelectPlot(matchedPlot);
+                _logger?.LogInformation("已按导航参数定位剧情: {Title} (PlotId: {PlotId})", matchedPlot.Title, targetId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导航定位剧情时发生异常");
+            }
+        }
+
         private async Task<Plot> PersistNewPlotAsync(PlotEditDialog dialog)
         {
             if (_plotService == null)
@@ -1007,7 +1061,7 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
-            var dialog = new PlotEditDialog(plot);
+            var dialog = new PlotEditDialog(_currentProjectId, plot);
             dialog.Owner = Window.GetWindow(this);
             if (dialog.ShowDialog() != true)
             {
@@ -1033,6 +1087,45 @@ namespace NovelManagement.WPF.Views
             {
                 ShowPlotDetails(_selectedPlot);
             }
+        }
+
+        private async Task<string> BuildPlotGenerationRequirementsAsync(PlotGenerationDialog dialog)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("请生成一个剧情设定。");
+            builder.AppendLine("内容必须属于剧情/大纲层，不要输出世界设定表单、正文片段或无关模块。");
+            builder.AppendLine("请保持与项目基础信息、已有世界设定和已有剧情一致。");
+            builder.AppendLine();
+
+            if (_projectReadModelService != null && _currentProjectId != Guid.Empty)
+            {
+                try
+                {
+                    var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_currentProjectId);
+                    if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                    {
+                        builder.AppendLine(projectContext.PromptSummary);
+                        builder.AppendLine();
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            builder.AppendLine("当前生成参数：");
+            builder.AppendLine($"剧情类型：{dialog.PlotType}");
+            builder.AppendLine($"剧情主题：{dialog.Theme}");
+            builder.AppendLine($"目标章节范围：{dialog.TargetChapters}");
+            builder.AppendLine($"相关角色：{string.Join("、", dialog.RelatedCharacters)}");
+            builder.AppendLine($"剧情要素：{string.Join("、", dialog.PlotElements)}");
+            builder.AppendLine();
+            builder.AppendLine("生成要求：");
+            builder.AppendLine("1. 必须优先遵循项目基础信息和已有世界设定。");
+            builder.AppendLine("2. 生成内容必须处于剧情/大纲层，而不是世界设定层或正文层。");
+            builder.AppendLine("3. 如果已有剧情与本次主题接近，应尽量形成延展或补充，而不是重复。");
+            builder.AppendLine("4. 输出应包含可直接保存的标题、描述、状态、优先级和备注。");
+            return builder.ToString().Trim();
         }
 
         private async Task DeletePlotAsync(PlotViewModel plot)
@@ -1316,18 +1409,21 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 初始化新建剧情对话框。
         /// </summary>
-        public PlotEditDialog()
-            : this(null)
+        public PlotEditDialog(Guid projectId)
+            : this(projectId, null)
         {
         }
 
         /// <summary>
         /// 初始化剧情编辑对话框。
         /// </summary>
+        /// <param name="projectId">所属项目标识。</param>
         /// <param name="plot">待编辑的剧情；为空时表示新建。</param>
-        public PlotEditDialog(PlotManagementView.PlotViewModel? plot)
+        public PlotEditDialog(Guid projectId, PlotManagementView.PlotViewModel? plot)
         {
+            _projectId = projectId;
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             Title = plot == null ? "新建剧情" : $"编辑剧情 - {plot.Title}";
             Width = 760;
             Height = 720;
@@ -1411,17 +1507,17 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
+                var prompt = await BuildAiPromptAsync(
+                    typeComboBox.SelectedItem?.ToString() ?? "支线",
+                    titleTextBox.Text,
+                    descriptionTextBox.Text);
                 var result = await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
                 {
                     ["plotType"] = typeComboBox.SelectedItem?.ToString() ?? "支线",
-                    ["theme"] = titleTextBox.Text,
-                    ["requirements"] = $@"请补全一个剧情设定。
-标题：{titleTextBox.Text}
-剧情类型：{typeComboBox.SelectedItem}
-当前描述：{descriptionTextBox.Text}
-请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号：
-标题：
-剧情描述："
+                    ["theme"] = string.IsNullOrWhiteSpace(titleTextBox.Text)
+                        ? (typeComboBox.SelectedItem?.ToString() ?? "剧情")
+                        : titleTextBox.Text.Trim(),
+                    ["requirements"] = prompt
                 });
 
                 if (!result.IsSuccess || result.Data == null)
@@ -1488,7 +1584,7 @@ namespace NovelManagement.WPF.Views
 
             var cancelButton = new Button
             {
-                Content = "取消",
+                Content = "返回",
                 Width = 88,
                 IsCancel = true
             };
@@ -1509,6 +1605,49 @@ namespace NovelManagement.WPF.Views
             });
 
             Content = contentPanel;
+        }
+
+        private readonly Guid _projectId;
+        private readonly ProjectReadModelService? _projectReadModelService;
+
+        private async Task<string> BuildAiPromptAsync(string plotType, string title, string description)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("请补全一个剧情设定。");
+            builder.AppendLine("内容必须属于剧情/大纲层，不要输出世界设定表单、正文片段、人物小传或无关模块。");
+            builder.AppendLine("请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号。");
+            builder.AppendLine();
+
+            if (_projectReadModelService != null && _projectId != Guid.Empty)
+            {
+                try
+                {
+                    var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_projectId);
+                    if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                    {
+                        builder.AppendLine(projectContext.PromptSummary);
+                        builder.AppendLine();
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            builder.AppendLine("当前信息：");
+            builder.AppendLine($"标题：{title}");
+            builder.AppendLine($"剧情类型：{plotType}");
+            builder.AppendLine($"当前描述：{description}");
+            builder.AppendLine();
+            builder.AppendLine("生成要求：");
+            builder.AppendLine("1. 必须优先遵循项目基础信息、已有世界设定和已有剧情约束。");
+            builder.AppendLine("2. 输出必须是剧情描述，不得写成世界设定条目或正文章节。");
+            builder.AppendLine("3. 若与当前描述冲突，优先保持当前描述语义一致。");
+            builder.AppendLine();
+            builder.AppendLine("请按以下字段输出：");
+            builder.AppendLine("标题：");
+            builder.AppendLine("剧情描述：");
+            return builder.ToString().Trim();
         }
 
     }

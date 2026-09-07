@@ -14,6 +14,7 @@ public class AIAssistantWorkspaceView : UserControl
 {
     private readonly IAIAssistantService? _aiAssistantService;
     private readonly ProjectContextService? _projectContextService;
+    private readonly ProjectReadModelService? _projectReadModelService;
     private readonly TextBox _promptTextBox;
     private readonly ComboBox _modeComboBox;
     private readonly TextBox _resultTextBox;
@@ -24,11 +25,12 @@ public class AIAssistantWorkspaceView : UserControl
     {
         _aiAssistantService = App.ServiceProvider?.GetService(typeof(IAIAssistantService)) as IAIAssistantService;
         _projectContextService = App.ServiceProvider?.GetService(typeof(ProjectContextService)) as ProjectContextService;
+        _projectReadModelService = App.ServiceProvider?.GetService(typeof(ProjectReadModelService)) as ProjectReadModelService;
 
         _modeComboBox = new ComboBox
         {
             Margin = new Thickness(0, 0, 0, 12),
-            ItemsSource = new[] { "角色补全", "剧情补全", "世界设定补全", "小说大纲" },
+            ItemsSource = new[] { "角色补全", "剧情补全", "世界设定补全", "书籍大纲" },
             SelectedIndex = 0
         };
 
@@ -107,7 +109,7 @@ public class AIAssistantWorkspaceView : UserControl
                     new TextBlock
                     {
                         Margin = new Thickness(0, 8, 0, 16),
-                        Text = "这里提供稳定版 AI 助手入口，可直接生成角色、剧情、世界设定或小说大纲。",
+                        Text = "这里提供稳定版 AI 助手入口，可直接生成角色、剧情、世界设定或书籍大纲。",
                         TextWrapping = TextWrapping.Wrap
                     },
                     new TextBlock { Text = "生成模式" },
@@ -142,6 +144,7 @@ public class AIAssistantWorkspaceView : UserControl
         {
             _generateButton.IsEnabled = false;
             _statusTextBlock.Text = "AI 正在生成...";
+            var requirements = await BuildWorkspaceRequirementsAsync(_modeComboBox.SelectedItem?.ToString() ?? "角色补全", prompt);
 
             AIAssistantResult result = _modeComboBox.SelectedItem?.ToString() switch
             {
@@ -149,28 +152,37 @@ public class AIAssistantWorkspaceView : UserControl
                 {
                     ["characterType"] = "主配角",
                     ["backgroundStory"] = prompt,
-                    ["requirements"] = prompt
+                    ["requirements"] = requirements,
+                    ["projectContext"] = requirements
                 }),
                 "剧情补全" => await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
                 {
                     ["plotType"] = "主线",
                     ["theme"] = prompt,
-                    ["requirements"] = prompt
+                    ["requirements"] = requirements,
+                    ["projectContext"] = requirements
                 }),
                 "世界设定补全" => await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
                 {
                     ["plotType"] = "世界设定",
                     ["theme"] = prompt,
-                    ["requirements"] = $"请以世界设定形式补全以下需求：{prompt}"
+                    ["requirements"] = requirements,
+                    ["projectContext"] = requirements
                 }),
-                "小说大纲" => await _aiAssistantService.GenerateOutlineAsync(new Dictionary<string, object>
+                "书籍大纲" => await _aiAssistantService.GenerateOutlineAsync(new Dictionary<string, object>
                 {
                     ["theme"] = prompt,
                     ["novelType"] = "演示项目",
                     ["targetLength"] = "长篇",
-                    ["requirements"] = prompt
+                    ["requirements"] = requirements,
+                    ["projectContext"] = requirements
                 }),
-                _ => await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object> { ["theme"] = prompt })
+                _ => await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
+                {
+                    ["theme"] = prompt,
+                    ["requirements"] = requirements,
+                    ["projectContext"] = requirements
+                })
             };
 
             if (!result.IsSuccess)
@@ -192,6 +204,46 @@ public class AIAssistantWorkspaceView : UserControl
         {
             _generateButton.IsEnabled = true;
         }
+    }
+
+    private async Task<string> BuildWorkspaceRequirementsAsync(string mode, string prompt)
+    {
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine($"当前模式：{mode}");
+        builder.AppendLine("请先遵循项目基础信息、已有世界设定和已有大纲，再响应本次需求。");
+        builder.AppendLine("不要输出思考过程、解释性前言或 Markdown 代码块。");
+        builder.AppendLine();
+
+        if (_projectReadModelService != null && _projectContextService?.CurrentProjectId is Guid projectId && projectId != Guid.Empty)
+        {
+            try
+            {
+                var projectContext = await _projectReadModelService.BuildAiContextDataAsync(projectId);
+                if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                {
+                    builder.AppendLine(projectContext.PromptSummary);
+                    builder.AppendLine();
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        builder.AppendLine("当前需求：");
+        builder.AppendLine(prompt);
+        builder.AppendLine();
+        builder.AppendLine("模式约束：");
+        builder.AppendLine(mode switch
+        {
+            "角色补全" => "只输出角色相关内容，不要扩展成世界设定、剧情大纲或正文章节。",
+            "剧情补全" => "只输出剧情/大纲层内容，不要扩展成世界设定表单或正文章节。",
+            "世界设定补全" => "只输出世界设定相关内容，不要扩展成剧情大纲、角色小传或正文章节。",
+            "书籍大纲" => "只输出书籍大纲相关内容，且必须建立在已有世界设定之上。",
+            _ => "输出内容必须与当前模式一致。"
+        });
+
+        return builder.ToString().Trim();
     }
 
     private void OpenOutlineGenerator()

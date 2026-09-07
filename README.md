@@ -1,8 +1,8 @@
-# 小说管理系统 - C# 版本
+# 书籍管理系统 - C# 版本
 
 ## 项目概述
 
-这是一个功能完整的小说创作和管理系统，采用C# WPF技术栈开发，支持多Agent AI协作创作、完整的内容管理、设定管理等功能。系统设计高度模块化，具有良好的可扩展性和维护性。
+这是一个功能完整的书籍创作和管理系统，采用C# WPF技术栈开发，支持多Agent AI协作创作、完整的内容管理、设定管理等功能。系统设计高度模块化，具有良好的可扩展性和维护性。
 
 ## 系统架构
 
@@ -61,10 +61,10 @@
 ## 核心功能模块
 
 ### 1. 项目管理系统
-- **项目创建与配置**: 支持创建新的小说项目，配置基本信息
+- **项目创建与配置**: 支持创建新的书籍项目，配置基本信息
 - **项目概览**: 显示项目统计信息、创作进度、最近活动
-- **多项目管理**: 支持同时管理多个小说项目
-- **项目模板**: 提供不同类型小说的项目模板
+- **多项目管理**: 支持同时管理多个书籍项目
+- **项目模板**: 提供不同类型书籍的项目模板
 
 ### 2. 卷宗管理系统
 - **卷宗结构管理**: 支持多层级的卷宗结构
@@ -116,7 +116,7 @@
 - **部分内容导出**: 选择性模块导出、按维度导出、保持关联关系
 - **批量操作**: 支持批量导入导出、格式转换、增量导入、冲突解决
 - **发布格式**: 起点中文网、晋江文学网、纵横中文网、通用发布格式
-- **智能导入**: 小说文本解析、信息提取、数据结构化、交互式完善
+- **智能导入**: 书籍文本解析、信息提取、数据结构化、交互式完善
 - **版本控制**: 导入导出历史、版本回滚、数据备份、完整性检查
 
 ### 7. 统计报告系统
@@ -131,77 +131,56 @@
 ## 项目结构
 
 ```
-NovelManagementSystem/
+06_NovelCraft-C-SHARP/
 ├── src/
 │   ├── NovelManagement.Core/              # 核心领域模型
 │   │   ├── Entities/                      # 实体类
 │   │   ├── ValueObjects/                  # 值对象
-│   │   ├── Enums/                        # 枚举类型
-│   │   ├── Interfaces/                   # 核心接口
-│   │   └── Exceptions/                   # 自定义异常
+│   │   ├── Enums/                         # 枚举类型
+│   │   ├── Interfaces/                    # 核心接口
+│   │   └── Exceptions/                    # 自定义异常
 │   │
 │   ├── NovelManagement.Infrastructure/    # 基础设施层
-│   │   ├── Data/                         # 数据访问
-│   │   ├── AI/                          # AI提供商集成
-│   │   ├── FileSystem/                  # 文件系统服务
-│   │   ├── Logging/                     # 日志系统
-│   │   ├── Configuration/               # 配置管理
-│   │   └── Cache/                       # 缓存系统
+│   │   ├── Data/                          # 数据访问（SQLite + EF Core）
+│   │   ├── FileSystem/                    # 文件系统服务
+│   │   ├── Logging/                       # 日志系统
+│   │   ├── Configuration/                 # 配置管理
+│   │   └── Cache/                         # 缓存系统
 │   │
 │   ├── NovelManagement.Application/       # 应用服务层
-│   │   ├── Services/                     # 应用服务
-│   │   ├── DTOs/                        # 数据传输对象
-│   │   ├── Mappers/                     # 对象映射
-│   │   ├── Validators/                  # 数据验证
-│   │   └── Interfaces/                  # 应用接口
+│   │   ├── Services/                      # 应用服务（含批量生成/前置条件生成）
+│   │   ├── DTOs/                          # 数据传输对象
+│   │   ├── Interfaces/                    # 应用接口
+│   │   └── Validators/                    # 数据验证
 │   │
 │   ├── NovelManagement.Domain/            # 业务逻辑层
-│   │   ├── Services/                     # 领域服务
-│   │   ├── Repositories/                # 仓储接口
-│   │   ├── Specifications/              # 规约模式
-│   │   ├── Events/                      # 领域事件
-│   │   └── Factories/                   # 工厂模式
+│   │   ├── Services/                      # 领域服务
+│   │   └── Repositories/                  # 仓储接口
 │   │
-│   ├── NovelManagement.AI/               # AI集成层
-│   │   ├── Agents/                      # AI Agent实现
-│   │   ├── Workflows/                   # 工作流引擎
-│   │   ├── Memory/                      # 记忆管理
-│   │   ├── Providers/                   # AI提供商
-│   │   └── Models/                      # AI模型定义
+│   ├── NovelManagement.AI/                # AI集成层
+│   │   ├── Agents/                        # AI Agent（编剧/作家/总结/读者/设定管理）
+│   │   ├── Services/RWKV/                 # RWKV 推理服务（llama.cpp / CUDA / libtorch 三形态）
+│   │   ├── Workflows/                     # 工作流引擎
+│   │   ├── Memory/                        # 记忆管理
+│   │   └── Providers/                     # AI 提供商
 │   │
-│   └── NovelManagement.WPF/              # WPF表现层
-│       ├── Views/                       # 视图
-│       ├── ViewModels/                  # 视图模型
-│       ├── Controls/                    # 自定义控件
-│       ├── Converters/                  # 值转换器
-│       ├── Behaviors/                   # 行为
-│       ├── Styles/                      # 样式资源
-│       └── Resources/                   # 资源文件
+│   ├── NovelManagement.WPF/               # WPF表现层
+│   │   ├── Views/                         # 视图（含 Copilot 创作助手抽屉）
+│   │   ├── Services/                      # UI 服务（含 Copilot 会话/意图/流水线）
+│   │   ├── Controls/                      # 自定义控件
+│   │   ├── Converters/                    # 值转换器
+│   │   └── Styles/                        # 样式资源（多主题/多皮肤）
+│   │
+│   └── NovelManagement.Tests/             # 单元测试（120 用例全通过）
 │
-├── tests/                               # 测试项目
-│   ├── NovelManagement.Core.Tests/
-│   ├── NovelManagement.Application.Tests/
-│   ├── NovelManagement.Domain.Tests/
-│   ├── NovelManagement.AI.Tests/
-│   └── NovelManagement.Integration.Tests/
-│
-├── tools/                               # 工具和脚本
-│   ├── DatabaseMigration/               # 数据库迁移工具
-│   ├── DataImport/                      # 数据导入工具
-│   └── TestDataGenerator/               # 测试数据生成器
-│
-├── docs/                                # 文档
-│   ├── Architecture.md                  # 架构文档
-│   ├── API.md                          # API文档
-│   ├── UserGuide.md                    # 用户指南
-│   └── DeveloperGuide.md               # 开发者指南
-│
-├── scripts/                             # 构建和部署脚本
-│   ├── build.bat                       # 构建脚本
-│   ├── test.bat                        # 测试脚本
-│   └── deploy.bat                      # 部署脚本
-│
-└── NovelManagementSystem.sln           # 解决方案文件
+├── rwkv_models/                           # RWKV 模型文件（.gguf，不入库）
+├── llama_cpp/                             # llama-server 本地推理运行时
+├── RWKV_lightning_CUDA_win/               # RWKV CUDA 推理运行时（备用）
+├── rwkv_lightning_libtorch_win/           # RWKV libtorch 推理运行时（备用）
+├── scripts/                               # 构建和辅助脚本
+├── docs/                                  # 文档（功能说明书/使用手册）
+├── 项目交接.md                            # 开发交接文档（增量更新日志）
+└── NovelManagementSystem.sln              # 解决方案文件
 ```
 
 ## 开发环境要求
@@ -211,20 +190,14 @@ NovelManagementSystem/
 - **开发环境**: Visual Studio 2022 或 Visual Studio Code
 - **.NET版本**: .NET 8.0 或更高版本
 - **数据库**: SQLite (无需额外安装)
-
-### 开发工具
-- **IDE**: Visual Studio 2022 Community/Professional
-- **版本控制**: Git
-- **包管理**: NuGet
-- **文档工具**: Markdown编辑器
-- **数据库工具**: DB Browser for SQLite
+- **AI推理（可选）**: 本地 llama-server（`llama_cpp\` 内置）或任意兼容 OpenAI completions 的服务
 
 ## 安装和运行
 
 ### 1. 克隆项目
 ```bash
 git clone [项目地址]
-cd 小说管理系统_C#
+cd 书籍管理系统_C#
 ```
 
 ### 2. 还原依赖包
@@ -410,9 +383,12 @@ dotnet test
 
 ---
 
-## 📊 项目完成状态 (2024年12月10日更新)
+## 📊 项目完成状态 (2026年9月8日更新)
 
 ### 🎯 总体进度: 100% ✅
+
+> 📖 **功能说明书与使用手册**：详见 [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md)（中英双语，19 个功能页面使用说明，附 17 张真实运行截图）。
+> 📖 **User Guide (Bilingual)**: see [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md) — Chinese/English feature guide with per-page manuals and 17 live screenshots.
 
 | 模块 | 状态 | 完成度 | 说明 |
 |------|------|--------|------|
@@ -420,20 +396,24 @@ dotnet test
 | WPF界面 | ✅ | 100% (21/21) | 所有界面完成 |
 | 应用服务 | ✅ | 100% (20/20) | 所有服务完成 |
 | AI Agent系统 | ✅ | 100% (7/7) | AI系统完整 |
+| AI创作助手 | ✅ | 100% | 对话式五级创作流水线（总纲→剧情线→分卷→章节草稿→章节正文） |
 | 导入导出 | ✅ | 100% (7/7) | 多格式支持 |
-| 测试项目 | ✅ | 100% (6/6) | 测试覆盖完整 |
+| 测试项目 | ✅ | 120/120 | 单元测试全部通过 |
 
-### 🔧 最新修复 (2024年12月10日)
-- ✅ **章节保存功能完全修复**: 解决所有数据库约束问题
-- ✅ **外键约束处理**: 完善项目-卷-章节层次结构
-- ✅ **UNIQUE约束优化**: 智能处理项目名称冲突
-- ✅ **错误处理增强**: 详细错误信息和调试输出
-- ✅ **自动保存机制**: 章节编辑器支持自动保存
+### 🔧 最新更新 (2026年9月7-8日)
+- ✅ **AI 创作助手**: 对话式创作流水线上线——自然语言驱动五级流水线，确认卡采纳/修改/重生成，状态持久化支持重启续创
+- ✅ **章节关联处理**: 创作助手可关联已有书籍章节，直接对目标章节改写/续写/问答，落库与流水线解耦
+- ✅ **章节续写/润色修复**: 模型下拉框动态加载真实模型文件；RWKV 两级在线探测（状态 3 秒 + 推理探测 6 秒）杜绝假在线误判与长时间无响应；支持选中文本段精准润色
+- ✅ **单元测试 120 全通过**: Copilot 意图/流水线/会话三套测试，并抓出章节草稿编号丢弃真 bug
+- ✅ **侧栏导航持久化**: 展开状态跨重启精确恢复（`sidebar_state.json`）
+- ✅ **修为等级自定义体系**: AI 自上而下设计修炼体系，角色编辑/前置生成/批量生成全链路生效
 
 ### 📈 项目统计
-- **总代码文件数**: 200+ 个文件
-- **总代码行数**: 25,000+ 行
-- **编译状态**: ✅ 成功 (0错误, 1468警告)
+- **总代码文件数**: 300+ 个文件
+- **总代码行数**: 40,000+ 行
+- **编译状态**: ✅ 成功 (0 错误, 0 警告)
+- **单元测试**: ✅ 120/120 通过
+- **UIA 回归**: ✅ 五大功能页全链路实测通过
 - **启动状态**: ✅ 正常启动
 - **数据库状态**: ✅ 正常连接和操作
 
@@ -441,7 +421,7 @@ dotnet test
 ```bash
 # 1. 克隆项目
 git clone [项目地址]
-cd 小说管理系统
+cd 06_NovelCraft-C-SHARP
 
 # 2. 恢复依赖
 dotnet restore
@@ -454,7 +434,9 @@ src\NovelManagement.WPF\bin\Debug\net8.0-windows\NovelManagement.WPF.exe
 ```
 
 ### 📋 详细进度
-查看 [完成进度.md](完成进度.md) 了解详细的完成状态和功能清单。
+- 查看 [完成进度.md](完成进度.md) 了解详细的完成状态和功能清单。
+- 查看 [项目交接.md](项目交接.md) 了解开发过程与增量更新日志（32 节）。
+- 查看 [docs/](docs/) 目录下的中英双语功能说明书与各页面使用手册。
 
 ---
 

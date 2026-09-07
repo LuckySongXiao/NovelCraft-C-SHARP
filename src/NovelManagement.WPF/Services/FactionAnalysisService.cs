@@ -15,6 +15,11 @@ namespace NovelManagement.WPF.Services
         #region 字段和属性
 
         private readonly ILogger<FactionAnalysisService>? _logger;
+
+        /// <summary>
+        /// 本地 RWKV 推理服务（可选）：可用时由真实推理生成 SWOT 与战略建议，不可用时回退本地规则。
+        /// </summary>
+        private readonly NovelManagement.AI.Services.RWKV.IRwkvLightningService? _rwkvService;
         private readonly AICacheService _cacheService;
 
         /// <summary>
@@ -76,12 +81,14 @@ namespace NovelManagement.WPF.Services
         /// </summary>
         /// <param name="logger">日志记录器</param>
         /// <param name="cacheService">缓存服务</param>
-        public FactionAnalysisService(ILogger<FactionAnalysisService>? logger = null, AICacheService? cacheService = null)
+        /// <param name="rwkvService">本地 RWKV 推理服务（可选）</param>
+        public FactionAnalysisService(ILogger<FactionAnalysisService>? logger = null, AICacheService? cacheService = null, NovelManagement.AI.Services.RWKV.IRwkvLightningService? rwkvService = null)
         {
             _logger = logger;
             // 为AICacheService创建专用的Logger
             var cacheLogger = App.ServiceProvider?.GetService(typeof(ILogger<AICacheService>)) as ILogger<AICacheService>;
             _cacheService = cacheService ?? new AICacheService(cacheLogger);
+            _rwkvService = rwkvService;
         }
 
         #endregion
@@ -115,9 +122,6 @@ namespace NovelManagement.WPF.Services
                 // 缓存未命中，执行新分析
                 _logger?.LogInformation("缓存未命中，开始新的势力分析: {FactionName}", faction.Name);
 
-                // 模拟AI分析过程
-                await Task.Delay(3000);
-
                 var result = new FactionAnalysisResult
                 {
                     FactionName = faction.Name,
@@ -136,11 +140,12 @@ namespace NovelManagement.WPF.Services
                 // 预测潜在冲突
                 await PredictPotentialConflicts(faction, allFactions, result);
 
-                // 生成SWOT分析
-                await GenerateSWOTAnalysis(faction, allFactions, result);
-
-                // 生成战略建议
-                await GenerateStrategicRecommendations(faction, result);
+                // SWOT 分析与战略建议：优先本地 RWKV 真实推理，失败或不可用时回退本地规则
+                if (!await TryGenerateSwotWithRwkvAsync(faction, allFactions, result))
+                {
+                    await GenerateSWOTAnalysis(faction, allFactions, result);
+                    await GenerateStrategicRecommendations(faction, result);
+                }
 
                 // 将结果存入缓存（缓存1小时）
                 _cacheService.Set(cacheKey, result, TimeSpan.FromHours(1));
@@ -158,6 +163,103 @@ namespace NovelManagement.WPF.Services
         }
 
         /// <summary>
+        /// 尝试使用本地 RWKV 推理生成势力 SWOT 分析与战略建议（真实推理链路）。
+        /// 服务不可用、调用失败或输出无法解析时返回 false，由调用方回退本地规则生成。
+        /// </summary>
+        private async Task<bool> TryGenerateSwotWithRwkvAsync(
+            FactionDto faction, List<FactionDto> allFactions, FactionAnalysisResult result)
+        {
+            if (_rwkvService == null || !_rwkvService.IsAvailable)
+            {
+                return false;
+            }
+
+            try
+            {
+                var relatedNames = string.Join("、", allFactions
+                    .Where(f => f.Id != faction.Id)
+                    .Select(f => f.Name)
+                    .Take(8));
+
+                var prompt =
+                    "User: 分析书籍势力「" + faction.Name + "」（类型：" + (faction.Type ?? "未知") +
+                    "，实力：" + (faction.PowerLevel ?? "未知") +
+                    "，成员数：" + (faction.MemberCount?.ToString() ?? "未知") + "）。\n" +
+                    "描述：" + TruncateForPrompt(faction.Description, 300) + "\n" +
+                    "资源：" + TruncateForPrompt(faction.Resources, 120) + "\n" +
+                    (string.IsNullOrWhiteSpace(relatedNames) ? "" : "其他势力：" + relatedNames + "\n") +
+                    "请做SWOT分析与战略建议。每行一条，严格使用以下前缀格式：" +
+                    "「优势：」「劣势：」「机会：」「威胁：」「建议：」，共5-10行，不要解释。\n\n" +
+                    "Assistant: <think></think\n";
+
+                var response = await _rwkvService.CompleteAsync(prompt, 600);
+                if (!response.Success || string.IsNullOrWhiteSpace(response.Text))
+                {
+                    _logger?.LogWarning("势力分析 RWKV 推理失败: {Error}", response.Error);
+                    return false;
+                }
+
+                ParseSwotLines(response.Text, result);
+                var parsedCount = result.Strengths.Count + result.Weaknesses.Count + result.Opportunities.Count +
+                                  result.Threats.Count + result.StrategicRecommendations.Count;
+                if (parsedCount == 0)
+                {
+                    _logger?.LogInformation("势力分析 RWKV 输出无法解析，回退本地规则");
+                    return false;
+                }
+
+                _logger?.LogInformation("势力 SWOT 与战略建议已由本地 RWKV 推理生成: {FactionName}", faction.Name);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "势力分析 RWKV 推理异常，回退本地规则");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 解析 RWKV 输出中带「优势：/劣势：/机会：/威胁：/建议：」前缀的行写入分析结果。
+        /// </summary>
+        private static void ParseSwotLines(string text, FactionAnalysisResult result)
+        {
+            var lines = text.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var line in lines)
+            {
+                var value = line.Length > 3 ? line[3..].Trim('　', ' ', '-', '•', '*') : string.Empty;
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                if (line.StartsWith("优势：") || line.StartsWith("优势:"))
+                    result.Strengths.Add(value);
+                else if (line.StartsWith("劣势：") || line.StartsWith("劣势:"))
+                    result.Weaknesses.Add(value);
+                else if (line.StartsWith("机会：") || line.StartsWith("机会:"))
+                    result.Opportunities.Add(value);
+                else if (line.StartsWith("威胁：") || line.StartsWith("威胁:"))
+                    result.Threats.Add(value);
+                else if (line.StartsWith("建议：") || line.StartsWith("建议:"))
+                    result.StrategicRecommendations.Add(value);
+            }
+        }
+
+        /// <summary>
+        /// 提示词内容截断（保持提示词精简，适配 2.9B 小模型）。
+        /// </summary>
+        private static string TruncateForPrompt(string? text, int maxLength)
+        {
+            var value = text?.Trim() ?? string.Empty;
+            if (value.Length == 0)
+            {
+                return "（暂无）";
+            }
+
+            return value.Length <= maxLength ? value : value[..maxLength] + "…";
+        }
+
+        /// <summary>
         /// 批量分析多个势力的关系网络
         /// </summary>
         /// <param name="factions">势力列表</param>
@@ -168,11 +270,8 @@ namespace NovelManagement.WPF.Services
             {
                 _logger?.LogInformation("开始分析势力网络，势力数量: {Count}", factions.Count);
 
-                // 模拟网络分析
-                await Task.Delay(2000);
-
-                var result = new NetworkAnalysisResult
-                {
+            var result = new NetworkAnalysisResult
+            {
                     TotalFactions = factions.Count,
                     AnalyzedAt = DateTime.Now
                 };

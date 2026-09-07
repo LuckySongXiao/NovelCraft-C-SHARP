@@ -17,6 +17,7 @@ namespace NovelManagement.WPF.Services
     {
         private readonly ProjectService _projectService;
         private readonly CharacterService _characterService;
+        private readonly FactionService _factionService;
         private readonly VolumeService _volumeService;
         private readonly ChapterService _chapterService;
         private readonly PlotService _plotService;
@@ -26,6 +27,7 @@ namespace NovelManagement.WPF.Services
         public ProjectStatisticsService(
             ProjectService projectService,
             CharacterService characterService,
+            FactionService factionService,
             VolumeService volumeService,
             ChapterService chapterService,
             PlotService plotService,
@@ -34,6 +36,7 @@ namespace NovelManagement.WPF.Services
         {
             _projectService = projectService;
             _characterService = characterService;
+            _factionService = factionService;
             _volumeService = volumeService;
             _chapterService = chapterService;
             _plotService = plotService;
@@ -52,6 +55,7 @@ namespace NovelManagement.WPF.Services
                 }
 
                 var characters = (await _characterService.GetCharactersByProjectIdAsync(projectId)).ToList();
+                var factions = (await _factionService.GetFactionsByProjectIdAsync(projectId)).ToList();
                 var volumes = (await _volumeService.GetVolumeListAsync(projectId)).ToList();
                 var chapters = (await _chapterService.GetChaptersByProjectIdAsync(projectId)).ToList();
                 var plots = (await _plotService.GetPlotsByProjectIdAsync(projectId)).ToList();
@@ -75,6 +79,7 @@ namespace NovelManagement.WPF.Services
                     CompletedChapterCount = completedChapterCount,
                     DraftChapterCount = draftChapterCount,
                     CharacterCount = characters.Count,
+                    FactionCount = factions.Count,
                     PlotCount = plots.Count,
                     WorldSettingCount = worldSettings.Count,
                     TotalWordCount = totalWordCount,
@@ -141,6 +146,7 @@ namespace NovelManagement.WPF.Services
             builder.AppendLine($"• 已完成章节：{summary.CompletedChapterCount}");
             builder.AppendLine($"• 草稿章节：{summary.DraftChapterCount}");
             builder.AppendLine($"• 角色数：{summary.CharacterCount}");
+            builder.AppendLine($"• 势力数：{summary.FactionCount}");
             builder.AppendLine($"• 剧情数：{summary.PlotCount}");
             builder.AppendLine($"• 设定数：{summary.WorldSettingCount}");
             builder.AppendLine($"• 章节总字数：{summary.TotalWordCount:N0} 字");
@@ -169,6 +175,7 @@ namespace NovelManagement.WPF.Services
         public int CompletedChapterCount { get; init; }
         public int DraftChapterCount { get; init; }
         public int CharacterCount { get; init; }
+        public int FactionCount { get; init; }
         public int PlotCount { get; init; }
         public int WorldSettingCount { get; init; }
         public int TotalWordCount { get; init; }

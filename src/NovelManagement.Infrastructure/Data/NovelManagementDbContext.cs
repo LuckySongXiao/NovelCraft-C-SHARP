@@ -4,7 +4,7 @@ using NovelManagement.Core.Entities;
 namespace NovelManagement.Infrastructure.Data;
 
 /// <summary>
-/// 小说管理系统数据库上下文
+/// 书籍管理系统数据库上下文
 /// </summary>
 public class NovelManagementDbContext : DbContext
 {
@@ -117,6 +117,16 @@ public class NovelManagementDbContext : DbContext
     public DbSet<RelationshipNetwork> RelationshipNetworks { get; set; } = null!;
 
     /// <summary>
+    /// 时间线事件表
+    /// </summary>
+    public DbSet<TimelineEvent> TimelineEvents { get; set; } = null!;
+
+    /// <summary>
+    /// 时间线事件参与者表
+    /// </summary>
+    public DbSet<TimelineEventParticipant> TimelineEventParticipants { get; set; } = null!;
+
+    /// <summary>
     /// 配置模型
     /// </summary>
     /// <param name="modelBuilder">模型构建器</param>
@@ -183,6 +193,12 @@ public class NovelManagementDbContext : DbContext
 
         // 配置关系网络实体
         ConfigureRelationshipNetwork(modelBuilder);
+
+        // 配置时间线事件实体
+        ConfigureTimelineEvent(modelBuilder);
+
+        // 配置时间线事件参与者实体
+        ConfigureTimelineEventParticipant(modelBuilder);
 
         // 配置软删除全局过滤器
         ConfigureSoftDelete(modelBuilder);
@@ -837,6 +853,70 @@ public class NovelManagementDbContext : DbContext
     }
 
     /// <summary>
+    /// 配置时间线事件实体
+    /// </summary>
+    /// <param name="modelBuilder">模型构建器</param>
+    private static void ConfigureTimelineEvent(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TimelineEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Category).HasMaxLength(50);
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.Importance).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.Tags).HasMaxLength(500);
+            entity.Property(e => e.LegacyId).HasMaxLength(50);
+
+            entity.HasOne(e => e.Project)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProjectId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Chapter)
+                  .WithMany()
+                  .HasForeignKey(e => e.ChapterId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Plot)
+                  .WithMany()
+                  .HasForeignKey(e => e.PlotId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.ProjectId);
+            entity.HasIndex(e => e.EventDate);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => new { e.ProjectId, e.EventDate });
+            entity.HasIndex(e => new { e.ProjectId, e.LegacyId });
+        });
+    }
+
+    /// <summary>
+    /// 配置时间线事件参与者实体
+    /// </summary>
+    /// <param name="modelBuilder">模型构建器</param>
+    private static void ConfigureTimelineEventParticipant(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TimelineEventParticipant>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Type).HasMaxLength(50);
+            entity.Property(e => e.Role).HasMaxLength(200);
+
+            entity.HasOne(e => e.TimelineEvent)
+                  .WithMany(t => t.Participants)
+                  .HasForeignKey(e => e.TimelineEventId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.TimelineEventId);
+            entity.HasIndex(e => e.CharacterId);
+            entity.HasIndex(e => e.Order);
+        });
+    }
+
+    /// <summary>
     /// 配置软删除全局过滤器
     /// </summary>
     /// <param name="modelBuilder">模型构建器</param>
@@ -861,6 +941,8 @@ public class NovelManagementDbContext : DbContext
         modelBuilder.Entity<SecretRealm>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<CurrencySystem>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<RelationshipNetwork>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<TimelineEvent>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<TimelineEventParticipant>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     /// <summary>

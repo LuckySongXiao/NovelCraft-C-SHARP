@@ -54,6 +54,7 @@ namespace NovelManagement.WPF.Views
         private readonly PopulationDataService? _populationDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -96,6 +97,7 @@ namespace NovelManagement.WPF.Views
                 _populationDataService = serviceProvider?.GetService<PopulationDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -687,6 +689,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "生民体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GeneratePopulationSystemWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -695,13 +708,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedPopulationSystem != null ? $"优化生民体系：{SelectedPopulationSystem.Name}" : "生成生民体系",
-                ["theme"] = "请生成一个适合小说项目使用的生民体系设定，并输出名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、社会阶层。",
-                ["requirements"] = optimizeCurrent && SelectedPopulationSystem != null
+                ["theme"] = "请生成一个适合书籍项目使用的生民体系设定，并输出名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、社会阶层。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedPopulationSystem != null
                     ? $"请基于当前生民体系进行优化并输出结构化文本。当前体系：{SelectedPopulationSystem.Name}，区域：{SelectedPopulationSystem.RegionName}，总人口：{SelectedPopulationSystem.TotalPopulation}，发展水平：{SelectedPopulationSystem.DevelopmentLevel}"
-                    : "请输出一个完整生民体系，至少包含名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、至少3个社会阶层。",
+                    : "请输出一个完整生民体系，至少包含名称、区域、维度、描述、总人口、人口密度、增长率、发展水平、至少3个社会阶层。"),
                 ["context"] = GetCurrentContext()
             };
 

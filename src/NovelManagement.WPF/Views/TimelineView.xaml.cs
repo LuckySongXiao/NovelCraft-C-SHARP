@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
 
@@ -46,7 +47,9 @@ namespace NovelManagement.WPF.Views
         private readonly TimelineDataService? _timelineDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ILogger<TimelineView>? _logger;
         private Guid _currentProjectId;
+        private Guid? _pendingHighlightEventId;
 
         #endregion
 
@@ -61,6 +64,7 @@ namespace NovelManagement.WPF.Views
             _timelineDataService = App.ServiceProvider?.GetService<TimelineDataService>();
             _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
             _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+            _logger = App.ServiceProvider?.GetService(typeof(ILogger<TimelineView>)) as ILogger<TimelineView>;
             InitializeData();
             InitializeCommands();
             _ = LoadTimelineEventsAsync();
@@ -138,6 +142,9 @@ namespace NovelManagement.WPF.Views
 
                 // 更新统计信息
                 UpdateStatistics();
+
+                // 应用导航定位参数
+                TryApplyPendingEventHighlight();
             }
             catch (Exception ex)
             {
@@ -590,7 +597,9 @@ namespace NovelManagement.WPF.Views
                 // 创建新的时间线事件
                 SelectedEvent = new TimelineEventViewModel
                 {
-                    Id = 0, // 新建时ID为0
+                    // 标识为新建事件，保存时才会正式加入列表并写入数据库
+                    IsNew = true,
+                    Id = 0,
                     Title = "",
                     Category = "历史事件",
                     EventDate = DateTime.Now,
@@ -767,8 +776,8 @@ namespace NovelManagement.WPF.Views
                     }
                 }
 
-                // 加载参与者列表
-                LoadEventParticipants(timelineEvent.Id);
+                // 加载参与者列表（参与者已随事件一并从数据库加载）
+                LoadEventParticipants(timelineEvent.EventId);
 
                 System.Diagnostics.Debug.WriteLine("LoadTimelineEventDetails: 事件详情加载完成");
             }
@@ -782,7 +791,8 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 加载事件参与者
         /// </summary>
-        private void LoadEventParticipants(int eventId)
+        /// <param name="eventId">事件实体标识</param>
+        private void LoadEventParticipants(Guid eventId)
         {
             var participants = SelectedEvent?.Participants?.ToList() ?? new List<EventParticipantViewModel>();
 
@@ -869,11 +879,12 @@ namespace NovelManagement.WPF.Views
                 SelectedEvent.ParticipantCount = EventParticipants.Count;
                 SelectedEvent.Participants = EventParticipants.ToList();
 
-                // 如果是新建事件，添加到列表
-                if (SelectedEvent.Id == 0)
+                // 如果是新建事件，加入列表（EventId 在构造时已生成，保存时据此落库）
+                if (SelectedEvent.IsNew)
                 {
                     SelectedEvent.Id = TimelineEvents.Count > 0 ? TimelineEvents.Max(e => e.Id) + 1 : 1;
                     SelectedEvent.CreatedAt = DateTime.Now;
+                    SelectedEvent.IsNew = false;
                     TimelineEvents.Add(SelectedEvent);
                 }
 
@@ -986,7 +997,38 @@ namespace NovelManagement.WPF.Views
         public void OnNavigatedTo(NavigationContext context)
         {
             _currentProjectId = context.ProjectId ?? Guid.Empty;
+            if (context.Payload is EntityHighlightNavigationPayload payload)
+            {
+                _pendingHighlightEventId = payload.TargetId;
+            }
+
             _ = LoadTimelineEventsAsync();
+        }
+
+        /// <summary>
+        /// 数据加载完成后按导航参数选中并定位目标事件。
+        /// </summary>
+        private void TryApplyPendingEventHighlight()
+        {
+            if (_pendingHighlightEventId == null)
+            {
+                return;
+            }
+
+            var targetId = _pendingHighlightEventId.Value;
+            _pendingHighlightEventId = null;
+
+            var matched = TimelineEvents.FirstOrDefault(e => e.EventId == targetId);
+            if (matched == null)
+            {
+                _logger?.LogWarning("导航定位时间线事件失败，未找到 EventId: {EventId}", targetId);
+                return;
+            }
+
+            TimelineListControl.SelectedItem = matched;
+            TimelineListControl.ScrollIntoView(matched);
+            SelectTimelineEvent(matched);
+            _logger?.LogInformation("已按导航参数定位时间线事件: {Title} (EventId: {EventId})", matched.Title, targetId);
         }
 
         private async Task PersistTimelineEventsAsync()
@@ -1104,7 +1146,12 @@ namespace NovelManagement.WPF.Views
     public class TimelineEventViewModel
     {
         /// <summary>
-        /// 事件标识。
+        /// 数据库实体标识。新建事件时自动生成，保存时据此做增量更新。
+        /// </summary>
+        public Guid EventId { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// 事件显示序号（由加载顺序生成，仅用于界面展示与历史 JSON 兼容，不参与持久化）。
         /// </summary>
         public int Id { get; set; }
 
@@ -1149,9 +1196,29 @@ namespace NovelManagement.WPF.Views
         public string Impact { get; set; } = "";
 
         /// <summary>
+        /// 事件标签。
+        /// </summary>
+        public string Tags { get; set; } = "";
+
+        /// <summary>
+        /// 是否为尚未加入事件列表的新建事件（保存时才写入列表与数据库）。
+        /// </summary>
+        [JsonIgnore]
+        public bool IsNew { get; set; }
+
+        /// <summary>
         /// 参与者数量。
         /// </summary>
         public int ParticipantCount { get; set; }
+
+        /// <summary>
+        /// 刷新参与者数量统计。
+        /// </summary>
+        public TimelineEventViewModel WithParticipantCount()
+        {
+            ParticipantCount = Participants?.Count ?? 0;
+            return this;
+        }
 
         /// <summary>
         /// 创建时间。
@@ -1250,6 +1317,12 @@ namespace NovelManagement.WPF.Views
         /// 在事件中的角色。
         /// </summary>
         public string Role { get; set; } = "";
+
+        /// <summary>
+        /// 关联角色标识。能在项目内按名称匹配到角色时自动填充，
+        /// 使一致性检查可以基于角色 ID 判断，避免同名角色误报。
+        /// </summary>
+        public Guid? CharacterId { get; set; }
     }
 
     #endregion

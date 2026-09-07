@@ -24,6 +24,7 @@ namespace NovelManagement.WPF.Views
         private readonly DimensionDataService? _dimensionDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         public ObservableCollection<DimensionViewModel> Dimensions { get; } = new();
@@ -51,6 +52,7 @@ namespace NovelManagement.WPF.Views
                 _dimensionDataService = serviceProvider?.GetService<DimensionDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -536,6 +538,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "维度结构");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateDimensionWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -544,13 +557,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedDimension != null ? $"优化维度：{SelectedDimension.Name}" : "生成维度结构",
-                ["theme"] = "请生成一个适合小说项目使用的维度设定，并输出名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级、传送门。",
-                ["requirements"] = optimizeCurrent && SelectedDimension != null
+                ["theme"] = "请生成一个适合书籍项目使用的维度设定，并输出名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级、传送门。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedDimension != null
                     ? $"请基于当前维度进行优化并输出结构化文本。当前维度：{SelectedDimension.Name}，类型：{SelectedDimension.Type}，稳定性：{SelectedDimension.Stability}，访问等级：{SelectedDimension.AccessLevel}，描述：{SelectedDimension.Description}"
-                    : "请输出一个完整维度设定，至少包含名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级，并列出至少2个传送门。",
+                    : "请输出一个完整维度设定，至少包含名称、类型、稳定性、访问等级、描述、环境类型、气候、能量等级、危险等级，并列出至少2个传送门。"),
                 ["context"] = GetCurrentContext()
             };
 

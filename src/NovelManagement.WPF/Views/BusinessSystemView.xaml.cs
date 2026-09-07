@@ -24,6 +24,7 @@ namespace NovelManagement.WPF.Views
         private readonly BusinessDataService? _businessDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         public ObservableCollection<BusinessSystemViewModel> BusinessSystems { get; } = new();
@@ -52,6 +53,7 @@ namespace NovelManagement.WPF.Views
                 _businessDataService = serviceProvider?.GetService<BusinessDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -554,6 +556,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "商业体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateBusinessWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -562,13 +575,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedBusiness != null ? $"优化商业体系：{SelectedBusiness.Name}" : "生成商业体系",
-                ["theme"] = "请生成一个适合小说项目使用的商业体系，并输出名称、类别、地点、经营者、描述、商品列表和服务列表。",
-                ["requirements"] = optimizeCurrent && SelectedBusiness != null
+                ["theme"] = "请生成一个适合书籍项目使用的商业体系，并输出名称、类别、地点、经营者、描述、商品列表和服务列表。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedBusiness != null
                     ? $"请基于当前商业体系进行优化并输出结构化文本。当前体系：{SelectedBusiness.Name}，类别：{SelectedBusiness.Category}，地点：{SelectedBusiness.Location}，经营者：{SelectedBusiness.Owner}，描述：{SelectedBusiness.Description}"
-                    : "请输出一个完整商业体系，至少包含名称、类别、地点、经营者、描述、至少3个商品、至少2项服务。",
+                    : "请输出一个完整商业体系，至少包含名称、类别、地点、经营者、描述、至少3个商品、至少2项服务。"),
                 ["context"] = GetCurrentContext()
             };
 

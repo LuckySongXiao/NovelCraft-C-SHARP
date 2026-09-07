@@ -49,6 +49,8 @@ namespace NovelManagement.WPF.Views
         private AIAssistantService? _aiAssistantService;
         private ProjectContextService? _projectContextService;
         private CurrentProjectGuard? _currentProjectGuard;
+        private ProjectReadModelService? _projectReadModelService;
+        private NavigationService? _navigationService;
         private ILogger<RelationshipNetworkView>? _logger;
 
         #endregion
@@ -100,6 +102,8 @@ namespace NovelManagement.WPF.Views
                     _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                     _projectContextService = serviceProvider.GetService<ProjectContextService>();
                     _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                    _projectReadModelService = serviceProvider.GetService<ProjectReadModelService>();
+                    _navigationService = serviceProvider.GetService<NavigationService>();
                     _logger = serviceProvider.GetService<ILogger<RelationshipNetworkView>>();
                 }
             }
@@ -453,6 +457,7 @@ namespace NovelManagement.WPF.Views
         private void DrawNetworkGraph(List<RelationshipViewModel> relationshipsToShow)
         {
             ApplyCanvasSettings();
+            FitNetworkToView();
             NetworkCanvas.Children.Clear();
 
             // 绘制关系连线
@@ -1156,10 +1161,8 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 重置滚动位置到中心
-                NetworkScrollViewer.ScrollToHorizontalOffset(NetworkScrollViewer.ScrollableWidth / 2);
-                NetworkScrollViewer.ScrollToVerticalOffset(NetworkScrollViewer.ScrollableHeight / 2);
-                MessageBox.Show("已重置视图到中心位置", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 重算节点包围盒并自动缩放，使整张关系图适应显示区域
+                DrawNetworkGraph();
             }
             catch (Exception ex)
             {
@@ -1306,13 +1309,34 @@ namespace NovelManagement.WPF.Views
             {
                 if (_selectedCharacter != null)
                 {
-                    // 跳转到角色管理界面并选中该角色
-                    var mainWindow = Window.GetWindow(this) as MainWindow;
-                    if (mainWindow != null)
+                    // 跳转到角色管理界面并按实体ID定位选中该角色
+                    if (_navigationService != null)
                     {
-                        mainWindow.ShowCharacterManagement();
-                        MessageBox.Show($"已跳转到角色管理界面，请查看角色\"{_selectedCharacter.Name}\"的详细信息",
+                        var projectId = _projectContextService?.CurrentProjectId;
+                        _navigationService.NavigateTo(NavigationTarget.CharacterManagement, new NavigationContext
+                        {
+                            ProjectId = projectId,
+                            Source = "RelationshipNetwork",
+                            Payload = new EntityHighlightNavigationPayload
+                            {
+                                TargetId = _selectedCharacter.CharacterId,
+                                TargetName = _selectedCharacter.Name,
+                                TargetType = "角色"
+                            }
+                        });
+                        MessageBox.Show($"已跳转到角色管理界面并定位角色\"{_selectedCharacter.Name}\"",
                             "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        // 服务不可用时退回基础跳转
+                        var mainWindow = Window.GetWindow(this) as MainWindow;
+                        if (mainWindow != null)
+                        {
+                            mainWindow.ShowCharacterManagement();
+                            MessageBox.Show($"已跳转到角色管理界面，请查找角色\"{_selectedCharacter.Name}\"的详细信息",
+                                "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                     }
                 }
             }
@@ -1441,6 +1465,53 @@ namespace NovelManagement.WPF.Views
             NetworkCanvas.Height = Math.Max(400, _canvasHeight);
         }
 
+        /// <summary>
+        /// 计算当前可见节点的包围盒，自动缩放并平移到画布中心，
+        /// 配合 Viewbox（Stretch=Uniform）保证整张关系图始终适应显示区域边界。
+        /// </summary>
+        private void FitNetworkToView()
+        {
+            var visibleCharacters = _filteredCharacters.Count > 0 ? _filteredCharacters : _allCharacters;
+            if (visibleCharacters.Count == 0)
+            {
+                return;
+            }
+
+            // 包围盒外预留节点半径与名称标签空间
+            const double padding = 70;
+            var minX = visibleCharacters.Min(c => c.X);
+            var maxX = visibleCharacters.Max(c => c.X);
+            var minY = visibleCharacters.Min(c => c.Y);
+            var maxY = visibleCharacters.Max(c => c.Y);
+
+            // 视口大小（未渲染完成时退回画布设定值）；
+            // 内容小于视口时画布取视口大小（缩放不超过 100%），内容超出时画布取内容大小（整体缩小至完全可见）
+            var viewportW = NetworkViewBox.ActualWidth > 0 ? NetworkViewBox.ActualWidth - 34 : Math.Max(600, _canvasWidth);
+            var viewportH = NetworkViewBox.ActualHeight > 0 ? NetworkViewBox.ActualHeight - 34 : Math.Max(400, _canvasHeight);
+            viewportW = Math.Max(viewportW, 400);
+            viewportH = Math.Max(viewportH, 300);
+
+            var contentW = Math.Max(maxX - minX + padding * 2, 200);
+            var contentH = Math.Max(maxY - minY + padding * 2, 200);
+            var canvasW = Math.Max(contentW, Math.Min(viewportW, 2400));
+            var canvasH = Math.Max(contentH, Math.Min(viewportH, 2400));
+
+            // 将包围盒中心平移到画布中心
+            var offsetX = canvasW / 2 - (minX + maxX) / 2;
+            var offsetY = canvasH / 2 - (minY + maxY) / 2;
+            if (Math.Abs(offsetX) > 0.01 || Math.Abs(offsetY) > 0.01)
+            {
+                foreach (var character in visibleCharacters)
+                {
+                    character.X += offsetX;
+                    character.Y += offsetY;
+                }
+            }
+
+            NetworkCanvas.Width = canvasW;
+            NetworkCanvas.Height = canvasH;
+        }
+
         private void ApplyCurrentLayout()
         {
             if (_allCharacters.Count == 0)
@@ -1457,6 +1528,21 @@ namespace NovelManagement.WPF.Views
             ApplyCircularLayout();
         }
 
+        private async Task<string> BuildRelationshipConstraintsAsync()
+        {
+            var projectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_projectReadModelService == null || projectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(
+                projectId,
+                "人物关系",
+                "只能基于已有角色推断人物之间的关系，不得输出无关模块或虚构不存在的角色。");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task<List<DetectedRelationshipCandidate>> DetectRelationshipCandidatesAsync()
         {
             var existingKeys = new HashSet<string>(_allRelationships.Select(BuildRelationshipKey), StringComparer.OrdinalIgnoreCase);
@@ -1464,8 +1550,10 @@ namespace NovelManagement.WPF.Views
 
             if (_aiAssistantService != null)
             {
+                var projectConstraints = await BuildRelationshipConstraintsAsync();
                 var parameters = new Dictionary<string, object>
                 {
+                    ["requirements"] = projectConstraints,
                     ["characters"] = _allCharacters
                         .Select(c => new { c.Name, c.Type, c.Faction, c.RelationshipCount })
                         .Cast<object>()

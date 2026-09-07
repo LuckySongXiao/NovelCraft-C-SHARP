@@ -28,7 +28,7 @@ namespace NovelManagement.WPF.Views
         private AIAssistantService? _aiAssistantService;
         private CharacterService? _characterService;
         private ChapterService? _chapterService;
-        private ChapterContentSyncService? _chapterContentSyncService;
+        private ChapterUpdateWorkflowService? _chapterUpdateWorkflowService;
         private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
         private ProjectContextService? _projectContextService;
         private VolumeService? _volumeService;
@@ -109,7 +109,7 @@ namespace NovelManagement.WPF.Views
                 _characterService = App.ServiceProvider?.GetService<CharacterService>();
                 _volumeService = App.ServiceProvider?.GetService<VolumeService>();
                 _chapterService = App.ServiceProvider?.GetService<ChapterService>();
-                _chapterContentSyncService = App.ServiceProvider?.GetService<ChapterContentSyncService>();
+                _chapterUpdateWorkflowService = App.ServiceProvider?.GetService<ChapterUpdateWorkflowService>();
                 _chapterContentSyncNotificationService = App.ServiceProvider?.GetService<ChapterContentSyncNotificationService>();
                 _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
 
@@ -131,9 +131,9 @@ namespace NovelManagement.WPF.Views
                     System.Diagnostics.Debug.WriteLine("章节服务初始化失败：服务未注册");
                 }
 
-                if (_chapterContentSyncService == null)
+                if (_chapterUpdateWorkflowService == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("章节同步服务初始化失败：服务未注册");
+                    System.Diagnostics.Debug.WriteLine("章节更新工艺服务初始化失败：服务未注册");
                 }
             }
             catch (Exception ex)
@@ -896,7 +896,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存草稿
         /// </summary>
-        private async Task<ChapterContentSyncResult?> SaveDraftAsync()
+        private async Task<ChapterUpdateWorkflowResult?> SaveDraftAsync()
         {
             try
             {
@@ -936,7 +936,7 @@ namespace NovelManagement.WPF.Views
         /// <summary>
         /// 保存章节到数据库
         /// </summary>
-        private async Task<ChapterContentSyncResult?> SaveChapterToDatabaseAsync()
+        private async Task<ChapterUpdateWorkflowResult?> SaveChapterToDatabaseAsync()
         {
             if (_chapterService == null)
             {
@@ -1004,11 +1004,11 @@ namespace NovelManagement.WPF.Views
                     System.Diagnostics.Debug.WriteLine($"章节已更新：{existingChapter.Title}");
                 }
 
-                var syncResult = await TrySyncChapterContextAsync(savedChapter);
-                await PublishChapterSyncNotificationAsync(savedChapter, syncResult);
+                var workflowResult = await TryRunChapterUpdateWorkflowAsync(savedChapter);
+                await PublishChapterSyncNotificationAsync(savedChapter, workflowResult?.SyncResult);
 
                 System.Diagnostics.Debug.WriteLine("章节保存成功");
-                return syncResult;
+                return workflowResult;
             }
             catch (Exception ex)
             {
@@ -1026,24 +1026,24 @@ namespace NovelManagement.WPF.Views
             }
         }
 
-        private static string BuildSaveStatusMessage(ChapterContentSyncResult? syncResult)
+        private static string BuildSaveStatusMessage(ChapterUpdateWorkflowResult? workflowResult)
         {
-            if (syncResult == null)
+            if (workflowResult?.SyncResult == null)
             {
                 return "状态: 草稿已保存";
             }
 
-            return $"状态: 草稿已保存，{BuildSyncSummary(syncResult, includeNames: false)}";
+            return $"状态: 草稿已保存，{BuildWorkflowSummary(workflowResult, includeNames: false)}";
         }
 
-        private static string BuildSaveSuccessDialogMessage(ChapterContentSyncResult? syncResult)
+        private static string BuildSaveSuccessDialogMessage(ChapterUpdateWorkflowResult? workflowResult)
         {
-            if (syncResult == null)
+            if (workflowResult?.SyncResult == null)
             {
                 return "章节已保存！";
             }
 
-            return $"章节已保存！\n\n本次同步结果：\n{BuildSyncSummary(syncResult, includeNames: true, lineBreak: Environment.NewLine)}";
+            return $"章节已保存！\n\n本次更新结果：\n{BuildWorkflowSummary(workflowResult, includeNames: true, lineBreak: Environment.NewLine)}";
         }
 
         private static string BuildSyncSummary(ChapterContentSyncResult syncResult, bool includeNames, string lineBreak = "；")
@@ -1055,8 +1055,23 @@ namespace NovelManagement.WPF.Views
                     BuildSyncSummaryLine("人物", syncResult.UpdatedCharacterCount, syncResult.UpdatedCharacterNames, includeNames),
                     BuildSyncSummaryLine("势力", syncResult.UpdatedFactionCount, syncResult.UpdatedFactionNames, includeNames),
                     BuildSyncSummaryLine("剧情", syncResult.UpdatedPlotCount, syncResult.UpdatedPlotTitles, includeNames),
-                    BuildSyncSummaryLine("设定", syncResult.UpdatedWorldSettingCount, syncResult.UpdatedWorldSettingNames, includeNames)
+                    BuildSyncSummaryLine("设定", syncResult.UpdatedWorldSettingCount, syncResult.UpdatedWorldSettingNames, includeNames),
+                    $"人物关系 {syncResult.UpdatedCharacterRelationshipCount}",
+                    $"势力关系 {syncResult.UpdatedFactionRelationshipCount}"
                 });
+        }
+
+        private static string BuildWorkflowSummary(ChapterUpdateWorkflowResult workflowResult, bool includeNames, string lineBreak = "；")
+        {
+            var items = new List<string>();
+            if (workflowResult.SyncResult != null)
+            {
+                items.Add(BuildSyncSummary(workflowResult.SyncResult, includeNames, lineBreak));
+            }
+
+            items.Add($"时间线 {workflowResult.UpdatedTimelineEventCount}");
+            items.Add("建议下一步：检查时间线、关系网络与一致性");
+            return string.Join(lineBreak, items);
         }
 
         private static string BuildSyncSummaryLine(string label, int count, IReadOnlyList<string> names, bool includeNames)
@@ -1071,20 +1086,20 @@ namespace NovelManagement.WPF.Views
             return $"{label} {count}：{previewNames}{suffix}";
         }
 
-        private async Task<ChapterContentSyncResult?> TrySyncChapterContextAsync(Chapter chapter)
+        private async Task<ChapterUpdateWorkflowResult?> TryRunChapterUpdateWorkflowAsync(Chapter chapter)
         {
-            if (_chapterContentSyncService == null)
+            if (_chapterUpdateWorkflowService == null)
             {
                 return null;
             }
 
             try
             {
-                return await _chapterContentSyncService.SyncChapterAsync(chapter, ChapterData.Characters);
+                return await _chapterUpdateWorkflowService.RunAsync(chapter, ChapterData.Characters);
             }
             catch (Exception syncEx)
             {
-                System.Diagnostics.Debug.WriteLine($"章节上下文同步失败：{syncEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"章节更新工艺执行失败：{syncEx.Message}");
                 return null;
             }
         }
@@ -1341,8 +1356,35 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
+                // 优先润色选中的文本段；未选中时润色全文
+                var selectionStart = ContentTextBox.SelectionStart;
+                var selectionLength = ContentTextBox.SelectionLength;
+                var hasSelection = selectionLength > 0 &&
+                    !string.IsNullOrWhiteSpace(ContentTextBox.SelectedText);
+                var polishTarget = hasSelection ? ContentTextBox.SelectedText : ContentTextBox.Text;
+
+                if (hasSelection)
+                {
+                    var confirmSelection = MessageBox.Show(
+                        $"已选中 {selectionLength} 个字符，将只对选中文本段进行润色。\n\n「是」润色选中段，「否」润色全文。",
+                        "选择润色范围",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Question);
+
+                    if (confirmSelection == MessageBoxResult.Cancel)
+                    {
+                        return;
+                    }
+
+                    if (confirmSelection == MessageBoxResult.No)
+                    {
+                        hasSelection = false;
+                        polishTarget = ContentTextBox.Text;
+                    }
+                }
+
                 // 显示AI润色对话框
-                var aiPolishDialog = new AIPolishDialog(ContentTextBox.Text);
+                var aiPolishDialog = new AIPolishDialog(polishTarget);
                 aiPolishDialog.Owner = this;
 
                 if (aiPolishDialog.ShowDialog() == true)
@@ -1351,14 +1393,26 @@ namespace NovelManagement.WPF.Views
                     if (!string.IsNullOrEmpty(result))
                     {
                         var confirmResult = MessageBox.Show(
-                            "AI已完成内容润色。是否应用润色结果？",
+                            hasSelection
+                                ? $"AI已完成选中文本段润色（{selectionLength} 字 → {result.Length} 字）。是否替换该文本段？"
+                                : "AI已完成内容润色。是否应用润色结果？",
                             "确认润色",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Question);
 
                         if (confirmResult == MessageBoxResult.Yes)
                         {
-                            ContentTextBox.Text = result;
+                            if (hasSelection)
+                            {
+                                // 只替换选中的文本段，其余内容保持不变
+                                ContentTextBox.Select(selectionStart, selectionLength);
+                                ContentTextBox.SelectedText = result;
+                            }
+                            else
+                            {
+                                ContentTextBox.Text = result;
+                            }
+
                             _hasUnsavedChanges = true;
                             UpdateWordCount();
                             UpdateStatus();
@@ -1670,7 +1724,7 @@ namespace NovelManagement.WPF.Views
                 if (result.IsSuccess && result.TotalGeneratedCount > 0)
                 {
                     // 显示生成结果
-                    var message = $"为确保AI编辑功能正常运行，系统已自动生成必要的前置数据：\n\n{result.GetGenerationSummary()}\n\n这些数据将帮助AI更好地理解您的小说世界观和角色设定。";
+                    var message = $"为确保AI编辑功能正常运行，系统已自动生成必要的前置数据：\n\n{result.GetGenerationSummary()}\n\n这些数据将帮助AI更好地理解您的书籍世界观和角色设定。";
 
                     MessageBox.Show(message, "前置数据生成完成",
                         MessageBoxButton.OK, MessageBoxImage.Information);

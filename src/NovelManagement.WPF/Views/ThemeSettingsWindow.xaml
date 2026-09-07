@@ -1,0 +1,254 @@
+<Window x:Class="NovelManagement.WPF.Views.ThemeSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:NovelManagement.WPF.Views"
+        mc:Ignorable="d"
+        Title="主题配置与皮肤设定" Height="660" Width="980"
+        WindowStartupLocation="CenterOwner"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Window.Resources>
+        <local:HexToBrushConverter x:Key="HexToBrush"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题栏（窗口框架颜色随皮肤） -->
+        <materialDesign:ColorZone Grid.Row="0"
+                                  Mode="PrimaryMid"
+                                  Background="{DynamicResource AppTitleBarBackgroundBrush}"
+                                  Foreground="{DynamicResource AppTitleBarForegroundBrush}"
+                                  Padding="16">
+            <DockPanel>
+                <materialDesign:PackIcon Kind="Palette"
+                                       DockPanel.Dock="Left"
+                                       Width="24" Height="24"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,16,0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="主题配置与皮肤设定" FontSize="20" FontWeight="Medium"/>
+                    <TextBlock Text="内置三种皮肤，支持自定义皮肤与窗口框架颜色；检测到女频文时自动切换红粉花漾少女风"
+                             FontSize="12" Opacity="0.85"/>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <!-- 主体：皮肤列表 + 预览 -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="330"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左：皮肤列表 -->
+            <DockPanel Grid.Column="0">
+                <TextBlock DockPanel.Dock="Top" Text="皮肤列表" FontSize="16" FontWeight="Medium" Margin="4,0,0,4"/>
+                <ListBox x:Name="SkinListBox"
+                         SelectionMode="Single"
+                         SelectionChanged="SkinListBox_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Rectangle Width="18" Height="18" RadiusX="3" RadiusY="3" Margin="0,0,2,0"
+                                               Fill="{Binding Colors[AppTitleBarBackgroundBrush], Converter={StaticResource HexToBrush}}"/>
+                                    <Rectangle Width="18" Height="18" RadiusX="3" RadiusY="3" Margin="2"
+                                               Fill="{Binding Colors[AppWindowBackgroundBrush], Converter={StaticResource HexToBrush}}"/>
+                                    <Rectangle Width="18" Height="18" RadiusX="3" RadiusY="3" Margin="2,2,0,2"
+                                               Fill="{Binding Colors[AppCardBackgroundBrush], Converter={StaticResource HexToBrush}}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontWeight="Medium"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource AppMutedTextBrush}"
+                                                   Text="{Binding SkinKind}"/>
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource AppMutedTextBrush}"
+                                                   Text=" · " />
+                                        <TextBlock FontSize="11" Foreground="{DynamicResource AppMutedTextBrush}"
+                                                   Text="{Binding ToneText}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- 右：选中皮肤详情与操作 -->
+            <StackPanel Grid.Column="1" Margin="16,0,0,0">
+                <TextBlock x:Name="SkinTitleText" Text="请选择皮肤" FontSize="18" FontWeight="Medium"/>
+                <TextBlock x:Name="SkinInfoText" FontSize="12"
+                         Foreground="{DynamicResource AppMutedTextBrush}"
+                         Margin="0,2,0,10"/>
+
+                <TextBlock Text="颜色预览" FontSize="14" FontWeight="Medium" Margin="2,0,0,6"/>
+                <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ColorPreviewList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Width="118" Margin="2,2,6,6">
+                                    <Rectangle Height="32" RadiusX="6" RadiusY="6"
+                                               Stroke="{DynamicResource AppSubtleBorderBrush}"
+                                               Fill="{Binding Hex, Converter={StaticResource HexToBrush}}"/>
+                                    <TextBlock Text="{Binding Label}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                             ToolTip="{Binding Label}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="{Binding Hex}" FontSize="10"
+                                             Foreground="{DynamicResource AppMutedTextBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <WrapPanel Margin="0,12,0,0">
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,8,8"
+                            Click="ApplySkin_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Check" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="应用皮肤"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,8"
+                            ToolTip="黑夜 19:00–07:00 自动切换，其余时间白昼"
+                            Click="AutoByTime_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ClockOutline" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="跟随时间自动切换"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,8"
+                            ToolTip="以当前选中皮肤为基础新增自定义皮肤"
+                            Click="AddCustomSkin_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="新增自定义皮肤"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="EditSkinButton"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,8"
+                            ToolTip="编辑自定义皮肤的全部颜色（含窗口框架）"
+                            Click="EditSkin_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Pencil" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="编辑"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="DeleteSkinButton"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,8"
+                            Click="DeleteSkin_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="DeleteOutline" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="删除"/>
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Text="提示：内置皮肤不可编辑或删除，可基于它复制为自定义皮肤后修改；切换项目或批量生成检测到女频文时，将临时切换为红粉花漾少女风，退出后自动恢复。"
+                         FontSize="11" Foreground="{DynamicResource AppMutedTextBrush}"
+                         TextWrapping="Wrap" Margin="2,6,0,0"/>
+            </StackPanel>
+
+            <!-- 编辑器覆盖层：自定义皮肤颜色编辑 -->
+            <Grid x:Name="EditorPanel" Grid.Column="0" Grid.ColumnSpan="2"
+                  Visibility="Collapsed"
+                  Background="{DynamicResource AppPanelBackgroundBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="16,12,16,4">
+                    <TextBox x:Name="SkinNameTextBox"
+                             materialDesign:HintAssist.Hint="皮肤名称 *"
+                             materialDesign:HintAssist.IsFloating="True"
+                             Margin="0,0,0,8"/>
+                    <CheckBox x:Name="SkinIsDarkCheckBox"
+                              Content="深色基调（使用 MaterialDesign Dark / HandyControl SkinDark 资源）"/>
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Margin="16,4,16,4" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ColorEditList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="230"/>
+                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding Label}" VerticalAlignment="Center"
+                                             TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
+                                             VerticalAlignment="Center"/>
+                                    <Rectangle Grid.Column="2" Width="26" Height="26" RadiusX="4" RadiusY="4"
+                                             Margin="10,0,0,0" VerticalAlignment="Center"
+                                             Stroke="{DynamicResource AppSubtleBorderBrush}"
+                                             Fill="{Binding Hex, Converter={StaticResource HexToBrush}}"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding Key}" FontSize="10"
+                                             Foreground="{DynamicResource AppMutedTextBrush}"
+                                             VerticalAlignment="Center" Margin="10,0,0,0"
+                                             TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,8,16,12">
+                    <Button Content="保存皮肤"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,8,0"
+                            Click="SaveSkin_Click"/>
+                    <Button Content="取消"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Click="CancelEdit_Click"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- 底部 -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                BorderBrush="{DynamicResource AppSubtleBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <DockPanel>
+                <TextBlock x:Name="ModeStateText" DockPanel.Dock="Left" VerticalAlignment="Center"
+                         FontSize="12" Foreground="{DynamicResource AppMutedTextBrush}"/>
+                <Button Content="关闭" Width="96"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        HorizontalAlignment="Right"
+                        Click="Close_Click"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

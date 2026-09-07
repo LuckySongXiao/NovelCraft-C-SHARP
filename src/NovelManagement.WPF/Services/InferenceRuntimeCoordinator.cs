@@ -29,6 +29,14 @@ namespace NovelManagement.WPF.Services
         private bool _disposed;
         private const int MaxRetainedLogLines = 20;
 
+        /// <summary>
+        /// rwkv_launcher.exe 的监管控制台端口（Go 实现，固定 8088）。
+        /// 直接拉起 rwkv_lighting_cuda.exe 会因 lib 依赖缺失立即 0xC0000409 崩溃，
+        /// 必须经 launcher 拉起（launcher 会注入必要环境）。
+        /// </summary>
+        private const int RwkvLauncherConsolePort = 8088;
+        private const string RwkvLauncherFileName = "rwkv_launcher.exe";
+
         public InferenceRuntimeCoordinator(
             ILogger<InferenceRuntimeCoordinator> logger,
             IRwkvLightningService? rwkvService = null)
@@ -78,20 +86,47 @@ namespace NovelManagement.WPF.Services
                     return RuntimeOperationResult.Fail(validationMessage);
                 }
 
+                // 后端已在线时跳过重复启动
+                if (await ProbeRwkvAsync(options.BaseUrl, options.Password))
+                {
+                    _logger.LogInformation("RWKV 推理服务已在线，跳过启动");
+                    return RuntimeOperationResult.Ok("RWKV 服务已在线。");
+                }
+
                 await StopRwkvAsync(options);
 
-                var startInfo = BuildRwkvStartInfo(options);
-                _managedRwkvProcess = Process.Start(startInfo);
-                if (_managedRwkvProcess == null)
+                var launcherPath = ResolveRwkvLauncherPath(options.ExecutablePath);
+                Process? startedProcess;
+                string startMode;
+
+                if (!string.IsNullOrWhiteSpace(launcherPath))
+                {
+                    startMode = "launcher";
+                    startedProcess = await StartRwkvViaLauncherAsync(options, launcherPath);
+                }
+                else
+                {
+                    // 兜底：launcher 不存在时退回直连方式（已知会崩溃，仅保留兼容路径）
+                    _logger.LogWarning("未找到 rwkv_launcher.exe，回退为直接拉起 {ExecutablePath}（该方式在此 CUDA 构建上会崩溃）", options.ExecutablePath);
+                    startMode = "direct";
+                    var startInfo = BuildRwkvStartInfo(options);
+                    startedProcess = Process.Start(startInfo);
+                }
+
+                _managedRwkvProcess = startedProcess;
+                if (startedProcess == null && startMode == "direct")
                 {
                     return RuntimeOperationResult.Fail("RWKV 推理服务进程启动失败。");
                 }
 
-                AttachProcessLogging(_managedRwkvProcess, "RWKV", _rwkvRecentLogs);
+                if (startedProcess != null)
+                {
+                    AttachProcessLogging(startedProcess, startMode == "launcher" ? "RWKV-launcher" : "RWKV", _rwkvRecentLogs);
+                }
 
                 var ready = await WaitUntilAsync(
                     () => ProbeRwkvAsync(options.BaseUrl, options.Password),
-                    () => _managedRwkvProcess?.HasExited == true
+                    () => _managedRwkvProcess?.HasExited == true && startMode != "launcher"
                         ? BuildProcessExitMessage("RWKV", _managedRwkvProcess.ExitCode, _rwkvRecentLogs)
                         : null,
                     options.StartupTimeoutSeconds);
@@ -114,11 +149,15 @@ namespace NovelManagement.WPF.Services
                         TimeoutSeconds = 120,
                         MaxRetries = 3,
                         AutoStartServer = false,
-                        ServerScriptPath = options.ExecutablePath
+                        ServerScriptPath = options.ExecutablePath,
+                        RuntimeFlavor = options.RuntimeFlavor,
+                        PrefillChunkSize = options.PrefillChunkSize
                     });
                 }
 
-                return RuntimeOperationResult.Ok($"RWKV 已启动：{Path.GetFileName(options.ModelPath)}", _managedRwkvProcess.Id);
+                return RuntimeOperationResult.Ok(
+                    $"RWKV 已启动：{Path.GetFileName(options.ModelPath)}（{startMode}）",
+                    _managedRwkvProcess?.Id);
             }
             catch (Exception ex)
             {
@@ -131,8 +170,21 @@ namespace NovelManagement.WPF.Services
         {
             try
             {
-                var killed = KillTrackedProcess(ref _managedRwkvProcess);
+                var launcherPath = ResolveRwkvLauncherPath(options.ExecutablePath);
+                var killed = false;
+
+                // 优先通过 launcher 的 /api/stop 优雅停止后端
+                if (!string.IsNullOrWhiteSpace(launcherPath) && await IsLauncherConsoleAliveAsync())
+                {
+                    killed |= await TryLauncherStopAsync();
+                }
+
+                killed |= KillTrackedProcess(ref _managedRwkvProcess);
                 killed |= KillProcessesByPath(options.ExecutablePath);
+                if (!string.IsNullOrWhiteSpace(launcherPath))
+                {
+                    killed |= KillProcessesByPath(launcherPath);
+                }
 
                 if (_rwkvService != null)
                 {
@@ -280,9 +332,16 @@ namespace NovelManagement.WPF.Services
 
         private ProcessStartInfo BuildRwkvStartInfo(RwkvRuntimeLaunchOptions options)
         {
+            var uri = new Uri(NormalizeBaseUrl(options.BaseUrl));
             var arguments = new StringBuilder();
             arguments.Append($"--model-path \"{options.ModelPath}\"");
-            arguments.Append($" --port {new Uri(NormalizeBaseUrl(options.BaseUrl)).Port}");
+            arguments.Append($" --port {uri.Port}");
+
+            if (ResolveRwkvRuntimeFlavor(options) == "cuda")
+            {
+                arguments.Append($" --host {uri.Host}");
+                arguments.Append($" --chunk-size {Math.Clamp(options.PrefillChunkSize, 1, 4096)}");
+            }
 
             var vocabPath = !string.IsNullOrWhiteSpace(options.VocabPath) && File.Exists(options.VocabPath)
                 ? options.VocabPath
@@ -307,6 +366,141 @@ namespace NovelManagement.WPF.Services
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+        }
+
+        /// <summary>
+        /// 在后端可执行文件同目录下查找 rwkv_launcher.exe。
+        /// </summary>
+        private static string? ResolveRwkvLauncherPath(string executablePath)
+        {
+            var directory = Path.GetDirectoryName(executablePath);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return null;
+            }
+
+            var launcherPath = Path.Combine(directory, RwkvLauncherFileName);
+            return File.Exists(launcherPath) ? launcherPath : null;
+        }
+
+        /// <summary>
+        /// 经 rwkv_launcher.exe 拉起 RWKV 后端：
+        /// 1. 复用或启动 launcher 监管进程；2. 等待其 8088 控制台就绪；
+        /// 3. POST /api/start（port 为字符串、路径用正斜杠）请求加载模型。
+        /// </summary>
+        /// <returns>被跟踪的 launcher 进程（复用已运行的 launcher 时返回 null）。</returns>
+        private async Task<Process?> StartRwkvViaLauncherAsync(RwkvRuntimeLaunchOptions options, string launcherPath)
+        {
+            Process? launcherProcess = null;
+
+            if (!await IsLauncherConsoleAliveAsync())
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = launcherPath,
+                    WorkingDirectory = Path.GetDirectoryName(launcherPath) ?? AppDomain.CurrentDomain.BaseDirectory,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                launcherProcess = Process.Start(startInfo);
+                if (launcherProcess == null)
+                {
+                    throw new InvalidOperationException("rwkv_launcher.exe 进程启动失败。");
+                }
+
+                // 等待 launcher 控制台就绪（最多 15 秒）
+                var consoleReady = false;
+                for (int i = 0; i < 15; i++)
+                {
+                    if (launcherProcess.HasExited)
+                    {
+                        throw new InvalidOperationException($"rwkv_launcher.exe 提前退出，退出码 {launcherProcess.ExitCode}。");
+                    }
+
+                    if (await IsLauncherConsoleAliveAsync())
+                    {
+                        consoleReady = true;
+                        break;
+                    }
+
+                    await Task.Delay(1000);
+                }
+
+                if (!consoleReady)
+                {
+                    throw new InvalidOperationException("rwkv_launcher.exe 控制台(8088)等待超时。");
+                }
+
+                _logger.LogInformation("RWKV launcher 监管进程已启动，PID: {Pid}", launcherProcess.Id);
+            }
+            else
+            {
+                _logger.LogInformation("复用已运行的 RWKV launcher 控制台(8088)");
+            }
+
+            var uri = new Uri(NormalizeBaseUrl(options.BaseUrl));
+            var vocabPath = !string.IsNullOrWhiteSpace(options.VocabPath) && File.Exists(options.VocabPath)
+                ? options.VocabPath
+                : ResolveRwkvVocabPath(options.ExecutablePath);
+
+            var payload = new Dictionary<string, string>
+            {
+                ["model_path"] = options.ModelPath.Replace('\\', '/'),
+                ["vocab_path"] = (string.IsNullOrWhiteSpace(vocabPath) ? string.Empty : vocabPath).Replace('\\', '/'),
+                ["port"] = uri.Port.ToString(),
+                ["password"] = options.Password ?? string.Empty
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            using var response = await _httpClient.PostAsync(
+                $"http://127.0.0.1:{RwkvLauncherConsolePort}/api/start",
+                new StringContent(json, Encoding.UTF8, "application/json"));
+            var content = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"launcher /api/start 失败（{(int)response.StatusCode}）：{content}");
+            }
+
+            _logger.LogInformation("launcher /api/start 已受理: {Content}", content);
+            return launcherProcess;
+        }
+
+        /// <summary>
+        /// 探测 launcher 监管控制台（GET /api/status）是否在线。
+        /// </summary>
+        private async Task<bool> IsLauncherConsoleAliveAsync()
+        {
+            try
+            {
+                using var response = await _httpClient.GetAsync($"http://127.0.0.1:{RwkvLauncherConsolePort}/api/status");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 请求 launcher 停止后端（POST /api/stop）。
+        /// </summary>
+        private async Task<bool> TryLauncherStopAsync()
+        {
+            try
+            {
+                using var response = await _httpClient.PostAsync(
+                    $"http://127.0.0.1:{RwkvLauncherConsolePort}/api/stop",
+                    new StringContent("{}", Encoding.UTF8, "application/json"));
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "launcher /api/stop 请求失败");
+                return false;
+            }
         }
 
         private ProcessStartInfo BuildLlamaStartInfo(LlamaRuntimeLaunchOptions options)
@@ -481,21 +675,54 @@ namespace NovelManagement.WPF.Services
         {
             try
             {
-                var body = new Dictionary<string, string>();
-                if (!string.IsNullOrWhiteSpace(password))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, $"{NormalizeBaseUrl(baseUrl).TrimEnd('/')}/v1/server/status"))
                 {
-                    body["password"] = password;
+                    if (!string.IsNullOrWhiteSpace(password))
+                    {
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", password);
+                    }
+
+                    using var response = await _httpClient.SendAsync(request);
+                    if (response.IsSuccessStatusCode
+                        || response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                        || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        return true;
+                    }
                 }
 
-                using var response = await _httpClient.PostAsync(
+                using var legacyResponse = await _httpClient.PostAsync(
                     $"{NormalizeBaseUrl(baseUrl).TrimEnd('/')}/state/status",
-                    new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
-                return response.IsSuccessStatusCode;
+                    new StringContent(JsonSerializer.Serialize(BuildOptionalPasswordBody(password)), Encoding.UTF8, "application/json"));
+                return legacyResponse.IsSuccessStatusCode;
             }
             catch
             {
                 return false;
             }
+        }
+
+        private static Dictionary<string, string> BuildOptionalPasswordBody(string password)
+        {
+            var body = new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                body["password"] = password;
+            }
+
+            return body;
+        }
+
+        private static string ResolveRwkvRuntimeFlavor(RwkvRuntimeLaunchOptions options)
+        {
+            if (!string.IsNullOrWhiteSpace(options.RuntimeFlavor) &&
+                !string.Equals(options.RuntimeFlavor, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return options.RuntimeFlavor.Trim().ToLowerInvariant();
+            }
+
+            var executablePath = options.ExecutablePath?.Replace('/', '\\').ToLowerInvariant() ?? string.Empty;
+            return executablePath.Contains("rwkv_lighting_cuda") ? "cuda" : "legacy";
         }
 
         private async Task<bool> ProbeLlamaAsync(string baseUrl, string apiKey)
@@ -638,12 +865,14 @@ namespace NovelManagement.WPF.Services
         public string ExecutablePath { get; set; } = string.Empty;
         public string BaseUrl { get; set; } = "http://localhost:8000";
         public string ModelPath { get; set; } = string.Empty;
-        public string ModelName { get; set; } = "rwkv7";
+        public string ModelName { get; set; } = "rwkv7-g1i";
         public string Strategy { get; set; } = "cuda fp16";
         public string VocabPath { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public int ContextSize { get; set; } = 8192;
         public int MaxConcurrentRequests { get; set; } = 20;
+        public string RuntimeFlavor { get; set; } = "auto";
+        public int PrefillChunkSize { get; set; } = 128;
         public int StartupTimeoutSeconds { get; set; } = 45;
     }
 

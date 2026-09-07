@@ -24,6 +24,7 @@ namespace NovelManagement.WPF.Views
         private readonly MapDataService? _mapDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -81,6 +82,7 @@ namespace NovelManagement.WPF.Views
                 _mapDataService = serviceProvider?.GetService<MapDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -575,6 +577,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "地图结构");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateMapWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -583,13 +596,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedMap != null ? $"优化地图：{SelectedMap.Name}" : "生成地图结构",
-                ["theme"] = "请生成一个适合小说项目使用的地图设定，并输出名称、层级、地形、气候、维度、父级地图、描述、面积、坐标、海拔、危险等级、资源分布。",
-                ["requirements"] = optimizeCurrent && SelectedMap != null
+                ["theme"] = "请生成一个适合书籍项目使用的地图设定，并输出名称、层级、地形、气候、维度、父级地图、描述、面积、坐标、海拔、危险等级、资源分布。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedMap != null
                     ? $"请基于当前地图进行优化并输出结构化文本。当前地图：{SelectedMap.Name}，层级：{SelectedMap.Level}，地形：{SelectedMap.TerrainType}，气候：{SelectedMap.ClimateType}，描述：{SelectedMap.Description}"
-                    : "请输出一个完整地图设定，至少包含名称、层级、地形、气候、维度、描述、面积、坐标、海拔、危险等级，并列出至少3种资源。",
+                    : "请输出一个完整地图设定，至少包含名称、层级、地形、气候、维度、描述、面积、坐标、海拔、危险等级，并列出至少3种资源。"),
                 ["context"] = GetCurrentContext()
             };
 

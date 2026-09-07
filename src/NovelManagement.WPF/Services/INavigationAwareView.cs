@@ -50,6 +50,27 @@ namespace NovelManagement.WPF.Services
     }
 
     /// <summary>
+    /// 通用实体定位导航参数：目标视图加载完数据后按 <see cref="TargetId"/> 选中并高亮实体。
+    /// </summary>
+    public sealed class EntityHighlightNavigationPayload
+    {
+        /// <summary>
+        /// 目标实体ID（时间线事件为事件ID，其余为实体主键）。
+        /// </summary>
+        public Guid? TargetId { get; init; }
+
+        /// <summary>
+        /// 目标实体名称（仅用于展示与兜底按名称匹配）。
+        /// </summary>
+        public string? TargetName { get; init; }
+
+        /// <summary>
+        /// 目标实体类型描述（如"角色"、"时间线事件"）。
+        /// </summary>
+        public string? TargetType { get; init; }
+    }
+
+    /// <summary>
     /// 导入导出页面导航参数。
     /// </summary>
     public sealed class ImportExportNavigationPayload

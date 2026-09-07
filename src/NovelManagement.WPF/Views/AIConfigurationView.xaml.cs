@@ -26,6 +26,8 @@ namespace NovelManagement.WPF.Views
     /// </summary>
     public partial class AIConfigurationView : UserControl
     {
+        private const string DefaultRwkvModelName = "rwkv7-g1i";
+        private static readonly string[] SupportedRwkvModelExtensions = { ".st", ".safetensors", ".pth" };
         private readonly ILogger<AIConfigurationView> _logger;
         private readonly IConfiguration _configuration;
         private readonly ConfigurationService _configurationService;
@@ -165,7 +167,7 @@ namespace NovelManagement.WPF.Views
                 // 加载RWKV配置
                 var rwkvConfig = _configuration.GetSection("AI:Providers:RWKV");
                 RwkvBaseUrlTextBox.Text = rwkvConfig["BaseUrl"] ?? "http://localhost:8000";
-                RwkvModelNameTextBox.Text = rwkvConfig["ModelName"] ?? "rwkv7";
+                RwkvModelNameTextBox.Text = rwkvConfig["ModelName"] ?? DefaultRwkvModelName;
                 var rwkvStrategy = rwkvConfig["Strategy"] ?? "cuda fp16";
                 foreach (ComboBoxItem item in RwkvStrategyComboBox.Items)
                 {
@@ -583,8 +585,10 @@ namespace NovelManagement.WPF.Views
 
                 if (Directory.Exists(modelsDirectory))
                 {
-                    var modelFiles = Directory.EnumerateFiles(modelsDirectory, "*.st", SearchOption.TopDirectoryOnly)
-                        .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                    var modelFiles = Directory.EnumerateFiles(modelsDirectory, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(path => SupportedRwkvModelExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+                        .OrderBy(GetRwkvModelPriority)
+                        .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
                         .ToList();
 
                     foreach (var modelFile in modelFiles)
@@ -610,7 +614,11 @@ namespace NovelManagement.WPF.Views
                     : configuredModelPath;
 
                 SelectRwkvModel(selectedPath);
-                UpdateStatus($"已扫描 {_rwkvModels.Count} 个 RWKV 模型");
+                var rawCheckpointCount = _rwkvModels.Count(path =>
+                    string.Equals(Path.GetExtension(path), ".pth", StringComparison.OrdinalIgnoreCase));
+                UpdateStatus(rawCheckpointCount > 0
+                    ? $"已扫描 {_rwkvModels.Count} 个 RWKV 模型（包含 {rawCheckpointCount} 个 .pth 原始权重）"
+                    : $"已扫描 {_rwkvModels.Count} 个 RWKV 模型");
             }
             catch (Exception ex)
             {
@@ -682,9 +690,14 @@ namespace NovelManagement.WPF.Views
 
         private void ApplyRwkvDefaultsIfNeeded()
         {
+            if (string.IsNullOrWhiteSpace(RwkvModelNameTextBox.Text))
+            {
+                RwkvModelNameTextBox.Text = DefaultRwkvModelName;
+            }
+
             if (string.IsNullOrWhiteSpace(RwkvServerScriptPathTextBox.Text))
             {
-                var defaultExecutable = Path.Combine(ResolveProjectRoot(), "rwkv_lightning_libtorch_win", "rwkv_lightning.exe");
+                var defaultExecutable = GetDefaultRwkvExecutablePath();
                 if (File.Exists(defaultExecutable))
                 {
                     RwkvServerScriptPathTextBox.Text = defaultExecutable;
@@ -745,7 +758,8 @@ namespace NovelManagement.WPF.Views
             var current = AppDomain.CurrentDomain.BaseDirectory;
             for (int i = 0; i < 8; i++)
             {
-                if (Directory.Exists(Path.Combine(current, "rwkv_lightning_libtorch_win")) ||
+                if (Directory.Exists(Path.Combine(current, "RWKV_lightning_CUDA_win")) ||
+                    Directory.Exists(Path.Combine(current, "rwkv_lightning_libtorch_win")) ||
                     Directory.Exists(Path.Combine(current, "llama_cpp")))
                 {
                     return current;
@@ -768,24 +782,61 @@ namespace NovelManagement.WPF.Views
             return (LlamaBackendComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()?.ToLowerInvariant() ?? "cuda";
         }
 
+        private static int GetRwkvModelPriority(string modelPath)
+        {
+            return Path.GetExtension(modelPath).ToLowerInvariant() switch
+            {
+                ".pth" => 0,
+                ".safetensors" => 1,
+                ".st" => 2,
+                _ => 9
+            };
+        }
+
+        private string GetDefaultRwkvExecutablePath()
+        {
+            var projectRoot = ResolveProjectRoot();
+            var candidates = new[]
+            {
+                Path.Combine(projectRoot, "RWKV_lightning_CUDA_win", "rwkv_lighting_cuda", "rwkv_lighting_cuda.exe"),
+                Path.Combine(projectRoot, "rwkv_lightning_libtorch_win", "rwkv_lightning.exe")
+            };
+
+            return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
+        }
+
         private string GetDefaultLlamaExecutablePath(string backend)
         {
             return Path.Combine(ResolveProjectRoot(), "llama_cpp", backend, "llama-server.exe");
         }
 
+        private string ResolveRwkvRuntimeFlavorFromPath(string executablePath)
+        {
+            if (string.IsNullOrWhiteSpace(executablePath))
+            {
+                return "auto";
+            }
+
+            var normalized = executablePath.Replace('/', '\\');
+            return normalized.Contains("rwkv_lighting_cuda", StringComparison.OrdinalIgnoreCase) ? "cuda" : "legacy";
+        }
+
         private RwkvRuntimeLaunchOptions BuildRwkvRuntimeOptions()
         {
+            var runtimeFlavor = ResolveRwkvRuntimeFlavorFromPath(RwkvServerScriptPathTextBox.Text.Trim());
             return new RwkvRuntimeLaunchOptions
             {
                 ExecutablePath = RwkvServerScriptPathTextBox.Text.Trim(),
                 BaseUrl = RwkvBaseUrlTextBox.Text.Trim(),
                 ModelPath = (RwkvModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "",
-                ModelName = string.IsNullOrWhiteSpace(RwkvModelNameTextBox.Text) ? "rwkv7" : RwkvModelNameTextBox.Text.Trim(),
+                ModelName = string.IsNullOrWhiteSpace(RwkvModelNameTextBox.Text) ? DefaultRwkvModelName : RwkvModelNameTextBox.Text.Trim(),
                 Strategy = (RwkvStrategyComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "cuda fp16",
                 VocabPath = _configuration["AI:Providers:RWKV:VocabPath"] ?? "",
                 Password = _configuration["AI:Providers:RWKV:Password"] ?? "",
                 ContextSize = int.TryParse(RwkvContextSizeTextBox.Text, out var rwkvContextSize) ? Math.Max(1024, rwkvContextSize) : 8192,
                 MaxConcurrentRequests = int.TryParse(RwkvMaxConcurrentRequestsTextBox.Text, out var rwkvMaxConcurrentRequests) ? Math.Max(1, rwkvMaxConcurrentRequests) : 20,
+                RuntimeFlavor = runtimeFlavor,
+                PrefillChunkSize = 128,
                 StartupTimeoutSeconds = int.TryParse(RwkvTimeoutTextBox.Text, out var timeout) ? Math.Max(15, timeout) : 45
             };
         }
@@ -1143,11 +1194,17 @@ namespace NovelManagement.WPF.Views
                 }
 
                 // 更新 RWKV 配置
+                var rwkvRuntimeFlavor = ResolveRwkvRuntimeFlavorFromPath(RwkvServerScriptPathTextBox.Text.Trim());
+                // 写作档位 GUI 无输入框，保存时保留已有显式配置，避免被覆盖为 Auto
+                var existingRwkv = providersDict.TryGetValue("RWKV", out var rwkvObj) ? rwkvObj as Dictionary<string, object> : null;
+                var writingTier = existingRwkv != null && existingRwkv.TryGetValue("WritingContextTier", out var tierObj)
+                    ? tierObj?.ToString() ?? "Auto"
+                    : "Auto";
                 providersDict["RWKV"] = new Dictionary<string, object>
                 {
                     ["BaseUrl"] = RwkvBaseUrlTextBox.Text.Trim(),
                     ["ModelPath"] = (RwkvModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "",
-                    ["ModelName"] = RwkvModelNameTextBox.Text.Trim(),
+                    ["ModelName"] = string.IsNullOrWhiteSpace(RwkvModelNameTextBox.Text) ? DefaultRwkvModelName : RwkvModelNameTextBox.Text.Trim(),
                     ["Strategy"] = (RwkvStrategyComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "cuda fp16",
                     ["MaxTokensPerCompletion"] = int.TryParse(RwkvMaxTokensTextBox.Text, out var maxTokens) ? maxTokens : 200,
                     ["Temperature"] = double.TryParse(RwkvTemperatureTextBox.Text, out var temp) ? temp : 1.0,
@@ -1157,11 +1214,15 @@ namespace NovelManagement.WPF.Views
                     ["PresencePenalty"] = double.TryParse(RwkvPresencePenaltyTextBox.Text, out var pp) ? pp : 0.0,
                     ["TimeoutSeconds"] = int.TryParse(RwkvTimeoutTextBox.Text, out var rTimeout) ? rTimeout : 120,
                     ["MaxRetries"] = int.TryParse(RwkvMaxRetriesTextBox.Text, out var rRetries) ? rRetries : 3,
-                    ["ContextSize"] = int.TryParse(RwkvContextSizeTextBox.Text, out var rwkvContextSize) ? Math.Clamp(rwkvContextSize, 1024, 32768) : 8192,
+                    ["ContextSize"] = int.TryParse(RwkvContextSizeTextBox.Text, out var rwkvContextSize) ? Math.Clamp(rwkvContextSize, 1024, 1048576) : 8192,
+                    ["WritingContextTier"] = writingTier,
                     ["MaxConcurrentRequests"] = int.TryParse(RwkvMaxConcurrentRequestsTextBox.Text, out var rwkvMaxConcurrentRequests) ? Math.Clamp(rwkvMaxConcurrentRequests, 1, 20) : 20,
                     ["AutoStartServer"] = RwkvAutoStartServerCheckBox.IsChecked == true,
                     ["PythonPath"] = RwkvPythonPathTextBox.Text.Trim(),
                     ["ServerScriptPath"] = RwkvServerScriptPathTextBox.Text.Trim(),
+                    ["RuntimeFlavor"] = rwkvRuntimeFlavor,
+                    ["PrefillChunkSize"] = 128,
+                    ["ThinkType"] = "fast",
                     ["GpuDeviceId"] = int.TryParse(RwkvGpuDeviceIdTextBox.Text, out var gpuId) ? gpuId : -1
                 };
 

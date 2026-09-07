@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.Configuration;
 
 namespace NovelManagement.WPF.Views
 {
@@ -10,6 +11,7 @@ namespace NovelManagement.WPF.Views
     public partial class NewProjectDialog : Window
     {
         private const string DefaultTemplateName = "标准模板";
+        private const string DefaultAuthor = "精神抖擞";
 
         /// <summary>
         /// 新建项目的数据模型
@@ -20,6 +22,11 @@ namespace NovelManagement.WPF.Views
             /// 项目名称。
             /// </summary>
             public string Name { get; set; } = string.Empty;
+
+            /// <summary>
+            /// 作者（默认取配置 Application:Author，缺省「精神抖擞」）。
+            /// </summary>
+            public string Author { get; set; } = DefaultAuthor;
 
             /// <summary>
             /// 项目描述。
@@ -83,12 +90,18 @@ namespace NovelManagement.WPF.Views
         {
             // 设置默认的项目类型
             ProjectTypeComboBox.SelectedIndex = 0;
-            
+
             // 设置默认的项目模板
             ProjectTemplateComboBox.SelectedIndex = 0;
-            
+
             // 设置默认目标字数
             TargetWordCountTextBox.Text = "500000";
+
+            // 设置默认作者（配置 Application:Author，缺省「精神抖擞」）
+            var configuredAuthor = App.ServiceProvider?.GetService(typeof(IConfiguration)) as IConfiguration;
+            AuthorTextBox.Text = string.IsNullOrWhiteSpace(configuredAuthor?["Application:Author"])
+                ? DefaultAuthor
+                : configuredAuthor["Application:Author"]!.Trim();
         }
 
         /// <summary>
@@ -136,6 +149,7 @@ namespace NovelManagement.WPF.Views
             var projectData = new NewProjectModel
             {
                 Name = ProjectNameTextBox.Text.Trim(),
+                Author = string.IsNullOrWhiteSpace(AuthorTextBox.Text) ? DefaultAuthor : AuthorTextBox.Text.Trim(),
                 Description = ProjectDescriptionTextBox.Text.Trim(),
                 Type = ((ComboBoxItem)ProjectTypeComboBox.SelectedItem).Content.ToString() ?? string.Empty,
                 EnableAI = EnableAICheckBox.IsChecked ?? false,

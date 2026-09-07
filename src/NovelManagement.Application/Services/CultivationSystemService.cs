@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using NovelManagement.Application.DTOs;
+using NovelManagement.Application.Interfaces;
 using NovelManagement.Core.Entities;
 using NovelManagement.Core.Interfaces;
 
@@ -7,7 +9,7 @@ namespace NovelManagement.Application.Services;
 /// <summary>
 /// 修炼体系服务
 /// </summary>
-public class CultivationSystemService
+public class CultivationSystemService : ICultivationSystemService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CultivationSystemService> _logger;
@@ -329,4 +331,263 @@ public class CultivationSystemService
             throw;
         }
     }
+
+    #region ICultivationSystemService 接口实现（DTO 层）
+
+    private static CultivationSystemDto MapSystem(CultivationSystem e, bool withLevels) => new()
+    {
+        Id = e.Id,
+        Name = e.Name,
+        Type = e.Type,
+        Description = e.Description,
+        CultivationMethod = e.CultivationMethod,
+        RealmDivision = e.RealmDivision,
+        BreakthroughConditions = e.BreakthroughConditions,
+        CultivationResources = e.CultivationResources,
+        Characteristics = e.Characteristics,
+        Risks = e.Risks,
+        ProjectId = e.ProjectId,
+        Importance = e.Importance,
+        ImagePath = e.ImagePath,
+        Tags = e.Tags,
+        Notes = e.Notes,
+        Status = e.Status,
+        OrderIndex = e.Order,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt,
+        Levels = withLevels
+            ? (e.Levels ?? new List<CultivationLevel>())
+                .OrderBy(l => l.Order).Select(MapLevel).ToList()
+            : new List<CultivationLevelDto>()
+    };
+
+    private static CultivationLevelDto MapLevel(CultivationLevel l) => new()
+    {
+        Id = l.Id,
+        Name = l.Name,
+        OrderIndex = l.Order,
+        Description = l.Description,
+        BreakthroughCondition = l.BreakthroughCondition,
+        Abilities = l.Abilities,
+        CultivationTime = l.CultivationTime,
+        CultivationSystemId = l.CultivationSystemId,
+        Tags = l.Tags,
+        Notes = l.Notes,
+        CreatedAt = l.CreatedAt,
+        UpdatedAt = l.UpdatedAt
+    };
+
+    public async Task<IEnumerable<CultivationSystemDto>> GetAllAsync(Guid projectId, CancellationToken cancellationToken = default)
+    {
+        var systems = await _unitOfWork.CultivationSystems.GetByProjectIdAsync(projectId, cancellationToken);
+        return systems.OrderBy(s => s.Order).ThenBy(s => s.Name).Select(s => MapSystem(s, withLevels: false)).ToList();
+    }
+
+    public async Task<CultivationSystemDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var e = await _unitOfWork.CultivationSystems.GetByIdAsync(id, cancellationToken);
+        return e == null ? null : MapSystem(e, withLevels: false);
+    }
+
+    public async Task<IEnumerable<CultivationSystemDto>> GetByTypeAsync(Guid projectId, string type, CancellationToken cancellationToken = default)
+    {
+        var systems = await _unitOfWork.CultivationSystems.GetByTypeAsync(projectId, type, cancellationToken);
+        return systems.OrderBy(s => s.Order).Select(s => MapSystem(s, withLevels: false)).ToList();
+    }
+
+    public async Task<CultivationSystemDto?> GetWithLevelsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var e = await _unitOfWork.CultivationSystems.GetWithLevelsAsync(id, cancellationToken);
+        return e == null ? null : MapSystem(e, withLevels: true);
+    }
+
+    public async Task<IEnumerable<CultivationSystemDto>> GetByImportanceAsync(Guid projectId, int minImportance, CancellationToken cancellationToken = default)
+    {
+        var systems = await _unitOfWork.CultivationSystems.GetByImportanceAsync(projectId, minImportance, cancellationToken);
+        return systems.OrderBy(s => s.Order).Select(s => MapSystem(s, withLevels: false)).ToList();
+    }
+
+    public async Task<IEnumerable<CultivationSystemDto>> SearchAsync(Guid projectId, string searchTerm, CancellationToken cancellationToken = default)
+    {
+        var systems = await _unitOfWork.CultivationSystems.SearchAsync(projectId, searchTerm, cancellationToken);
+        return systems.OrderBy(s => s.Name).Select(s => MapSystem(s, withLevels: false)).ToList();
+    }
+
+    public async Task<CultivationSystemDto> CreateAsync(CreateCultivationSystemDto createDto, CancellationToken cancellationToken = default)
+    {
+        var entity = new CultivationSystem
+        {
+            Name = createDto.Name,
+            Type = createDto.Type,
+            Description = createDto.Description,
+            CultivationMethod = createDto.CultivationMethod,
+            RealmDivision = createDto.RealmDivision,
+            BreakthroughConditions = createDto.BreakthroughConditions,
+            CultivationResources = createDto.CultivationResources,
+            Characteristics = createDto.Characteristics,
+            Risks = createDto.Risks,
+            ProjectId = createDto.ProjectId,
+            Importance = createDto.Importance,
+            ImagePath = createDto.ImagePath,
+            Tags = createDto.Tags,
+            Notes = createDto.Notes,
+            Status = createDto.Status,
+            Order = createDto.OrderIndex
+        };
+        var created = await _unitOfWork.CultivationSystems.AddAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("创建修炼体系: {Name}, 项目ID: {ProjectId}", created.Name, created.ProjectId);
+        return MapSystem(created, withLevels: false);
+    }
+
+    public async Task<CultivationSystemDto> UpdateAsync(UpdateCultivationSystemDto updateDto, CancellationToken cancellationToken = default)
+    {
+        var entity = await _unitOfWork.CultivationSystems.GetByIdAsync(updateDto.Id, cancellationToken)
+            ?? throw new ArgumentException($"修炼体系不存在，ID: {updateDto.Id}");
+        entity.Name = updateDto.Name;
+        entity.Type = updateDto.Type;
+        entity.Description = updateDto.Description;
+        entity.CultivationMethod = updateDto.CultivationMethod;
+        entity.RealmDivision = updateDto.RealmDivision;
+        entity.BreakthroughConditions = updateDto.BreakthroughConditions;
+        entity.CultivationResources = updateDto.CultivationResources;
+        entity.Characteristics = updateDto.Characteristics;
+        entity.Risks = updateDto.Risks;
+        entity.Importance = updateDto.Importance;
+        entity.ImagePath = updateDto.ImagePath;
+        entity.Tags = updateDto.Tags;
+        entity.Notes = updateDto.Notes;
+        entity.Status = updateDto.Status;
+        entity.Order = updateDto.OrderIndex;
+        var updated = await _unitOfWork.CultivationSystems.UpdateAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return MapSystem(updated, withLevels: false);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _unitOfWork.CultivationSystems.GetByIdAsync(id, cancellationToken);
+        if (entity == null) return false;
+        await _unitOfWork.CultivationSystems.DeleteAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<CultivationSystemDto> CopyAsync(Guid id, string newName, CancellationToken cancellationToken = default)
+    {
+        var source = await _unitOfWork.CultivationSystems.GetWithLevelsAsync(id, cancellationToken)
+            ?? throw new ArgumentException($"修炼体系不存在，ID: {id}");
+        var copy = await CreateAsync(new CreateCultivationSystemDto
+        {
+            Name = newName,
+            Type = source.Type,
+            Description = source.Description,
+            CultivationMethod = source.CultivationMethod,
+            RealmDivision = source.RealmDivision,
+            BreakthroughConditions = source.BreakthroughConditions,
+            CultivationResources = source.CultivationResources,
+            Characteristics = source.Characteristics,
+            Risks = source.Risks,
+            ProjectId = source.ProjectId,
+            Importance = source.Importance,
+            ImagePath = source.ImagePath,
+            Tags = source.Tags,
+            Notes = source.Notes,
+            Status = source.Status,
+            OrderIndex = source.Order
+        }, cancellationToken);
+        foreach (var level in source.Levels.OrderBy(l => l.Order))
+        {
+            await CreateLevelAsync(new CreateCultivationLevelDto
+            {
+                CultivationSystemId = copy.Id,
+                Name = level.Name,
+                OrderIndex = level.Order,
+                Description = level.Description,
+                BreakthroughCondition = level.BreakthroughCondition,
+                Abilities = level.Abilities,
+                CultivationTime = level.CultivationTime,
+                Tags = level.Tags,
+                Notes = level.Notes
+            }, cancellationToken);
+        }
+        return copy;
+    }
+
+    public async Task<IEnumerable<string>> GetTypesAsync(Guid projectId, CancellationToken cancellationToken = default)
+    {
+        var systems = await _unitOfWork.CultivationSystems.GetByProjectIdAsync(projectId, cancellationToken);
+        return systems.Select(s => s.Type).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList();
+    }
+
+    public async Task<IEnumerable<CultivationLevelDto>> GetLevelsAsync(Guid cultivationSystemId, CancellationToken cancellationToken = default)
+    {
+        var levels = await _unitOfWork.CultivationLevels.GetBySystemIdAsync(cultivationSystemId, cancellationToken);
+        return levels.OrderBy(l => l.Order).Select(MapLevel).ToList();
+    }
+
+    public async Task<CultivationLevelDto?> GetLevelByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var e = await _unitOfWork.CultivationLevels.GetByIdAsync(id, cancellationToken);
+        return e == null ? null : MapLevel(e);
+    }
+
+    public async Task<CultivationLevelDto> CreateLevelAsync(CreateCultivationLevelDto createDto, CancellationToken cancellationToken = default)
+    {
+        var entity = new CultivationLevel
+        {
+            Name = createDto.Name,
+            Order = createDto.OrderIndex,
+            Description = createDto.Description,
+            BreakthroughCondition = createDto.BreakthroughCondition,
+            Abilities = createDto.Abilities,
+            CultivationTime = createDto.CultivationTime,
+            CultivationSystemId = createDto.CultivationSystemId,
+            Tags = createDto.Tags,
+            Notes = createDto.Notes
+        };
+        var created = await _unitOfWork.CultivationLevels.AddAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return MapLevel(created);
+    }
+
+    public async Task<CultivationLevelDto> UpdateLevelAsync(UpdateCultivationLevelDto updateDto, CancellationToken cancellationToken = default)
+    {
+        var entity = await _unitOfWork.CultivationLevels.GetByIdAsync(updateDto.Id, cancellationToken)
+            ?? throw new ArgumentException($"修炼等级不存在，ID: {updateDto.Id}");
+        entity.Name = updateDto.Name;
+        entity.Order = updateDto.OrderIndex;
+        entity.Description = updateDto.Description;
+        entity.BreakthroughCondition = updateDto.BreakthroughCondition;
+        entity.Abilities = updateDto.Abilities;
+        entity.CultivationTime = updateDto.CultivationTime;
+        entity.Tags = updateDto.Tags;
+        entity.Notes = updateDto.Notes;
+        var updated = await _unitOfWork.CultivationLevels.UpdateAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return MapLevel(updated);
+    }
+
+    public async Task<bool> DeleteLevelAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _unitOfWork.CultivationLevels.GetByIdAsync(id, cancellationToken);
+        if (entity == null) return false;
+        await _unitOfWork.CultivationLevels.DeleteAsync(entity, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<CultivationLevelDto?> GetNextLevelAsync(Guid currentLevelId, CancellationToken cancellationToken = default)
+    {
+        var e = await _unitOfWork.CultivationLevels.GetNextLevelAsync(currentLevelId, cancellationToken);
+        return e == null ? null : MapLevel(e);
+    }
+
+    public async Task<CultivationLevelDto?> GetPreviousLevelAsync(Guid currentLevelId, CancellationToken cancellationToken = default)
+    {
+        var e = await _unitOfWork.CultivationLevels.GetPreviousLevelAsync(currentLevelId, cancellationToken);
+        return e == null ? null : MapLevel(e);
+    }
+
+    #endregion
 }

@@ -151,7 +151,7 @@
                                                  Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                  Margin="4,0,0,0"/>
                                     </StackPanel>
-                                    <TextBlock Text="您好！我是您的AI助手，专门帮助您管理小说设定。我可以帮您生成新设定、分析现有设定、提供优化建议等。请告诉我您需要什么帮助？"
+                                    <TextBlock Text="您好！我是您的AI助手，专门帮助您管理书籍设定。我可以帮您生成新设定、分析现有设定、提供优化建议等。请告诉我您需要什么帮助？"
                                              TextWrapping="Wrap"
                                              Style="{StaticResource MaterialDesignBody2TextBlock}"/>
                                 </StackPanel>

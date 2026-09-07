@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace NovelManagement.Core.Entities;
 
 /// <summary>
-/// 小说项目实体
+/// 书籍项目实体
 /// </summary>
 public class Project : BaseEntity
 {

@@ -151,7 +151,7 @@ namespace NovelManagement.WPF.Views
         private NovelWorkflowEngine _workflowEngine = null!;
         private TaskQueue _taskQueue = null!;
 
-        // 模拟的Agent实例
+        // Agent 实例（DI 解析的真实 Agent，RWKV 可用时走真实推理链路）
         private List<IAgent> _agentInstances = null!;
 
         // AI服务相关
@@ -649,7 +649,7 @@ namespace NovelManagement.WPF.Views
                 var parameters = new Dictionary<string, object>
                 {
                     ["theme"] = prompt,
-                    ["genre"] = "长篇小说",
+                    ["genre"] = "长篇书籍",
                     ["requirements"] = prompt
                 };
 

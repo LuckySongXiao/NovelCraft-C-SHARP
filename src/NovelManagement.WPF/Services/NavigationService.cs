@@ -154,6 +154,10 @@ namespace NovelManagement.WPF.Services
                 (WorldSettingNavigationPayload a, WorldSettingNavigationPayload b) =>
                     string.Equals(a.Action, b.Action, StringComparison.Ordinal)
                     && a.SettingId == b.SettingId,
+                (EntityHighlightNavigationPayload a, EntityHighlightNavigationPayload b) =>
+                    a.TargetId == b.TargetId
+                    && string.Equals(a.TargetName, b.TargetName, StringComparison.Ordinal)
+                    && string.Equals(a.TargetType, b.TargetType, StringComparison.Ordinal),
                 (ImportExportNavigationPayload a, ImportExportNavigationPayload b) =>
                     string.Equals(a.Action, b.Action, StringComparison.Ordinal)
                     && a.VolumeId == b.VolumeId
@@ -174,6 +178,7 @@ namespace NovelManagement.WPF.Services
         ProjectOverview,
         VolumeManagement,
         CharacterManagement,
+        Timeline,
         RelationshipNetwork,
         FactionManagement,
         PlotManagement,
@@ -181,7 +186,8 @@ namespace NovelManagement.WPF.Services
         AIConfiguration,
         ImportExport,
         WorldSettingManagement,
-        DialogGeneration
+        DialogGeneration,
+        ProjectHealthCheck
     }
 
     /// <summary>

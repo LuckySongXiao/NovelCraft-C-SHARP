@@ -31,7 +31,7 @@ public class FirstRunOnboardingWindow : Window
         _statusTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 12, 0, 0),
-            Foreground = Brushes.DarkSlateGray,
+            Foreground = (Brush)FindResource("AppForegroundTextBrush"),
             TextWrapping = TextWrapping.Wrap
         };
 
@@ -47,7 +47,7 @@ public class FirstRunOnboardingWindow : Window
 
         contentPanel.Children.Add(new TextBlock
         {
-            Text = "欢迎使用小说管理系统",
+            Text = "欢迎使用书籍管理系统",
             FontSize = 28,
             FontWeight = FontWeights.Bold
         });
@@ -180,6 +180,6 @@ public class FirstRunOnboardingWindow : Window
     private void UpdateStatus(string message, bool isError = false)
     {
         _statusTextBlock.Text = message;
-        _statusTextBlock.Foreground = isError ? Brushes.IndianRed : Brushes.DarkSlateGray;
+        _statusTextBlock.Foreground = isError ? Brushes.IndianRed : (Brush)FindResource("AppForegroundTextBrush");
     }
 }

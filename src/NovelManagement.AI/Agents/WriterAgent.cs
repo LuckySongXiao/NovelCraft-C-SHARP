@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -29,10 +30,11 @@ namespace NovelManagement.AI.Agents
         private const double RwkvStateTemperature = 0.2;
         private const double RwkvStateTopP = 0.2;
         private const int RwkvStateTopK = 20;
-        private const int RwkvMaxStateFacts = 8;
+        private const int RwkvMaxStateFacts = 10;
         private const int RwkvBatchCandidateCount = 2;
         private const int RwkvBatchChunkSize = 8;
         private readonly IRwkvLightningService? _rwkvService;
+        private readonly ConcurrentDictionary<string, string> _rwkvStateSeedCache = new(StringComparer.Ordinal);
 
         private sealed class RwkvGenerationSelectionResult
         {
@@ -87,7 +89,7 @@ namespace NovelManagement.AI.Agents
             IThinkingChainProcessor thinkingChainProcessor,
             NovelManagement.AI.Services.ModelManager modelManager,
             IRwkvLightningService? rwkvService = null)
-            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager)
+            : base(logger, memoryManager, deepSeekApiService, thinkingChainProcessor, modelManager, rwkvService)
         {
             _rwkvService = rwkvService;
         }
@@ -732,13 +734,21 @@ namespace NovelManagement.AI.Agents
                 return;
             }
 
+            var stateSeedSignature = BuildRwkvStateSeedSignature(parameters, existingContent, continueDirection);
+            if (_rwkvStateSeedCache.TryGetValue(sessionId, out var cachedSeedSignature) &&
+                string.Equals(cachedSeedSignature, stateSeedSignature, StringComparison.Ordinal))
+            {
+                _logger.LogInformation("RWKV state 命中复用，会话 {SessionId}", sessionId);
+                return;
+            }
+
             await _rwkvService.DeleteStateAsync(sessionId);
 
             var warmupPrompt = BuildRwkvContextPrompt(parameters, existingContent, continueDirection);
             var warmupResult = await _rwkvService.CompleteWithStateAsync(
                 sessionId,
                 warmupPrompt,
-                maxTokens: 8,
+                maxTokens: 4,
                 direction: "请只回复 OK",
                 temperature: RwkvStateTemperature,
                 topP: RwkvStateTopP,
@@ -748,7 +758,11 @@ namespace NovelManagement.AI.Agents
             if (!warmupResult.Success)
             {
                 _logger.LogWarning("RWKV state 预热失败，会话 {SessionId}: {Error}", sessionId, warmupResult.Error);
+                _rwkvStateSeedCache.TryRemove(sessionId, out _);
+                return;
             }
+
+            _rwkvStateSeedCache[sessionId] = stateSeedSignature;
         }
 
         private async Task AppendContinuationStateAsync(string sessionId, Dictionary<string, object> parameters, string continuedText)
@@ -767,7 +781,7 @@ namespace NovelManagement.AI.Agents
             var updateResult = await _rwkvService.CompleteWithStateAsync(
                 sessionId,
                 updatePrompt,
-                maxTokens: 8,
+                maxTokens: 4,
                 direction: "请只回复 OK",
                 temperature: RwkvStateTemperature,
                 topP: RwkvStateTopP,
@@ -793,20 +807,84 @@ namespace NovelManagement.AI.Agents
                 return null;
             }
 
-            var chapterKey = ExtractChapterTitle(parameters);
+            var chapterId = ExtractChapterId(parameters);
+            var chapterKey = chapterId != Guid.Empty
+                ? $"chapter-{chapterId:N}"
+                : ExtractChapterTitle(parameters);
             chapterKey = string.IsNullOrWhiteSpace(chapterKey) ? "chapter" : SanitizeSessionSegment(chapterKey);
-            return $"project-{projectKey}-writer-{chapterKey}";
+
+            var mode = string.IsNullOrWhiteSpace(parameters.GetValueOrDefault("ExistingContent")?.ToString())
+                ? "draft"
+                : "continue";
+            return $"project-{SanitizeSessionSegment(projectKey)}-writer-{mode}-{chapterKey}";
+        }
+
+        private Guid ExtractChapterId(Dictionary<string, object> parameters)
+        {
+            foreach (var key in new[] { "ChapterData", "ExistingChapterData" })
+            {
+                if (!parameters.TryGetValue(key, out var chapterData) || chapterData == null)
+                {
+                    continue;
+                }
+
+                var property = chapterData.GetType().GetProperty("Id");
+                var rawValue = property?.GetValue(chapterData);
+                if (rawValue is Guid guidValue && guidValue != Guid.Empty)
+                {
+                    return guidValue;
+                }
+
+                if (rawValue != null && Guid.TryParse(rawValue.ToString(), out var parsedGuid) && parsedGuid != Guid.Empty)
+                {
+                    return parsedGuid;
+                }
+            }
+
+            return Guid.Empty;
         }
 
         private string ExtractChapterTitle(Dictionary<string, object> parameters)
         {
-            if (!parameters.TryGetValue("ChapterData", out var chapterData) || chapterData == null)
+            if (parameters.TryGetValue("ChapterTitle", out var chapterTitleObj) &&
+                !string.IsNullOrWhiteSpace(chapterTitleObj?.ToString()))
             {
-                return string.Empty;
+                return chapterTitleObj!.ToString() ?? string.Empty;
             }
 
-            var property = chapterData.GetType().GetProperty("Title");
-            return property?.GetValue(chapterData)?.ToString() ?? string.Empty;
+            foreach (var key in new[] { "ChapterData", "ExistingChapterData" })
+            {
+                if (!parameters.TryGetValue(key, out var chapterData) || chapterData == null)
+                {
+                    continue;
+                }
+
+                var property = chapterData.GetType().GetProperty("Title");
+                var title = property?.GetValue(chapterData)?.ToString();
+                if (!string.IsNullOrWhiteSpace(title))
+                {
+                    return title;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private string BuildRwkvStateSeedSignature(Dictionary<string, object> parameters, string existingContent, string continueDirection)
+        {
+            return string.Join("\n", new[]
+            {
+                CompactRwkvStateValue(parameters.GetValueOrDefault("PromptSummary"), 320),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("WorldSettings"), 240),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("PlotOutlines"), 240),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("MainCharacters"), 240),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("ChapterOutline"), 180),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("KeyPlots"), 180),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("Characters"), 180),
+                CompactRwkvStateValue(parameters.GetValueOrDefault("SpecialRequirements"), 180),
+                CompactRwkvStateValue(continueDirection, 120),
+                LimitRwkvContext(existingContent, 1200)
+            });
         }
 
         private string BuildRwkvContextPrompt(Dictionary<string, object> parameters, string existingContent, string continueDirection)
@@ -834,7 +912,7 @@ Assistant:";
             var stateCard = BuildRwkvPromptStateCard(parameters, $"{existingTail}\n{generatedTail}");
 
             return
-$@"Instruction: 你正在续写一部中文网络小说。请保持文风一致、剧情连贯、人物设定稳定，不要解释，不要重复前文，不要输出 Markdown 标题、列表、引用或分隔线。
+$@"Instruction: 你正在续写一部中文网络书籍。请保持文风一致、剧情连贯、人物设定稳定，不要解释，不要重复前文，不要输出 Markdown 标题、列表、引用或分隔线。
 
 若你发现将要输出的句子与前文或已生成内容重复，请直接跳过重复句，继续推进新的动作、对话或信息。
 
@@ -871,7 +949,7 @@ Response:";
             var stateCard = BuildRwkvPromptStateCard(parameters, generatedContent);
 
             return
-$@"Instruction: 你是一名中文网络小说作家。请按照给定设定创作章节正文，风格要统一，叙事自然，避免列表化说明。不要输出 Markdown 标题、列表、引用或分隔线。目标总字数约 {targetWordCount} 字。
+$@"Instruction: 你是一名中文网络书籍作家。请按照给定设定创作章节正文，风格要统一，叙事自然，避免列表化说明。不要输出 Markdown 标题、列表、引用或分隔线。目标总字数约 {targetWordCount} 字。
 
 如果某句、某段的含义已经在前文出现，请不要换一种说法重复表述，而是继续推进情节、补充动作细节或环境反馈。
 
@@ -929,7 +1007,10 @@ Assistant:";
         private string BuildRwkvPromptStateCard(Dictionary<string, object> parameters, string recentText)
         {
             var facts = new List<string>();
+            AddRwkvStateFact(facts, $"项目约束：{CompactRwkvStateValue(parameters.GetValueOrDefault("PromptSummary"), 260)}");
             AddRwkvStateFact(facts, $"章节标题：{ExtractChapterTitle(parameters)}");
+            AddRwkvStateFact(facts, $"写作风格：{CompactRwkvStateValue(parameters.GetValueOrDefault("WritingStyle"), 80)}");
+            AddRwkvStateFact(facts, $"章节类型：{CompactRwkvStateValue(parameters.GetValueOrDefault("ChapterType"), 80)}");
             AddRwkvStateFact(facts, $"章节大纲：{CompactRwkvStateValue(parameters.GetValueOrDefault("ChapterOutline"), 180)}");
             AddRwkvStateFact(facts, $"关键剧情：{CompactRwkvStateValue(parameters.GetValueOrDefault("KeyPlots") ?? parameters.GetValueOrDefault("PlotOutlines"), 220)}");
             AddRwkvStateFact(facts, $"主要角色：{CompactRwkvStateValue(parameters.GetValueOrDefault("Characters") ?? parameters.GetValueOrDefault("MainCharacters"), 220)}");
@@ -1908,7 +1989,7 @@ Assistant:";
             return taskType switch
             {
                 "GenerateChapterContent" => @"
-                    你是一位专业的小说作家，擅长创作各种类型的小说内容。
+                    你是一位专业的书籍作家，擅长创作各种类型的书籍内容。
                     你的任务是根据提供的章节大纲生成高质量的章节内容。
 
                     写作要求：
@@ -1926,7 +2007,7 @@ Assistant:";
                     - 如何确保内容质量
                 ",
                 "ContinueChapter" => @"
-                    你是一位专业的小说续写专家，擅长在现有内容基础上进行自然流畅的续写。
+                    你是一位专业的书籍续写专家，擅长在现有内容基础上进行自然流畅的续写。
                     你的任务是根据提供的现有章节内容，按照指定的方向和要求进行续写。
 
                     续写要求：
@@ -1997,7 +2078,7 @@ Assistant:";
             var characters = parameters.GetValueOrDefault("Characters", "").ToString();
             var specialRequirements = parameters.GetValueOrDefault("SpecialRequirements", "").ToString();
 
-            var prompt = $@"请根据以下要求创作一个{writingStyle}风格的小说章节：
+            var prompt = $@"请根据以下要求创作一个{writingStyle}风格的书籍章节：
 
 【章节信息】
 章节标题：{chapterTitle}

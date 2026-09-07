@@ -186,6 +186,21 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
                 return AIAgentRoleWorkflowResult.Failed("SubAgent 定稿结果为空。");
             }
 
+            // 守卫：小模型在定稿阶段可能复刻“简报结构”而非正文，
+            // 若定稿仍带简报特征而草稿是正文，则回退使用草稿。
+            if (LooksLikeRequirementBrief(finalContent) && !LooksLikeRequirementBrief(mainDraft.Content))
+            {
+                finalContent = AIOutputSanitizer.ExtractCleanOutput(mainDraft.Content);
+                await ReportDebugEventAsync(
+                    "C",
+                    "TryExecuteAsync",
+                    "SubAgent定稿疑似简报回显，已回退为 MainAgent 草稿",
+                    new Dictionary<string, object?>
+                    {
+                        ["taskType"] = taskType
+                    });
+            }
+
             var result = new AIAgentRoleWorkflowResult
             {
                 IsSuccess = true,
@@ -480,13 +495,11 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
     {
         var builder = new StringBuilder();
         builder.AppendLine($"任务类型：{GetTaskDisplayName(taskType)}");
-        builder.AppendLine("请将以下原始需求整理成一份可执行的写作简报。");
-        builder.AppendLine("输出结构：");
-        builder.AppendLine("1. 核心目标");
-        builder.AppendLine("2. 风格与语气");
-        builder.AppendLine("3. 必须保留的信息");
-        builder.AppendLine("4. 输出格式要求");
-        builder.AppendLine("5. 禁止项与清理要求");
+        builder.AppendLine("请将以下原始需求整理成一份简短的写作简报（不超过8行，纯文本，不要分节标题）：");
+        builder.AppendLine("- 第一行：一句话故事目标；");
+        builder.AppendLine("- 第二行：风格与语气；");
+        builder.AppendLine("- 其后最多三行：必须出现的人物与设定要点。");
+        builder.AppendLine("不要输出 JSON、标签、代码块或任何解释。");
         builder.AppendLine();
         builder.AppendLine("原始参数：");
         builder.AppendLine(SerializeParameters(parameters));
@@ -498,6 +511,7 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
         return
             $"任务类型：{GetTaskDisplayName(taskType)}{Environment.NewLine}" +
             "以下是 SubAgent 输出的需求简报，请据此直接生成高质量文案草稿。不要输出解释。"
+            + Environment.NewLine + GetTaskFormatInstruction(taskType)
             + Environment.NewLine + Environment.NewLine + requirementBrief;
     }
 
@@ -520,10 +534,10 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
     {
         return taskType switch
         {
-            "GenerateChapterContent" => "格式要求：只输出章节正文，不要解释，不要标题前缀，不要额外备注。",
+            "GenerateChapterContent" => "格式要求：只输出书籍章节正文（叙事性故事内容，从场景与人物动作切入，含对话与情节推进，篇幅不少于500字），不要解释，不要标题前缀，不要额外备注；严禁写成说明书、技术文档或要点罗列。",
             "ContinueChapter" => "格式要求：只输出续写后的正文内容，不要解释，不要加“续写内容”等标签。",
             "PolishText" => "格式要求：只输出润色后的完整文本，不要评价，不要差异说明。",
-            "GenerateOutline" => "格式要求：只输出正式大纲内容，可保留必要的小节标题，但不要自我说明。",
+            "GenerateOutline" => "格式要求：只输出书籍故事大纲（核心冲突、分卷或分阶段剧情推进、主要角色走向），使用叙事性描述，不要解释，不要自我说明；严禁写成项目方案或技术文档。",
             _ => "格式要求：只输出纯净正式内容。"
         };
     }
@@ -533,6 +547,21 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
         return taskType is "GenerateChapterContent" or "ContinueChapter" or "PolishText" or "GenerateOutline";
     }
 
+    /// <summary>
+    /// 判断内容是否仍是“需求简报/结构化说明”而非正文（用于小模型回显守卫）。
+    /// </summary>
+    private static bool LooksLikeRequirementBrief(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return false;
+        }
+
+        var markers = new[] { "核心目标", "必须保留的信息", "输出格式要求", "需求简报", "写作简报", "禁止项" };
+        var hitCount = markers.Count(marker => content.Contains(marker, StringComparison.Ordinal));
+        return hitCount >= 2;
+    }
+
     private static string GetTaskDisplayName(string taskType)
     {
         return taskType switch
@@ -540,30 +569,28 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
             "GenerateChapterContent" => "章节生成",
             "ContinueChapter" => "章节续写",
             "PolishText" => "文本润色",
-            "GenerateOutline" => "小说大纲生成",
+            "GenerateOutline" => "书籍大纲生成",
             _ => taskType
         };
     }
 
     private static string SerializeParameters(Dictionary<string, object> parameters)
     {
-        try
+        // 注意：此处不能使用 JsonSerializer——其默认编码会把中文转义为 \uXXXX，
+        // 小参数量的本地模型（如 RWKV-1.5B）会照抄转义序列污染产出。改为纯文本行。
+        var builder = new StringBuilder();
+        foreach (var pair in parameters.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            return JsonSerializer.Serialize(parameters, new JsonSerializerOptions
+            // ProjectId 等系统字段对创作无意义，剔除以免干扰模型
+            if (pair.Key.Equals("ProjectId", StringComparison.OrdinalIgnoreCase))
             {
-                WriteIndented = true
-            });
-        }
-        catch
-        {
-            var builder = new StringBuilder();
-            foreach (var pair in parameters)
-            {
-                builder.AppendLine($"{pair.Key}: {pair.Value}");
+                continue;
             }
 
-            return builder.ToString();
+            builder.AppendLine($"{pair.Key}：{pair.Value}");
         }
+
+        return builder.ToString().TrimEnd();
     }
 
     private Guid? TryResolveProjectId(Dictionary<string, object> parameters)

@@ -186,7 +186,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 // 设置默认输出路径
-                var defaultExportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                var defaultExportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "书籍导出");
                 OutputPathTextBox.Text = Path.Combine(defaultExportPath, "千面劫·宿命轮回.txt");
 
                 await RefreshSelectionOptionsAsync();
@@ -273,6 +273,12 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ExportScope_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // XAML 初始化时 SelectedIndex=0 会提前触发本事件，此时后续控件尚未构建
+            if (SelectionPanel == null || ExportScopeComboBox == null)
+            {
+                return;
+            }
+
             if (ExportScopeComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
                 var scope = selectedItem.Tag?.ToString();
@@ -373,7 +379,7 @@ namespace NovelManagement.WPF.Views
                     var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
                     if (string.IsNullOrWhiteSpace(exportDirectory))
                     {
-                        exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                        exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "书籍导出");
                     }
 
                     OutputPathTextBox.Text = Path.Combine(exportDirectory, $"{safeName}_设定导出.txt");
@@ -390,7 +396,7 @@ namespace NovelManagement.WPF.Views
                 var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
                 if (string.IsNullOrWhiteSpace(exportDirectory))
                 {
-                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "书籍导出");
                 }
 
                 OutputPathTextBox.Text = Path.Combine(exportDirectory, "剧情导出.txt");
@@ -406,7 +412,7 @@ namespace NovelManagement.WPF.Views
                 var exportDirectory = Path.GetDirectoryName(OutputPathTextBox.Text);
                 if (string.IsNullOrWhiteSpace(exportDirectory))
                 {
-                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "小说导出");
+                    exportDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "书籍导出");
                 }
 
                 OutputPathTextBox.Text = Path.Combine(exportDirectory, "角色导出.txt");

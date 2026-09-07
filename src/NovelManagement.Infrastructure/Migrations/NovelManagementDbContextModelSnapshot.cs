@@ -2054,6 +2054,173 @@ namespace NovelManagement.Infrastructure.Migrations
                     b.ToTable("SecretRealms");
                 });
 
+            modelBuilder.Entity("NovelManagement.Core.Entities.TimelineEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ChapterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("EventDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Impact")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Importance")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LegacyId")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PlotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("ChapterId");
+
+                    b.HasIndex("EventDate");
+
+                    b.HasIndex("PlotId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectId", "EventDate");
+
+                    b.HasIndex("ProjectId", "LegacyId");
+
+                    b.ToTable("TimelineEvents");
+                });
+
+            modelBuilder.Entity("NovelManagement.Core.Entities.TimelineEventParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CharacterId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TimelineEventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterId");
+
+                    b.HasIndex("Order");
+
+                    b.HasIndex("TimelineEventId");
+
+                    b.ToTable("TimelineEventParticipants");
+                });
+
             modelBuilder.Entity("NovelManagement.Core.Entities.Volume", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2626,6 +2793,42 @@ namespace NovelManagement.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("NovelManagement.Core.Entities.TimelineEvent", b =>
+                {
+                    b.HasOne("NovelManagement.Core.Entities.Chapter", "Chapter")
+                        .WithMany()
+                        .HasForeignKey("ChapterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NovelManagement.Core.Entities.Plot", "Plot")
+                        .WithMany()
+                        .HasForeignKey("PlotId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NovelManagement.Core.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chapter");
+
+                    b.Navigation("Plot");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("NovelManagement.Core.Entities.TimelineEventParticipant", b =>
+                {
+                    b.HasOne("NovelManagement.Core.Entities.TimelineEvent", "TimelineEvent")
+                        .WithMany("Participants")
+                        .HasForeignKey("TimelineEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TimelineEvent");
+                });
+
             modelBuilder.Entity("NovelManagement.Core.Entities.Volume", b =>
                 {
                     b.HasOne("NovelManagement.Core.Entities.Project", "Project")
@@ -2756,6 +2959,11 @@ namespace NovelManagement.Infrastructure.Migrations
             modelBuilder.Entity("NovelManagement.Core.Entities.RelationshipNetwork", b =>
                 {
                     b.Navigation("Relationships");
+                });
+
+            modelBuilder.Entity("NovelManagement.Core.Entities.TimelineEvent", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("NovelManagement.Core.Entities.Volume", b =>

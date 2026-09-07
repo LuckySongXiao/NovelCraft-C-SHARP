@@ -34,7 +34,7 @@
                      FontWeight="Bold" 
                      HorizontalAlignment="Center"
                      Margin="0,8,0,0"/>
-            <TextBlock Text="为您的小说创建新的卷宗" 
+            <TextBlock Text="为您的书籍创建新的卷宗" 
                      FontSize="14" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                      HorizontalAlignment="Center"

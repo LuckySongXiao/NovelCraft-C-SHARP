@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.Application.Services;
+using NovelManagement.WPF.Models;
 
 namespace NovelManagement.WPF.Views
 {
@@ -19,6 +20,7 @@ namespace NovelManagement.WPF.Views
         private readonly PlotService _plotService;
         private readonly VolumeService _volumeService;
         private readonly ProjectService _projectService;
+        private readonly ProjectReadModelService _projectReadModelService;
         private string _generatedOutline = "";
         private Guid _currentProjectId;
 
@@ -41,6 +43,8 @@ namespace NovelManagement.WPF.Views
                 ?? throw new InvalidOperationException("卷宗服务未注册");
             _projectService = App.ServiceProvider?.GetService<ProjectService>()
                 ?? throw new InvalidOperationException("项目服务未注册");
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>()
+                ?? throw new InvalidOperationException("项目上下文服务未注册");
 
             // 设置默认值
             InitializeDefaults();
@@ -51,7 +55,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void InitializeDefaults()
         {
-            NovelTypeComboBox.SelectedIndex = 0; // 修仙小说
+            NovelTypeComboBox.SelectedIndex = 0; // 修仙书籍
             TargetLengthComboBox.SelectedIndex = 2; // 长篇
         }
 
@@ -122,14 +126,14 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(ThemeTextBox.Text))
             {
-                MessageBox.Show("请输入小说主题", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("请输入书籍主题", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 ThemeTextBox.Focus();
                 return false;
             }
 
             if (NovelTypeComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择小说类型", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("请选择书籍类型", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                 NovelTypeComboBox.Focus();
                 return false;
             }
@@ -157,6 +161,8 @@ namespace NovelManagement.WPF.Views
                 ProgressBar.Visibility = Visibility.Visible;
                 ProgressBar.IsIndeterminate = true;
 
+                var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_currentProjectId);
+
                 // 构建生成参数
                 var parameters = new Dictionary<string, object>
                 {
@@ -165,7 +171,9 @@ namespace NovelManagement.WPF.Views
                     ["targetLength"] = ((ComboBoxItem)TargetLengthComboBox.SelectedItem).Content.ToString(),
                     ["mainCharacter"] = MainCharacterTextBox.Text,
                     ["setting"] = SettingTextBox.Text,
-                    ["requirements"] = RequirementsTextBox.Text
+                    ["requirements"] = BuildOutlineRequirements(projectContext),
+                    ["projectId"] = _currentProjectId,
+                    ["projectContext"] = projectContext.PromptSummary
                 };
 
                 // 调用AI服务生成大纲
@@ -213,7 +221,7 @@ namespace NovelManagement.WPF.Views
                     ProjectId = _currentProjectId,
                     Title = "AI生成的主要大纲",
                     Outline = _generatedOutline,
-                    Description = "通过AI生成的小说主要大纲",
+                    Description = "通过AI生成的书籍主要大纲",
                     Type = "主线剧情",
                     Status = "草稿",
                     Priority = "高",
@@ -231,6 +239,28 @@ namespace NovelManagement.WPF.Views
                 MessageBox.Show($"保存大纲失败：{ex.Message}", "错误", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private string BuildOutlineRequirements(ProjectContextData projectContext)
+        {
+            var userRequirements = RequirementsTextBox.Text?.Trim();
+            return $@"请基于当前项目上下文生成书籍大纲。
+
+{projectContext.PromptSummary}
+
+【本次创作输入】
+主题：{ThemeTextBox.Text}
+书籍类型：{((ComboBoxItem)NovelTypeComboBox.SelectedItem).Content}
+目标篇幅：{((ComboBoxItem)TargetLengthComboBox.SelectedItem).Content}
+核心主角：{(string.IsNullOrWhiteSpace(MainCharacterTextBox.Text) ? "未提供" : MainCharacterTextBox.Text.Trim())}
+补充设定：{(string.IsNullOrWhiteSpace(SettingTextBox.Text) ? "未提供" : SettingTextBox.Text.Trim())}
+额外要求：{(string.IsNullOrWhiteSpace(userRequirements) ? "无" : userRequirements)}
+
+【生成要求】
+1. 如果项目已有世界设定，大纲必须严格建立在现有世界观之上。
+2. 若项目基础信息与用户输入冲突，优先遵循项目基础信息与已有世界设定。
+3. 输出应包含主线、关键阶段、核心冲突、角色推进与收束方向。
+4. 不要输出思考过程、Markdown 标题或解释性前言。";
         }
     }
 }

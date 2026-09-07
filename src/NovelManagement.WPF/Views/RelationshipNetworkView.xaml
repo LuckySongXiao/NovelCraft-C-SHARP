@@ -22,8 +22,10 @@
         </Grid.RowDefinitions>
 
         <!-- 标题栏 -->
-        <materialDesign:ColorZone Grid.Row="0" 
-                                  Mode="PrimaryMid" 
+        <materialDesign:ColorZone Grid.Row="0"
+                                  Mode="PrimaryMid"
+                                  Background="{DynamicResource AppTitleBarBackgroundBrush}"
+                                  Foreground="{DynamicResource AppTitleBarForegroundBrush}"
                                   Padding="16">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
@@ -283,23 +285,24 @@
                         </StackPanel>
                     </DockPanel>
 
-                    <!-- 网络图画布 -->
-                    <Border Grid.Row="1" 
-                          BorderBrush="{DynamicResource MaterialDesignDivider}"
-                          BorderThickness="1"
-                          Background="White">
-                        <ScrollViewer x:Name="NetworkScrollViewer"
-                                    HorizontalScrollBarVisibility="Auto"
-                                    VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="NetworkCanvas"
-                                  Width="800"
-                                  Height="600"
-                                  Background="Transparent"
-                                  MouseLeftButtonDown="NetworkCanvas_MouseLeftButtonDown"
-                                  MouseMove="NetworkCanvas_MouseMove"
-                                  MouseLeftButtonUp="NetworkCanvas_MouseLeftButtonUp"/>
-                        </ScrollViewer>
-                    </Border>
+                    <!-- 网络图画布：Viewbox 自动缩放，使节点包围盒始终适应显示区域边界 -->
+                        <Border Grid.Row="1"
+                              BorderBrush="{DynamicResource MaterialDesignDivider}"
+                              BorderThickness="1"
+                              Background="{DynamicResource MaterialDesignCardBackground}">
+                            <Viewbox x:Name="NetworkViewBox"
+                                     Stretch="Uniform"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch">
+                                <Canvas x:Name="NetworkCanvas"
+                                      Width="800"
+                                      Height="600"
+                                      Background="Transparent"
+                                      MouseLeftButtonDown="NetworkCanvas_MouseLeftButtonDown"
+                                      MouseMove="NetworkCanvas_MouseMove"
+                                      MouseLeftButtonUp="NetworkCanvas_MouseLeftButtonUp"/>
+                            </Viewbox>
+                        </Border>
                 </Grid>
             </materialDesign:Card>
 

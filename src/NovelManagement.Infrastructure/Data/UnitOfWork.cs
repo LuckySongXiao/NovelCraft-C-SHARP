@@ -32,6 +32,7 @@ public class UnitOfWork : IUnitOfWork
     private ISecretRealmRepository? _secretRealms;
     private IRelationshipNetworkRepository? _relationshipNetworks;
     private ICurrencySystemRepository? _currencySystems;
+    private ITimelineEventRepository? _timelineEvents;
 
     /// <summary>
     /// 构造函数
@@ -152,6 +153,12 @@ public class UnitOfWork : IUnitOfWork
     /// </summary>
     public ICurrencySystemRepository CurrencySystems =>
         _currencySystems ??= new CurrencySystemRepository(_context);
+
+    /// <summary>
+    /// 时间线事件仓储
+    /// </summary>
+    public ITimelineEventRepository TimelineEvents =>
+        _timelineEvents ??= new TimelineEventRepository(_context);
 
     /// <summary>
     /// 保存更改

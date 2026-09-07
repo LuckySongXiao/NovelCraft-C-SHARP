@@ -21,6 +21,8 @@ namespace NovelManagement.WPF.Views
 
         private readonly ChapterEditData _chapterData;
         private AIAssistantService? _aiAssistantService;
+        private ProjectContextService? _projectContextService;
+        private ProjectReadModelService? _projectReadModelService;
         private bool _isChecking;
         private bool _isAutoFixing;
         private ObservableCollection<ConsistencyIssue> _issues;
@@ -67,6 +69,8 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _aiAssistantService = App.ServiceProvider?.GetService<AIAssistantService>();
+                _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
+                _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -155,6 +159,33 @@ namespace NovelManagement.WPF.Views
         #region 私有方法
 
         /// <summary>
+        /// 构建章节一致性检查的项目级约束：PromptSummary + 检查领域限定。
+        /// </summary>
+        private async Task<string> BuildChapterCheckConstraintsAsync()
+        {
+            var projectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_projectReadModelService == null || projectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(
+                    projectId,
+                    "章节一致性检查",
+                    "检查结论必须基于章节正文与项目已有世界设定、大纲、角色档案，不得虚构不存在的内容。",
+                    "问题描述需指出矛盾依据，按严重性输出。");
+                return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+            }
+            catch
+            {
+                // 项目上下文读取失败时保留已有章节检查能力
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
         /// 执行一致性检查
         /// </summary>
         private async Task PerformConsistencyCheck()
@@ -183,8 +214,10 @@ namespace NovelManagement.WPF.Views
                 }
 
                 // 构建检查参数
+                var chapterConstraints = await BuildChapterCheckConstraintsAsync();
                 var parameters = new Dictionary<string, object>
                 {
+                    ["requirements"] = chapterConstraints,
                     ["chapterTitle"] = _chapterData.Title,
                     ["chapterContent"] = _workingChapterContent,
                     ["chapterSummary"] = _chapterData.Summary,
@@ -373,7 +406,6 @@ namespace NovelManagement.WPF.Views
                     Text = issue.RelatedContent,
                     IsReadOnly = true,
                     TextWrapping = TextWrapping.Wrap,
-                    Background = new SolidColorBrush(Color.FromRgb(245, 245, 245)),
                     Margin = new Thickness(0, 0, 0, 12)
                 };
                 IssueDetailPanel.Children.Add(contentBlock);
@@ -392,7 +424,7 @@ namespace NovelManagement.WPF.Views
             {
                 Text = issue.Suggestion,
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = new SolidColorBrush(Colors.DarkGreen),
+                Foreground = (Brush)FindResource("AppSuccessBrush"),
                 Margin = new Thickness(0, 0, 0, 12)
             };
             IssueDetailPanel.Children.Add(suggestionBlock);

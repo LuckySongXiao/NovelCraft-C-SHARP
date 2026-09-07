@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.AI.Services.RWKV;
 using NovelManagement.Application.Services;
 using NovelManagement.Application.Interfaces;
 using NovelManagement.Application.DTOs;
@@ -50,7 +52,12 @@ namespace NovelManagement.WPF.Services
                 // 检查现有数据
                 await CheckExistingDataAsync(projectId, result);
 
-                // 根据选项生成缺失的数据
+                // 根据选项生成缺失的数据（修炼体系最先生成，供角色修为等级联动）
+                if (options.GenerateCultivationSystem && result.NeedsCultivationSystem)
+                {
+                    await EnsureCultivationSystemAsync(projectId, result);
+                }
+
                 if (options.GeneratePlotOutlines && result.NeedsPlotOutlines)
                 {
                     await GeneratePlotOutlinesAsync(projectId, result);
@@ -111,9 +118,8 @@ namespace NovelManagement.WPF.Services
                 }
                 else
                 {
-                    // 如果AI服务不可用，回退到默认生成
                     _logger.LogWarning("AI服务不可用，使用默认生成方式");
-                    await GeneratePrerequisitesAsync(projectId);
+                    await GenerateDefaultDataAsync(projectId, result);
                 }
 
                 result.IsSuccess = true;
@@ -174,6 +180,15 @@ namespace NovelManagement.WPF.Services
                     result.ExistingFactionsCount = factions.Count();
                     result.NeedsFactions = result.ExistingFactionsCount < 3; // 至少需要3个势力
                 }
+
+                // 检查修炼体系（无体系时由 AI 自上而下设计自定义等级体系）
+                var cultivationSystemService = _serviceProvider.GetService<ICultivationSystemService>();
+                if (cultivationSystemService != null)
+                {
+                    var systems = await cultivationSystemService.GetAllAsync(projectId);
+                    result.ExistingCultivationSystemsCount = systems.Count();
+                    result.NeedsCultivationSystem = result.ExistingCultivationSystemsCount == 0;
+                }
             }
             catch (Exception ex)
             {
@@ -188,30 +203,108 @@ namespace NovelManagement.WPF.Services
         {
             try
             {
+                var projectContextService = _serviceProvider.GetService<ProjectReadModelService>();
+                var projectContext = projectContextService != null
+                    ? await projectContextService.BuildAiContextDataAsync(projectId)
+                    : new ProjectContextData { ProjectId = projectId };
+
                 // 构建AI生成请求
                 var prompt = $@"
-请为小说项目生成前置数据，要求：
+请为书籍项目生成前置数据，要求：
 {aiPrompt}
+
+{projectContext.PromptSummary}
 
 请生成以下内容：
 1. 3个剧情大纲（包含主线、情感线、支线等，避免善恶二元对立）
 2. 3个主要角色（性格和立场要多样化，避免脸谱化）
 3. 5个世界设定（体系要完整合理）
 4. 3个势力组织（立场和性质要多元化，不要简单的正邪对立）
+5. 1套修炼/力量等级体系（自上而下原创设计：先定体系名与核心理念，再划分等级）
+
+请严格按以下纯文本结构输出，不要输出 Markdown 代码块、解释或前言：
+【剧情大纲】
+1.
+标题：
+类型：
+描述：
+冲突：
+主题：
+
+2.
+标题：
+类型：
+描述：
+冲突：
+主题：
+
+【主要角色】
+1.
+姓名：
+类型：
+性格：
+背景：
+能力：
+修为：
+标签：
+
+【世界设定】
+1.
+名称：
+类型：
+描述：
+内容：
+规则：
+历史：
+关联：
+标签：
+
+【势力组织】
+1.
+名称：
+类型：
+描述：
+历史：
+资源：
+总部：
+领域：
+标签：
+
+【修炼体系】
+体系名称：
+体系类型：
+修炼方法：
+1.
+等级名：
+描述：
+突破条件：
+能力特点：
+
+2.
+等级名：
+描述：
+突破条件：
+能力特点：
+
+（按从低到高顺序列出全部等级，共8-12级）
 
 注意：
 - 势力组织不要简单分为正道邪道，要有复杂的利益关系和立场
 - 角色要有深度，避免单一的善恶标签
 - 世界观要自洽，有内在逻辑
+- 修炼/力量等级体系必须贴合本书题材与世界观原创设计（命名、进阶逻辑均可自定义），除非题材就是传统修仙，否则禁止照搬「练气/筑基/金丹/元婴」等常见模板；每个等级的突破条件与能力特点要递进自洽
+- 若项目已有世界设定或大纲，必须延续其约束，不能推翻现有基础
+- 必须遵守生成顺序：项目基本信息 -> 世界观 -> 大纲 -> 角色/势力/配套设定
 ";
 
                 // 调用AI服务生成内容
                 var parameters = new Dictionary<string, object>
                 {
                     ["prompt"] = prompt,
-                    ["projectId"] = projectId.ToString()
+                    ["projectId"] = projectId.ToString(),
+                    ["projectContext"] = projectContext.PromptSummary
                 };
-                var aiResponse = await _aiAssistantService.GeneratePlotAsync(parameters);
+                var aiResponse = await aiService.GeneratePlotAsync(parameters);
 
                 // 解析AI响应并创建数据
                 await ParseAndCreateAIGeneratedDataAsync(projectId, result, aiResponse.Data?.ToString() ?? "");
@@ -229,9 +322,638 @@ namespace NovelManagement.WPF.Services
         /// </summary>
         private async Task ParseAndCreateAIGeneratedDataAsync(Guid projectId, PrerequisiteGenerationResult result, string aiResponse)
         {
-            // 这里可以实现AI响应的解析逻辑
-            // 暂时使用默认生成作为示例
-            await GenerateDefaultDataAsync(projectId, result);
+            var normalized = AiAutoFillFormatter.Normalize(aiResponse);
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                await GenerateDefaultDataAsync(projectId, result);
+                return;
+            }
+
+            var plotService = _serviceProvider.GetService<PlotService>();
+            var characterService = _serviceProvider.GetService<CharacterService>();
+            var worldSettingService = _serviceProvider.GetService<IWorldSettingService>();
+            var factionService = _serviceProvider.GetService<FactionService>();
+            var cultivationSystemService = _serviceProvider.GetService<ICultivationSystemService>();
+
+            // 修炼体系最先生成（角色的修为等级将从体系中取值）
+            if (result.NeedsCultivationSystem && cultivationSystemService != null)
+            {
+                var cultivationSection = AiAutoFillFormatter.ExtractSection(normalized, "修炼体系", "力量体系", "等级体系");
+                if (!string.IsNullOrWhiteSpace(cultivationSection))
+                {
+                    await ParseCultivationSystemSectionAsync(projectId, cultivationSection, result, cultivationSystemService);
+                }
+            }
+
+            if (result.NeedsPlotOutlines && plotService != null)
+            {
+                var plotSection = AiAutoFillFormatter.ExtractSection(normalized, "剧情大纲", "大纲");
+                var plotBlocks = SplitStructuredItems(plotSection);
+                foreach (var block in plotBlocks.Take(3))
+                {
+                    var title = LimitLength(FirstNonEmpty(
+                        AiAutoFillFormatter.ExtractSingleLineValue(block, "标题", "名称"),
+                        AiAutoFillFormatter.ExtractFirstMeaningfulLine(block),
+                        $"AI剧情大纲{result.GeneratedPlotsCount + 1}"), 200);
+
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        continue;
+                    }
+
+                    var plot = new Plot
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = projectId,
+                        Title = title,
+                        Type = LimitLength(FirstNonEmpty(
+                            AiAutoFillFormatter.ExtractSingleLineValue(block, "类型"),
+                            "主线"), 50),
+                        Description = NullIfEmpty(AiAutoFillFormatter.ExtractSummary(block, "描述", "简介")),
+                        Outline = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "描述", "简介")),
+                        ConflictElements = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "冲突", "核心冲突")),
+                        ThemeElements = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "主题", "核心主题")),
+                        Status = "规划中",
+                        Priority = "中",
+                        Importance = 8,
+                        Tags = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "标签"), 500),
+                        Notes = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "备注"))
+                    };
+
+                    await plotService.CreatePlotAsync(plot);
+                    result.GeneratedPlotsCount++;
+                    result.GeneratedItems.Add($"剧情大纲: {plot.Title}");
+                }
+            }
+
+            if (result.NeedsMainCharacters && characterService != null)
+            {
+                var characterSection = AiAutoFillFormatter.ExtractSection(normalized, "主要角色", "角色");
+                var characterBlocks = SplitStructuredItems(characterSection);
+                var projectLevelNames = await GetProjectCultivationLevelNamesAsync(projectId);
+                var characterIndex = 0;
+                foreach (var block in characterBlocks.Take(3))
+                {
+                    var name = LimitLength(FirstNonEmpty(
+                        AiAutoFillFormatter.ExtractSingleLineValue(block, "姓名", "名称"),
+                        AiAutoFillFormatter.ExtractFirstMeaningfulLine(block),
+                        $"AI角色{result.GeneratedCharactersCount + 1}"), 100);
+
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var character = new Character
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = projectId,
+                        Name = name,
+                        Type = LimitLength(FirstNonEmpty(
+                            AiAutoFillFormatter.ExtractSingleLineValue(block, "类型", "定位", "角色类型"),
+                            "主要角色"), 50),
+                        Personality = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "性格", "性格特点")),
+                        Background = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "背景", "背景故事")),
+                        Abilities = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "能力", "能力技能", "技能")),
+                        // 修为等级优先取 AI 输出，未给出时按角色次序从项目自定义体系的低阶取值
+                        CultivationLevel = LimitLength(FirstNonEmpty(
+                            AiAutoFillFormatter.ExtractSingleLineValue(block, "修为", "境界", "修为等级"),
+                            projectLevelNames.Count > 0 ? projectLevelNames[Math.Min(characterIndex, projectLevelNames.Count - 1)] : null), 50),
+                        Notes = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "备注", "立场")),
+                        Tags = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "标签"), 500),
+                        Status = "Active",
+                        Importance = 8
+                    };
+
+                    await characterService.CreateCharacterAsync(character);
+                    characterIndex++;
+                    result.GeneratedCharactersCount++;
+                    result.GeneratedItems.Add($"主要角色: {character.Name}");
+                }
+            }
+
+            if (result.NeedsWorldSettings && worldSettingService != null)
+            {
+                var worldSection = AiAutoFillFormatter.ExtractSection(normalized, "世界设定", "世界观", "设定");
+                var worldBlocks = SplitStructuredItems(worldSection);
+                foreach (var block in worldBlocks.Take(5))
+                {
+                    var name = LimitLength(FirstNonEmpty(
+                        AiAutoFillFormatter.ExtractSingleLineValue(block, "名称", "标题"),
+                        AiAutoFillFormatter.ExtractFirstMeaningfulLine(block),
+                        $"AI世界设定{result.GeneratedWorldSettingsCount + 1}"), 200);
+
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var createDto = new CreateWorldSettingDto
+                    {
+                        Name = name,
+                        ProjectId = projectId,
+                        Type = LimitLength(FirstNonEmpty(
+                            AiAutoFillFormatter.ExtractSingleLineValue(block, "类型", "分类"),
+                            "世界观"), 50),
+                        Category = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "分类"), 50),
+                        Description = NullIfEmpty(AiAutoFillFormatter.ExtractSummary(block, "描述", "简介")),
+                        Content = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "内容", "详细内容")),
+                        Rules = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "规则")),
+                        History = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "历史")),
+                        RelatedSettings = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "关联", "相关设定")),
+                        Importance = 8,
+                        Tags = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "标签"), 500),
+                        Notes = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "备注")),
+                        Status = "Active",
+                        IsPublic = true
+                    };
+
+                    await worldSettingService.CreateAsync(createDto);
+                    result.GeneratedWorldSettingsCount++;
+                    result.GeneratedItems.Add($"世界设定: {createDto.Name}");
+                }
+            }
+
+            if (result.NeedsFactions && factionService != null)
+            {
+                var factionSection = AiAutoFillFormatter.ExtractSection(normalized, "势力组织", "势力");
+                var factionBlocks = SplitStructuredItems(factionSection);
+                foreach (var block in factionBlocks.Take(3))
+                {
+                    var name = LimitLength(FirstNonEmpty(
+                        AiAutoFillFormatter.ExtractSingleLineValue(block, "名称", "标题"),
+                        AiAutoFillFormatter.ExtractFirstMeaningfulLine(block),
+                        $"AI势力{result.GeneratedFactionsCount + 1}"), 100);
+
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var faction = new Faction
+                    {
+                        Id = Guid.NewGuid(),
+                        ProjectId = projectId,
+                        Name = name,
+                        Type = LimitLength(FirstNonEmpty(
+                            AiAutoFillFormatter.ExtractSingleLineValue(block, "类型"),
+                            "复合势力"), 50),
+                        Description = NullIfEmpty(AiAutoFillFormatter.ExtractSummary(block, "描述", "简介")),
+                        History = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "历史")),
+                        Resources = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "资源")),
+                        Headquarters = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "总部"), 200),
+                        Territory = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "领域", "控制区域")),
+                        Tags = LimitLength(AiAutoFillFormatter.ExtractSingleLineValue(block, "标签"), 500),
+                        Notes = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "备注")),
+                        Status = "Active",
+                        Importance = 8
+                    };
+
+                    await factionService.CreateFactionAsync(faction);
+                    result.GeneratedFactionsCount++;
+                    result.GeneratedItems.Add($"势力组织: {faction.Name}");
+                }
+            }
+
+            await GenerateFallbackDataForUnparsedSectionsAsync(projectId, result);
+        }
+
+        private async Task GenerateFallbackDataForUnparsedSectionsAsync(Guid projectId, PrerequisiteGenerationResult result)
+        {
+            if (result.NeedsPlotOutlines && result.GeneratedPlotsCount == 0)
+            {
+                await GeneratePlotOutlinesAsync(projectId, result);
+            }
+
+            if (result.NeedsMainCharacters && result.GeneratedCharactersCount == 0)
+            {
+                await GenerateMainCharactersAsync(projectId, result);
+            }
+
+            if (result.NeedsWorldSettings && result.GeneratedWorldSettingsCount == 0)
+            {
+                await GenerateWorldSettingsAsync(projectId, result);
+            }
+
+            if (result.NeedsFactions && result.GeneratedFactionsCount == 0)
+            {
+                await GenerateFactionsAsync(projectId, result);
+            }
+
+            if (result.NeedsCultivationSystem && result.GeneratedCultivationSystemsCount == 0)
+            {
+                await EnsureCultivationSystemAsync(projectId, result);
+            }
+        }
+
+        private static List<string> SplitStructuredItems(string? section)
+        {
+            var normalized = AiAutoFillFormatter.Normalize(section);
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return new List<string>();
+            }
+
+            var items = new List<string>();
+            List<string>? currentLines = null;
+            var lines = normalized.Replace("\r\n", "\n").Split('\n');
+
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                if (Regex.IsMatch(line, @"^\d+[\.\)、]?\s*$"))
+                {
+                    FlushCurrentItem(items, ref currentLines);
+                    currentLines = new List<string>();
+                    continue;
+                }
+
+                var numberedContentMatch = Regex.Match(line, @"^\d+[\.\)、]\s*(.+)$");
+                if (numberedContentMatch.Success)
+                {
+                    FlushCurrentItem(items, ref currentLines);
+                    currentLines = new List<string> { numberedContentMatch.Groups[1].Value.Trim() };
+                    continue;
+                }
+
+                currentLines ??= new List<string>();
+                currentLines.Add(line);
+            }
+
+            FlushCurrentItem(items, ref currentLines);
+
+            if (items.Count == 0)
+            {
+                items = normalized
+                    .Split(new[] { $"{Environment.NewLine}{Environment.NewLine}", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(block => block.Trim())
+                    .Where(block => !string.IsNullOrWhiteSpace(block))
+                    .ToList();
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// 在未 Normalize 的原始文本上按「N.」编号行拆分等级块
+        /// （SplitStructuredItems 内部会 Normalize 抹掉行首编号，不能用于编号切分场景）
+        /// </summary>
+        internal static List<string> SplitNumberedLevelBlocks(string? section)
+        {
+            var blocks = new List<string>();
+            if (string.IsNullOrWhiteSpace(section))
+            {
+                return blocks;
+            }
+
+            List<string>? current = null;
+            foreach (var rawLine in section.Replace("\r\n", "\n").Split('\n'))
+            {
+                var line = rawLine.Trim();
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                if (Regex.IsMatch(line, @"^\d+[\.\)、]?\s*$"))
+                {
+                    if (current is { Count: > 0 })
+                    {
+                        blocks.Add(string.Join(Environment.NewLine, current));
+                    }
+
+                    current = new List<string>();
+                    continue;
+                }
+
+                var numberedContent = Regex.Match(line, @"^\d+[\.\)、]\s*(.+)$");
+                if (numberedContent.Success)
+                {
+                    if (current is { Count: > 0 })
+                    {
+                        blocks.Add(string.Join(Environment.NewLine, current));
+                    }
+
+                    current = new List<string> { numberedContent.Groups[1].Value.Trim() };
+                    continue;
+                }
+
+                current ??= new List<string>();
+                current.Add(line);
+            }
+
+            if (current is { Count: > 0 })
+            {
+                blocks.Add(string.Join(Environment.NewLine, current));
+            }
+
+            return blocks;
+        }
+
+        private static void FlushCurrentItem(ICollection<string> items, ref List<string>? currentLines)
+        {
+            if (currentLines == null || currentLines.Count == 0)
+            {
+                currentLines = null;
+                return;
+            }
+
+            var block = string.Join(Environment.NewLine, currentLines).Trim();
+            if (!string.IsNullOrWhiteSpace(block))
+            {
+                items.Add(block);
+            }
+
+            currentLines = null;
+        }
+
+        private static string FirstNonEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? string.Empty;
+        }
+
+        private static string? NullIfEmpty(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private static string? LimitLength(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        }
+
+        /// <summary>
+        /// 生成修炼体系：优先 AI 自上而下设计自定义等级体系（命名/进阶逻辑可完全自定义），失败回退通用模板
+        /// </summary>
+        public async Task EnsureCultivationSystemAsync(Guid projectId, PrerequisiteGenerationResult result)
+        {
+            try
+            {
+                var cultivationSystemService = _serviceProvider.GetService<ICultivationSystemService>();
+                if (cultivationSystemService == null) return;
+
+                // 已有体系则不再生成（顺带回填存量角色的空修为）
+                var existing = await cultivationSystemService.GetAllAsync(projectId);
+                if (existing.Any())
+                {
+                    result.NeedsCultivationSystem = false;
+                    await BackfillEmptyCultivationLevelsAsync(projectId, result);
+                    return;
+                }
+
+                // 优先直连 RWKV 设计自定义体系（不走 Agent 剧情任务链：GeneratePlot 会忽略 prompt 参数且做剧情提取，破坏【修炼体系】结构）
+                var rwkv = _serviceProvider.GetService<IRwkvLightningService>();
+                if (rwkv != null && rwkv.IsAvailable)
+                {
+                    try
+                    {
+                        var systemPrompt = "你是资深网文世界观架构师，擅长自上而下原创设计力量/修炼等级体系，严格按要求的纯文本结构输出。";
+                        var userPrompt = @"请为书籍项目设计一套修炼/力量等级体系，要求自上而下原创设计：
+1. 先确定体系名称、类型与核心修炼方法（须贴合项目题材与世界观，命名可完全自定义）
+2. 再从低到高划分 8-12 个等级，每级给出描述、突破条件、能力特点，进阶逻辑要递进自洽
+3. 除传统修仙题材外，禁止照搬「练气/筑基/金丹/元婴」等常见模板
+
+请严格按以下纯文本结构输出，不要输出 Markdown 代码块、解释或前言：
+【修炼体系】
+体系名称：
+体系类型：
+修炼方法：
+1.
+等级名：
+描述：
+突破条件：
+能力特点：
+
+2.
+等级名：
+描述：
+突破条件：
+能力特点：
+
+（按从低到高顺序列出全部等级）";
+                        var rwkvPrompt = "User: " + systemPrompt + "\n" + userPrompt + "\n\nAssistant: <think></think\n";
+                        var response = await rwkv.CompleteAsync(rwkvPrompt, 2048);
+                        if (response.Success && !string.IsNullOrWhiteSpace(response.Text))
+                        {
+                            // 传原始输出解析：AiAutoFillFormatter.Normalize 会剥掉「N.」行首编号，
+                            // 必须在原始文本上按编号行切分，再对块内做字段提取
+                            if (await ParseCultivationSystemSectionAsync(projectId, response.Text, result, cultivationSystemService))
+                            {
+                                await BackfillEmptyCultivationLevelsAsync(projectId, result);
+                                return;
+                            }
+                            _logger.LogWarning("RWKV 输出解析修炼体系失败，回退默认模板");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("RWKV 生成修炼体系失败: {Error}，回退默认模板", response.Error);
+                        }
+                    }
+                    catch (Exception aiEx)
+                    {
+                        _logger.LogWarning(aiEx, "RWKV 生成修炼体系异常，回退默认模板");
+                    }
+                }
+
+                // AI 不可用或解析失败：回退通用九阶模板（中性命名，不预设修仙体系）
+                var genericLevels = new List<string> { "初窥门径", "登堂入室", "驾轻就熟", "融会贯通", "炉火纯青", "出神入化", "登峰造极", "返璞归真", "超凡入圣" };
+                var fallback = await CreateCultivationSystemAsync(
+                    projectId, "通用进阶体系", "通用",
+                    "以技艺与心境共同打磨的进阶之路，每一阶都是从量变到质变的跃迁。",
+                    "以自身领悟淬炼本源之力，境界提升伴随神魂与体魄的双重蜕变。",
+                    genericLevels.Select(n => (n, (string?)$"进阶至{n}的关键在于打牢前一级根基，完成一次本源蜕变。", (string?)null, (string?)null)),
+                    cultivationSystemService);
+                if (fallback != null)
+                {
+                    result.GeneratedCultivationSystemsCount++;
+                    result.GeneratedItems.Add($"修炼体系: {fallback.Name}（默认模板，可在修炼体系管理中调整）");
+                    await BackfillEmptyCultivationLevelsAsync(projectId, result);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "生成修炼体系失败");
+            }
+            finally
+            {
+                result.NeedsCultivationSystem = false;
+            }
+        }
+
+        /// <summary>
+        /// 修炼体系就绪后，回填项目内修为为空的存量角色（已有修为绝不覆盖）。
+        /// 回填失败不阻断体系生成主流程。
+        /// </summary>
+        private async Task BackfillEmptyCultivationLevelsAsync(Guid projectId, PrerequisiteGenerationResult result)
+        {
+            try
+            {
+                var backfillService = _serviceProvider.GetService<CultivationLevelBackfillService>();
+                if (backfillService == null) return;
+
+                var assignments = await backfillService.BackfillAsync(projectId);
+                foreach (var a in assignments)
+                {
+                    result.GeneratedItems.Add($"修为回填: {a.CharacterName} = {a.LevelName}（{a.Rule}）");
+                }
+                if (assignments.Count > 0)
+                {
+                    _logger.LogInformation("项目 {ProjectId} 回填 {Count} 名角色的空修为等级", projectId, assignments.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "修为等级回填失败");
+            }
+        }
+
+        /// <summary>
+        /// 解析 AI 输出的【修炼体系】板块并创建体系与等级
+        /// </summary>
+        /// <returns>是否成功创建</returns>
+        internal async Task<bool> ParseCultivationSystemSectionAsync(
+            Guid projectId, string section, PrerequisiteGenerationResult result, ICultivationSystemService service)
+        {
+            try
+            {
+                // 关键：在原始文本上按「N.」编号行切分（AiAutoFillFormatter.Normalize 会剥掉行首编号，
+                // 先 Normalize 再切分会丢失编号结构导致等级块无法拆分）
+                var firstNumbered = Regex.Match(section, @"(?m)^\s*\d+[\.\)、]?\s*$");
+                var header = firstNumbered.Success ? section[..firstNumbered.Index] : section;
+                var levelsPart = firstNumbered.Success ? section[firstNumbered.Index..] : section;
+
+                // ExtractSection 逐行匹配字段名，可跳过「【修炼体系】」标题行取到真实字段值；
+                // ExtractSingleLineValue 兜底必须校验字段前缀，否则缺失字段时会拿整段首行当值
+                var fallbackName = AiAutoFillFormatter.ExtractSingleLineValue(header, "体系名称", "名称");
+                var systemName = LimitLength(FirstNonEmpty(
+                    AiAutoFillFormatter.ExtractSection(header, "体系名称", "体系名", "名称"),
+                    AiAutoFillFormatter.HasFieldPrefix(fallbackName, "体系名称", "名称") ? fallbackName : null), 100);
+                var systemType = LimitLength(FirstNonEmpty(
+                    AiAutoFillFormatter.ExtractSection(header, "体系类型", "类型"), "通用"), 50);
+                var method = NullIfEmpty(AiAutoFillFormatter.ExtractSection(header, "修炼方法", "修炼方式", "核心理念"));
+
+                var levels = new List<(string Name, string? Description, string? Breakthrough, string? Abilities)>();
+                foreach (var block in SplitNumberedLevelBlocks(levelsPart))
+                {
+                    // ExtractSection 逐行匹配「等级名：」字段行，可跳过块内混入的「【修炼体系】」等标题行
+                    var levelName = LimitLength(FirstNonEmpty(
+                        AiAutoFillFormatter.ExtractSection(block, "等级名", "等级", "境界", "名称")), 100);
+                    if (string.IsNullOrWhiteSpace(levelName)) continue;
+                    levels.Add((
+                        levelName,
+                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "描述", "简介")),
+                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "突破条件", "突破")),
+                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "能力特点", "能力"))));
+                }
+
+                if (string.IsNullOrWhiteSpace(systemName) || levels.Count < 2)
+                {
+                    _logger.LogWarning("修炼体系解析失败：体系名称缺失或等级数量不足");
+                    return false;
+                }
+
+                var created = await CreateCultivationSystemAsync(projectId, systemName, systemType, null, method, levels, service);
+                if (created == null) return false;
+
+                result.GeneratedCultivationSystemsCount++;
+                result.GeneratedItems.Add($"修炼体系: {created.Name}（{levels.Count} 级）");
+                result.NeedsCultivationSystem = false;
+                _logger.LogInformation("为项目 {ProjectId} 创建修炼体系 {Name}，共 {Count} 级", projectId, created.Name, levels.Count);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "解析修炼体系失败");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 创建修炼体系及其等级
+        /// </summary>
+        private async Task<CultivationSystemDto?> CreateCultivationSystemAsync(
+            Guid projectId, string name, string type, string? description, string? method,
+            IEnumerable<(string Name, string? Description, string? Breakthrough, string? Abilities)> levels,
+            ICultivationSystemService service)
+        {
+            var levelList = levels.Where(l => !string.IsNullOrWhiteSpace(l.Name)).ToList();
+            var created = await service.CreateAsync(new CreateCultivationSystemDto
+            {
+                Name = LimitLength(name, 100),
+                Type = LimitLength(type, 50),
+                Description = NullIfEmpty(description),
+                CultivationMethod = NullIfEmpty(method),
+                RealmDivision = string.Join("→", levelList.Select(l => l.Name)),
+                ProjectId = projectId,
+                Importance = 9
+            });
+
+            var order = 1;
+            foreach (var (levelName, levelDesc, breakthrough, abilities) in levelList)
+            {
+                await service.CreateLevelAsync(new CreateCultivationLevelDto
+                {
+                    CultivationSystemId = created.Id,
+                    Name = LimitLength(levelName, 100),
+                    OrderIndex = order,
+                    Description = levelDesc,
+                    BreakthroughCondition = breakthrough,
+                    Abilities = abilities
+                });
+                order++;
+            }
+
+            return created;
+        }
+
+        /// <summary>
+        /// 获取项目第一个修炼体系的等级名列表（由低到高）
+        /// </summary>
+        public async Task<List<string>> GetProjectCultivationLevelNamesAsync(Guid projectId)
+        {
+            try
+            {
+                var service = _serviceProvider.GetService<ICultivationSystemService>();
+                if (service == null) return new List<string>();
+
+                var systems = await service.GetAllAsync(projectId);
+                var first = systems.FirstOrDefault();
+                if (first == null) return new List<string>();
+
+                var withLevels = await service.GetWithLevelsAsync(first.Id);
+                var levels = withLevels?.Levels ?? first.Levels;
+                return levels.OrderBy(l => l.OrderIndex).Select(l => l.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "获取项目修炼等级失败");
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// 构建修炼体系摘要文本（用于世界设定默认项；无体系时回退通用文本）
+        /// </summary>
+        private async Task<string> BuildCultivationSummaryAsync(Guid projectId)
+        {
+            var levelNames = await GetProjectCultivationLevelNamesAsync(projectId);
+            if (levelNames.Count > 0)
+            {
+                return $"修炼等级：{string.Join("→", levelNames)}。等级由低到高递进，每次突破均需满足对应条件并获得质的飞跃。";
+            }
+
+            return "修炼等级：练气→筑基→金丹→元婴→化神→炼虚→合体→大乘→渡劫→仙人。每个大境界分为初期、中期、后期、巅峰四个小境界。";
         }
 
         /// <summary>
@@ -240,6 +962,12 @@ namespace NovelManagement.WPF.Services
         private async Task GenerateDefaultDataAsync(Guid projectId, PrerequisiteGenerationResult result)
         {
             var options = new PrerequisiteGenerationOptions();
+
+            // 修炼体系最先生成，供角色修为等级联动
+            if (result.NeedsCultivationSystem)
+            {
+                await EnsureCultivationSystemAsync(projectId, result);
+            }
 
             if (result.NeedsPlotOutlines)
             {
@@ -344,7 +1072,6 @@ namespace NovelManagement.WPF.Services
                         Type = "主角",
                         Gender = "男",
                         Age = 18,
-                        CultivationLevel = "练气初期",
                         Appearance = "相貌英俊，身材修长，眼神坚毅",
                         Personality = "坚韧不拔，正义感强，重情重义",
                         Background = "出身平凡，因机缘巧合获得修仙传承",
@@ -359,7 +1086,6 @@ namespace NovelManagement.WPF.Services
                         Type = "女主角",
                         Gender = "女",
                         Age = 17,
-                        CultivationLevel = "筑基后期",
                         Appearance = "倾国倾城，气质出尘，如仙子下凡",
                         Personality = "聪慧善良，外柔内刚，冰雪聪明",
                         Background = "名门世家出身，天赋卓绝的修仙天才",
@@ -374,7 +1100,6 @@ namespace NovelManagement.WPF.Services
                         Type = "师父",
                         Gender = "男",
                         Age = 800,
-                        CultivationLevel = "大乘期",
                         Appearance = "仙风道骨，白发飘逸，深不可测",
                         Personality = "睿智深沉，慈祥严厉，洞察世事",
                         Background = "隐世高人，曾经的修仙界传奇人物",
@@ -382,6 +1107,15 @@ namespace NovelManagement.WPF.Services
                         UpdatedAt = DateTime.UtcNow
                     }
                 };
+
+                // 修为等级从项目自定义修炼体系中按角色定位取值（主角低阶、师父高阶）
+                var levelNames = await GetProjectCultivationLevelNamesAsync(projectId);
+                if (levelNames.Count > 0)
+                {
+                    defaultCharacters[0].CultivationLevel = levelNames[0];
+                    defaultCharacters[1].CultivationLevel = levelNames[Math.Min(1, levelNames.Count - 1)];
+                    defaultCharacters[2].CultivationLevel = levelNames[Math.Min(levelNames.Count - 2, levelNames.Count - 1)];
+                }
 
                 foreach (var character in defaultCharacters)
                 {
@@ -416,7 +1150,7 @@ namespace NovelManagement.WPF.Services
                         ProjectId = projectId,
                         Name = "修炼体系",
                         Type = "体系设定",
-                        Content = "修炼等级：练气→筑基→金丹→元婴→化神→炼虚→合体→大乘→渡劫→仙人。每个大境界分为初期、中期、后期、巅峰四个小境界。",
+                        Content = await BuildCultivationSummaryAsync(projectId),
                         Importance = 10,
                         Order = 1,
                         CreatedAt = DateTime.UtcNow,

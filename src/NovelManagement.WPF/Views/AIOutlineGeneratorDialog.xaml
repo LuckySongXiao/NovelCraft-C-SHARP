@@ -25,7 +25,7 @@
                          FontSize="24" 
                          FontWeight="Bold" 
                          Margin="0,0,0,8"/>
-                <TextBlock Text="通过AI智能生成小说大纲，让创作更轻松" 
+                <TextBlock Text="通过AI智能生成书籍大纲，让创作更轻松" 
                          FontSize="14" 
                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
             </StackPanel>
@@ -48,25 +48,25 @@
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
 
-                        <!-- 小说主题 -->
+                        <!-- 书籍主题 -->
                         <TextBox x:Name="ThemeTextBox"
-                               materialDesign:HintAssist.Hint="小说主题（如：修仙、都市、玄幻等）"
+                               materialDesign:HintAssist.Hint="书籍主题（如：修仙、都市、玄幻等）"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,16"/>
 
-                        <!-- 小说类型 -->
+                        <!-- 书籍类型 -->
                         <ComboBox x:Name="NovelTypeComboBox"
-                                materialDesign:HintAssist.Hint="小说类型"
+                                materialDesign:HintAssist.Hint="书籍类型"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,16">
-                            <ComboBoxItem Content="修仙小说"/>
-                            <ComboBoxItem Content="都市小说"/>
-                            <ComboBoxItem Content="玄幻小说"/>
-                            <ComboBoxItem Content="科幻小说"/>
-                            <ComboBoxItem Content="历史小说"/>
-                            <ComboBoxItem Content="武侠小说"/>
-                            <ComboBoxItem Content="言情小说"/>
-                            <ComboBoxItem Content="悬疑小说"/>
+                            <ComboBoxItem Content="修仙书籍"/>
+                            <ComboBoxItem Content="都市书籍"/>
+                            <ComboBoxItem Content="玄幻书籍"/>
+                            <ComboBoxItem Content="科幻书籍"/>
+                            <ComboBoxItem Content="历史书籍"/>
+                            <ComboBoxItem Content="武侠书籍"/>
+                            <ComboBoxItem Content="言情书籍"/>
+                            <ComboBoxItem Content="悬疑书籍"/>
                         </ComboBox>
 
                         <!-- 目标长度 -->

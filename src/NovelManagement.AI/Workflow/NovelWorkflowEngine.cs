@@ -9,7 +9,7 @@ using NovelManagement.AI.Interfaces;
 namespace NovelManagement.AI.Workflow
 {
     /// <summary>
-    /// 小说工作流引擎
+    /// 书籍工作流引擎
     /// </summary>
     public class NovelWorkflowEngine : IWorkflowEngine
     {

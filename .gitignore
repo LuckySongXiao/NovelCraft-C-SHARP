@@ -437,3 +437,44 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+
+# ===== 项目特定忽略（NovelManagement C-SHARP）=====
+
+# Trae 工具目录：UIA 测试脚本、自动化截图、临时文档（可能含本机路径/界面快照等敏感信息）
+.trae/
+
+# AI 模型文件（体积巨大，不进版本库）
+rwkv_models/
+*.gguf
+*.bin
+onnx/
+
+# 本地运行时状态/缓存文件（exe 旁生成，含本机使用痕迹）
+sidebar_state.json
+theme_settings.json
+*.state.json
+
+# 数据库备份与导出产物
+*_backup_*.db
+*.db.bak
+export_test.*
+exports/
+exports_test/
+
+# Python 推理服务运行产物（RWKV 本地服务）
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# 敏感配置：任何含密钥/隧道地址的本地配置一律不入库
+appsettings.*.local.json
+appsettings.user.json
+secrets.json
+*.secret.json
+.tunnel-url
+
+# 临时验证产物
+bin/verify/
+bin/testverify/
+TestResults/

@@ -846,6 +846,7 @@ namespace NovelManagement.WPF.Views
     {
         private readonly Guid _projectId;
         private readonly IAIAssistantService? _aiAssistantService;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private readonly CultivationSystemViewModel? _originalModel;
         private readonly TextBox _nameTextBox = new();
         private readonly ComboBox _categoryComboBox = new();
@@ -867,6 +868,7 @@ namespace NovelManagement.WPF.Views
         {
             _projectId = projectId;
             _aiAssistantService = aiAssistantService;
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             _originalModel = model;
 
             Title = model == null ? "新建修炼体系" : $"编辑修炼体系 - {model.Name}";
@@ -1074,7 +1076,7 @@ namespace NovelManagement.WPF.Views
 
                 DialogResult = true;
             };
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = "返回", Width = 84, IsCancel = true };
             buttons.Children.Add(aiButton);
             buttons.Children.Add(resetButton);
             buttons.Children.Add(okButton);
@@ -1096,26 +1098,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var prompt = await BuildAiPromptAsync();
             var result = await _aiAssistantService.GeneratePlotAsync(new Dictionary<string, object>
             {
                 ["plotType"] = "修炼体系设定",
-                ["theme"] = _nameTextBox.Text,
-                ["requirements"] = $@"请补全一个修炼体系设定。
-名称：{_nameTextBox.Text}
-类别：{_categoryComboBox.SelectedItem}
-来源：{_originTextBox.Text}
-描述：{_descriptionTextBox.Text}
-请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号：
-名称：
-体系描述：
-修炼方法：
-境界划分：
-突破条件：
-修炼资源：
-体系特点：
-修炼风险：
-标签：
-备注："
+                ["theme"] = string.IsNullOrWhiteSpace(_nameTextBox.Text)
+                    ? (_categoryComboBox.SelectedItem?.ToString() ?? "修炼体系")
+                    : _nameTextBox.Text.Trim(),
+                ["requirements"] = prompt
             });
 
             if (!result.IsSuccess || result.Data == null)
@@ -1146,6 +1136,65 @@ namespace NovelManagement.WPF.Views
             }
 
             MessageBox.Show("已完成修炼体系自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private async Task<string> BuildAiPromptAsync()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("请补全一个修炼体系设定。");
+            builder.AppendLine("请优先补全缺失信息，并与现有内容保持一致。");
+            builder.AppendLine("内容必须属于世界设定层的修炼体系，不要输出剧情大纲、正文片段、人物小传或无关模块。");
+            builder.AppendLine("请仅按以下字段输出，不要思考过程、解释、Markdown、序号或特殊符号。");
+            builder.AppendLine();
+
+            if (_projectReadModelService != null && _projectId != Guid.Empty)
+            {
+                try
+                {
+                    var projectContext = await _projectReadModelService.BuildAiContextDataAsync(_projectId);
+                    if (!string.IsNullOrWhiteSpace(projectContext.PromptSummary))
+                    {
+                        builder.AppendLine(projectContext.PromptSummary);
+                        builder.AppendLine();
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            builder.AppendLine("当前信息：");
+            builder.AppendLine($"名称：{_nameTextBox.Text}");
+            builder.AppendLine($"类别：{_categoryComboBox.SelectedItem}");
+            builder.AppendLine($"品级：{_gradeComboBox.SelectedItem}");
+            builder.AppendLine($"来源：{_originTextBox.Text}");
+            builder.AppendLine($"描述：{_descriptionTextBox.Text}");
+            builder.AppendLine($"修炼方法：{_cultivationMethodTextBox.Text}");
+            builder.AppendLine($"境界划分：{_realmDivisionTextBox.Text}");
+            builder.AppendLine($"突破条件：{_breakthroughConditionsTextBox.Text}");
+            builder.AppendLine($"修炼资源：{_cultivationResourcesTextBox.Text}");
+            builder.AppendLine($"体系特点：{_characteristicsTextBox.Text}");
+            builder.AppendLine($"修炼风险：{_risksTextBox.Text}");
+            builder.AppendLine($"标签：{_tagsTextBox.Text}");
+            builder.AppendLine($"备注：{_notesTextBox.Text}");
+            builder.AppendLine();
+            builder.AppendLine("生成要求：");
+            builder.AppendLine("1. 必须优先遵循项目基础信息、已有世界设定和大纲约束。");
+            builder.AppendLine("2. 只能补全修炼体系相关字段，不得生成无关世界设定分支。");
+            builder.AppendLine("3. 若与现有输入冲突，优先保持现有输入语义一致。");
+            builder.AppendLine();
+            builder.AppendLine("请按以下字段输出：");
+            builder.AppendLine("名称：");
+            builder.AppendLine("体系描述：");
+            builder.AppendLine("修炼方法：");
+            builder.AppendLine("境界划分：");
+            builder.AppendLine("突破条件：");
+            builder.AppendLine("修炼资源：");
+            builder.AppendLine("体系特点：");
+            builder.AppendLine("修炼风险：");
+            builder.AppendLine("标签：");
+            builder.AppendLine("备注：");
+            return builder.ToString().Trim();
         }
 
         private void ResetForm()

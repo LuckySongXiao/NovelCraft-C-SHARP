@@ -70,6 +70,7 @@ namespace NovelManagement.WPF.Views
         private readonly TechniqueDataService? _techniqueDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         #endregion
@@ -86,6 +87,7 @@ namespace NovelManagement.WPF.Views
             _techniqueDataService = App.ServiceProvider?.GetService<TechniqueDataService>();
             _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
             _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             InitializeData();
             InitializeCommands();
             _ = LoadTechniqueSystemsAsync();
@@ -424,6 +426,17 @@ namespace NovelManagement.WPF.Views
             return context.ToString();
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "功法体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateTechniqueWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -432,13 +445,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedTechnique != null ? $"优化功法体系：{SelectedTechnique.Name}" : "生成功法体系",
-                ["theme"] = "请生成一个适合小说项目使用的功法体系，并输出名称、类别、品级、起源、描述、等级列表和招式列表。",
-                ["requirements"] = optimizeCurrent && SelectedTechnique != null
+                ["theme"] = "请生成一个适合书籍项目使用的功法体系，并输出名称、类别、品级、起源、描述、等级列表和招式列表。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedTechnique != null
                     ? $"请基于当前功法体系进行优化并输出结构化文本：名称、类别、品级、起源、描述、等级列表、招式列表。当前功法：{SelectedTechnique.Name}，类别：{SelectedTechnique.Category}，品级：{SelectedTechnique.Grade}，描述：{SelectedTechnique.Description}"
-                    : "请输出一个完整功法体系，包含名称、类别、品级、起源、描述、至少3个等级、至少2个招式。",
+                    : "请输出一个完整功法体系，包含名称、类别、品级、起源、描述、至少3个等级、至少2个招式。"),
                 ["context"] = GetCurrentContext()
             };
 

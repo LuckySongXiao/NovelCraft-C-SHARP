@@ -45,6 +45,7 @@ namespace NovelManagement.WPF.Views
         private readonly ProfessionDataService? _professionDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -81,6 +82,7 @@ namespace NovelManagement.WPF.Views
             _professionDataService = App.ServiceProvider?.GetService<ProfessionDataService>();
             _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
             _currentProjectGuard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
+            _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             InitializeData();
             InitializeCommands();
             _ = LoadProfessionSystemsAsync();
@@ -616,6 +618,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "职业体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateProfessionWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -624,13 +637,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedProfession != null ? $"优化职业体系：{SelectedProfession.Name}" : "生成职业体系",
-                ["theme"] = "请生成一个适合小说项目使用的职业体系，并输出名称、类别、描述、等级列表和核心技能方向。",
-                ["requirements"] = optimizeCurrent && SelectedProfession != null
+                ["theme"] = "请生成一个适合书籍项目使用的职业体系，并输出名称、类别、描述、等级列表和核心技能方向。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedProfession != null
                     ? $"请基于当前职业体系进行优化并输出结构化文本。当前职业：{SelectedProfession.Name}，类别：{SelectedProfession.Category}，描述：{SelectedProfession.Description}"
-                    : "请输出一个完整职业体系，至少包含名称、类别、描述、至少3个等级。",
+                    : "请输出一个完整职业体系，至少包含名称、类别、描述、至少3个等级。"),
                 ["context"] = GetCurrentContext()
             };
 

@@ -20,17 +20,19 @@ namespace NovelManagement.WPF.Views
     /// <summary>
     /// CharacterManagementView.xaml 的交互逻辑
     /// </summary>
-    public partial class CharacterManagementView : UserControl, INavigationRefreshableView
+    public partial class CharacterManagementView : UserControl, INavigationRefreshableView, INavigationAwareView
     {
         private List<Character> _allCharacters = new();
         private List<Character> _filteredCharacters = new();
         private Character? _selectedCharacter;
+        private Guid? _pendingHighlightCharacterId;
 
         // 服务
         private CharacterService? _characterService;
         private AIAssistantService? _aiAssistantService;
         private ProjectContextService? _projectContextService;
         private CurrentProjectGuard? _currentProjectGuard;
+        private ProjectReadModelService? _projectReadModelService;
         private ChapterContentSyncNotificationService? _chapterContentSyncNotificationService;
         private ILogger<CharacterManagementView>? _logger;
         private bool _isChapterSyncSubscribed;
@@ -190,6 +192,7 @@ namespace NovelManagement.WPF.Views
                     _aiAssistantService = serviceProvider.GetService<AIAssistantService>();
                     _projectContextService = serviceProvider.GetService<ProjectContextService>();
                     _currentProjectGuard = serviceProvider.GetService<CurrentProjectGuard>();
+                    _projectReadModelService = serviceProvider.GetService<ProjectReadModelService>();
                     _chapterContentSyncNotificationService = serviceProvider.GetService<ChapterContentSyncNotificationService>();
                     _logger = serviceProvider.GetService<ILogger<CharacterManagementView>>();
                 }
@@ -254,6 +257,7 @@ namespace NovelManagement.WPF.Views
                 UpdateCharacterList();
                 UpdateOverviewStatistics();
                 TryHighlightCharacterFromSync();
+                TryHighlightCharacterFromNavigation();
 
                 _logger?.LogInformation($"成功加载 {_allCharacters.Count} 个角色");
             }
@@ -330,6 +334,51 @@ namespace NovelManagement.WPF.Views
             if (matchedCharacter != null)
             {
                 SelectCharacter(matchedCharacter);
+            }
+        }
+
+        /// <summary>
+        /// 在导航到当前视图时接收上下文，记录待定位的角色。
+        /// </summary>
+        public void OnNavigatedTo(NavigationContext context)
+        {
+            if (context.Payload is EntityHighlightNavigationPayload payload && payload.TargetId.HasValue)
+            {
+                _pendingHighlightCharacterId = payload.TargetId;
+                _logger?.LogInformation("收到角色定位导航参数: {CharacterId}", payload.TargetId);
+                // 数据可能已（同步）加载完成，立即尝试定位；否则由加载完成回调兜底
+                TryHighlightCharacterFromNavigation();
+            }
+        }
+
+        /// <summary>
+        /// 数据加载完成后按导航参数选中并定位目标角色。
+        /// </summary>
+        private void TryHighlightCharacterFromNavigation()
+        {
+            if (_pendingHighlightCharacterId == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var targetId = _pendingHighlightCharacterId.Value;
+                _pendingHighlightCharacterId = null;
+
+                var matchedCharacter = _allCharacters.FirstOrDefault(character => character.Id == targetId);
+                if (matchedCharacter == null)
+                {
+                    _logger?.LogWarning("导航定位角色失败，未找到 CharacterId: {CharacterId}", targetId);
+                    return;
+                }
+
+                SelectCharacter(matchedCharacter);
+                _logger?.LogInformation("已按导航参数定位角色: {Name} (CharacterId: {CharacterId})", matchedCharacter.Name, targetId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "导航定位角色时发生异常");
             }
         }
 
@@ -904,6 +953,21 @@ namespace NovelManagement.WPF.Views
 
         #region AI辅助功能
 
+        private async Task<string> BuildCharacterConstraintsAsync()
+        {
+            var projectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
+            if (_projectReadModelService == null || projectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(
+                projectId,
+                "角色",
+                "只能生成角色相关内容，不得输出世界设定条目、剧情大纲或正文片段。");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         /// <summary>
         /// AI生成角色按钮点击事件
         /// </summary>
@@ -917,8 +981,10 @@ namespace NovelManagement.WPF.Views
                 var dialog = new CharacterGenerationDialog();
                 if (dialog.ShowDialog() == true)
                 {
+                    var characterConstraints = await BuildCharacterConstraintsAsync();
                     var parameters = new Dictionary<string, object>
                     {
+                        ["requirements"] = characterConstraints,
                         ["characterType"] = dialog.CharacterType,
                         ["faction"] = dialog.Faction,
                         ["cultivationLevel"] = dialog.CultivationLevel,
@@ -1009,10 +1075,12 @@ namespace NovelManagement.WPF.Views
 
                     if (_aiAssistantService != null)
                     {
+                        var characterConstraints = await BuildCharacterConstraintsAsync();
                         var parameters = new Dictionary<string, object>
                         {
                             ["characterData"] = _selectedCharacter,
-                            ["optimizationGoals"] = optimizationGoals
+                            ["optimizationGoals"] = optimizationGoals,
+                            ["requirements"] = characterConstraints
                         };
                         var result = await _aiAssistantService.OptimizeCharacterAsync(parameters);
 

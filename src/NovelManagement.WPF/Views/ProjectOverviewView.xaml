@@ -13,6 +13,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -136,10 +137,189 @@
                 </materialDesign:Card>
             </Grid>
 
-            <!-- 快速操作 -->
+            <!-- 运行流程与闭环 -->
             <materialDesign:Card Grid.Row="2" Padding="24" Margin="0,0,0,24">
                 <StackPanel>
-                    <TextBlock Text="快速操作" 
+                    <TextBlock Text="运行流程与闭环"
+                             FontSize="20"
+                             FontWeight="Medium"
+                             Margin="0,0,0,8"/>
+                    <TextBlock Text="推荐顺序：项目基础信息 → 世界观 → 大纲 → 配套设定 → 卷章写作。进入配套设定后，角色、势力和细分体系可以同步补齐；写作后再回到剧情/设定做一致性校正，形成闭环。"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             Margin="0,0,0,16"/>
+
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Width="180">
+                                <StackPanel>
+                                    <TextBlock Text="1. 项目基础信息" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="ProjectBaseStageTextBlock"
+                                             Margin="0,8,0,12"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Text="检查中..."/>
+                                    <Button Content="项目设置"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            HorizontalAlignment="Left"
+                                            Click="ProjectSettings_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="→" FontSize="24" VerticalAlignment="Center" Margin="12,0"/>
+
+                            <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Width="180">
+                                <StackPanel>
+                                    <TextBlock Text="2. 世界观" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="WorldStageTextBlock"
+                                             Margin="0,8,0,12"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Text="检查中..."/>
+                                    <Button Content="世界设定"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            HorizontalAlignment="Left"
+                                            Click="WorldSettings_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="→" FontSize="24" VerticalAlignment="Center" Margin="12,0"/>
+
+                            <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Width="180">
+                                <StackPanel>
+                                    <TextBlock Text="3. 大纲" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="OutlineStageTextBlock"
+                                             Margin="0,8,0,12"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Text="检查中..."/>
+                                    <Button Content="剧情管理"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            HorizontalAlignment="Left"
+                                            Click="PlotOutline_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="→" FontSize="24" VerticalAlignment="Center" Margin="12,0"/>
+
+                            <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Width="180">
+                                <StackPanel>
+                                    <TextBlock Text="4. 配套设定" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="SupportStageTextBlock"
+                                             Margin="0,8,0,12"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Text="检查中..."/>
+                                    <Button Content="角色与势力"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            HorizontalAlignment="Left"
+                                            Click="ManageSupportSettings_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="→" FontSize="24" VerticalAlignment="Center" Margin="12,0"/>
+
+                            <Border Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    Width="180">
+                                <StackPanel>
+                                    <TextBlock Text="5. 卷章写作" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="WritingStageTextBlock"
+                                             Margin="0,8,0,12"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                             Text="检查中..."/>
+                                    <Button Content="卷章管理"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            HorizontalAlignment="Left"
+                                            Click="WriteChapter_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <TextBlock x:Name="ParallelStageHintTextBlock"
+                             Margin="0,16,0,6"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             Text="并行提示：配套设定阶段可同步补齐角色、势力及细分体系，但都应遵循当前项目基础信息、世界观和大纲。"/>
+                    <TextBlock x:Name="ClosedLoopHintTextBlock"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             Text="闭环提示：写作推进后，应回到剧情、人物、势力、世界设定和一致性检查入口做校正，再进入下一轮写作。"/>
+                    <TextBlock x:Name="AutoUpdateFlowTextBlock"
+                             Margin="0,10,0,0"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             Text="更新工艺：章节保存后，应自动同步剧情、设定、履历、关系与时间线。"/>
+                    <TextBlock x:Name="WorkflowReviewHintTextBlock"
+                             Margin="0,6,0,0"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                             Text="复核工艺：自动更新完成后，建议检查时间线管理、关系网络、角色履历、势力履历与一致性结果。"/>
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="TimelineReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Timeline" Margin="0,0,8,0"/>
+                                <TextBlock Text="时间线复核"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="RelationshipReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="GraphOutline" Margin="0,0,8,0"/>
+                                <TextBlock Text="关系网络复核"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ConsistencyReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CheckDecagram" Margin="0,0,8,0"/>
+                                <TextBlock Text="一致性检查"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="QualityReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ClipboardCheckOutline" Margin="0,0,8,0"/>
+                                <TextBlock Text="质量检查"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                    <TextBlock x:Name="NextActionTextBlock"
+                             Margin="0,12,0,0"
+                             FontWeight="SemiBold"
+                             TextWrapping="Wrap"
+                             Text="下一步建议：检查中..."/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 快速操作 -->
+            <materialDesign:Card Grid.Row="3" Padding="24" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="按流程快速操作"
                              FontSize="20" 
                              FontWeight="Medium" 
                              Margin="0,0,0,16"/>
@@ -147,40 +327,22 @@
                     <WrapPanel>
                         <Button Style="{StaticResource MaterialDesignRaisedButton}"
                                 Margin="0,0,12,8"
-                                Click="WriteChapter_Click">
+                                Click="OpenProcessWorkbench_Click">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Pencil" Margin="0,0,8,0"/>
-                                <TextBlock Text="写作新章节"/>
+                                <materialDesign:PackIcon Kind="SourceBranch" Margin="0,0,8,0"/>
+                                <TextBlock Text="流程工作台"/>
                             </StackPanel>
                         </Button>
-                        
+
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Margin="0,0,12,8"
-                                Click="ManageCharacters_Click">
+                                Click="ProjectSettings_Click">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Account" Margin="0,0,8,0"/>
-                                <TextBlock Text="管理角色"/>
+                                <materialDesign:PackIcon Kind="TextBoxOutline" Margin="0,0,8,0"/>
+                                <TextBlock Text="项目设置"/>
                             </StackPanel>
                         </Button>
-                        
-                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                                Margin="0,0,12,8"
-                                Click="PlotOutline_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileTree" Margin="0,0,8,0"/>
-                                <TextBlock Text="剧情大纲"/>
-                            </StackPanel>
-                        </Button>
-                        
-                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                                Margin="0,0,12,8"
-                                Click="AIAssistant_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Robot" Margin="0,0,8,0"/>
-                                <TextBlock Text="AI助手"/>
-                            </StackPanel>
-                        </Button>
-                        
+
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Margin="0,0,12,8"
                                 Click="WorldSettings_Click">
@@ -192,19 +354,91 @@
 
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Margin="0,0,12,8"
-                                Click="ImportExport_Click">
+                                Click="PlotOutline_Click">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
-                                <TextBlock Text="导入导出"/>
+                                <materialDesign:PackIcon Kind="FileTree" Margin="0,0,8,0"/>
+                                <TextBlock Text="剧情大纲"/>
                             </StackPanel>
                         </Button>
 
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Margin="0,0,12,8"
-                                Click="ProjectSettings_Click">
+                                Click="ManageCharacters_Click">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Settings" Margin="0,0,8,0"/>
-                                <TextBlock Text="项目设置"/>
+                                <materialDesign:PackIcon Kind="Account" Margin="0,0,8,0"/>
+                                <TextBlock Text="管理角色"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ManageFactions_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ShieldAccount" Margin="0,0,8,0"/>
+                                <TextBlock Text="管理势力"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="TimelineReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Timeline" Margin="0,0,8,0"/>
+                                <TextBlock Text="时间线管理"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="RelationshipReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="GraphOutline" Margin="0,0,8,0"/>
+                                <TextBlock Text="关系网络"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ConsistencyReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CheckDecagram" Margin="0,0,8,0"/>
+                                <TextBlock Text="一致性检查"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="QualityReview_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ClipboardCheckOutline" Margin="0,0,8,0"/>
+                                <TextBlock Text="质量检查"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="WriteChapter_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Pencil" Margin="0,0,8,0"/>
+                                <TextBlock Text="写作新章节"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="AIAssistant_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Robot" Margin="0,0,8,0"/>
+                                <TextBlock Text="AI助手"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,8"
+                                Click="ImportExport_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
+                                <TextBlock Text="导入导出"/>
                             </StackPanel>
                         </Button>
 
@@ -230,7 +464,7 @@
             </materialDesign:Card>
 
             <!-- 详细内容区域 -->
-            <Grid Grid.Row="3">
+            <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="16"/>

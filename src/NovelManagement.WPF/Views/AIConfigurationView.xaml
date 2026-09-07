@@ -247,7 +247,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="基于 rwkv_lightning_libtorch 的本地续写推理服务，单次续写≤200字"
+                        <TextBlock Text="本地 RWKV 推理服务，默认优先集成纯 CUDA 版，适配 RWKV7-G1i 并为 RWKV8 RPU 预留，扫描支持 .pth / .safetensors / .st"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68" Margin="0,0,0,8"/>
 
@@ -291,7 +291,7 @@
                             <TextBox x:Name="RwkvModelNameTextBox"
                                      Grid.Row="0" Grid.Column="1"
                                      materialDesign:HintAssist.Hint="模型名称"
-                                     Text="rwkv7"
+                                     Text="rwkv7-g1i"
                                      Margin="8,0,0,8"/>
 
                             <Grid Grid.Row="1" Grid.Column="0" Margin="0,0,8,8">
@@ -402,7 +402,7 @@
 
                                 <TextBox x:Name="RwkvServerScriptPathTextBox"
                                          Grid.Row="1" Grid.Column="1"
-                                         materialDesign:HintAssist.Hint="rwkv_lightning_libtorch脚本路径"
+                                         materialDesign:HintAssist.Hint="RWKV 本地推理可执行文件路径"
                                          Margin="8,0,0,8"/>
 
                                 <TextBox x:Name="RwkvContextSizeTextBox"

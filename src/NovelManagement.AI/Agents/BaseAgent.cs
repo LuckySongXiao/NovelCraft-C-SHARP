@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services.DeepSeek;
+using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using NovelManagement.AI.Services;
@@ -21,6 +22,17 @@ namespace NovelManagement.AI.Agents
         protected readonly IDeepSeekApiService _deepSeekApiService;
         protected readonly IThinkingChainProcessor _thinkingChainProcessor;
         protected readonly ModelManager _modelManager;
+
+        /// <summary>
+        /// 本地 RWKV 推理服务（可选）：Agent 化功能的真实推理链路入口，
+        /// 优先级高于 Ollama/DeepSeek 远程服务；不可用时各任务回退原有执行方式。
+        /// </summary>
+        protected readonly IRwkvLightningService? RwkvService;
+
+        /// <summary>防递归降级标记：ExecuteTaskWithAIAsync 失败回退 ExecuteTaskAsync 时，
+        /// 若任务内部再次进入 AI 辅助执行则直接失败返回，避免无限递归栈溢出。</summary>
+        private bool _isFallbackExecution;
+
         private AgentStatus _status = AgentStatus.Offline;
         private string _currentTask = string.Empty;
         private int _progress = 0;
@@ -35,18 +47,21 @@ namespace NovelManagement.AI.Agents
         /// <param name="deepSeekApiService">DeepSeek API服务（可选）</param>
         /// <param name="thinkingChainProcessor">思维链处理器（可选）</param>
         /// <param name="modelManager">模型管理器（可选）</param>
+        /// <param name="rwkvService">本地 RWKV 推理服务（可选）</param>
         protected BaseAgent(
             ILogger logger,
             IMemoryManager memoryManager,
             IDeepSeekApiService deepSeekApiService,
             IThinkingChainProcessor thinkingChainProcessor,
-            ModelManager modelManager)
+            ModelManager modelManager,
+            IRwkvLightningService? rwkvService = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _memoryManager = memoryManager;
             _deepSeekApiService = deepSeekApiService;
             _thinkingChainProcessor = thinkingChainProcessor;
             _modelManager = modelManager;
+            RwkvService = rwkvService;
             Id = Guid.NewGuid().ToString();
         }
 
@@ -578,6 +593,13 @@ namespace NovelManagement.AI.Agents
         /// <returns>任务结果</returns>
         protected virtual async Task<AgentTaskResult> ExecuteTaskWithThinkingAsync(string taskType, Dictionary<string, object> parameters, ThinkingChainModel? thinkingChain)
         {
+            // 本地 RWKV 真实推理优先（服务未启动时返回 null 走原有链路）
+            var rwkvResult = await TryExecuteWithRwkvAsync(taskType, parameters, thinkingChain);
+            if (rwkvResult != null)
+            {
+                return rwkvResult;
+            }
+
             // 优先使用ModelManager，如果不可用则使用DeepSeek API
             if (_modelManager != null && thinkingChain != null)
             {
@@ -605,6 +627,13 @@ namespace NovelManagement.AI.Agents
         {
             try
             {
+                // 本地 RWKV 真实推理优先（服务未启动时返回 null 走原有链路）
+                var rwkvResult = await TryExecuteWithRwkvAsync(taskType, parameters, thinkingChain);
+                if (rwkvResult != null)
+                {
+                    return rwkvResult;
+                }
+
                 // 构建系统提示
                 var systemPrompt = BuildSystemPrompt(taskType);
 
@@ -687,10 +716,112 @@ namespace NovelManagement.AI.Agents
             {
                 _logger.LogError(ex, $"AI辅助执行任务失败: {taskType}");
 
+                // 防递归保护：回退执行的任务内部再次进入 AI 辅助执行失败时直接返回失败，
+                // 否则「回退→任务→AI辅助→回退」会无限递归导致栈溢出
+                if (_isFallbackExecution)
+                {
+                    return new AgentTaskResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = $"AI服务不可用且回退执行失败: {ex.Message}"
+                    };
+                }
+
                 // 回退到原有执行方式
-                return await ExecuteTaskAsync(taskType, parameters);
+                _isFallbackExecution = true;
+                try
+                {
+                    return await ExecuteTaskAsync(taskType, parameters);
+                }
+                finally
+                {
+                    _isFallbackExecution = false;
+                }
             }
         }
+
+        #region 本地 RWKV 真实推理
+
+        /// <summary>
+        /// 尝试使用本地 RWKV 推理执行任务（Agent 化功能的真实推理链路）。
+        /// 服务未启动时返回 null（调用方继续走 Ollama/DeepSeek/本地回退链路）；
+        /// 服务可用但调用失败时返回失败结果（绝不降级到模拟数据，保证结果真实可信）。
+        /// </summary>
+        /// <param name="taskType">任务类型</param>
+        /// <param name="parameters">任务参数</param>
+        /// <param name="thinkingChain">思维链（可为 null）</param>
+        /// <returns>任务结果；null 表示 RWKV 服务不可用</returns>
+        private async Task<AgentTaskResult?> TryExecuteWithRwkvAsync(
+            string taskType,
+            Dictionary<string, object> parameters,
+            ThinkingChainModel? thinkingChain)
+        {
+            if (RwkvService == null || !RwkvService.IsAvailable)
+            {
+                return null;
+            }
+
+            _logger.LogInformation("使用本地 RWKV 推理执行任务: {TaskType}", taskType);
+            if (thinkingChain != null)
+            {
+                var step = new ThinkingStep
+                {
+                    Title = "调用本地模型",
+                    Content = "使用本地 RWKV 推理服务生成内容",
+                    Type = ThinkingStepType.Synthesis,
+                    Confidence = 0.9
+                };
+                step.Start();
+                thinkingChain.AddStep(step);
+                step.Complete();
+                thinkingChain.UpdateProgress();
+            }
+
+            try
+            {
+                // RWKV completion 提示格式（与 ChapterNamingAgent 范例一致，空 think 块适配 RWKV7-G1）
+                var systemPrompt = BuildSystemPrompt(taskType);
+                var userPrompt = BuildUserPrompt(taskType, parameters);
+                var prompt = "User: " + systemPrompt + "\n" + userPrompt + "\n\nAssistant: <think></think\n";
+
+                var response = await RwkvService.CompleteAsync(prompt, ResolveRwkvMaxTokens(taskType));
+                if (!response.Success || string.IsNullOrWhiteSpace(response.Text))
+                {
+                    _logger.LogWarning("RWKV 推理任务 {TaskType} 失败: {Error}", taskType, response.Error);
+                    return new AgentTaskResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = response.Error ?? "RWKV 推理返回空结果"
+                    };
+                }
+
+                return await ProcessAIResponseAsync(taskType, response.Text, parameters);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RWKV 推理任务 {TaskType} 异常", taskType);
+                return new AgentTaskResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"RWKV 推理失败: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// 按任务类型解析 RWKV 生成的最大 token 数（生成类任务更长，分析/总结类任务较短）。
+        /// </summary>
+        private static int ResolveRwkvMaxTokens(string taskType) => taskType switch
+        {
+            "GenerateOutline" or "CreateWorldSetting" => 2048,
+            "GenerateChapterContent" or "ContinueChapter" => 2048,
+            "PolishText" or "OptimizeOutline" or "OptimizePlot" => 1800,
+            "GenerateCharacter" or "OptimizeCharacter" or "GeneratePlot" or "GetPlotSuggestions" => 1200,
+            "SummarizeChapter" or "SummarizeVolume" => 600,
+            _ => 1000
+        };
+
+        #endregion
 
         /// <summary>
         /// 构建系统提示

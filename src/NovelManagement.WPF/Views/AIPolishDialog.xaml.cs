@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text.RegularExpressions;
 using System.Linq;
 using MaterialDesignThemes.Wpf;
+using NovelManagement.AI.Services.RWKV;
+using NovelManagement.AI.Services.RWKV.Models;
 
 namespace NovelManagement.WPF.Views
 {
@@ -65,6 +67,7 @@ namespace NovelManagement.WPF.Views
             {
                 try
                 {
+                    await LoadAvailableModelsAsync();
                     UpdateReplacementStats();
                     await GenerateSmartSuggestionsAsync();
                     await GenerateQualityAnalysisAsync();
@@ -120,6 +123,258 @@ namespace NovelManagement.WPF.Views
             {
                 ReplacementsListView.ItemsSource = _replacements;
             }
+        }
+
+        /// <summary>
+        /// 加载真实可用的 AI 模型列表：rwkv_models 目录发现的模型文件 + RWKV 服务在线状态，
+        /// 在线加载的模型默认选中；替换硬编码假选项。
+        /// </summary>
+        private async Task LoadAvailableModelsAsync()
+        {
+            AIModelComboBox.Items.Clear();
+
+            // 查询 RWKV 服务在线状态与当前加载的模型
+            var rwkvService = App.ServiceProvider?.GetService<IRwkvLightningService>();
+            var serviceReady = false;
+            string? onlineModel = null;
+            string baseUrl = "http://localhost:8000";
+            if (rwkvService != null)
+            {
+                baseUrl = rwkvService.Configuration.BaseUrl;
+                try
+                {
+                    var status = await GetStatusWithFastTimeoutAsync(rwkvService);
+                    serviceReady = status is { Ready: true };
+                    onlineModel = string.IsNullOrWhiteSpace(status?.Model) ? null : status.Model;
+                }
+                catch
+                {
+                    // 服务离线：按离线状态填充
+                }
+            }
+
+            // 扫描 rwkv_models 目录发现的模型文件
+            var modelFiles = DiscoverRwkvModelFiles();
+
+            if (modelFiles.Count == 0 && !serviceReady)
+            {
+                AIModelComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = $"RWKV（离线，{baseUrl}）",
+                    Tag = "RWKV",
+                    IsSelected = true
+                });
+                return;
+            }
+
+            foreach (var modelFile in modelFiles)
+            {
+                var fileName = Path.GetFileName(modelFile);
+                var isOnline = serviceReady && onlineModel != null &&
+                    fileName.Contains(onlineModel, StringComparison.OrdinalIgnoreCase);
+                AIModelComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = isOnline ? $"{fileName}（当前在线）" : fileName,
+                    Tag = fileName
+                });
+            }
+
+            // 目录扫描为空但服务在线：至少展示在线模型
+            if (AIModelComboBox.Items.Count == 0 && serviceReady)
+            {
+                AIModelComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = $"{onlineModel ?? "RWKV"}（当前在线）",
+                    Tag = onlineModel ?? "RWKV"
+                });
+            }
+
+            // 默认选中：优先在线加载的模型，否则第一项
+            var selectedIndex = 0;
+            if (serviceReady && onlineModel != null)
+            {
+                for (var i = 0; i < AIModelComboBox.Items.Count; i++)
+                {
+                    var item = (ComboBoxItem)AIModelComboBox.Items[i];
+                    if (item.Content?.ToString()?.Contains("当前在线", StringComparison.Ordinal) == true)
+                    {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            AIModelComboBox.SelectedIndex = selectedIndex;
+        }
+
+        /// <summary>支持的 RWKV 模型文件扩展名（与 AI 模型配置页发现逻辑一致，另含 llama.cpp 格式）。</summary>
+        private static readonly string[] RwkvModelExtensions = { ".gguf", ".st", ".safetensors", ".pth" };
+
+        /// <summary>
+        /// 扫描 rwkv_models 目录发现的模型文件（向上查找项目根，与 AI 模型配置页一致）
+        /// </summary>
+        private static List<string> DiscoverRwkvModelFiles()
+        {
+            var results = new List<string>();
+            try
+            {
+                var modelsDirectory = Path.Combine(ResolveProjectRoot(), "rwkv_models");
+                if (!Directory.Exists(modelsDirectory))
+                {
+                    return results;
+                }
+
+                results.AddRange(Directory.EnumerateFiles(modelsDirectory, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(path => RwkvModelExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+                    .OrderBy(path => Path.GetExtension(path).ToLowerInvariant() switch
+                    {
+                        ".pth" => 0,
+                        ".safetensors" => 1,
+                        ".st" => 2,
+                        ".gguf" => 3,
+                        _ => 9
+                    })
+                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                // 扫描失败：返回空列表，由调用方按服务状态兜底
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// 从应用目录向上查找项目根（与 AI 模型配置页 ResolveProjectRoot 一致）
+        /// </summary>
+        private static string ResolveProjectRoot()
+        {
+            var current = AppDomain.CurrentDomain.BaseDirectory;
+            for (var i = 0; i < 8; i++)
+            {
+                if (Directory.Exists(Path.Combine(current, "RWKV_lightning_CUDA_win")) ||
+                    Directory.Exists(Path.Combine(current, "rwkv_lightning_libtorch_win")) ||
+                    Directory.Exists(Path.Combine(current, "llama_cpp")))
+                {
+                    return current;
+                }
+
+                var parent = Directory.GetParent(current);
+                if (parent == null)
+                {
+                    break;
+                }
+
+                current = parent.FullName;
+            }
+
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
+
+        /// <summary>
+        /// 获取当前选中的模型名（Tag 存纯模型名，Content 仅展示状态）
+        /// </summary>
+        private string GetSelectedAiModel() =>
+            (AIModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "RWKV";
+
+        /// <summary>
+        /// 检查本地 RWKV 推理服务是否在线且可真实推理；不可用时给出明确指引并返回 false。
+        /// 两级探测均带竞速超时：服务离线/隧道假死时 GetStatusAsync 或推理可能阻塞到
+        /// HttpClient 长超时（配置可达 600 秒），状态检查绝不能让用户干等。
+        /// </summary>
+        private async Task<bool> CheckRwkvOnlineAsync()
+        {
+            try
+            {
+                var rwkvService = App.ServiceProvider?.GetService<IRwkvLightningService>();
+                if (rwkvService == null)
+                {
+                    MessageBox.Show("RWKV 推理服务未注册，请检查应用配置。", "AI服务不可用",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                var online = await IsRwkvReallyOnlineAsync(rwkvService);
+                if (!online)
+                {
+                    MessageBox.Show(
+                        $"RWKV 推理服务不在线或无响应（{rwkvService.Configuration.BaseUrl}）。\n\n请到「AI模型配置」页启动 RWKV 服务后再试。",
+                        "AI服务不可用",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"检查 RWKV 推理服务状态失败：{ex.Message}", "AI服务不可用",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 两级探测：状态端点（3 秒）+ 1-token 真实推理（6 秒）。
+        /// 仅状态在线但推理黑洞（如隧道后端已死）时同样判定离线。
+        /// </summary>
+        internal static async Task<bool> IsRwkvReallyOnlineAsync(IRwkvLightningService rwkvService)
+        {
+            var status = await GetStatusWithFastTimeoutAsync(rwkvService);
+            if (status is not { Ready: true })
+            {
+                return false;
+            }
+
+            var probeTask = rwkvService.CompleteAsync("ping", maxTokens: 1);
+            var completed = await Task.WhenAny(probeTask, Task.Delay(ProbeTimeout));
+            if (completed != probeTask)
+            {
+                return false;
+            }
+
+            return probeTask.IsCompletedSuccessfully && probeTask.Result.Success;
+        }
+
+        /// <summary>
+        /// 带 3 秒竞速超时的状态探测；超时/失败均返回 null（视为离线）
+        /// </summary>
+        internal static async Task<RwkvStatusResponse?> GetStatusWithFastTimeoutAsync(IRwkvLightningService rwkvService)
+        {
+            var statusTask = rwkvService.GetStatusAsync();
+            var completed = await Task.WhenAny(statusTask, Task.Delay(StatusProbeTimeout));
+            if (completed != statusTask)
+            {
+                return null;
+            }
+
+            return statusTask.IsCompletedSuccessfully ? statusTask.Result : null;
+        }
+
+        /// <summary>状态探测竞速超时（毫秒）。</summary>
+        private const int StatusProbeTimeout = 3000;
+
+        /// <summary>真实推理探测竞速超时（毫秒）。</summary>
+        private const int ProbeTimeout = 6000;
+
+        /// <summary>
+        /// 将底层连接类异常转换为可操作的中文提示
+        /// </summary>
+        private static string BuildFriendlyAiError(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return "未知错误，请重试。";
+            }
+
+            if (message.Contains("An error occurred while sending", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("HttpRequestException", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("socket", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("connection", StringComparison.OrdinalIgnoreCase))
+            {
+                return "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。";
+            }
+
+            return message;
         }
 
         #endregion
@@ -406,6 +661,15 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
+                // 前置检查本地 RWKV 推理服务可用性，避免等待超时后报晦涩的连接错误
+                var rwkvReady = await CheckRwkvOnlineAsync();
+                if (!rwkvReady)
+                {
+                    PolishProgressBar.Visibility = Visibility.Collapsed;
+                    PolishStatusTextBlock.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
                 // 构建润色参数
                 var parameters = new Dictionary<string, object>
                 {
@@ -414,8 +678,8 @@ namespace NovelManagement.WPF.Views
                     ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
                     ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
                     ["SpecialRequirements"] = SpecialRequirementsTextBox.Text,
-                    // 新增高级参数
-                    ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
+                    // 新增高级参数（Tag 存纯模型名供 agent 判定，Content 仅展示）
+                    ["AIModel"] = GetSelectedAiModel(),
                     ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
                     ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
                     ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
@@ -481,7 +745,7 @@ namespace NovelManagement.WPF.Views
                 {
                     PolishProgressBar.Visibility = Visibility.Collapsed;
                     PolishStatusTextBlock.Visibility = Visibility.Collapsed;
-                    MessageBox.Show($"AI润色失败：{result.Message}", "错误",
+                    MessageBox.Show($"AI润色失败：{BuildFriendlyAiError(result.Message)}", "错误",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -1329,7 +1593,7 @@ namespace NovelManagement.WPF.Views
                     Text = $"{item.Score}分",
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
-                    Foreground = item.Score >= 90 ? Brushes.Green :
+                    Foreground = item.Score >= 90 ? (Brush)FindResource("AppSuccessBrush") :
                                item.Score >= 80 ? Brushes.Orange : Brushes.Red
                 };
                 DockPanel.SetDock(scoreText, Dock.Right);
@@ -1470,7 +1734,7 @@ namespace NovelManagement.WPF.Views
                     : $"{_originalContent.Substring(0, Math.Min(20, _originalContent.Length)).Replace(Environment.NewLine, " ")}...",
                 OriginalContent = _originalContent,
                 PolishedContent = PolishedContentTextBox.Text ?? string.Empty,
-                AIModel = (AIModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                AIModel = GetSelectedAiModel(),
                 TargetStyle = (TargetStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 PolishIntensity = (PolishIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 PreserveElements = (PreserveElementsComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,

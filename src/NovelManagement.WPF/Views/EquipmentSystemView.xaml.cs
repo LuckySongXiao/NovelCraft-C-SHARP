@@ -59,6 +59,7 @@ namespace NovelManagement.WPF.Views
         private readonly EquipmentDataService? _equipmentDataService;
         private readonly ProjectContextService? _projectContextService;
         private readonly CurrentProjectGuard? _currentProjectGuard;
+        private readonly ProjectReadModelService? _projectReadModelService;
         private Guid _currentProjectId;
 
         /// <summary>
@@ -101,6 +102,7 @@ namespace NovelManagement.WPF.Views
                 _equipmentDataService = serviceProvider?.GetService<EquipmentDataService>();
                 _projectContextService = serviceProvider?.GetService<ProjectContextService>();
                 _currentProjectGuard = serviceProvider?.GetService<CurrentProjectGuard>();
+                _projectReadModelService = serviceProvider?.GetService<ProjectReadModelService>();
             }
             catch (Exception ex)
             {
@@ -758,6 +760,17 @@ namespace NovelManagement.WPF.Views
             return false;
         }
 
+        private async Task<string> BuildProjectConstraintsAsync()
+        {
+            if (_projectReadModelService == null || _currentProjectId == Guid.Empty)
+            {
+                return string.Empty;
+            }
+
+            var constraints = await _projectReadModelService.BuildSubsystemPromptContextAsync(_currentProjectId, "装备体系");
+            return string.IsNullOrWhiteSpace(constraints) ? string.Empty : constraints + Environment.NewLine;
+        }
+
         private async Task GenerateEquipmentWithAiAsync(bool optimizeCurrent)
         {
             if (_aiAssistantService == null)
@@ -766,13 +779,14 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
+            var projectConstraints = await BuildProjectConstraintsAsync();
             var parameters = new Dictionary<string, object>
             {
                 ["title"] = optimizeCurrent && SelectedEquipment != null ? $"优化装备体系：{SelectedEquipment.Name}" : "生成装备体系",
-                ["theme"] = "请生成一个适合小说项目使用的装备体系，并输出名称、类别、描述、等级列表、属性列表。",
-                ["requirements"] = optimizeCurrent && SelectedEquipment != null
+                ["theme"] = "请生成一个适合书籍项目使用的装备体系，并输出名称、类别、描述、等级列表、属性列表。",
+                ["requirements"] = projectConstraints + (optimizeCurrent && SelectedEquipment != null
                     ? $"请基于当前装备进行优化并输出结构化文本。当前装备：{SelectedEquipment.Name}，类别：{SelectedEquipment.Category}，描述：{SelectedEquipment.Description}"
-                    : "请输出一个完整装备体系，至少包含名称、类别、描述、至少3个等级、至少2个属性。",
+                    : "请输出一个完整装备体系，至少包含名称、类别、描述、至少3个等级、至少2个属性。"),
                 ["context"] = GetCurrentContext()
             };
 

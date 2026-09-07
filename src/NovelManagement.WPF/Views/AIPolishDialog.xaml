@@ -32,16 +32,12 @@
                              FontWeight="Bold"
                              DockPanel.Dock="Left"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <!-- AI模型选择 -->
+                        <!-- AI模型选择（运行时加载真实可用模型） -->
                         <ComboBox x:Name="AIModelComboBox"
                                 materialDesign:HintAssist.Hint="AI模型"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                Width="120"
-                                Margin="0,0,8,0">
-                            <ComboBoxItem Content="DeepSeek" IsSelected="True"/>
-                            <ComboBoxItem Content="Ollama"/>
-                            <ComboBoxItem Content="GPT-4"/>
-                        </ComboBox>
+                                Width="220"
+                                Margin="0,0,8,0"/>
                         <!-- 润色历史 -->
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Click="ShowHistory_Click"

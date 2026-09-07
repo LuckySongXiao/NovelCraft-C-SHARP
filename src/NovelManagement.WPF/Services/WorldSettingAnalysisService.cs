@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NovelManagement.Application.DTOs;
+using NovelManagement.AI.Services.RWKV;
 
 namespace NovelManagement.WPF.Services
 {
@@ -15,6 +16,11 @@ namespace NovelManagement.WPF.Services
         #region 字段和属性
 
         private readonly ILogger<WorldSettingAnalysisService>? _logger;
+
+        /// <summary>
+        /// 本地 RWKV 推理服务（可选）：可用时由真实推理生成分析洞察，不可用时回退本地规则生成。
+        /// </summary>
+        private readonly IRwkvLightningService? _rwkvService;
 
         /// <summary>
         /// 分析结果
@@ -42,9 +48,11 @@ namespace NovelManagement.WPF.Services
         /// 构造函数
         /// </summary>
         /// <param name="logger">日志记录器</param>
-        public WorldSettingAnalysisService(ILogger<WorldSettingAnalysisService>? logger = null)
+        /// <param name="rwkvService">本地 RWKV 推理服务（可选）</param>
+        public WorldSettingAnalysisService(ILogger<WorldSettingAnalysisService>? logger = null, IRwkvLightningService? rwkvService = null)
         {
             _logger = logger;
+            _rwkvService = rwkvService;
         }
 
         #endregion
@@ -63,9 +71,6 @@ namespace NovelManagement.WPF.Services
             {
                 _logger?.LogInformation("开始分析世界设定: {SettingName}", setting.Name);
 
-                // 模拟AI分析过程
-                await Task.Delay(2000);
-
                 var result = new AnalysisResult
                 {
                     SettingName = setting.Name,
@@ -81,8 +86,12 @@ namespace NovelManagement.WPF.Services
                 // 分析逻辑性
                 result.LogicalScore = await AnalyzeLogic(setting);
 
-                // 生成优势、劣势和建议
-                GenerateInsights(setting, allSettings, result);
+                // 生成优势、劣势和建议：优先本地 RWKV 真实推理，失败或不可用时回退本地规则
+                var aiInsightsGenerated = await TryGenerateInsightsWithRwkvAsync(setting, allSettings, result);
+                if (!aiInsightsGenerated)
+                {
+                    GenerateInsights(setting, allSettings, result);
+                }
 
                 _logger?.LogInformation("世界设定分析完成: {SettingName}, 总体评分: {Score:F1}", 
                     setting.Name, result.OverallScore);
@@ -105,8 +114,6 @@ namespace NovelManagement.WPF.Services
         /// </summary>
         private async Task<double> AnalyzeConsistency(WorldSettingDto setting, List<WorldSettingDto> allSettings)
         {
-            await Task.Delay(100);
-
             var score = 7.0; // 基础分数
 
             // 检查与其他设定的冲突
@@ -160,8 +167,6 @@ namespace NovelManagement.WPF.Services
         /// </summary>
         private async Task<double> AnalyzeLogic(WorldSettingDto setting)
         {
-            await Task.Delay(100);
-
             var score = 6.0; // 基础分数
 
             // 检查逻辑关键词
@@ -189,6 +194,99 @@ namespace NovelManagement.WPF.Services
             }
 
             return Math.Max(1.0, Math.Min(10.0, score));
+        }
+
+        /// <summary>
+        /// 尝试使用本地 RWKV 推理生成分析洞察（真实推理链路）。
+        /// 服务不可用、调用失败或输出无法解析时返回 false，由调用方回退本地规则生成。
+        /// </summary>
+        private async Task<bool> TryGenerateInsightsWithRwkvAsync(
+            WorldSettingDto setting, List<WorldSettingDto> allSettings, AnalysisResult result)
+        {
+            if (_rwkvService == null || !_rwkvService.IsAvailable)
+            {
+                return false;
+            }
+
+            try
+            {
+                var relatedNames = string.Join("、", allSettings
+                    .Where(s => s.Id != setting.Id && (s.Category == setting.Category || s.Type == setting.Type))
+                    .Select(s => s.Name)
+                    .Take(8));
+
+                var prompt =
+                    "User: 分析书籍世界设定「" + setting.Name + "」（类别：" + (setting.Category ?? "未分类") + "）。\n" +
+                    "描述：" + TruncateForPrompt(setting.Description, 200) + "\n" +
+                    "内容：" + TruncateForPrompt(setting.Content, 400) + "\n" +
+                    "规则：" + TruncateForPrompt(setting.Rules, 200) + "\n" +
+                    "历史：" + TruncateForPrompt(setting.History, 150) + "\n" +
+                    (string.IsNullOrWhiteSpace(relatedNames) ? "" : "相关设定：" + relatedNames + "\n") +
+                    "请指出该设定的优点、缺点、改进建议和潜在冲突。" +
+                    "每行一条，严格使用以下前缀格式：「优点：」「缺点：」「建议：」「冲突：」，共4-8行，不要解释。\n\n" +
+                    "Assistant: <think></think\n";
+
+                var response = await _rwkvService.CompleteAsync(prompt, 500);
+                if (!response.Success || string.IsNullOrWhiteSpace(response.Text))
+                {
+                    _logger?.LogWarning("世界设定分析 RWKV 推理失败: {Error}", response.Error);
+                    return false;
+                }
+
+                ParseInsightLines(response.Text, result);
+                var parsedCount = result.Strengths.Count + result.Weaknesses.Count + result.Suggestions.Count + result.Conflicts.Count;
+                if (parsedCount == 0)
+                {
+                    _logger?.LogInformation("世界设定分析 RWKV 输出无法解析，回退本地规则");
+                    return false;
+                }
+
+                _logger?.LogInformation("世界设定分析洞察已由本地 RWKV 推理生成: {SettingName}", setting.Name);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "世界设定分析 RWKV 推理异常，回退本地规则");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 解析 RWKV 输出中带「优点：/缺点：/建议：/冲突：」前缀的行写入分析结果。
+        /// </summary>
+        private static void ParseInsightLines(string text, AnalysisResult result)
+        {
+            var lines = text.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("优点：") || line.StartsWith("优点:"))
+                    result.Strengths.Add(line[3..].Trim('　', ' ', '-', '•', '*'));
+                else if (line.StartsWith("缺点：") || line.StartsWith("缺点:"))
+                    result.Weaknesses.Add(line[3..].Trim('　', ' ', '-', '•', '*'));
+                else if (line.StartsWith("建议：") || line.StartsWith("建议:"))
+                    result.Suggestions.Add(line[3..].Trim('　', ' ', '-', '•', '*'));
+                else if (line.StartsWith("冲突：") || line.StartsWith("冲突:"))
+                    result.Conflicts.Add(line[3..].Trim('　', ' ', '-', '•', '*'));
+            }
+
+            result.Strengths.RemoveAll(string.IsNullOrWhiteSpace);
+            result.Weaknesses.RemoveAll(string.IsNullOrWhiteSpace);
+            result.Suggestions.RemoveAll(string.IsNullOrWhiteSpace);
+            result.Conflicts.RemoveAll(string.IsNullOrWhiteSpace);
+        }
+
+        /// <summary>
+        /// 提示词内容截断（保持提示词精简，适配 2.9B 小模型）。
+        /// </summary>
+        private static string TruncateForPrompt(string? text, int maxLength)
+        {
+            var value = text?.Trim() ?? string.Empty;
+            if (value.Length == 0)
+            {
+                return "（暂无）";
+            }
+
+            return value.Length <= maxLength ? value : value[..maxLength] + "…";
         }
 
         /// <summary>

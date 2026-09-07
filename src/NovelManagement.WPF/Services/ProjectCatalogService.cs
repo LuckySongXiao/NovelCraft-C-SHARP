@@ -70,13 +70,14 @@ public class ProjectCatalogService
         {
             Name = model.Name.Trim(),
             Description = string.IsNullOrWhiteSpace(model.Description) ? "新建项目" : model.Description.Trim(),
-            Type = string.IsNullOrWhiteSpace(model.Type) ? "长篇小说" : model.Type.Trim(),
+            Type = string.IsNullOrWhiteSpace(model.Type) ? "长篇书籍" : model.Type.Trim(),
             Status = "进行中",
             Progress = 0,
             ProjectPath = projectDirectory,
             Tags = string.Join(',', new[] { model.Template, model.EnableAI ? "AI" : null, model.AutoSave ? "AutoSave" : null, model.VersionControl ? "VersionControl" : null }.Where(v => !string.IsNullOrWhiteSpace(v))),
             Settings = JsonSerializer.Serialize(new
             {
+                model.Author,
                 model.TargetWordCount,
                 model.EnableAI,
                 model.AutoSave,

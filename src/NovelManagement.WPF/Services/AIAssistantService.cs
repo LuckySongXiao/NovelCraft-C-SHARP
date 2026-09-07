@@ -93,7 +93,7 @@ namespace NovelManagement.WPF.Services
         Task<AIAssistantResult> PolishTextAsync(Dictionary<string, object> parameters);
 
         /// <summary>
-        /// 生成小说大纲
+        /// 生成书籍大纲
         /// </summary>
         /// <param name="parameters">生成参数</param>
         /// <returns>生成结果</returns>
@@ -708,7 +708,7 @@ namespace NovelManagement.WPF.Services
                 _logger.LogInformation("开始AI润色文本内容");
 
                 var workflowResult = await _agentRoleWorkflowService.TryExecuteAsync("PolishText", parameters);
-                if (workflowResult != null)
+                if (workflowResult != null && workflowResult.IsSuccess)
                 {
                     var workflowExecutionTime = DateTime.Now - startTime;
                     _statisticsService.RecordUsage("PolishText", workflowResult.IsSuccess, workflowExecutionTime, 0, workflowResult.Message);
@@ -721,6 +721,8 @@ namespace NovelManagement.WPF.Services
                         ExecutionTime = workflowExecutionTime
                     };
                 }
+                // 双代理工作流未启用或执行失败：继续走 EditorAgent（RWKV 优先），
+                // 避免 RWKV 在线时工作流内单次调用失败就直接降级模板拼接
 
                 // 创建Editor Agent
                 var editorAgent = _agentFactory.CreateAgent<EditorAgent>();
@@ -760,7 +762,7 @@ namespace NovelManagement.WPF.Services
         }
 
         /// <summary>
-        /// 生成小说大纲
+        /// 生成书籍大纲
         /// </summary>
         /// <param name="parameters">生成参数</param>
         /// <returns>生成结果</returns>
@@ -771,13 +773,13 @@ namespace NovelManagement.WPF.Services
 
             try
             {
-                _logger.LogInformation("开始AI生成小说大纲");
+                _logger.LogInformation("开始AI生成书籍大纲");
 
                 #region debug-point C:generate-outline-enter
                 await ReportDebugEventAsync(
                     "C",
                     "GenerateOutlineAsync",
-                    "进入小说大纲生成入口",
+                    "进入书籍大纲生成入口",
                     new Dictionary<string, object?>
                     {
                         ["parameterKeys"] = parameters.Keys.OrderBy(key => key).ToArray(),
@@ -825,7 +827,7 @@ namespace NovelManagement.WPF.Services
                 var result = await directorAgent.ExecuteAsync("GenerateOutline", parameters);
 
                 var executionTime = DateTime.Now - startTime;
-                var message = result.Metadata.TryGetValue("Message", out var msgObj) ? msgObj?.ToString() : "AI生成小说大纲完成";
+                var message = result.Metadata.TryGetValue("Message", out var msgObj) ? msgObj?.ToString() : "AI生成书籍大纲完成";
 
                 var aiResult = new AIAssistantResult
                 {
@@ -856,7 +858,7 @@ namespace NovelManagement.WPF.Services
             catch (Exception ex)
             {
                 var executionTime = DateTime.Now - startTime;
-                _logger.LogError(ex, "AI生成小说大纲失败");
+                _logger.LogError(ex, "AI生成书籍大纲失败");
 
                 // 记录失败统计
                 _statisticsService.RecordUsage(functionName, false, executionTime, 0, ex.Message);
@@ -865,7 +867,7 @@ namespace NovelManagement.WPF.Services
                 await ReportDebugEventAsync(
                     "E",
                     "GenerateOutlineAsync",
-                    $"小说大纲生成异常: {ex.Message}",
+                    $"书籍大纲生成异常: {ex.Message}",
                     new Dictionary<string, object?>
                     {
                         ["exceptionType"] = ex.GetType().FullName,
@@ -877,7 +879,7 @@ namespace NovelManagement.WPF.Services
                 return new AIAssistantResult
                 {
                     IsSuccess = false,
-                    Message = $"AI生成小说大纲失败: {ex.Message}",
+                    Message = $"AI生成书籍大纲失败: {ex.Message}",
                     ExecutionTime = executionTime
                 };
             }

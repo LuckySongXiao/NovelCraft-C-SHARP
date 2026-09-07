@@ -4,8 +4,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="前置条件生成" 
-        Height="600" 
-        Width="800"
+        Height="760"
+        Width="920"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         Style="{StaticResource MaterialDesignWindow}">
@@ -25,7 +25,7 @@
                        HorizontalAlignment="Center"
                        Margin="0,0,0,10"/>
             
-            <TextBlock Text="为确保AI编辑功能正常运行，系统将检查并生成必要的前置数据，包括剧情大纲、主要角色、世界设定和势力组织。"
+            <TextBlock Text="为确保AI编辑功能正常运行，系统将检查并生成必要的前置数据，并按项目基础信息、世界观、大纲、配套设定、卷章写作的顺序展示当前流程状态。"
                        Style="{StaticResource MaterialDesignBody1TextBlock}"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"
@@ -35,6 +35,109 @@
         <!-- 主要内容区域 -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                    <StackPanel>
+                        <TextBlock Text="项目选择"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   Margin="0,0,0,10"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox x:Name="ProjectComboBox"
+                                      Grid.Column="0"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="ProjectId"
+                                      SelectionChanged="ProjectComboBox_SelectionChanged"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      materialDesign:HintAssist.Hint="选择已有项目"/>
+
+                            <TextBlock x:Name="ProjectSummaryTextBlock"
+                                       Grid.Column="2"
+                                       Text="请选择项目后查看当前写作流程状态。"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        </Grid>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                    <StackPanel>
+                        <TextBlock Text="AI 上下文约束摘要"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   Margin="0,0,0,10"/>
+
+                        <TextBox x:Name="ContextSummaryTextBox"
+                                 Height="180"
+                                 IsReadOnly="True"
+                                 Text="请选择项目后查看 AI 将遵循的上位设定与生成顺序。"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                    </StackPanel>
+                </materialDesign:Card>
+
+                <materialDesign:Card Margin="0,0,0,15" Padding="15">
+                    <StackPanel>
+                        <TextBlock Text="书籍撰写工艺流程图"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   Margin="0,0,0,10"/>
+
+                        <UniformGrid Columns="5">
+                            <Border Margin="4" Padding="10" CornerRadius="8"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="1. 项目基础信息" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="ProjectInfoStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="4" Padding="10" CornerRadius="8"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="2. 世界观" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="WorldStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="4" Padding="10" CornerRadius="8"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="3. 大纲" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="OutlineStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="4" Padding="10" CornerRadius="8"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="4. 配套设定" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="SupportStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="4" Padding="10" CornerRadius="8"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="5. 卷章写作" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="WritingStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </StackPanel>
+                </materialDesign:Card>
+
                 <!-- 当前状态 -->
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
@@ -58,11 +161,14 @@
                             </StackPanel>
                             
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock x:Name="WorldSettingsStatusTextBlock" 
-                                           Text="世界设定: 检查中..." 
+                                <TextBlock x:Name="WorldSettingsStatusTextBlock"
+                                           Text="世界设定: 检查中..."
                                            Margin="0,2"/>
-                                <TextBlock x:Name="FactionsStatusTextBlock" 
-                                           Text="势力组织: 检查中..." 
+                                <TextBlock x:Name="FactionsStatusTextBlock"
+                                           Text="势力组织: 检查中..."
+                                           Margin="0,2"/>
+                                <TextBlock x:Name="CultivationSystemStatusTextBlock"
+                                           Text="修炼体系: 检查中..."
                                            Margin="0,2"/>
                             </StackPanel>
                         </Grid>
@@ -97,12 +203,17 @@
                                   Margin="0,5"
                                   IsChecked="True"/>
 
+                        <CheckBox x:Name="GenerateCultivationSystemCheckBox"
+                                  Content="生成修炼体系（AI 自定义等级体系）"
+                                  Margin="0,5"
+                                  IsChecked="True"/>
+
                         <!-- 高级选项 -->
                         <Expander Header="高级选项" Margin="0,10,0,0">
                             <StackPanel Margin="20,10,0,0">
-                                <!-- 小说类型选择 -->
+                                <!-- 书籍类型选择 -->
                                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                                    <TextBlock Text="小说类型:" VerticalAlignment="Center" Width="80"/>
+                                    <TextBlock Text="书籍类型:" VerticalAlignment="Center" Width="80"/>
                                     <ComboBox x:Name="NovelGenreComboBox" Width="150" SelectedIndex="0">
                                         <ComboBoxItem Content="修仙"/>
                                         <ComboBoxItem Content="都市"/>
@@ -132,7 +243,7 @@
                                           Margin="0,10,0,5"/>
 
                                 <TextBox x:Name="AIPromptTextBox"
-                                         materialDesign:HintAssist.Hint="AI生成提示 (描述您想要的小说风格、主题等)"
+                                         materialDesign:HintAssist.Hint="AI生成提示 (描述您想要的书籍风格、主题等)"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                          TextWrapping="Wrap"
                                          Height="60"
@@ -190,10 +301,16 @@
         </ScrollViewer>
 
         <!-- 操作按钮 -->
-        <StackPanel Grid.Row="3" 
+        <StackPanel Grid.Row="3"
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right" 
                     Margin="0,20,0,0">
+
+            <Button x:Name="BackButton"
+                    Content="返回上一界面"
+                    Style="{StaticResource MaterialDesignFlatButton}"
+                    Margin="0,0,10,0"
+                    Click="Back_Click"/>
             
             <Button x:Name="CheckStatusButton"
                     Content="检查状态"
