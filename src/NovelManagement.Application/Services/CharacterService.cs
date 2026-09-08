@@ -28,6 +28,24 @@ public class CharacterService
         {
             _logger.LogInformation("开始创建角色: {CharacterName}, 项目ID: {ProjectId}", character.Name, character.ProjectId);
 
+            // 防重检查：同项目内不允许出现同名且核心描述（性格、背景）完全一致的角色；
+            // 命中时幂等返回现有角色，由调用方根据返回ID与传入ID是否一致判断是否真正新建
+            if (!string.IsNullOrWhiteSpace(character.Name))
+            {
+                var existingCharacters = await _unitOfWork.Characters.GetByProjectIdAsync(character.ProjectId, cancellationToken);
+                var duplicate = existingCharacters.FirstOrDefault(c =>
+                    !c.IsDeleted &&
+                    string.Equals((c.Name ?? string.Empty).Trim(), character.Name.Trim(), StringComparison.Ordinal) &&
+                    string.Equals(NormalizeDescription(c.Personality), NormalizeDescription(character.Personality), StringComparison.Ordinal) &&
+                    string.Equals(NormalizeDescription(c.Background), NormalizeDescription(character.Background), StringComparison.Ordinal));
+                if (duplicate != null)
+                {
+                    _logger.LogInformation("项目 {ProjectId} 内已存在同名且描述一致的角色 {CharacterName}（ID: {CharacterId}），跳过重复创建",
+                        character.ProjectId, character.Name, duplicate.Id);
+                    return duplicate;
+                }
+            }
+
             // 处理势力关系 - 从Notes字段中提取临时势力信息
             string factionName = null;
             if (!string.IsNullOrEmpty(character.Notes))
@@ -113,6 +131,11 @@ public class CharacterService
             throw;
         }
     }
+
+    /// <summary>
+    /// 归一化描述字段用于重复比对（null/空白视为空串，去除首尾空白）
+    /// </summary>
+    private static string NormalizeDescription(string? value) => (value ?? string.Empty).Trim();
 
     /// <summary>
     /// 更新角色信息

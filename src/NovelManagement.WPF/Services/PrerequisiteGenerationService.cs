@@ -425,10 +425,17 @@ namespace NovelManagement.WPF.Services
                         Importance = 8
                     };
 
-                    await characterService.CreateCharacterAsync(character);
+                    var created = await characterService.CreateCharacterAsync(character);
                     characterIndex++;
-                    result.GeneratedCharactersCount++;
-                    result.GeneratedItems.Add($"主要角色: {character.Name}");
+                    if (created.Id == character.Id)
+                    {
+                        result.GeneratedCharactersCount++;
+                        result.GeneratedItems.Add($"主要角色: {character.Name}");
+                    }
+                    else
+                    {
+                        result.GeneratedItems.Add($"主要角色: {character.Name}（项目内已存在同名且描述一致的角色，跳过重复创建）");
+                    }
                 }
             }
 
@@ -1117,14 +1124,21 @@ namespace NovelManagement.WPF.Services
                     defaultCharacters[2].CultivationLevel = levelNames[Math.Min(levelNames.Count - 2, levelNames.Count - 1)];
                 }
 
+                var createdCount = 0;
                 foreach (var character in defaultCharacters)
                 {
-                    await characterService.CreateCharacterAsync(character);
+                    var created = await characterService.CreateCharacterAsync(character);
+                    if (created.Id != character.Id)
+                    {
+                        result.GeneratedItems.Add($"主要角色: {character.Name} ({character.Type})（项目内已存在同名且描述一致的角色，跳过重复创建）");
+                        continue;
+                    }
+                    createdCount++;
                     result.GeneratedItems.Add($"主要角色: {character.Name} ({character.Type})");
                 }
 
-                result.GeneratedCharactersCount = defaultCharacters.Count;
-                _logger.LogInformation("为项目 {ProjectId} 生成了 {Count} 个主要角色", projectId, defaultCharacters.Count);
+                result.GeneratedCharactersCount = createdCount;
+                _logger.LogInformation("为项目 {ProjectId} 生成了 {Count} 个主要角色", projectId, createdCount);
             }
             catch (Exception ex)
             {

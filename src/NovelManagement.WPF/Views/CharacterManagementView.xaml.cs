@@ -674,17 +674,29 @@ namespace NovelManagement.WPF.Views
                     if (_characterService != null)
                     {
                         var createdCharacter = await _characterService.CreateCharacterAsync(newCharacter);
+                        var isExistingCharacter = createdCharacter.Id != newCharacter.Id;
 
-                        // 添加到本地集合
-                        _allCharacters.Add(createdCharacter);
+                        // 添加到本地集合（命中防重复用现有角色时，避免重复加入）
+                        if (!_allCharacters.Any(c => c.Id == createdCharacter.Id))
+                        {
+                            _allCharacters.Add(createdCharacter);
+                        }
                         ApplyFilters();
                         UpdateOverviewStatistics();
 
                         // 选中新创建的角色
                         SelectCharacter(createdCharacter);
 
-                        MessageBox.Show($"角色 '{createdCharacter.Name}' 创建成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-                        _logger?.LogInformation($"新建角色成功: {createdCharacter.Name}");
+                        if (isExistingCharacter)
+                        {
+                            MessageBox.Show($"项目内已存在同名且描述一致的角色 '{createdCharacter.Name}'，已复用现有角色。如需区分，请调整性格或背景描述。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            _logger?.LogInformation($"角色创建命中防重，复用现有角色: {createdCharacter.Name}");
+                        }
+                        else
+                        {
+                            MessageBox.Show($"角色 '{createdCharacter.Name}' 创建成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            _logger?.LogInformation($"新建角色成功: {createdCharacter.Name}");
+                        }
                     }
                     else
                     {
@@ -1021,13 +1033,26 @@ namespace NovelManagement.WPF.Views
                                 }
 
                                 var createdCharacter = await _characterService.CreateCharacterAsync(generatedCharacter);
-                                _allCharacters.Add(createdCharacter);
+                                var isExistingCharacter = createdCharacter.Id != generatedCharacter.Id;
+
+                                // 命中防重复用现有角色时，避免重复加入本地集合
+                                if (!_allCharacters.Any(c => c.Id == createdCharacter.Id))
+                                {
+                                    _allCharacters.Add(createdCharacter);
+                                }
                                 ApplyFilters();
                                 UpdateOverviewStatistics();
                                 SelectCharacter(createdCharacter);
 
-                                _aiAssistantService.ShowSuccess($"成功生成角色: {createdCharacter.Name}");
-                                _logger?.LogInformation($"AI生成角色成功: {createdCharacter.Name}");
+                                if (isExistingCharacter)
+                                {
+                                    _aiAssistantService.ShowSuccess($"项目内已存在同名且描述一致的角色: {createdCharacter.Name}，已复用现有角色");
+                                }
+                                else
+                                {
+                                    _aiAssistantService.ShowSuccess($"成功生成角色: {createdCharacter.Name}");
+                                }
+                                _logger?.LogInformation($"AI生成角色完成: {createdCharacter.Name}（是否复用现有: {isExistingCharacter}）");
                             }
                             else
                             {
