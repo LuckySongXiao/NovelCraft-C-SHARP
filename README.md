@@ -2,7 +2,20 @@
 
 ## 项目概述
 
-这是一个功能完整的书籍创作和管理系统，采用C# WPF技术栈开发，支持多Agent AI协作创作、完整的内容管理、设定管理等功能。系统设计高度模块化，具有良好的可扩展性和维护性。
+这是一个功能完整的书籍创作和管理系统，采用C# WPF技术栈开发，支持多Agent AI协作创作、完整的内容管理、设定管理等功能。系统设计高度模块化，具有良好的可扩展性和维护性。应用启动密码：RWKV7_20260908
+
+## 应用截图
+
+| | |
+|---|---|
+| ![仪表盘](docs/images/01-dashboard.png) | ![项目概览](docs/images/03-project-overview.png) |
+| *仪表盘 Dashboard* | *项目概览 Project Overview* |
+| ![角色管理](docs/images/07-character-management.png) | ![剧情管理](docs/images/06-plot-management.png) |
+| *角色管理 Character Management* | *剧情管理 Plot Management* |
+| ![AI 创作助手](docs/images/13-ai-collaboration.png) | ![发布与运维管理](docs/images/18-publish-management.png) |
+| *AI 创作助手 AI Copilot* | *发布与运维管理 Publishing & Maintenance* |
+
+> 更多页面截图（19 个功能页中英双语说明）见 [项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md)。
 
 ## 系统架构
 
@@ -383,12 +396,14 @@ dotnet test
 
 ---
 
-## 📊 项目完成状态 (2026年9月8日更新)
+## 📊 项目完成状态 (2026年9月8日更新 · V1.0.0 正式版)
 
 ### 🎯 总体进度: 100% ✅
 
-> 📖 **功能说明书与使用手册**：详见 [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md)（中英双语，19 个功能页面使用说明，附 17 张真实运行截图）。
-> 📖 **User Guide (Bilingual)**: see [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md) — Chinese/English feature guide with per-page manuals and 17 live screenshots.
+> 📦 **V1.0.0 封装版**：单文件 EXE（自包含 .NET 8 运行时，无需安装依赖）位于 `publish\NovelManagement_v1.0.0\NovelManagement.WPF.exe`；启动时需输入**启动密码**（由交付通知提供，密码以 SHA-256 哈希校验，源码与文档不存明文）。
+> 📖 **发布说明**：详见 [docs/发布说明_v1.0.0.md](docs/发布说明_v1.0.0.md)（版本更新亮点、已知问题、安装部署与升级迁移）。
+> 📖 **使用手册**：详见 [docs/使用手册_v1.0.0.md](docs/使用手册_v1.0.0.md)（中文 11 章详解：安装配置、创作工作流、AI 进阶、FAQ）。
+> 📖 **功能说明书与使用手册（双语）**：详见 [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md)（中英双语，19 个功能页面使用说明，附真实运行截图）。
 
 | 模块 | 状态 | 完成度 | 说明 |
 |------|------|--------|------|
@@ -401,6 +416,9 @@ dotnet test
 | 测试项目 | ✅ | 120/120 | 单元测试全部通过 |
 
 ### 🔧 最新更新 (2026年9月7-8日)
+- ✅ **V1.0.0 封装版发布**: 自包含单文件 EXE（.NET 8 运行时内置、压缩后约 85MB），双击即用
+- ✅ **启动密码保护**: 启动时密码门验证（SHA-256 哈希比对，不明文存储），验证未通过不加载任何数据；支持在「发布管理 → 修改启动密码」自助修改密码（自定义哈希存于用户配置，可恢复默认）
+- ✅ **角色唯一性保障**: 服务层幂等防重——同项目内「同名+性格+背景」完全一致的角色自动复用，杜绝 AI 生成重复角色；存量重复数据已全量清理
 - ✅ **AI 创作助手**: 对话式创作流水线上线——自然语言驱动五级流水线，确认卡采纳/修改/重生成，状态持久化支持重启续创
 - ✅ **章节关联处理**: 创作助手可关联已有书籍章节，直接对目标章节改写/续写/问答，落库与流水线解耦
 - ✅ **章节续写/润色修复**: 模型下拉框动态加载真实模型文件；RWKV 两级在线探测（状态 3 秒 + 推理探测 6 秒）杜绝假在线误判与长时间无响应；支持选中文本段精准润色
@@ -433,10 +451,10 @@ dotnet build
 src\NovelManagement.WPF\bin\Debug\net8.0-windows\NovelManagement.WPF.exe
 ```
 
+> **封装版用户**：无需编译，直接运行 `publish\NovelManagement_v1.0.0\NovelManagement.WPF.exe`，输入启动密码即可（密码由交付通知提供）。
+
 ### 📋 详细进度
-- 查看 [完成进度.md](完成进度.md) 了解详细的完成状态和功能清单。
-- 查看 [项目交接.md](项目交接.md) 了解开发过程与增量更新日志（32 节）。
-- 查看 [docs/](docs/) 目录下的中英双语功能说明书与各页面使用手册。
+- 查看 [docs/](docs/) 目录下的发布说明、中文使用手册与中英双语功能说明书。
 
 ---
 

@@ -85,6 +85,19 @@ public partial class App : System.Windows.Application
 
             Log.Information("应用程序启动中...");
 
+            // 密码验证窗口是启动期间唯一的窗口：默认 OnLastWindowClose 会在其关闭时
+            // 触发应用关闭，导致主窗口永远无法显示。改用显式关机，主窗口显示后再恢复。
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            // 启动密码验证：在任何资源（配置/数据库）加载之前执行，验证未通过直接退出
+            if (!ShowPasswordGate())
+            {
+                Log.Warning("启动密码验证未通过，应用退出");
+                Log.CloseAndFlush();
+                Shutdown(1);
+                return;
+            }
+
             // 构建配置
             var configuration = BuildConfiguration();
 
@@ -101,6 +114,7 @@ public partial class App : System.Windows.Application
                 Log.Information("以 AI 模型配置独立测试模式启动");
                 var aiConfigurationWindow = new AIConfigurationHostWindow();
                 aiConfigurationWindow.Show();
+                ShutdownMode = ShutdownMode.OnMainWindowClose;
                 base.OnStartup(e);
                 return;
             }
@@ -130,6 +144,9 @@ public partial class App : System.Windows.Application
             // 获取主窗口并显示
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // 主窗口已就绪，恢复常规关机语义：主窗口关闭时退出应用
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
 
             // 主题皮肤：启动时应用用户所选皮肤（auto 表示按系统本地时间自动切换 19:00–07:00 黑夜），并每 30 分钟复查
             ThemeManager.Initialize(Log.ForContext("SourceContext", "ThemeManager"));
@@ -168,6 +185,26 @@ public partial class App : System.Windows.Application
         finally
         {
             base.OnExit(e);
+        }
+    }
+
+    /// <summary>
+    /// 显示启动密码验证窗口；验证窗口自身异常时采取 fail-closed 策略拒绝启动
+    /// </summary>
+    /// <returns>验证通过返回 true</returns>
+    private static bool ShowPasswordGate()
+    {
+        try
+        {
+            var gate = new PasswordGateWindow();
+            gate.ShowDialog();
+            return gate.Authenticated;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "启动密码验证窗口异常，按安全策略拒绝启动");
+            MessageBox.Show("启动验证组件异常，应用已停止。详细信息见日志。", "启动验证", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
         }
     }
 

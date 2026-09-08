@@ -125,9 +125,9 @@ The Novel Management System is an intelligent book-writing and management platfo
 
 ![项目概览](images/03-project-overview.png)
 
-**中文**：打开项目后的默认页。左侧统计卡展示完成度（如 100% 完成、6/10 章节、进度百分比），中部为项目信息与最近剧情/设定回执，右侧可跳转各管理页。
+**中文**：打开项目后的默认页。上部为项目信息卡（类型/状态/目标字数）与进度统计（总字数、章节数、角色数量、设定完成度），下部展示「运行流程与闭环」创作流水线（项目基础信息 → 世界观 → 大纲 → 套装设定 → 卷章写作）。
 
-**English**: the default page after opening a project. Left stat cards show completion (e.g. 6/10 chapters), center shows project info and recent plot/setting receipts, right side links to all management pages.
+**English**: the default page after opening a project. Top: project info card (genre/status/target words) and progress stats (total words, chapters, characters, setting completion). Bottom: the creation pipeline (project info → worldview → outline → settings → volume/chapter writing).
 
 ---
 
@@ -315,13 +315,13 @@ The task runs in the background with chunked continue-writing and anti-repetitio
 
 **中文**：「发布与运维管理」弹窗，是系统运维中心：
 
-- **一键操作**：刷新健康检查 / 立即备份数据库 / 从备份恢复 / 导出诊断包 / 打开数据目录 / 打开日志目录 / 打开备份目录 / 重新打开首次向导
+- **一键操作**：刷新健康检查 / 立即备份数据库 / 从备份恢复 / 导出诊断包 / 打开数据目录 / 打开日志目录 / 打开备份目录 / 重新打开首次向导 / **修改启动密码**
 - **健康检查报告**：总状态（正常/警告）+ 逐项检查（应用数据目录、配置目录、数据库文件、日志、备份、运行环境等），生成时间实时
 - 诊断包含配置快照与日志摘要，用于问题上报（自动脱敏敏感项）
 
 **English**: the "Publishing & Maintenance" dialog, the ops center:
 
-- **One-click actions**: refresh health check / backup now / restore from backup / export diagnostic bundle / open data / log / backup folders / re-run first-run wizard
+- **One-click actions**: refresh health check / backup now / restore from backup / export diagnostic bundle / open data / log / backup folders / re-run first-run wizard / **change launch password**
 - **Health report**: overall status (OK/Warning) with itemized checks (data/config directories, database file, logs, backups, runtime), timestamped in real time
 - The diagnostic bundle carries a config snapshot and log digest for issue reporting (sensitive entries are masked)
 

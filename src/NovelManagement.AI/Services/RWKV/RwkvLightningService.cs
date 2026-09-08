@@ -86,11 +86,12 @@ namespace NovelManagement.AI.Services.RWKV
 
                 if (_isAvailable)
                 {
-                    _logger.LogInformation("RWKV 推理服务初始化成功，地址: {BaseUrl}", configuration.BaseUrl);
+                    // 不打印服务地址，避免远程隧道 URL 泄入日志文件
+                    _logger.LogInformation("RWKV 推理服务初始化成功");
                 }
                 else
                 {
-                    _logger.LogWarning("RWKV 推理服务不可用，地址: {BaseUrl}", configuration.BaseUrl);
+                    _logger.LogWarning("RWKV 推理服务不可用（地址已从日志脱敏），请检查 AI 模型配置");
                 }
 
                 return _isAvailable;

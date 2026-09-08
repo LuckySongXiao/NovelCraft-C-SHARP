@@ -76,6 +76,7 @@ public class OperationsManagementWindow : Window
         var openLogsButton = CreateButton("打开日志目录", (_, _) => OpenDirectory(_currentReport?.LogsDirectory, "日志目录"));
         var openBackupsButton = CreateButton("打开备份目录", (_, _) => OpenDirectory(_currentReport?.BackupsDirectory, "备份目录"));
         var onboardingButton = CreateButton("重新打开首次向导", (_, _) => ReopenOnboarding());
+        var changePasswordButton = CreateButton("修改启动密码", (_, _) => ChangeLaunchPassword());
 
         var actionPanel = new WrapPanel
         {
@@ -90,6 +91,7 @@ public class OperationsManagementWindow : Window
         actionPanel.Children.Add(openLogsButton);
         actionPanel.Children.Add(openBackupsButton);
         actionPanel.Children.Add(onboardingButton);
+        actionPanel.Children.Add(changePasswordButton);
 
         var rootPanel = new DockPanel
         {
@@ -292,6 +294,19 @@ public class OperationsManagementWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"打开首次启动向导失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ChangeLaunchPassword()
+    {
+        try
+        {
+            var dialog = new ChangePasswordDialog { Owner = this };
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"打开修改启动密码对话框失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
