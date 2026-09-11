@@ -10,6 +10,7 @@ using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Models;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -44,13 +45,13 @@ namespace NovelManagement.WPF.Views
                 _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
                 if (_prerequisiteService == null)
                 {
-                    MessageBox.Show("前置条件生成服务未初始化", "错误",
+                    MessageBox.Show(T("PG.ServiceNotInit", "前置条件生成服务未初始化"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化服务失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PG.InitFailedFmt", "初始化服务失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -76,7 +77,7 @@ namespace NovelManagement.WPF.Views
                     .Select(p => new ProjectSelectionItem
                     {
                         ProjectId = p.Id,
-                        DisplayName = $"{p.Name}（{(string.IsNullOrWhiteSpace(p.Type) ? "未分类" : p.Type)}）"
+                        DisplayName = $"{p.Name}（{(string.IsNullOrWhiteSpace(p.Type) ? T("PG.Uncategorized", "未分类") : p.Type)}）"
                     })
                     .ToList();
 
@@ -90,7 +91,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载项目列表失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PG.LoadProjectsFailFmt", "加载项目列表失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -139,7 +140,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_isGenerating)
             {
-                var result = MessageBox.Show("正在生成前置数据，确定要关闭吗？", "确认",
+                var result = MessageBox.Show(T("PG.CloseConfirm", "正在生成前置数据，确定要关闭吗？"), T("Dlg.Confirm"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result != MessageBoxResult.Yes)
                 {
@@ -197,7 +198,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var plots = await plotService.GetPlotsByProjectIdAsync(_selectedProjectId);
                     plotCount = plots.Count();
-                    PlotsStatusTextBlock.Text = $"剧情大纲: {plotCount} 个 {(plotCount >= 3 ? "✓" : "需要生成")}";
+                    PlotsStatusTextBlock.Text = TF("PG.PlotsStatusFmt", "剧情大纲: {0} 个 {1}", plotCount, plotCount >= 3 ? "✓" : T("PG.NeedGenerate", "需要生成"));
                     GeneratePlotsCheckBox.IsChecked = plotCount < 3;
                 }
 
@@ -205,7 +206,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var characters = await characterService.GetCharactersByProjectIdAsync(_selectedProjectId);
                     characterCount = characters.Count();
-                    CharactersStatusTextBlock.Text = $"主要角色: {characterCount} 个 {(characterCount >= 3 ? "✓" : "需要生成")}";
+                    CharactersStatusTextBlock.Text = TF("PG.CharactersStatusFmt", "主要角色: {0} 个 {1}", characterCount, characterCount >= 3 ? "✓" : T("PG.NeedGenerate", "需要生成"));
                     GenerateCharactersCheckBox.IsChecked = characterCount < 3;
                 }
 
@@ -213,7 +214,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var settings = await worldSettingService.GetAllAsync(_selectedProjectId);
                     settingCount = settings.Count();
-                    WorldSettingsStatusTextBlock.Text = $"世界设定: {settingCount} 个 {(settingCount >= 5 ? "✓" : "需要生成")}";
+                    WorldSettingsStatusTextBlock.Text = TF("PG.WorldStatusFmt", "世界设定: {0} 个 {1}", settingCount, settingCount >= 5 ? "✓" : T("PG.NeedGenerate", "需要生成"));
                     GenerateWorldSettingsCheckBox.IsChecked = settingCount < 5;
                 }
 
@@ -221,7 +222,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var factions = await factionService.GetFactionsByProjectIdAsync(_selectedProjectId);
                     factionCount = factions.Count();
-                    FactionsStatusTextBlock.Text = $"势力组织: {factionCount} 个 {(factionCount >= 3 ? "✓" : "需要生成")}";
+                    FactionsStatusTextBlock.Text = TF("PG.FactionsStatusFmt", "势力组织: {0} 个 {1}", factionCount, factionCount >= 3 ? "✓" : T("PG.NeedGenerate", "需要生成"));
                     GenerateFactionsCheckBox.IsChecked = factionCount < 3;
                 }
 
@@ -231,8 +232,8 @@ namespace NovelManagement.WPF.Views
                     var systems = await cultivationSystemService.GetAllAsync(_selectedProjectId);
                     var systemCount = systems.Count();
                     CultivationSystemStatusTextBlock.Text = systemCount > 0
-                        ? $"修炼体系: {systemCount} 套 ✓"
-                        : "修炼体系: 未设定，AI 可自上而下生成自定义等级体系";
+                        ? TF("PG.CultivationOkFmt", "修炼体系: {0} 套 ✓", systemCount)
+                        : T("PG.CultivationEmpty", "修炼体系: 未设定，AI 可自上而下生成自定义等级体系");
                     GenerateCultivationSystemCheckBox.IsChecked = systemCount == 0;
                 }
 
@@ -252,7 +253,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"检查状态失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PG.CheckStatusFailFmt", "检查状态失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -261,14 +262,14 @@ namespace NovelManagement.WPF.Views
         {
             if (_projectService == null || _selectedProjectId == Guid.Empty)
             {
-                ProjectSummaryTextBlock.Text = "未选择项目。";
+                ProjectSummaryTextBlock.Text = T("PG.NoProjectSelected", "未选择项目。");
                 return;
             }
 
             var project = await _projectService.GetProjectByIdAsync(_selectedProjectId);
             if (project == null)
             {
-                ProjectSummaryTextBlock.Text = "未找到当前项目。";
+                ProjectSummaryTextBlock.Text = T("PG.ProjectNotFound", "未找到当前项目。");
                 return;
             }
 
@@ -282,13 +283,13 @@ namespace NovelManagement.WPF.Views
         {
             if (_projectReadModelService == null || _selectedProjectId == Guid.Empty)
             {
-                ContextSummaryTextBox.Text = "未选择项目。";
+                ContextSummaryTextBox.Text = T("PG.NoProjectSelected", "未选择项目。");
                 return;
             }
 
             var contextData = await _projectReadModelService.BuildAiContextDataAsync(_selectedProjectId);
             ContextSummaryTextBox.Text = string.IsNullOrWhiteSpace(contextData.PromptSummary)
-                ? "当前项目暂无可用的 AI 上下文摘要。"
+                ? T("PG.NoContextSummary", "当前项目暂无可用的 AI 上下文摘要。")
                 : contextData.PromptSummary;
         }
 
@@ -302,11 +303,11 @@ namespace NovelManagement.WPF.Views
         {
             if (_projectService == null || _selectedProjectId == Guid.Empty)
             {
-                ProjectInfoStageTextBlock.Text = "未选择项目";
-                WorldStageTextBlock.Text = "未开始";
-                OutlineStageTextBlock.Text = "未开始";
-                SupportStageTextBlock.Text = "未开始";
-                WritingStageTextBlock.Text = "未开始";
+                ProjectInfoStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
+                WorldStageTextBlock.Text = T("PG.StageNotStarted", "未开始");
+                OutlineStageTextBlock.Text = T("PG.StageNotStarted", "未开始");
+                SupportStageTextBlock.Text = T("PG.StageNotStarted", "未开始");
+                WritingStageTextBlock.Text = T("PG.StageNotStarted", "未开始");
                 return;
             }
 
@@ -316,40 +317,40 @@ namespace NovelManagement.WPF.Views
                                  !string.IsNullOrWhiteSpace(project.Type);
 
             ProjectInfoStageTextBlock.Text = hasProjectBase
-                ? $"已就绪\n名称与类型已配置"
-                : "待补充\n至少需要名称与类型";
+                ? T("PG.StageReady", "已就绪\n名称与类型已配置")
+                : T("PG.StagePendingProject", "待补充\n至少需要名称与类型");
 
             WorldStageTextBlock.Text = settingCount > 0
-                ? $"进行中/已完成\n当前 {settingCount} 条世界设定"
-                : "待开始\n请先补充世界观";
+                ? TF("PG.StageWorldActiveFmt", "进行中/已完成\n当前 {0} 条世界设定", settingCount)
+                : T("PG.StageWorldPending", "待开始\n请先补充世界观");
 
             OutlineStageTextBlock.Text = plotCount > 0
-                ? $"进行中/已完成\n当前 {plotCount} 条大纲"
-                : "待开始\n应基于世界观生成";
+                ? TF("PG.StageOutlineActiveFmt", "进行中/已完成\n当前 {0} 条大纲", plotCount)
+                : T("PG.StageOutlinePending", "待开始\n应基于世界观生成");
 
             SupportStageTextBlock.Text = (characterCount + factionCount) > 0
-                ? $"进行中/已完成\n角色 {characterCount} / 势力 {factionCount}"
-                : "待开始\n建议在大纲后补齐";
+                ? TF("PG.StageSupportActiveFmt", "进行中/已完成\n角色 {0} / 势力 {1}", characterCount, factionCount)
+                : T("PG.StageSupportPending", "待开始\n建议在大纲后补齐");
 
             WritingStageTextBlock.Text = (volumeCount + chapterCount) > 0
-                ? $"进行中/已完成\n卷 {volumeCount} / 章 {chapterCount}"
-                : "未开始\n请在基础设定后进入正文";
+                ? TF("PG.StageWritingActiveFmt", "进行中/已完成\n卷 {0} / 章 {1}", volumeCount, chapterCount)
+                : T("PG.StageWritingNotStarted", "未开始\n请在基础设定后进入正文");
         }
 
         private void ResetStatusDisplay()
         {
-            ProjectSummaryTextBlock.Text = "请选择项目后查看当前写作流程状态。";
-            ContextSummaryTextBox.Text = "请选择项目后查看 AI 将遵循的上位设定与生成顺序。";
-            PlotsStatusTextBlock.Text = "剧情大纲: 未选择项目";
-            CharactersStatusTextBlock.Text = "主要角色: 未选择项目";
-            WorldSettingsStatusTextBlock.Text = "世界设定: 未选择项目";
-            FactionsStatusTextBlock.Text = "势力组织: 未选择项目";
-            CultivationSystemStatusTextBlock.Text = "修炼体系: 未选择项目";
-            ProjectInfoStageTextBlock.Text = "未选择项目";
-            WorldStageTextBlock.Text = "未选择项目";
-            OutlineStageTextBlock.Text = "未选择项目";
-            SupportStageTextBlock.Text = "未选择项目";
-            WritingStageTextBlock.Text = "未选择项目";
+            ProjectSummaryTextBlock.Text = T("PG.SummaryPlaceholder", "请选择项目后查看当前写作流程状态。");
+            ContextSummaryTextBox.Text = T("PG.ContextPlaceholder", "请选择项目后查看 AI 将遵循的上位设定与生成顺序。");
+            PlotsStatusTextBlock.Text = T("PG.PlotsNoProject", "剧情大纲: 未选择项目");
+            CharactersStatusTextBlock.Text = T("PG.CharactersNoProject", "主要角色: 未选择项目");
+            WorldSettingsStatusTextBlock.Text = T("PG.WorldNoProject", "世界设定: 未选择项目");
+            FactionsStatusTextBlock.Text = T("PG.FactionsNoProject", "势力组织: 未选择项目");
+            CultivationSystemStatusTextBlock.Text = T("PG.CultivationNoProject", "修炼体系: 未选择项目");
+            ProjectInfoStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
+            WorldStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
+            OutlineStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
+            SupportStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
+            WritingStageTextBlock.Text = T("PG.StageNoProject", "未选择项目");
         }
 
         private bool EnsureSelectedProject()
@@ -359,7 +360,7 @@ namespace NovelManagement.WPF.Views
                 return true;
             }
 
-            MessageBox.Show("请先选择一个项目。", "提示",
+            MessageBox.Show(T("PG.SelectProjectFirst", "请先选择一个项目。"), T("Msg.Tip"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return false;
         }
@@ -368,7 +369,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_prerequisiteService == null)
             {
-                MessageBox.Show("前置条件生成服务不可用", "错误",
+                MessageBox.Show(T("PG.ServiceUnavailable", "前置条件生成服务不可用"), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -376,24 +377,24 @@ namespace NovelManagement.WPF.Views
             try
             {
                 GenerationProgressBar.Value = 0;
-                ProgressStatusTextBlock.Text = "开始生成前置条件...";
+                ProgressStatusTextBlock.Text = T("PG.Starting", "开始生成前置条件...");
 
                 var options = BuildGenerationOptions();
                 PrerequisiteGenerationResult result;
 
                 if (options.UseAIGeneration && !string.IsNullOrWhiteSpace(options.AIPrompt))
                 {
-                    ProgressStatusTextBlock.Text = "使用AI智能生成中...";
+                    ProgressStatusTextBlock.Text = T("PG.AIGenerating", "使用AI智能生成中...");
                     result = await _prerequisiteService.GenerateWithAIAsync(_selectedProjectId, options.AIPrompt);
                 }
                 else
                 {
-                    ProgressStatusTextBlock.Text = "使用模板生成中...";
+                    ProgressStatusTextBlock.Text = T("PG.TemplateGenerating", "使用模板生成中...");
                     result = await _prerequisiteService.GeneratePrerequisitesAsync(_selectedProjectId, options);
                 }
 
                 GenerationProgressBar.Value = 100;
-                ProgressStatusTextBlock.Text = "生成完成";
+                ProgressStatusTextBlock.Text = T("PG.Done", "生成完成");
                 ResultCard.Visibility = Visibility.Visible;
                 ResultTextBlock.Text = result.GetDetailedReport();
 
@@ -401,32 +402,32 @@ namespace NovelManagement.WPF.Views
                 {
                     if (result.TotalGeneratedCount > 0)
                     {
-                        var message = $"前置条件生成完成！\n\n{result.GetGenerationSummary()}";
+                        var message = TF("PG.DoneMsgFmt", "前置条件生成完成！\n\n{0}", result.GetGenerationSummary());
                         if (options.AllowUserEditing)
                         {
-                            message += "\n\n✅ 您可以随时编辑、删减或增加这些数据";
-                            message += "\n✅ AI也可以根据需要自主生成和写入新内容";
+                            message += T("PG.DoneNoteEdit", "\n\n✅ 您可以随时编辑、删减或增加这些数据");
+                            message += T("PG.DoneNoteAi", "\n✅ AI也可以根据需要自主生成和写入新内容");
                         }
 
-                        MessageBox.Show(message, "生成成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(message, T("PG.SuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("项目已有足够的前置数据，无需生成。",
-                            "无需生成", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(T("PG.EnoughData", "项目已有足够的前置数据，无需生成。"),
+                            T("PG.NoNeedTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
 
                     await CheckCurrentStatusAsync();
                 }
                 else
                 {
-                    MessageBox.Show($"前置条件生成失败：{result.Message}",
-                        "生成失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(TF("PG.GenerateFailFmt", "前置条件生成失败：{0}", result.Message),
+                        T("PG.FailedTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"生成前置条件时发生错误：{ex.Message}", "错误",
+                MessageBox.Show(TF("PG.GenerateErrorFmt", "生成前置条件时发生错误：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -446,8 +447,8 @@ namespace NovelManagement.WPF.Views
                 GenerateCultivationSystem = GenerateCultivationSystemCheckBox.IsChecked == true,
                 UseAIGeneration = UseAIGenerationCheckBox.IsChecked == true,
                 AIPrompt = AIPromptTextBox.Text?.Trim() ?? string.Empty,
-                NovelGenre = ((ComboBoxItem)NovelGenreComboBox.SelectedItem)?.Content?.ToString() ?? "修仙",
-                WorldStyle = ((ComboBoxItem)WorldStyleComboBox.SelectedItem)?.Content?.ToString() ?? "东方玄幻",
+                NovelGenre = ((ComboBoxItem)NovelGenreComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)NovelGenreComboBox.SelectedItem)?.Content?.ToString() ?? "修仙",
+                WorldStyle = ((ComboBoxItem)WorldStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)WorldStyleComboBox.SelectedItem)?.Content?.ToString() ?? "东方玄幻",
                 AllowUserEditing = AllowUserEditingCheckBox.IsChecked == true
             };
         }

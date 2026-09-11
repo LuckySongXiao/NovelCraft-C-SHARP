@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="商业体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Bus.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddBusiness_Click"
-                            ToolTip="新建商业模式">
+                            ToolTip="{DynamicResource Loc.WS.Bus.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportBusiness_Click"
-                            ToolTip="导入商业数据">
+                            ToolTip="{DynamicResource Loc.WS.Bus.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportBusiness_Click"
-                            ToolTip="导出商业数据">
+                            ToolTip="{DynamicResource Loc.WS.Bus.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索商业模式..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,16 +100,16 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="CategoryFilterComboBox"
-                                     materialDesign:HintAssist.Hint="商业类别"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.CategoryHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="CategoryFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类别"/>
-                                <ComboBoxItem Content="贸易商行"/>
-                                <ComboBoxItem Content="拍卖行"/>
-                                <ComboBoxItem Content="炼器坊"/>
-                                <ComboBoxItem Content="丹药铺"/>
-                                <ComboBoxItem Content="客栈"/>
-                                <ComboBoxItem Content="传送阵"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllCategories}"/>
+                                <ComboBoxItem Tag="贸易商行" Content="{DynamicResource Loc.WS.Bus.Data.贸易商行}"/>
+                                <ComboBoxItem Tag="拍卖行" Content="{DynamicResource Loc.WS.Bus.Data.拍卖行}"/>
+                                <ComboBoxItem Tag="炼器坊" Content="{DynamicResource Loc.WS.Bus.Data.炼器坊}"/>
+                                <ComboBoxItem Tag="丹药铺" Content="{DynamicResource Loc.WS.Bus.Data.丹药铺}"/>
+                                <ComboBoxItem Tag="客栈" Content="{DynamicResource Loc.WS.Bus.Data.客栈}"/>
+                                <ComboBoxItem Tag="传送阵" Content="{DynamicResource Loc.WS.Bus.Data.传送阵}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -178,14 +178,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="商品数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Bus.ProductCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding ProductCount}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 服务数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Bus.ServiceCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -206,7 +206,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="商业体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Bus.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -217,21 +217,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="贸易商行: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.贸易商行}"/>
                                         <Run Text="{Binding TradeCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="拍卖行: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.拍卖行}"/>
                                         <Run Text="{Binding AuctionCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="炼器坊: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.炼器坊}"/>
                                         <Run Text="{Binding CraftCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -255,12 +255,12 @@
                                                    Height="64"
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个商业模式查看详情"
+                            <TextBlock Text="{DynamicResource Loc.WS.Bus.NoSelection}"
                                      FontSize="16"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的商业模式"
+                            <TextBlock Text="{DynamicResource Loc.WS.Bus.NoSelectionHint}"
                                      FontSize="14"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
@@ -270,7 +270,7 @@
                         <!-- 商业详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息"
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -284,21 +284,21 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="BusinessNameTextBox"
-                                        materialDesign:HintAssist.Hint="商业模式名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="BusinessCategoryComboBox"
-                                         materialDesign:HintAssist.Hint="商业类别"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.CategoryHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="贸易商行"/>
-                                    <ComboBoxItem Content="拍卖行"/>
-                                    <ComboBoxItem Content="炼器坊"/>
-                                    <ComboBoxItem Content="丹药铺"/>
-                                    <ComboBoxItem Content="客栈"/>
-                                    <ComboBoxItem Content="传送阵"/>
+                                    <ComboBoxItem Tag="贸易商行" Content="{DynamicResource Loc.WS.Bus.Data.贸易商行}"/>
+                                    <ComboBoxItem Tag="拍卖行" Content="{DynamicResource Loc.WS.Bus.Data.拍卖行}"/>
+                                    <ComboBoxItem Tag="炼器坊" Content="{DynamicResource Loc.WS.Bus.Data.炼器坊}"/>
+                                    <ComboBoxItem Tag="丹药铺" Content="{DynamicResource Loc.WS.Bus.Data.丹药铺}"/>
+                                    <ComboBoxItem Tag="客栈" Content="{DynamicResource Loc.WS.Bus.Data.客栈}"/>
+                                    <ComboBoxItem Tag="传送阵" Content="{DynamicResource Loc.WS.Bus.Data.传送阵}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -311,19 +311,19 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="BusinessLocationTextBox"
-                                        materialDesign:HintAssist.Hint="经营地点"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.LocationHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="BusinessOwnerTextBox"
-                                        materialDesign:HintAssist.Hint="经营者"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.OperatorHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
 
                             <TextBox x:Name="BusinessDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="商业模式描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -332,7 +332,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 商品管理 -->
-                            <TextBlock Text="商品管理"
+                            <TextBlock Text="{DynamicResource Loc.WS.Bus.ProductsTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -350,13 +350,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="商品列表"
+                                                 Text="{DynamicResource Loc.WS.Bus.ProductList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddProduct_Click"
-                                              ToolTip="添加商品">
+                                              ToolTip="{DynamicResource Loc.WS.Bus.AddProductTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -377,19 +377,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="商品名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.ProductNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Price}"
-                                                               materialDesign:HintAssist.Hint="价格"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.PriceHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Description}"
-                                                               materialDesign:HintAssist.Hint="商品描述"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.ProductDescHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -397,7 +397,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveProduct_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除商品">
+                                                              ToolTip="{DynamicResource Loc.WS.Bus.DeleteProductTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -410,7 +410,7 @@
                             </Border>
 
                             <!-- 服务管理 -->
-                            <TextBlock Text="服务管理"
+                            <TextBlock Text="{DynamicResource Loc.WS.Bus.ServicesTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -428,13 +428,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="服务列表"
+                                                 Text="{DynamicResource Loc.WS.Bus.ServiceList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddService_Click"
-                                              ToolTip="添加服务">
+                                              ToolTip="{DynamicResource Loc.WS.Bus.AddServiceTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -455,19 +455,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="服务名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.ServiceNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Fee}"
-                                                               materialDesign:HintAssist.Hint="服务费用"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.ServiceFeeHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Description}"
-                                                               materialDesign:HintAssist.Hint="服务描述"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Bus.ServiceDescHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -475,7 +475,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveService_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除服务">
+                                                              ToolTip="{DynamicResource Loc.WS.Bus.DeleteServiceTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -491,11 +491,11 @@
                             <StackPanel Orientation="Horizontal"
                                       HorizontalAlignment="Right"
                                       Margin="0,16,0,0">
-                                <Button Content="保存"
+                                <Button Content="{DynamicResource Loc.Dlg.Save}"
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveBusiness_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消"
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

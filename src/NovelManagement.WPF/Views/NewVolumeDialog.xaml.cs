@@ -2,6 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Views
 {
@@ -58,7 +59,7 @@ namespace NovelManagement.WPF.Views
 
             SelectComboBoxItemByContent(VolumeTypeComboBox, volumeData.Type);
             SelectComboBoxItemByContent(VolumeStatusComboBox, volumeData.Status);
-            Title = $"编辑卷宗 - {volumeData.Name}";
+            Title = LocalizationManager.TF("NVD.EditTitle", "编辑卷宗 - {0}", volumeData.Name);
         }
 
         #endregion
@@ -75,22 +76,22 @@ namespace NovelManagement.WPF.Views
                 // 设置默认值
                 VolumeTypeComboBox.SelectedIndex = 0; // 主线剧情
                 VolumeStatusComboBox.SelectedIndex = 0; // 计划中
-                
+
                 // 设置默认顺序（假设当前有3卷）
                 VolumeOrderTextBox.Text = "4";
-                
+
                 // 设置默认目标章节数
                 TargetChapterCountTextBox.Text = "15";
-                
+
                 // 设置默认预计字数
                 EstimatedWordCountTextBox.Text = "42000";
-                
+
                 // 聚焦到名称输入框
                 VolumeNameTextBox.Focus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化对话框失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("NVD.InitFailed", "初始化对话框失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -109,7 +110,7 @@ namespace NovelManagement.WPF.Views
                 // 验证卷宗名称
                 if (string.IsNullOrWhiteSpace(VolumeNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入卷宗名称", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NVD.NameRequired", "请输入卷宗名称"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     VolumeNameTextBox.Focus();
                     return false;
@@ -118,7 +119,7 @@ namespace NovelManagement.WPF.Views
                 // 验证卷宗描述
                 if (string.IsNullOrWhiteSpace(VolumeDescriptionTextBox.Text))
                 {
-                    MessageBox.Show("请输入卷宗描述", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NVD.DescriptionRequired", "请输入卷宗描述"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     VolumeDescriptionTextBox.Focus();
                     return false;
@@ -127,17 +128,17 @@ namespace NovelManagement.WPF.Views
                 // 验证卷宗类型
                 if (VolumeTypeComboBox.SelectedItem == null)
                 {
-                    MessageBox.Show("请选择卷宗类型", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NVD.TypeRequired", "请选择卷宗类型"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     VolumeTypeComboBox.Focus();
                     return false;
                 }
 
                 // 验证卷宗顺序
-                if (string.IsNullOrWhiteSpace(VolumeOrderTextBox.Text) || 
+                if (string.IsNullOrWhiteSpace(VolumeOrderTextBox.Text) ||
                     !int.TryParse(VolumeOrderTextBox.Text, out int order) || order <= 0)
                 {
-                    MessageBox.Show("请输入有效的卷宗顺序（正整数）", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NVD.OrderInvalid", "请输入有效的卷宗顺序（正整数）"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     VolumeOrderTextBox.Focus();
                     return false;
@@ -148,7 +149,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (!int.TryParse(TargetChapterCountTextBox.Text, out int chapterCount) || chapterCount <= 0)
                     {
-                        MessageBox.Show("请输入有效的目标章节数（正整数）", "验证失败", 
+                        MessageBox.Show(LocalizationManager.T("NVD.TargetChaptersInvalid", "请输入有效的目标章节数（正整数）"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                         TargetChapterCountTextBox.Focus();
                         return false;
@@ -160,7 +161,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (!int.TryParse(EstimatedWordCountTextBox.Text, out int wordCount) || wordCount <= 0)
                     {
-                        MessageBox.Show("请输入有效的预计字数（正整数）", "验证失败", 
+                        MessageBox.Show(LocalizationManager.T("NVD.EstimatedWordsInvalid", "请输入有效的预计字数（正整数）"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                         EstimatedWordCountTextBox.Focus();
                         return false;
@@ -171,7 +172,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"验证输入时发生错误：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("NVD.ValidateFailed", "验证输入时发生错误：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -186,12 +187,14 @@ namespace NovelManagement.WPF.Views
             {
                 Name = VolumeNameTextBox.Text.Trim(),
                 Description = VolumeDescriptionTextBox.Text.Trim(),
-                Type = (VolumeTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                Type = (VolumeTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString()
+                        ?? (VolumeTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
                 Order = int.Parse(VolumeOrderTextBox.Text),
                 Theme = VolumeThemeTextBox.Text.Trim(),
                 KeyCharacters = KeyCharactersTextBox.Text.Trim(),
                 ImportantEvents = ImportantEventsTextBox.Text.Trim(),
-                Status = (VolumeStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                Status = (VolumeStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString()
+                          ?? (VolumeStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
                 Tags = VolumeTagsTextBox.Text.Trim()
             };
 
@@ -215,7 +218,7 @@ namespace NovelManagement.WPF.Views
             foreach (var item in comboBox.Items)
             {
                 if (item is System.Windows.Controls.ComboBoxItem comboBoxItem
-                    && string.Equals(comboBoxItem.Content?.ToString(), value, StringComparison.OrdinalIgnoreCase))
+                    && string.Equals(comboBoxItem.Tag?.ToString() ?? comboBoxItem.Content?.ToString(), value, StringComparison.OrdinalIgnoreCase))
                 {
                     comboBox.SelectedItem = comboBoxItem;
                     break;
@@ -249,7 +252,7 @@ namespace NovelManagement.WPF.Views
                 VolumeData = CollectFormData();
                 IsConfirmed = true;
 
-                MessageBox.Show($"卷宗 '{VolumeData.Name}' 创建成功！", "成功", 
+                MessageBox.Show(LocalizationManager.TF("VM.VolumeCreated", "卷宗 '{0}' 创建成功！", VolumeData.Name), LocalizationManager.T("Msg.Success", "成功"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -257,7 +260,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建卷宗时发生错误：{ex.Message}", "错误", 
+                MessageBox.Show(LocalizationManager.TF("NVD.CreateFailed", "创建卷宗时发生错误：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

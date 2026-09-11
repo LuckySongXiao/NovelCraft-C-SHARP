@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Views;
 
@@ -16,7 +17,7 @@ public class AIConfigurationHostWindow : Window
 {
     public AIConfigurationHostWindow()
     {
-        Title = "AI模型配置";
+        Title = LocalizationManager.T("AHW.WindowTitle", "AI模型配置");
         Width = 1320;
         Height = 940;
         MinWidth = 1100;
@@ -150,7 +151,7 @@ public class AIConfigurationHostWindow : Window
     {
         var title = new TextBlock
         {
-            Text = "AI 模型配置独立测试失败",
+            Text = LocalizationManager.T("AHW.ErrorTitle", "AI 模型配置独立测试失败"),
             FontSize = 22,
             FontWeight = FontWeights.SemiBold,
             Margin = new Thickness(0, 0, 0, 12)
@@ -158,7 +159,7 @@ public class AIConfigurationHostWindow : Window
 
         var description = new TextBlock
         {
-            Text = "页面在独立窗口中初始化时发生异常。请将下面的完整错误详情发回继续排查。",
+            Text = LocalizationManager.T("AHW.ErrorDescription", "页面在独立窗口中初始化时发生异常。请将下面的完整错误详情发回继续排查。"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 12)
         };
@@ -178,7 +179,7 @@ public class AIConfigurationHostWindow : Window
 
         var copyButton = new Button
         {
-            Content = "复制错误详情",
+            Content = LocalizationManager.T("AHW.CopyError", "复制错误详情"),
             Padding = new Thickness(14, 8, 14, 8),
             Margin = new Thickness(0, 0, 12, 0),
             MinWidth = 120
@@ -186,12 +187,12 @@ public class AIConfigurationHostWindow : Window
         copyButton.Click += (_, _) =>
         {
             Clipboard.SetText(ex.ToString());
-            MessageBox.Show("错误详情已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(LocalizationManager.T("AHW.Copied", "错误详情已复制到剪贴板。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
         };
 
         var closeButton = new Button
         {
-            Content = "关闭",
+            Content = LocalizationManager.T("Dlg.Close", "关闭"),
             Padding = new Thickness(14, 8, 14, 8),
             MinWidth = 100
         };

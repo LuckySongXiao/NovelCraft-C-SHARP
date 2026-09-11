@@ -16,6 +16,7 @@ using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services;
 using NovelManagement.AI.Utilities;
 
+using static NovelManagement.WPF.Localization.LocalizationManager;
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
@@ -47,7 +48,7 @@ namespace NovelManagement.WPF.Views
             _contextInfo = contextInfo;
             
             // 设置标题
-            TitleTextBlock.Text = $"AI助手 - {title}";
+            TitleTextBlock.Text = TF("AA.TitleFmt", "AI助手 - {0}", title);
             
             // 设置上下文信息
             ContextTextBlock.Text = contextInfo;
@@ -82,8 +83,8 @@ namespace NovelManagement.WPF.Views
         {
             if (ModelComboBox.SelectedItem is ComboBoxItem item)
             {
-                var modelName = item.Tag?.ToString() ?? "未知模型";
-                UpdateStatus($"已选择模型: {modelName}");
+                var modelName = item.Tag?.ToString() ?? T("AA.UnknownModel", "未知模型");
+                UpdateStatus(TF("AA.ModelSelectedFmt", "已选择模型: {0}", modelName));
             }
         }
 
@@ -96,7 +97,7 @@ namespace NovelManagement.WPF.Views
             {
                 var configWindow = new Window
                 {
-                    Title = "AI配置管理",
+                    Title = T("AA.ConfigWindowTitle", "AI配置管理"),
                     Width = 1200,
                     Height = 800,
                     WindowStartupLocation = Owner != null
@@ -107,13 +108,13 @@ namespace NovelManagement.WPF.Views
                 };
 
                 configWindow.ShowDialog();
-                UpdateStatus("已打开AI配置");
+                UpdateStatus(T("AA.ConfigOpened", "已打开AI配置"));
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "打开 AI 配置窗口时发生错误");
-                MessageBox.Show($"打开AI配置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                UpdateStatus("错误");
+                MessageBox.Show(TF("AA.OpenConfigFailedFmt", "打开AI配置失败：{0}", ex.Message), T("AA.StatusError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
+                UpdateStatus(T("AA.StatusError", "错误"));
             }
         }
 
@@ -122,7 +123,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void GenerateSetting_Click(object sender, RoutedEventArgs e)
         {
-            InputTextBox.Text = "请帮我生成一个新的设定，要求：";
+            InputTextBox.Text = T("AA.PromptGenerateSetting", "请帮我生成一个新的设定，要求：");
             InputTextBox.Focus();
             InputTextBox.CaretIndex = InputTextBox.Text.Length;
         }
@@ -132,7 +133,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void AnalyzeSetting_Click(object sender, RoutedEventArgs e)
         {
-            InputTextBox.Text = "请分析当前选中的设定，包括其合理性、完整性和与其他设定的关联性：";
+            InputTextBox.Text = T("AA.PromptAnalyzeSetting", "请分析当前选中的设定，包括其合理性、完整性和与其他设定的关联性：");
             InputTextBox.Focus();
             InputTextBox.CaretIndex = InputTextBox.Text.Length;
         }
@@ -142,7 +143,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void OptimizeSetting_Click(object sender, RoutedEventArgs e)
         {
-            InputTextBox.Text = "请为当前设定提供优化建议，包括如何增强其吸引力和逻辑性：";
+            InputTextBox.Text = T("AA.PromptOptimizeSetting", "请为当前设定提供优化建议，包括如何增强其吸引力和逻辑性：");
             InputTextBox.Focus();
             InputTextBox.CaretIndex = InputTextBox.Text.Length;
         }
@@ -152,7 +153,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void CheckConsistency_Click(object sender, RoutedEventArgs e)
         {
-            InputTextBox.Text = "请检查当前设定与整个世界观的一致性，指出可能的冲突或矛盾：";
+            InputTextBox.Text = T("AA.PromptCheckConsistency", "请检查当前设定与整个世界观的一致性，指出可能的冲突或矛盾：");
             InputTextBox.Focus();
             InputTextBox.CaretIndex = InputTextBox.Text.Length;
         }
@@ -188,7 +189,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ClearChat_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show("确定要清空对话历史吗？", "确认", 
+            var result = MessageBox.Show(T("AA.ClearChatConfirm", "确定要清空对话历史吗？"), T("Common.Confirm", "确认"), 
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             
             if (result == MessageBoxResult.Yes)
@@ -221,7 +222,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _isProcessing = true;
-                UpdateStatus("正在处理...");
+                UpdateStatus(T("AA.StatusProcessing", "正在处理..."));
                 SendButton.IsEnabled = false;
 
                 // 添加用户消息到对话
@@ -235,13 +236,13 @@ namespace NovelManagement.WPF.Views
                 // 添加AI响应到对话
                 AddAIMessage(response);
                 
-                UpdateStatus("就绪");
+                UpdateStatus(T("AA.StatusReady", "就绪"));
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "发送消息时发生错误");
-                AddAIMessage($"抱歉，处理您的请求时发生错误：{ex.Message}");
-                UpdateStatus("错误");
+                AddAIMessage(TF("AA.ErrorBubbleFmt", "抱歉，处理您的请求时发生错误：{0}", ex.Message));
+                UpdateStatus(T("AA.StatusError", "错误"));
             }
             finally
             {
@@ -276,7 +277,7 @@ namespace NovelManagement.WPF.Views
 
             if (_modelManager == null)
             {
-                throw new InvalidOperationException("AI 模型管理器未初始化。");
+                throw new InvalidOperationException(T("AA.ErrorModelManagerNotInit", "AI 模型管理器未初始化。"));
             }
 
             var preferredProvider = (ModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
@@ -285,7 +286,7 @@ namespace NovelManagement.WPF.Views
             var providerName = _modelManager.ResolvePreferredProviderName(preferredProvider);
             if (string.IsNullOrWhiteSpace(providerName))
             {
-                throw new InvalidOperationException("没有可用的 AI 提供者。");
+                throw new InvalidOperationException(T("AA.ErrorNoProvider", "没有可用的 AI 提供者。"));
             }
 
             var request = new ChatRequest
@@ -308,13 +309,13 @@ namespace NovelManagement.WPF.Views
             var response = await _modelManager.ChatAsync(providerName, request);
             if (!response.IsSuccess)
             {
-                throw new InvalidOperationException(response.ErrorMessage ?? "AI 响应失败。");
+                throw new InvalidOperationException(response.ErrorMessage ?? T("AA.ErrorResponse", "AI 响应失败。"));
             }
 
             var cleanContent = AIOutputSanitizer.ExtractCleanOutput(response.Content);
             if (string.IsNullOrWhiteSpace(cleanContent))
             {
-                throw new InvalidOperationException("AI 返回空内容。");
+                throw new InvalidOperationException(T("AA.ErrorEmptyResponse", "AI 返回空内容。"));
             }
 
             return cleanContent;
@@ -414,7 +415,7 @@ namespace NovelManagement.WPF.Views
 
             var senderText = new TextBlock
             {
-                Text = isUser ? "您" : "AI助手",
+                Text = isUser ? T("AA.You", "您") : T("AA.Name", "AI助手"),
                 Style = (Style)FindResource("MaterialDesignCaptionTextBlock"),
                 Foreground = isUser ? Brushes.White : (Brush)FindResource("PrimaryHueMidBrush"),
                 Margin = new Thickness(4, 0, 0, 0)
@@ -467,15 +468,15 @@ namespace NovelManagement.WPF.Views
             
             switch (status)
             {
-                case "就绪":
+                case var s when s == T("AA.StatusReady", "就绪"):
                     StatusIcon.Kind = PackIconKind.CheckCircle;
                     StatusIcon.Foreground = Brushes.Green;
                     break;
-                case "正在处理...":
+                case var s when s == T("AA.StatusProcessing", "正在处理..."):
                     StatusIcon.Kind = PackIconKind.Loading;
                     StatusIcon.Foreground = Brushes.Orange;
                     break;
-                case "错误":
+                case var s when s == T("AA.StatusError", "错误"):
                     StatusIcon.Kind = PackIconKind.AlertCircle;
                     StatusIcon.Foreground = Brushes.Red;
                     break;

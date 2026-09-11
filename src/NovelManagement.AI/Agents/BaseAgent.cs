@@ -784,7 +784,8 @@ namespace NovelManagement.AI.Agents
                 var userPrompt = BuildUserPrompt(taskType, parameters);
                 var prompt = "User: " + systemPrompt + "\n" + userPrompt + "\n\nAssistant: <think></think\n";
 
-                var response = await RwkvService.CompleteAsync(prompt, ResolveRwkvMaxTokens(taskType));
+                // 流式请求：避免经 Cloudflare Tunnel 时源站 >100s 无响应被 524 掐断（长生成实测踩坑）
+                var response = await RwkvService.CompleteStreamAsync(prompt, ResolveRwkvMaxTokens(taskType));
                 if (!response.Success || string.IsNullOrWhiteSpace(response.Text))
                 {
                     _logger.LogWarning("RWKV 推理任务 {TaskType} 失败: {Error}", taskType, response.Error);
@@ -817,8 +818,9 @@ namespace NovelManagement.AI.Agents
             "GenerateChapterContent" or "ContinueChapter" => 2048,
             "PolishText" or "OptimizeOutline" or "OptimizePlot" => 1800,
             "GenerateCharacter" or "OptimizeCharacter" or "GeneratePlot" or "GetPlotSuggestions" => 1200,
-            "SummarizeChapter" or "SummarizeVolume" => 600,
-            _ => 1000
+            "SummarizeChapter" or "SummarizeVolume" => 800,
+            // world 模型常带思维链规划前缀，默认预算提升到 1200 保证正文完整
+            _ => 1200
         };
 
         #endregion

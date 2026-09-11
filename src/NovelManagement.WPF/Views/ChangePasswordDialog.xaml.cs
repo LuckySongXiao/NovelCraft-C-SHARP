@@ -1,4 +1,5 @@
 using System.Windows;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views;
@@ -32,25 +33,25 @@ public partial class ChangePasswordDialog : Window
 
         if (string.IsNullOrEmpty(currentPassword))
         {
-            ShowError("请输入当前密码");
+            ShowError(LocalizationManager.T("CPW.EnterCurrentPassword", "请输入当前密码"));
             return;
         }
 
         if (newPassword.Length < MinPasswordLength)
         {
-            ShowError($"新密码长度不能少于 {MinPasswordLength} 位");
+            ShowError(LocalizationManager.TF("CPW.MinLength", "新密码长度不能少于 {0} 位", MinPasswordLength));
             return;
         }
 
         if (newPassword != confirmPassword)
         {
-            ShowError("两次输入的新密码不一致");
+            ShowError(LocalizationManager.T("CPW.PasswordMismatch", "两次输入的新密码不一致"));
             return;
         }
 
         if (!PasswordGate.Verify(currentPassword))
         {
-            ShowError("当前密码错误");
+            ShowError(LocalizationManager.T("CPW.WrongCurrentPassword", "当前密码错误"));
             CurrentPasswordBox.Clear();
             CurrentPasswordBox.Focus();
             return;
@@ -60,13 +61,13 @@ public partial class ChangePasswordDialog : Window
         {
             PasswordGate.ChangePassword(currentPassword, newPassword);
             Succeeded = true;
-            MessageBox.Show("启动密码已更新，下次启动应用时生效。", "修改成功",
+            MessageBox.Show(LocalizationManager.T("CPW.ChangeSuccess", "启动密码已更新，下次启动应用时生效。"), LocalizationManager.T("CPW.SuccessTitle", "修改成功"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
         }
         catch (System.Exception ex)
         {
-            ShowError($"保存新密码失败：{ex.Message}");
+            ShowError(LocalizationManager.TF("CPW.SaveFailed", "保存新密码失败：{0}", ex.Message));
         }
     }
 

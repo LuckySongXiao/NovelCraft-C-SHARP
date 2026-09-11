@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="职业体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Prof.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddProfession_Click"
-                            ToolTip="新建职业体系">
+                            ToolTip="{DynamicResource Loc.WS.Prof.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportProfession_Click"
-                            ToolTip="导入职业数据">
+                            ToolTip="{DynamicResource Loc.WS.Prof.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportProfession_Click"
-                            ToolTip="导出职业数据">
+                            ToolTip="{DynamicResource Loc.WS.Prof.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Robot" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索职业体系..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Prof.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,14 +100,14 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="CategoryFilterComboBox"
-                                     materialDesign:HintAssist.Hint="职业类别"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Prof.CategoryHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="CategoryFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类别"/>
-                                <ComboBoxItem Content="修炼职业"/>
-                                <ComboBoxItem Content="生活职业"/>
-                                <ComboBoxItem Content="战斗职业"/>
-                                <ComboBoxItem Content="辅助职业"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllCategories}"/>
+                                <ComboBoxItem Tag="修炼职业" Content="{DynamicResource Loc.WS.Prof.Data.修炼职业}"/>
+                                <ComboBoxItem Tag="生活职业" Content="{DynamicResource Loc.WS.Prof.Data.生活职业}"/>
+                                <ComboBoxItem Tag="战斗职业" Content="{DynamicResource Loc.WS.Prof.Data.战斗职业}"/>
+                                <ComboBoxItem Tag="辅助职业" Content="{DynamicResource Loc.WS.Prof.Data.辅助职业}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -176,14 +176,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="等级数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Prof.LevelCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding LevelCount}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 技能数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Prof.SkillCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -204,7 +204,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="职业体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Prof.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -215,21 +215,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="修炼职业: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.修炼职业}"/>
                                         <Run Text="{Binding CultivationCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="生活职业: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.生活职业}"/>
                                         <Run Text="{Binding LifeCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="战斗职业: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.战斗职业}"/>
                                         <Run Text="{Binding CombatCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -253,12 +253,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个职业体系查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Prof.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的职业体系" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Prof.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -268,7 +268,7 @@
                         <!-- 职业详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -282,24 +282,24 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="ProfessionNameTextBox"
-                                        materialDesign:HintAssist.Hint="职业体系名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Prof.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="ProfessionCategoryComboBox"
-                                         materialDesign:HintAssist.Hint="职业类别"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Prof.CategoryHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="修炼职业"/>
-                                    <ComboBoxItem Content="生活职业"/>
-                                    <ComboBoxItem Content="战斗职业"/>
-                                    <ComboBoxItem Content="辅助职业"/>
+                                    <ComboBoxItem Tag="修炼职业" Content="{DynamicResource Loc.WS.Prof.Data.修炼职业}"/>
+                                    <ComboBoxItem Tag="生活职业" Content="{DynamicResource Loc.WS.Prof.Data.生活职业}"/>
+                                    <ComboBoxItem Tag="战斗职业" Content="{DynamicResource Loc.WS.Prof.Data.战斗职业}"/>
+                                    <ComboBoxItem Tag="辅助职业" Content="{DynamicResource Loc.WS.Prof.Data.辅助职业}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="ProfessionDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="职业体系描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Prof.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -308,7 +308,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 职业等级 -->
-                            <TextBlock Text="职业等级" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Prof.LevelsTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -326,13 +326,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="等级列表" 
+                                                 Text="{DynamicResource Loc.WS.Common.LevelList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddLevel_Click"
-                                              ToolTip="添加等级">
+                                              ToolTip="{DynamicResource Loc.WS.Common.AddLevelTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -353,19 +353,19 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Level}" 
-                                                               materialDesign:HintAssist.Hint="等级"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.LevelHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <TextBox Grid.Column="1" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="等级名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.LevelNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <TextBox Grid.Column="2" 
                                                                Text="{Binding Requirements}" 
-                                                               materialDesign:HintAssist.Hint="晋升要求"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.PromotionHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -373,7 +373,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveLevel_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除等级">
+                                                              ToolTip="{DynamicResource Loc.WS.Common.DeleteLevelTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -389,11 +389,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveProfession_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

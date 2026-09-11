@@ -1,4 +1,4 @@
-<UserControl x:Class="NovelManagement.WPF.Views.Copilot.CopilotPanel"
+﻿<UserControl x:Class="NovelManagement.WPF.Views.Copilot.CopilotPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -151,19 +151,19 @@
                                                 <!-- 单项操作按钮（仅 Pending 可见） -->
                                                 <StackPanel Orientation="Horizontal"
                                                             Visibility="{Binding IsPending, Converter={StaticResource BoolToVisibility}}">
-                                                    <Button Content="采纳"
+                                                    <Button Content="{DynamicResource Loc.CP.AcceptItem}"
                                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                                             Padding="8,2"
                                                             Margin="0,0,8,0"
                                                             FontSize="11"
                                                             Click="AcceptItem_Click"/>
-                                                    <Button Content="修改"
+                                                    <Button Content="{DynamicResource Loc.CP.EditItem}"
                                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                                             Padding="8,2"
                                                             Margin="0,0,8,0"
                                                             FontSize="11"
                                                             Click="EditItem_Click"/>
-                                                    <Button Content="放弃"
+                                                    <Button Content="{DynamicResource Loc.CP.RejectItem}"
                                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                                             Padding="8,2"
                                                             FontSize="11"
@@ -180,12 +180,12 @@
                                         HorizontalAlignment="Right"
                                         Margin="0,6,0,0"
                                         Visibility="{Binding Proposal.Status, Converter={copilot:PendingToVisibilityConverter}}">
-                                <Button Content="全部采纳"
+                                <Button Content="{DynamicResource Loc.CP.AcceptAll}"
                                         Style="{StaticResource MaterialDesignRaisedButton}"
                                         Padding="12,4"
                                         Margin="0,0,8,0"
                                         Click="AcceptAll_Click"/>
-                                <Button Content="放弃整卡"
+                                <Button Content="{DynamicResource Loc.CP.RejectCard}"
                                         Style="{StaticResource MaterialDesignOutlinedButton}"
                                         Padding="12,4"
                                         Click="RejectCard_Click"/>
@@ -213,7 +213,7 @@
             <DockPanel Margin="12,10,8,10">
                 <Button DockPanel.Dock="Right"
                         Style="{StaticResource MaterialDesignToolButton}"
-                        ToolTip="收起 AI 创作助手"
+                        ToolTip="{DynamicResource Loc.CP.CollapseTooltip}"
                         Click="ClosePanel_Click">
                     <materialDesign:PackIcon Kind="ChevronDoubleRight" Width="20" Height="20"/>
                 </Button>
@@ -224,9 +224,9 @@
                                              Margin="0,0,8,0"
                                              Foreground="{DynamicResource PrimaryHueMidBrush}"/>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="AI 创作助手" FontWeight="Bold" FontSize="14"/>
+                        <TextBlock Text="{DynamicResource Nav.CopilotPanel}" FontWeight="Bold" FontSize="14"/>
                         <TextBlock x:Name="StageBadgeText"
-                                   Text="流水线：未开始"
+                                   Text="{DynamicResource Loc.CP.StageNotStarted}"
                                    FontSize="11"
                                    Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                     </StackPanel>
@@ -257,7 +257,7 @@
                 <Button DockPanel.Dock="Right"
                         x:Name="ClearChapterRefButton"
                         Style="{StaticResource MaterialDesignToolButton}"
-                        ToolTip="取消章节关联"
+                        ToolTip="{DynamicResource Loc.CP.ClearChapterRefTooltip}"
                         Click="ClearChapterRef_Click">
                     <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
                 </Button>
@@ -288,10 +288,10 @@
             <DockPanel>
                 <Button DockPanel.Dock="Right"
                         Style="{StaticResource MaterialDesignToolButton}"
-                        Content="取消"
+                        Content="{DynamicResource Dlg.Cancel}"
                         FontSize="11"
                         Click="CancelEdit_Click"/>
-                <TextBlock Text="修改模式：直接输入修改后的内容，发送后生效"
+                <TextBlock Text="{DynamicResource Loc.CP.EditModeHint}"
                            FontSize="11"
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource MaterialDesignBody}"
@@ -305,7 +305,7 @@
                     x:Name="AttachChapterButton"
                     Style="{StaticResource MaterialDesignToolButton}"
                     Margin="0,0,4,0"
-                    ToolTip="关联章节（书 → 卷 → 章），关联后直接输入要求处理该章"
+                    ToolTip="{DynamicResource Loc.CP.AttachChapterTooltip}"
                     Click="AttachChapter_Click">
                 <materialDesign:PackIcon Kind="LinkVariant" Width="20" Height="20"/>
             </Button>
@@ -313,7 +313,7 @@
                     x:Name="SendButton"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     Margin="8,0,0,0"
-                    ToolTip="发送（Enter）"
+                    ToolTip="{DynamicResource Loc.CP.SendTooltip}"
                     Click="Send_Click">
                 <materialDesign:PackIcon Kind="Send" Width="20" Height="20"/>
             </Button>

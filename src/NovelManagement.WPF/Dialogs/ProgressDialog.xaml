@@ -23,7 +23,7 @@
             <!-- 标题 -->
             <TextBlock Grid.Row="0" 
                        x:Name="TitleTextBlock"
-                       Text="处理中..."
+                       Text="{DynamicResource Loc.PD.DefaultTitle}"
                        Style="{StaticResource MaterialDesignHeadline6TextBlock}"
                        HorizontalAlignment="Center"/>
             
@@ -37,7 +37,7 @@
             <!-- 描述 -->
             <TextBlock Grid.Row="4" 
                        x:Name="MessageTextBlock"
-                       Text="请稍候..."
+                       Text="{DynamicResource Loc.PD.DefaultMessage}"
                        Style="{StaticResource MaterialDesignBody2TextBlock}"
                        HorizontalAlignment="Center"
                        TextWrapping="Wrap"

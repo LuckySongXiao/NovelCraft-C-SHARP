@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using Microsoft.Win32;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.WPF.Models;
 using NovelManagement.Application.Services;
 using NovelManagement.Application.Interfaces;
@@ -86,13 +87,13 @@ namespace NovelManagement.WPF.Views
                 _aiAssistantService = App.ServiceProvider?.GetService<AIAssistantService>();
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化，请检查配置", "警告",
+                    MessageBox.Show(T("CWR.ServiceNotInit", "AI服务未初始化，请检查配置"), T("Msg.Warning"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化AI服务失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("CWR.InitFailedFmt", "初始化AI服务失败：{0}", ex.Message), T("Msg.Warning"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -138,13 +139,13 @@ namespace NovelManagement.WPF.Views
                 if (!string.IsNullOrEmpty(GeneratedContentTextBox.Text))
                 {
                     Clipboard.SetText(GeneratedContentTextBox.Text);
-                    MessageBox.Show("内容已复制到剪贴板", "提示", 
+                    MessageBox.Show(T("CWR.Copied", "内容已复制到剪贴板"), T("Msg.Tip"), 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"复制失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CWR.CopyFailedFmt", "复制失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -217,18 +218,18 @@ namespace NovelManagement.WPF.Views
                 var template = LoadTemplateFromFile(dialog.SelectedTemplatePath);
                 if (template == null)
                 {
-                    MessageBox.Show("模板内容无效。", "错误",
+                    MessageBox.Show(T("CWR.TemplateInvalid", "模板内容无效。"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 ApplyTemplate(template);
-                MessageBox.Show($"模板已加载：{template.Name}", "加载成功",
+                MessageBox.Show(TF("CWR.TemplateLoadedFmt", "模板已加载：{0}", template.Name), T("CWR.LoadSuccessTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开模板管理失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CWR.TemplateMgrOpenFailFmt", "打开模板管理失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -244,12 +245,12 @@ namespace NovelManagement.WPF.Views
                     string.IsNullOrWhiteSpace(ChapterOutlineTextBox.Text) &&
                     string.IsNullOrWhiteSpace(KeyPlotsTextBox.Text))
                 {
-                    MessageBox.Show("没有内容可保存为模板", "提示",
+                    MessageBox.Show(T("CWR.NothingToSave", "没有内容可保存为模板"), T("Msg.Tip"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                var inputDialog = new TextInputDialog("保存章节模板", "模板名称", $"章节模板_{DateTime.Now:yyyyMMdd_HHmmss}")
+                var inputDialog = new TextInputDialog(T("CWR.SaveTemplateTitle"), T("CWR.TemplateNameLabel"), TF("CWR.TemplateFileNameFmt", "章节模板_{0:yyyyMMdd_HHmmss}", DateTime.Now))
                 {
                     Owner = this
                 };
@@ -265,12 +266,12 @@ namespace NovelManagement.WPF.Views
                 var templatePath = Path.Combine(templateDirectory, $"{SanitizeFileName(template.Name)}.json");
                 File.WriteAllText(templatePath, JsonSerializer.Serialize(template, _jsonSerializerOptions));
 
-                MessageBox.Show($"模板已保存：{templatePath}", "保存成功",
+                MessageBox.Show(TF("CWR.TemplateSavedFmt", "模板已保存：{0}", templatePath), T("CWR.SaveSuccessTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存模板失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CWR.TemplateSaveFailFmt", "保存模板失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -284,7 +285,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(GeneratedContentTextBox.Text))
                 {
-                    MessageBox.Show("没有内容可润色", "提示",
+                    MessageBox.Show(T("CWR.NothingToPolish", "没有内容可润色"), T("Msg.Tip"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -306,7 +307,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"润色内容失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CWR.PolishFailFmt", "润色内容失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -333,21 +334,21 @@ namespace NovelManagement.WPF.Views
                 // 显示进度和状态
                 GenerationProgressBar.Visibility = Visibility.Visible;
                 StatusTextBlock.Visibility = Visibility.Visible;
-                StatusTextBlock.Text = "正在准备生成参数...";
+                StatusTextBlock.Text = T("CWR.PreparingParams", "正在准备生成参数...");
                 GenerationProgressBar.Value = 10;
 
                 if (useQuickMode)
                 {
-                    GenerateButton.Content = "快速生成中...";
+                    GenerateButton.Content = T("CWR.QuickGenerating", "快速生成中...");
                 }
                 else
                 {
-                    GenerateButton.Content = "生成中...";
+                    GenerateButton.Content = T("CWR.Generating", "生成中...");
                 }
 
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CWR.ServiceNotInitShort", "AI服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -358,8 +359,13 @@ namespace NovelManagement.WPF.Views
                 var parameters = new Dictionary<string, object>
                 {
                     ["ChapterTitle"] = ChapterTitleTextBox.Text,
-                    ["WritingStyle"] = ((ComboBoxItem)WritingStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古风仙侠",
-                    ["ChapterType"] = ((ComboBoxItem)ChapterTypeComboBox.SelectedItem)?.Content?.ToString() ?? "正文章节",
+                    // 英文模式传英文风格/类型名（提示词语言决定模型输出语言，避免混入中文标签）
+                    ["WritingStyle"] = Localization.LocalizationManager.IsEnglish
+                        ? (((ComboBoxItem)WritingStyleComboBox.SelectedItem)?.Content?.ToString() ?? "Literary Fiction")
+                        : (((ComboBoxItem)WritingStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)WritingStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古风仙侠"),
+                    ["ChapterType"] = Localization.LocalizationManager.IsEnglish
+                        ? (((ComboBoxItem)ChapterTypeComboBox.SelectedItem)?.Content?.ToString() ?? "Main Chapter")
+                        : (((ComboBoxItem)ChapterTypeComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)ChapterTypeComboBox.SelectedItem)?.Content?.ToString() ?? "正文章节"),
                     ["TargetWordCount"] = TargetWordCountTextBox.Text,
                     ["ChapterOutline"] = ChapterOutlineTextBox.Text,
                     ["KeyPlots"] = KeyPlotsTextBox.Text,
@@ -367,9 +373,9 @@ namespace NovelManagement.WPF.Views
                     ["SpecialRequirements"] = SpecialRequirementsTextBox.Text,
                     ["ExistingChapterData"] = _chapterData,
                     // 新增高级参数
-                    ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
+                    ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
                     ["CreativityLevel"] = CreativitySlider.Value,
-                    ["StyleIntensity"] = ((ComboBoxItem)StyleIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度",
+                    ["StyleIntensity"] = ((ComboBoxItem)StyleIntensityComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)StyleIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度",
                     ["SegmentedGeneration"] = SegmentedGenerationCheckBox.IsChecked == true,
                     ["RealTimePreview"] = RealTimePreviewCheckBox.IsChecked == true,
                     ["QuickMode"] = useQuickMode,
@@ -383,20 +389,20 @@ namespace NovelManagement.WPF.Views
                     ["WorldSettings"] = contextData.WorldSettings
                 };
 
-                StatusTextBlock.Text = "正在调用AI服务...";
+                StatusTextBlock.Text = T("CWR.CallingAi", "正在调用AI服务...");
                 GenerationProgressBar.Value = 30;
 
                 // 调用AI服务生成内容
                 if (_aiAssistantService != null)
                 {
-                    StatusTextBlock.Text = "AI正在生成章节内容...";
+                    StatusTextBlock.Text = T("CWR.AiGenerating", "AI正在生成章节内容...");
                     GenerationProgressBar.Value = 50;
 
                     // 使用AI助手服务生成章节内容
                     var result = await _aiAssistantService.GenerateChapterAsync(parameters);
 
                     GenerationProgressBar.Value = 80;
-                    StatusTextBlock.Text = "正在处理生成结果...";
+                    StatusTextBlock.Text = T("CWR.ProcessingResult", "正在处理生成结果...");
 
                     if (result.IsSuccess && result.Data != null)
                     {
@@ -412,7 +418,7 @@ namespace NovelManagement.WPF.Views
                             UpdateRwkvDebugInfo(_lastGenerationMetadata);
 
                             GenerationProgressBar.Value = 100;
-                            StatusTextBlock.Text = "章节生成完成！";
+                            StatusTextBlock.Text = T("CWR.GenerateDone", "章节生成完成！");
 
                             // 延迟隐藏进度条
                             await Task.Delay(1000);
@@ -421,7 +427,7 @@ namespace NovelManagement.WPF.Views
 
                             if (!useQuickMode)
                             {
-                                MessageBox.Show("章节生成完成！", "成功",
+                                MessageBox.Show(T("CWR.GenerateDone", "章节生成完成！"), T("Msg.Success"),
                                     MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                         }
@@ -433,7 +439,7 @@ namespace NovelManagement.WPF.Views
                             GenerationProgressBar.Visibility = Visibility.Collapsed;
                             StatusTextBlock.Visibility = Visibility.Collapsed;
 
-                            MessageBox.Show($"内容生成成功，但界面更新失败：{updateEx.Message}", "警告",
+                            MessageBox.Show(TF("CWR.UpdateUIFailFmt", "内容生成成功，但界面更新失败：{0}", updateEx.Message), T("Msg.Warning"),
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
                     }
@@ -442,24 +448,24 @@ namespace NovelManagement.WPF.Views
                         ClearRwkvDebugInfo();
                         GenerationProgressBar.Visibility = Visibility.Collapsed;
                         StatusTextBlock.Visibility = Visibility.Collapsed;
-                        MessageBox.Show($"章节生成失败：{result.Message}", "错误",
+                        MessageBox.Show(TF("CWR.GenerateFailFmt", "章节生成失败：{0}", result.Message), T("Msg.Error"),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 else
                 {
-                    StatusTextBlock.Text = "AI服务不可用";
+                    StatusTextBlock.Text = T("CWR.ServiceUnavailable", "AI服务不可用");
                     ClearRwkvDebugInfo();
                     GenerationProgressBar.Visibility = Visibility.Collapsed;
                     StatusTextBlock.Visibility = Visibility.Collapsed;
-                    MessageBox.Show("AI服务未初始化，无法生成章节内容。请先在AI配置中启用可用模型。", "错误",
+                    MessageBox.Show(T("CWR.ServiceNotInitDetails", "AI服务未初始化，无法生成章节内容。请先在AI配置中启用可用模型。"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 ClearRwkvDebugInfo();
-                MessageBox.Show($"生成章节内容失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CWR.GenerateErrorFmt", "生成章节内容失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -473,7 +479,7 @@ namespace NovelManagement.WPF.Views
                     Children =
                     {
                         new MaterialDesignThemes.Wpf.PackIcon { Kind = MaterialDesignThemes.Wpf.PackIconKind.RobotExcited, Margin = new Thickness(0,0,8,0) },
-                        new TextBlock { Text = "开始生成" }
+                        new TextBlock { Text = T("CWR.StartGenerate", "开始生成") }
                     }
                 };
 
@@ -543,7 +549,7 @@ namespace NovelManagement.WPF.Views
                 var wordCountLabel = this.FindName("GeneratedWordCountLabel") as TextBlock;
                 if (wordCountLabel != null)
                 {
-                    wordCountLabel.Text = $"({wordCount:N0}字)";
+                    wordCountLabel.Text = TF("CWR.WordCountFmt", "({0:N0}字)", wordCount);
                 }
             }
             catch
@@ -580,17 +586,17 @@ namespace NovelManagement.WPF.Views
                         // 字符统计
                         var characterCount = content.Length;
                         if (CharacterCountLabel != null)
-                            CharacterCountLabel.Text = $"字符: {characterCount:N0}";
+                            CharacterCountLabel.Text = TF("CWR.CharCountFmt", "字符: {0:N0}", characterCount);
 
                         // 段落统计
                         var paragraphCount = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length;
                         if (ParagraphCountLabel != null)
-                            ParagraphCountLabel.Text = $"段落: {paragraphCount}";
+                            ParagraphCountLabel.Text = TF("CWR.ParaCountFmt", "段落: {0}", paragraphCount);
 
                         // 阅读时间估算（按每分钟300字计算）
                         var readingTime = Math.Ceiling((double)characterCount / 300);
                         if (ReadingTimeLabel != null)
-                            ReadingTimeLabel.Text = $"阅读时间: {readingTime}分钟";
+                            ReadingTimeLabel.Text = TF("CWR.ReadTimeFmt", "阅读时间: {0}分钟", readingTime);
                     }
                     catch (Exception uiEx)
                     {
@@ -624,10 +630,10 @@ namespace NovelManagement.WPF.Views
 
                 // 简单的质量评分算法
                 var score = CalculateContentQuality(content);
-                var scoreText = score >= 90 ? "优秀" : score >= 80 ? "良好" : score >= 70 ? "一般" : "需改进";
+                var scoreText = score >= 90 ? T("CWR.QualityExcellent", "优秀") : score >= 80 ? T("CWR.QualityGood", "良好") : score >= 70 ? T("CWR.QualityAverage", "一般") : T("CWR.QualityNeedsWork", "需改进");
                 var color = score >= 90 ? "Green" : score >= 80 ? "Orange" : score >= 70 ? "Blue" : "Red";
 
-                QualityScoreLabel.Text = $"质量: {scoreText}({score}分)";
+                QualityScoreLabel.Text = TF("CWR.QualityFmt", "质量: {0}({1}分)", scoreText, score);
                 QualityScoreLabel.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
             }
             catch (Exception ex)
@@ -739,14 +745,14 @@ namespace NovelManagement.WPF.Views
             var enabled = GetMetadataText(metadata, "RwkvBigBatchEnabled", fallback: "false");
             var selectedRounds = GetMetadataText(metadata, "RwkvBigBatchSelectedRounds", fallback: "0");
             var fallbackRounds = GetMetadataText(metadata, "RwkvBigBatchFallbackRounds", fallback: "0");
-            return $"启用={enabled}，命中轮次={selectedRounds}，回退轮次={fallbackRounds}";
+            return TF("CWR.DebugEnabledFmt", "启用={0}，命中轮次={1}，回退轮次={2}", enabled, selectedRounds, fallbackRounds);
         }
 
         private static string BuildRwkvSelectionInfo(IReadOnlyDictionary<string, object> metadata)
         {
             var index = GetMetadataText(metadata, "RwkvBigBatchLastSelectedIndex", fallback: "-1");
             var score = GetMetadataText(metadata, "RwkvBigBatchLastScore", fallback: "0");
-            return $"候选索引={index}，评分={score}";
+            return TF("CWR.DebugCandidateFmt", "候选索引={0}，评分={1}", index, score);
         }
 
         private static string GetMetadataText(IReadOnlyDictionary<string, object> metadata, string key, string? alternateKey = null, string fallback = "")
@@ -787,16 +793,16 @@ namespace NovelManagement.WPF.Views
             {
                 Name = name,
                 ChapterTitle = ChapterTitleTextBox.Text?.Trim() ?? string.Empty,
-                WritingStyle = (WritingStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
-                ChapterType = (ChapterTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                WritingStyle = (WritingStyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (WritingStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                ChapterType = (ChapterTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (ChapterTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 TargetWordCount = TargetWordCountTextBox.Text?.Trim() ?? string.Empty,
                 ChapterOutline = ChapterOutlineTextBox.Text?.Trim() ?? string.Empty,
                 KeyPlots = KeyPlotsTextBox.Text?.Trim() ?? string.Empty,
                 Characters = CharactersTextBox.Text?.Trim() ?? string.Empty,
                 SpecialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty,
-                AIModel = (AIModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                AIModel = (AIModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (AIModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 Creativity = CreativitySlider.Value,
-                StyleIntensity = (StyleIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                StyleIntensity = (StyleIntensityComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (StyleIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 SegmentedGeneration = SegmentedGenerationCheckBox.IsChecked == true,
                 RealTimePreview = RealTimePreviewCheckBox.IsChecked == true,
                 GeneratedContent = GeneratedContentTextBox.Text ?? string.Empty,
@@ -838,7 +844,7 @@ namespace NovelManagement.WPF.Views
         {
             foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
             {
-                if (string.Equals(item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(item.Tag?.ToString() ?? item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
                 {
                     comboBox.SelectedItem = item;
                     return;
@@ -892,7 +898,7 @@ namespace NovelManagement.WPF.Views
         public ChapterTemplateManagementDialog(string templateDirectory)
         {
             _templateDirectory = templateDirectory;
-            Title = "章节模板管理";
+            Title = T("CWR.TemplateMgrTitle", "章节模板管理");
             Width = 520;
             Height = 420;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -903,7 +909,7 @@ namespace NovelManagement.WPF.Views
             var panel = new DockPanel { Margin = new Thickness(20) };
             panel.Children.Add(new TextBlock
             {
-                Text = "请选择要加载或删除的章节模板：",
+                Text = T("CWR.TemplateMgrPrompt", "请选择要加载或删除的章节模板："),
                 Margin = new Thickness(0, 0, 0, 12)
             });
 
@@ -916,7 +922,7 @@ namespace NovelManagement.WPF.Views
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            var openFolderButton = new Button { Content = "打开目录", Width = 84, Margin = new Thickness(0, 0, 12, 0) };
+            var openFolderButton = new Button { Content = T("CWR.OpenFolder", "打开目录"), Width = 84, Margin = new Thickness(0, 0, 12, 0) };
             openFolderButton.Click += (_, _) =>
             {
                 Directory.CreateDirectory(_templateDirectory);
@@ -927,16 +933,16 @@ namespace NovelManagement.WPF.Views
                 });
             };
 
-            var deleteButton = new Button { Content = "删除", Width = 84, Margin = new Thickness(0, 0, 12, 0) };
+            var deleteButton = new Button { Content = T("Dlg.Delete"), Width = 84, Margin = new Thickness(0, 0, 12, 0) };
             deleteButton.Click += (_, _) =>
             {
                 if (_templateListBox.SelectedItem is not ChapterTemplateListItem selectedItem)
                 {
-                    MessageBox.Show("请先选择模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CWR.SelectTemplateFirst", "请先选择模板。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                var confirm = MessageBox.Show($"确定删除模板“{selectedItem.Name}”吗？", "确认删除",
+                var confirm = MessageBox.Show(TF("CWR.DeleteTemplateConfirmFmt", "确定删除模板“{0}”吗？", selectedItem.Name), T("CWR.ConfirmDeleteTitle"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (confirm != MessageBoxResult.Yes)
                 {
@@ -947,12 +953,12 @@ namespace NovelManagement.WPF.Views
                 RefreshTemplates();
             };
 
-            var loadButton = new Button { Content = "加载", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var loadButton = new Button { Content = T("CWR.Load", "加载"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             loadButton.Click += (_, _) =>
             {
                 if (_templateListBox.SelectedItem is not ChapterTemplateListItem selectedItem)
                 {
-                    MessageBox.Show("请先选择模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CWR.SelectTemplateFirst", "请先选择模板。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -960,7 +966,7 @@ namespace NovelManagement.WPF.Views
                 DialogResult = true;
             };
 
-            var cancelButton = new Button { Content = "关闭", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = T("Dlg.Close"), Width = 84, IsCancel = true };
 
             buttons.Children.Add(openFolderButton);
             buttons.Children.Add(deleteButton);

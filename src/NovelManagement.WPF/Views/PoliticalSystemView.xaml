@@ -26,7 +26,7 @@
                                            Width="32" Height="32" 
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                    <TextBlock Text="政治体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Pol.Title}" 
                              Style="{StaticResource MaterialDesignHeadline5TextBlock}"
                              VerticalAlignment="Center" 
                              Margin="16,0,0,0"/>
@@ -39,7 +39,7 @@
                             Click="AddPolitical_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="16" Height="16"/>
-                            <TextBlock Text="添加政治体系" Margin="8,0,0,0"/>
+                            <TextBlock Text="{DynamicResource Loc.WS.Pol.Add}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
 
@@ -49,7 +49,7 @@
                             Click="Import_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Import" Width="16" Height="16"/>
-                            <TextBlock Text="导入" Margin="8,0,0,0"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Import}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
 
@@ -59,7 +59,7 @@
                             Click="Export_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Width="16" Height="16"/>
-                            <TextBlock Text="导出" Margin="8,0,0,0"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Export}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
 
@@ -69,7 +69,7 @@
                             Click="AIAssistant_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Robot" Width="16" Height="16"/>
-                            <TextBlock Text="AI助手" Margin="8,0,0,0"/>
+                            <TextBlock Text="{DynamicResource Loc.WS.Pol.AIAssistant}" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -96,7 +96,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索政治体系..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pol.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -107,16 +107,16 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="TypeFilterComboBox"
-                                     materialDesign:HintAssist.Hint="体系类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pol.FilterTypeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="TypeFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类型"/>
-                                <ComboBoxItem Content="帝制"/>
-                                <ComboBoxItem Content="共和制"/>
-                                <ComboBoxItem Content="联邦制"/>
-                                <ComboBoxItem Content="宗教制"/>
-                                <ComboBoxItem Content="部落制"/>
-                                <ComboBoxItem Content="城邦制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeAll}" Tag="全部类型"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeMonarchy}" Tag="帝制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeRepublic}" Tag="共和制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeFederation}" Tag="联邦制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeTheocracy}" Tag="宗教制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeTribe}" Tag="部落制"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Pol.TypeCityState}" Tag="城邦制"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -158,7 +158,7 @@
                                             <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
                                                 <materialDesign:Chip Content="{Binding Territory}" 
                                                                    Margin="0,0,4,0"/>
-                                                <materialDesign:Chip Content="{Binding PositionCount, StringFormat='{}共{0}职位'}" 
+                                                <materialDesign:Chip Content="{Binding PositionCountDisplay}" 
                                                                    Margin="4,0,0,0"/>
                                             </StackPanel>
                                         </Grid>
@@ -171,7 +171,7 @@
                     <!-- 统计信息 -->
                     <Border Grid.Row="3" Padding="16">
                         <StackPanel>
-                            <TextBlock Text="统计信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pol.Statistics}" 
                                      Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
                                      Margin="0,0,0,8"/>
                             <Grid>
@@ -180,11 +180,11 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="总数量" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                                    <TextBlock Text="{DynamicResource Loc.WS.Pol.Total}" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                                     <TextBlock x:Name="TotalCountText" Text="0" Style="{StaticResource MaterialDesignSubtitle1TextBlock}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="已选择" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                                    <TextBlock Text="{DynamicResource Loc.WS.Pol.Selected}" Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                                     <TextBlock x:Name="SelectedCountText" Text="0" Style="{StaticResource MaterialDesignSubtitle1TextBlock}"/>
                                 </StackPanel>
                             </Grid>
@@ -198,7 +198,7 @@
                 <ScrollViewer>
                     <StackPanel x:Name="DetailsPanel" Margin="20">
                         <!-- 政治体系详情将在代码中动态生成 -->
-                        <TextBlock Text="请选择一个政治体系查看详情" 
+                        <TextBlock Text="{DynamicResource Loc.WS.Pol.SelectHint}" 
                                    Style="{StaticResource MaterialDesignBody1TextBlock}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"

@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views;
@@ -20,7 +21,7 @@ public class FirstRunOnboardingWindow : Window
     {
         _configurationService = configurationService;
 
-        Title = "首次启动向导";
+        Title = LocalizationManager.T("FO.WindowTitle", "首次启动向导");
         Width = 760;
         Height = 520;
         MinWidth = 680;
@@ -35,9 +36,9 @@ public class FirstRunOnboardingWindow : Window
             TextWrapping = TextWrapping.Wrap
         };
 
-        var openConfigButton = CreateButton("打开配置目录", (_, _) => OpenConfigurationDirectory());
-        var createTemplateButton = CreateButton("创建用户配置模板", (_, _) => CreateUserConfigTemplate());
-        var finishButton = CreateButton("完成并进入系统", async (_, _) => await CompleteAsync());
+        var openConfigButton = CreateButton(LocalizationManager.T("FO.OpenConfigDir", "打开配置目录"), (_, _) => OpenConfigurationDirectory());
+        var createTemplateButton = CreateButton(LocalizationManager.T("FO.CreateTemplate", "创建用户配置模板"), (_, _) => CreateUserConfigTemplate());
+        var finishButton = CreateButton(LocalizationManager.T("FO.Finish", "完成并进入系统"), async (_, _) => await CompleteAsync());
         finishButton.FontWeight = FontWeights.SemiBold;
 
         var contentPanel = new StackPanel
@@ -47,7 +48,7 @@ public class FirstRunOnboardingWindow : Window
 
         contentPanel.Children.Add(new TextBlock
         {
-            Text = "欢迎使用书籍管理系统",
+            Text = LocalizationManager.T("Common.Welcome", "欢迎使用书籍管理系统"),
             FontSize = 28,
             FontWeight = FontWeights.Bold
         });
@@ -55,7 +56,7 @@ public class FirstRunOnboardingWindow : Window
         contentPanel.Children.Add(new TextBlock
         {
             Margin = new Thickness(0, 12, 0, 0),
-            Text = "这是首次启动引导。建议在正式使用前先确认以下内容：",
+            Text = LocalizationManager.T("FO.Intro", "这是首次启动引导。建议在正式使用前先确认以下内容："),
             FontSize = 15
         });
 
@@ -73,7 +74,7 @@ public class FirstRunOnboardingWindow : Window
         contentPanel.Children.Add(actionPanel);
 
         Content = contentPanel;
-        UpdateStatus("请先创建或检查用户配置，然后点击“完成并进入系统”。");
+        UpdateStatus(LocalizationManager.T("FO.StatusHint", "请先创建或检查用户配置，然后点击“完成并进入系统”。"));
     }
 
     private TextBlock CreateChecklistText()
@@ -84,13 +85,14 @@ public class FirstRunOnboardingWindow : Window
         {
             Margin = new Thickness(0, 16, 0, 0),
             TextWrapping = TextWrapping.Wrap,
-            Text =
+            Text = LocalizationManager.TF("FO.Checklist",
                 "1. 检查数据库与日志目录是否可写。\n" +
                 "2. 如需云端 AI，请在用户配置中填写 API Key。\n" +
                 "3. 如需本地 AI，请确认 Ollama 或 RWKV 服务已经启动。\n" +
                 "4. 用户覆盖配置建议放置在以下路径：\n" +
-                $"{targetConfigPath}\n\n" +
-                "提示：生产环境建议优先使用环境变量覆盖密钥，而不是把密钥直接写入发布目录。"
+                "{0}\n\n" +
+                "提示：生产环境建议优先使用环境变量覆盖密钥，而不是把密钥直接写入发布目录。",
+                targetConfigPath)
         };
     }
 
@@ -118,11 +120,11 @@ public class FirstRunOnboardingWindow : Window
                 FileName = directory,
                 UseShellExecute = true
             });
-            UpdateStatus($"已打开配置目录：{directory}");
+            UpdateStatus(LocalizationManager.TF("FO.ConfigOpened", "已打开配置目录：{0}", directory));
         }
         catch (Exception ex)
         {
-            UpdateStatus($"打开配置目录失败：{ex.Message}", isError: true);
+            UpdateStatus(LocalizationManager.TF("FO.ConfigOpenFailed", "打开配置目录失败：{0}", ex.Message), isError: true);
         }
     }
 
@@ -135,18 +137,18 @@ public class FirstRunOnboardingWindow : Window
 
             if (!File.Exists(source))
             {
-                UpdateStatus($"未找到模板文件：{source}", isError: true);
+                UpdateStatus(LocalizationManager.TF("FO.TemplateNotFound", "未找到模板文件：{0}", source), isError: true);
                 return;
             }
 
             if (!File.Exists(target))
             {
                 File.Copy(source, target);
-                UpdateStatus($"已创建用户配置模板：{target}");
+                UpdateStatus(LocalizationManager.TF("FO.TemplateCreated", "已创建用户配置模板：{0}", target));
             }
             else
             {
-                UpdateStatus($"用户配置已存在：{target}");
+                UpdateStatus(LocalizationManager.TF("FO.ConfigExists", "用户配置已存在：{0}", target));
             }
 
             Process.Start(new ProcessStartInfo
@@ -157,7 +159,7 @@ public class FirstRunOnboardingWindow : Window
         }
         catch (Exception ex)
         {
-            UpdateStatus($"创建用户配置模板失败：{ex.Message}", isError: true);
+            UpdateStatus(LocalizationManager.TF("FO.TemplateCreateFailed", "创建用户配置模板失败：{0}", ex.Message), isError: true);
         }
     }
 
@@ -169,7 +171,7 @@ public class FirstRunOnboardingWindow : Window
 
         if (!await _configurationService.SaveAppStateAsync(state))
         {
-            UpdateStatus("保存首次启动状态失败，请重试。", isError: true);
+            UpdateStatus(LocalizationManager.T("FO.SaveStateFailed", "保存首次启动状态失败，请重试。"), isError: true);
             return;
         }
 

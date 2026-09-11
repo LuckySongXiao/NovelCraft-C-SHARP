@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views;
@@ -29,7 +30,7 @@ public partial class PasswordGateWindow : Window
         }
         else
         {
-            ErrorText.Text = "密码错误，请重新输入";
+            ErrorText.Text = LocalizationManager.T("PGate.WrongPassword");
             ErrorText.Visibility = Visibility.Visible;
             PasswordInput.Clear();
             PasswordInput.Focus();

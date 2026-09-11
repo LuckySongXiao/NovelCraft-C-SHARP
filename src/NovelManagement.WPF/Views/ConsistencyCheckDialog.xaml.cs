@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 
@@ -74,7 +75,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化AI服务失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("CC.InitFailedFmt", "初始化AI服务失败：{0}", ex.Message), T("Msg.Warning"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -128,12 +129,12 @@ namespace NovelManagement.WPF.Views
             {
                 var report = GenerateReport();
                 Clipboard.SetText(report);
-                MessageBox.Show("检查报告已复制到剪贴板", "提示", 
+                MessageBox.Show(T("CC.ReportCopied", "检查报告已复制到剪贴板"), T("Msg.Tip"), 
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出报告失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CC.ExportFailFmt", "导出报告失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -197,7 +198,7 @@ namespace NovelManagement.WPF.Views
             {
                 _isChecking = true;
                 StartCheckButton.IsEnabled = false;
-                StartCheckButton.Content = "检查中...";
+                StartCheckButton.Content = T("CC.Checking", "检查中...");
 
                 _issues.Clear();
                 UpdateIssueCount();
@@ -207,8 +208,8 @@ namespace NovelManagement.WPF.Views
                     InitializeAIService();
                     if (_aiAssistantService == null)
                     {
-                        MessageBox.Show("AI服务未初始化，无法执行一致性检查。\n请确保AI服务已正确配置。",
-                            "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("CC.ServiceNotInit", "AI服务未初始化，无法执行一致性检查。\n请确保AI服务已正确配置。"),
+                            T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
                 }
@@ -242,26 +243,26 @@ namespace NovelManagement.WPF.Views
                 }
                 else
                 {
-                    MessageBox.Show($"一致性检查未返回有效结果：{result.Message ?? "未知错误"}",
-                        "检查结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(TF("CC.InvalidResultFmt", "一致性检查未返回有效结果：{0}", result.Message ?? T("CC.UnknownError", "未知错误")),
+                        T("CC.ResultTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
                 UpdateIssueCount();
 
                 if (_issues.Count > 0)
                 {
-                    MessageBox.Show($"一致性检查完成！发现 {_issues.Count} 个问题", "检查完成",
+                    MessageBox.Show(TF("CC.DoneIssuesFmt", "一致性检查完成！发现 {0} 个问题", _issues.Count), T("CC.DoneTitle"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show("一致性检查完成！未发现问题", "检查完成",
+                    MessageBox.Show(T("CC.DoneNoIssues", "一致性检查完成！未发现问题"), T("CC.DoneTitle"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"一致性检查失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CC.CheckFailFmt", "一致性检查失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -274,7 +275,7 @@ namespace NovelManagement.WPF.Views
                     Children =
                     {
                         new PackIcon { Kind = PackIconKind.CheckCircle, Margin = new Thickness(0,0,8,0) },
-                        new TextBlock { Text = "开始检查" }
+                        new TextBlock { Text = T("CC.StartCheck", "开始检查") }
                     }
                 };
             }
@@ -307,7 +308,7 @@ namespace NovelManagement.WPF.Views
                             Severity = DetermineSeverity(section),
                             Description = lines[0].TrimStart('•', '-', '*', ' '),
                             DetailedDescription = section,
-                            Suggestion = "请根据AI分析结果进行修改",
+                            Suggestion = T("CC.SuggestionDefault", "请根据AI分析结果进行修改"),
                             Location = "全文",
                             RelatedContent = lines.Length > 1 ? lines[^1] : string.Empty
                         };
@@ -435,7 +436,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateIssueCount()
         {
-            IssueCountLabel.Text = $"({_issues.Count}个问题)";
+            IssueCountLabel.Text = TF("CC.IssueCountFmt", "({0}个问题)", _issues.Count);
         }
 
         /// <summary>
@@ -469,8 +470,8 @@ namespace NovelManagement.WPF.Views
             if (_issues.Count == 0)
             {
                 var shouldCheck = MessageBox.Show(
-                    "当前没有可修复的问题。是否先执行一次一致性检查？",
-                    "自动修复",
+                    T("CC.NoIssuesConfirm", "当前没有可修复的问题。是否先执行一次一致性检查？"),
+                    T("CC.AutoFix"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
@@ -490,7 +491,7 @@ namespace NovelManagement.WPF.Views
                 InitializeAIService();
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化，无法执行自动修复。", "错误",
+                    MessageBox.Show(T("CC.AutoFixServiceNotInit", "AI服务未初始化，无法执行自动修复。"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -503,7 +504,7 @@ namespace NovelManagement.WPF.Views
 
                 var autoFixButton = AutoFixButton;
                 autoFixButton.IsEnabled = false;
-                autoFixButton.Content = "修复中...";
+                autoFixButton.Content = T("CC.Fixing", "修复中...");
 
                 var parameters = BuildAutoFixParameters();
                 var result = await _aiAssistantService.PolishTextAsync(parameters);
@@ -514,8 +515,8 @@ namespace NovelManagement.WPF.Views
                 if (string.IsNullOrWhiteSpace(fixedContent))
                 {
                     MessageBox.Show(
-                        $"自动修复未生成有效结果：{result.Message ?? "未知错误"}",
-                        "自动修复",
+                        TF("CC.AutoFixInvalidFmt", "自动修复未生成有效结果：{0}", result.Message ?? T("CC.UnknownError", "未知错误")),
+                        T("CC.AutoFix"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                     return;
@@ -524,13 +525,13 @@ namespace NovelManagement.WPF.Views
                 var previewDialog = new TextDifferenceDialog(_workingChapterContent, fixedContent)
                 {
                     Owner = this,
-                    Title = "一致性自动修复预览"
+                    Title = T("CC.AutoFixPreviewTitle")
                 };
                 previewDialog.ShowDialog();
 
                 var applyResult = MessageBox.Show(
-                    "已生成修复稿。是否将修复结果应用到章节编辑器？\n选择“是”将回写正文，选择“否”仅复制到剪贴板。",
-                    "应用修复",
+                    T("CC.ApplyFixConfirm", "已生成修复稿。是否将修复结果应用到章节编辑器？\n选择“是”将回写正文，选择“否”仅复制到剪贴板。"),
+                    T("CC.ApplyFixTitle"),
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
@@ -551,12 +552,12 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
-                MessageBox.Show("修复稿已复制到剪贴板，你可以按需手动比对后使用。", "自动修复",
+                MessageBox.Show(T("CC.FixCopied", "修复稿已复制到剪贴板，你可以按需手动比对后使用。"), T("CC.AutoFix"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"自动修复失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CC.AutoFixFailFmt", "自动修复失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -570,7 +571,7 @@ namespace NovelManagement.WPF.Views
                     Children =
                     {
                         new PackIcon { Kind = PackIconKind.AutoFix, Margin = new Thickness(0, 0, 4, 0) },
-                        new TextBlock { Text = "自动修复" }
+                        new TextBlock { Text = T("CC.AutoFix") }
                     }
                 };
             }

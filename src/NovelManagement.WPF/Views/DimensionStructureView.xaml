@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="维度结构管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Dim.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddDimension_Click"
-                            ToolTip="新建维度">
+                            ToolTip="{DynamicResource Loc.WS.Dim.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportDimension_Click"
-                            ToolTip="导入维度数据">
+                            ToolTip="{DynamicResource Loc.WS.Dim.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportDimension_Click"
-                            ToolTip="导出维度数据">
+                            ToolTip="{DynamicResource Loc.WS.Dim.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索维度..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,28 +100,28 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="DimensionTypeFilterComboBox"
-                                     materialDesign:HintAssist.Hint="维度类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.TypeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="DimensionTypeFilter_SelectionChanged"
                                      Margin="0,0,0,8">
-                                <ComboBoxItem Content="全部类型"/>
-                                <ComboBoxItem Content="物质维度"/>
-                                <ComboBoxItem Content="精神维度"/>
-                                <ComboBoxItem Content="能量维度"/>
-                                <ComboBoxItem Content="时间维度"/>
-                                <ComboBoxItem Content="空间维度"/>
-                                <ComboBoxItem Content="混合维度"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllTypes}"/>
+                                <ComboBoxItem Tag="物质维度" Content="{DynamicResource Loc.WS.Dim.Data.物质维度}"/>
+                                <ComboBoxItem Tag="精神维度" Content="{DynamicResource Loc.WS.Dim.Data.精神维度}"/>
+                                <ComboBoxItem Tag="能量维度" Content="{DynamicResource Loc.WS.Dim.Data.能量维度}"/>
+                                <ComboBoxItem Tag="时间维度" Content="{DynamicResource Loc.WS.Dim.Data.时间维度}"/>
+                                <ComboBoxItem Tag="空间维度" Content="{DynamicResource Loc.WS.Dim.Data.空间维度}"/>
+                                <ComboBoxItem Tag="混合维度" Content="{DynamicResource Loc.WS.Dim.Data.混合维度}"/>
                             </ComboBox>
                             <ComboBox x:Name="StabilityFilterComboBox"
-                                     materialDesign:HintAssist.Hint="稳定性"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.StabilityHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="StabilityFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部稳定性"/>
-                                <ComboBoxItem Content="极稳定"/>
-                                <ComboBoxItem Content="稳定"/>
-                                <ComboBoxItem Content="不稳定"/>
-                                <ComboBoxItem Content="极不稳定"/>
-                                <ComboBoxItem Content="崩塌中"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllStabilities}"/>
+                                <ComboBoxItem Tag="极稳定" Content="{DynamicResource Loc.WS.Dim.Data.极稳定}"/>
+                                <ComboBoxItem Tag="稳定" Content="{DynamicResource Loc.WS.Dim.Data.稳定}"/>
+                                <ComboBoxItem Tag="不稳定" Content="{DynamicResource Loc.WS.Dim.Data.不稳定}"/>
+                                <ComboBoxItem Tag="极不稳定" Content="{DynamicResource Loc.WS.Dim.Data.极不稳定}"/>
+                                <ComboBoxItem Tag="崩塌中" Content="{DynamicResource Loc.WS.Dim.Data.崩塌中}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -190,14 +190,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="类型: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Trea.TypeLabelDup}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding Type}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 访问等级: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Dim.AccessLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -218,7 +218,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="维度统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Dim.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -229,21 +229,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="物质维度: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.物质维度}"/>
                                         <Run Text="{Binding MaterialCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="精神维度: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.精神维度}"/>
                                         <Run Text="{Binding SpiritualCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="稳定维度: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Dim.StableCountLabel}"/>
                                         <Run Text="{Binding StableCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -267,12 +267,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个维度查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Dim.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的维度" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Dim.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -282,7 +282,7 @@
                         <!-- 维度详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -296,21 +296,21 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="DimensionNameTextBox"
-                                        materialDesign:HintAssist.Hint="维度名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="DimensionTypeComboBox"
-                                         materialDesign:HintAssist.Hint="维度类型"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.TypeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="物质维度"/>
-                                    <ComboBoxItem Content="精神维度"/>
-                                    <ComboBoxItem Content="能量维度"/>
-                                    <ComboBoxItem Content="时间维度"/>
-                                    <ComboBoxItem Content="空间维度"/>
-                                    <ComboBoxItem Content="混合维度"/>
+                                    <ComboBoxItem Tag="物质维度" Content="{DynamicResource Loc.WS.Dim.Data.物质维度}"/>
+                                    <ComboBoxItem Tag="精神维度" Content="{DynamicResource Loc.WS.Dim.Data.精神维度}"/>
+                                    <ComboBoxItem Tag="能量维度" Content="{DynamicResource Loc.WS.Dim.Data.能量维度}"/>
+                                    <ComboBoxItem Tag="时间维度" Content="{DynamicResource Loc.WS.Dim.Data.时间维度}"/>
+                                    <ComboBoxItem Tag="空间维度" Content="{DynamicResource Loc.WS.Dim.Data.空间维度}"/>
+                                    <ComboBoxItem Tag="混合维度" Content="{DynamicResource Loc.WS.Dim.Data.混合维度}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -323,31 +323,31 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="StabilityComboBox"
-                                         materialDesign:HintAssist.Hint="稳定性"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.StabilityHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="极稳定"/>
-                                    <ComboBoxItem Content="稳定"/>
-                                    <ComboBoxItem Content="不稳定"/>
-                                    <ComboBoxItem Content="极不稳定"/>
-                                    <ComboBoxItem Content="崩塌中"/>
+                                    <ComboBoxItem Tag="极稳定" Content="{DynamicResource Loc.WS.Dim.Data.极稳定}"/>
+                                    <ComboBoxItem Tag="稳定" Content="{DynamicResource Loc.WS.Dim.Data.稳定}"/>
+                                    <ComboBoxItem Tag="不稳定" Content="{DynamicResource Loc.WS.Dim.Data.不稳定}"/>
+                                    <ComboBoxItem Tag="极不稳定" Content="{DynamicResource Loc.WS.Dim.Data.极不稳定}"/>
+                                    <ComboBoxItem Tag="崩塌中" Content="{DynamicResource Loc.WS.Dim.Data.崩塌中}"/>
                                 </ComboBox>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="AccessLevelComboBox"
-                                         materialDesign:HintAssist.Hint="访问等级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.AccessHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="公开"/>
-                                    <ComboBoxItem Content="限制"/>
-                                    <ComboBoxItem Content="机密"/>
-                                    <ComboBoxItem Content="禁止"/>
-                                    <ComboBoxItem Content="未知"/>
+                                    <ComboBoxItem Tag="公开" Content="{DynamicResource Loc.WS.Dim.Data.公开}"/>
+                                    <ComboBoxItem Tag="限制" Content="{DynamicResource Loc.WS.Dim.Data.限制}"/>
+                                    <ComboBoxItem Tag="机密" Content="{DynamicResource Loc.WS.Dim.Data.机密}"/>
+                                    <ComboBoxItem Tag="禁止" Content="{DynamicResource Loc.WS.Dim.Data.禁止}"/>
+                                    <ComboBoxItem Tag="未知" Content="{DynamicResource Loc.WS.Dim.Data.未知}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="DimensionDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="维度描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -356,7 +356,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 环境特征 -->
-                            <TextBlock Text="环境特征" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Dim.EnvTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -370,12 +370,12 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="EnvironmentTypeTextBox"
-                                        materialDesign:HintAssist.Hint="环境类型"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.EnvTypeHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="ClimateTextBox"
-                                        materialDesign:HintAssist.Hint="气候特征"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.ClimateHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
@@ -388,17 +388,17 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="EnergyLevelTextBox"
-                                        materialDesign:HintAssist.Hint="能量等级"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.EnergyLevelHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="DangerLevelTextBox"
-                                        materialDesign:HintAssist.Hint="危险等级"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.DangerLevelHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
                             <!-- 连接传送 -->
-                            <TextBlock Text="连接传送" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Dim.PortalsTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -416,13 +416,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="传送门列表" 
+                                                 Text="{DynamicResource Loc.WS.Dim.PortalList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddPortal_Click"
-                                              ToolTip="添加传送门">
+                                              ToolTip="{DynamicResource Loc.WS.Dim.AddPortalTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -443,33 +443,33 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="传送门名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.PortalNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <TextBox Grid.Column="1" 
                                                                Text="{Binding TargetDimension}" 
-                                                               materialDesign:HintAssist.Hint="目标维度"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.TargetDimHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="2" 
                                                                 SelectedValuePath="Content"
                                                                 SelectedValue="{Binding Status, UpdateSourceTrigger=PropertyChanged}" 
-                                                                materialDesign:HintAssist.Hint="状态"
+                                                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.StatusHint}"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="正常"/>
-                                                            <ComboBoxItem Content="不稳定"/>
-                                                            <ComboBoxItem Content="关闭"/>
-                                                            <ComboBoxItem Content="损坏"/>
+                                                            <ComboBoxItem Tag="正常" Content="{DynamicResource Loc.WS.Dim.Data.正常}"/>
+                                                            <ComboBoxItem Tag="不稳定" Content="{DynamicResource Loc.WS.Dim.Data.不稳定}"/>
+                                                            <ComboBoxItem Tag="关闭" Content="{DynamicResource Loc.WS.Dim.Data.关闭}"/>
+                                                            <ComboBoxItem Tag="损坏" Content="{DynamicResource Loc.WS.Dim.Data.损坏}"/>
                                                         </ComboBox>
 
                                                         <Button Grid.Column="3" 
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemovePortal_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除传送门">
+                                                              ToolTip="{DynamicResource Loc.WS.Dim.DeletePortalTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -485,11 +485,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveDimension_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

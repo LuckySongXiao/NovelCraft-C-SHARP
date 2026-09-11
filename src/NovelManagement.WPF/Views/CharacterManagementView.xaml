@@ -4,9 +4,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:localization="clr-namespace:NovelManagement.WPF.Localization"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1200">
     
+    <UserControl.Resources>
+        <localization:StoredValueConverter x:Key="StoredValueConverter"/>
+    </UserControl.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,11 +20,11 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="人物管理" 
+            <TextBlock Text="{DynamicResource Loc.CM.Title}" 
                      FontSize="32" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理书籍中的角色信息和关系" 
+            <TextBlock Text="{DynamicResource Loc.CM.Subtitle}" 
                      FontSize="16" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -34,7 +38,7 @@
                             Click="NewCharacter_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建角色"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.New}"/>
                         </StackPanel>
                     </Button>
                     
@@ -43,7 +47,7 @@
                             Click="ImportCharacters_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
-                            <TextBlock Text="导入角色"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.Import}"/>
                         </StackPanel>
                     </Button>
                     
@@ -52,7 +56,7 @@
                             Click="ExportCharacters_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
-                            <TextBlock Text="导出角色"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.Export}"/>
                         </StackPanel>
                     </Button>
 
@@ -64,30 +68,30 @@
                     <Button Style="{StaticResource MaterialDesignRaisedAccentButton}"
                             Margin="0,0,8,0"
                             Click="AIGenerateCharacter_Click"
-                            ToolTip="使用AI生成角色">
+                            ToolTip="{DynamicResource Loc.CM.AIGenerateTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Brain" Margin="0,0,8,0"/>
-                            <TextBlock Text="AI生成角色"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.AIGenerate}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             Click="AIOptimizeCharacter_Click"
-                            ToolTip="使用AI优化选中角色">
+                            ToolTip="{DynamicResource Loc.CM.AIOptimizeTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
-                            <TextBlock Text="AI优化"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.AIOptimize}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,12,0"
                             Click="AIAnalyzeRelationships_Click"
-                            ToolTip="使用AI分析角色关系">
+                            ToolTip="{DynamicResource Loc.CM.RelationAnalysisTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="GraphOutline" Margin="0,0,8,0"/>
-                            <TextBlock Text="关系分析"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.RelationAnalysis}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -95,20 +99,20 @@
                 <!-- 筛选和搜索 -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <ComboBox x:Name="CharacterTypeFilter"
-                            materialDesign:HintAssist.Hint="角色类型"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.CM.TypeHint}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectionChanged="CharacterTypeFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部"/>
-                        <ComboBoxItem Content="主角"/>
-                        <ComboBoxItem Content="主配角"/>
-                        <ComboBoxItem Content="次配角"/>
-                        <ComboBoxItem Content="反派"/>
-                        <ComboBoxItem Content="路人"/>
+                        <ComboBoxItem Tag="全部" Content="{DynamicResource Loc.CM.TypeAll}"/>
+                        <ComboBoxItem Tag="主角" Content="{DynamicResource Loc.CM.TypeProtagonist}"/>
+                        <ComboBoxItem Tag="主配角" Content="{DynamicResource Loc.CM.TypeSecondaryLead}"/>
+                        <ComboBoxItem Tag="次配角" Content="{DynamicResource Loc.CM.TypeSupporting}"/>
+                        <ComboBoxItem Tag="反派" Content="{DynamicResource Loc.CM.TypeAntagonist}"/>
+                        <ComboBoxItem Tag="路人" Content="{DynamicResource Loc.CM.TypeExtra}"/>
                     </ComboBox>
                     
                     <TextBox x:Name="SearchTextBox"
-                           materialDesign:HintAssist.Hint="搜索角色..."
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.CM.SearchHint}"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="200"
@@ -137,7 +141,7 @@
                     <Border Grid.Row="0" 
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,12">
-                        <TextBlock Text="角色列表" FontWeight="Medium"/>
+                        <TextBlock Text="{DynamicResource Loc.CM.List}" FontWeight="Medium"/>
                     </Border>
 
                     <!-- 角色列表 -->
@@ -182,7 +186,7 @@
                                                          FontWeight="Medium" 
                                                          FontSize="14"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                    <materialDesign:Chip Content="{Binding Type}" 
+                                                    <materialDesign:Chip Content="{Binding Type, Converter={StaticResource StoredValueConverter}}" 
                                                                        FontSize="10"
                                                                        Height="20"
                                                                        Margin="0,0,4,0"/>
@@ -218,7 +222,7 @@
                 <!-- 默认显示角色统计信息 -->
                 <materialDesign:Card Padding="24" x:Name="DefaultCard">
                     <StackPanel>
-                        <TextBlock Text="角色统计" 
+                        <TextBlock Text="{DynamicResource Loc.CM.Stats}" 
                                  FontSize="24" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,24"/>
@@ -227,7 +231,7 @@
                         <UniformGrid Columns="2" Margin="0,0,0,24">
                             <materialDesign:Card Margin="0,0,8,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总角色数" 
+                                    <TextBlock Text="{DynamicResource Loc.CM.TotalCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock x:Name="TotalCharactersTextBlock"
@@ -239,7 +243,7 @@
 
                             <materialDesign:Card Margin="8,0,0,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="主要角色" 
+                                    <TextBlock Text="{DynamicResource Loc.CM.MajorCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock x:Name="MainCharactersTextBlock"
@@ -251,7 +255,7 @@
 
                             <materialDesign:Card Margin="0,8,8,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="势力数量" 
+                                    <TextBlock Text="{DynamicResource Loc.CM.FactionCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock x:Name="FactionCountTextBlock"
@@ -263,7 +267,7 @@
 
                             <materialDesign:Card Margin="8,8,0,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="关系数量" 
+                                    <TextBlock Text="{DynamicResource Loc.CM.RelationCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock x:Name="RelationshipCountTextBlock"
@@ -275,7 +279,7 @@
                         </UniformGrid>
 
                         <!-- 角色类型分布 -->
-                        <TextBlock Text="角色类型分布" 
+                        <TextBlock Text="{DynamicResource Loc.CM.TypeDistribution}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
@@ -288,7 +292,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="主角" Margin="0,0,12,0"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.CM.TypeProtagonist}" Margin="0,0,12,0"/>
                                 <ProgressBar x:Name="ProtagonistProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="ProtagonistCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -300,7 +304,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="主配角" Margin="0,0,12,0"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.CM.TypeSecondaryLead}" Margin="0,0,12,0"/>
                                 <ProgressBar x:Name="SupportingLeadProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="SupportingLeadCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -312,7 +316,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="反派" Margin="0,0,12,0"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.CM.TypeAntagonist}" Margin="0,0,12,0"/>
                                 <ProgressBar x:Name="AntagonistProgressBar" Grid.Column="1" Value="0" Maximum="1" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="AntagonistCountTextBlock" Grid.Column="2" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -348,20 +352,20 @@
                                 <!-- 角色基本信息 -->
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock x:Name="CharacterNameText"
-                                             Text="角色姓名"
+                                             Text="{DynamicResource Loc.CM.NamePlaceholder}"
                                              FontSize="28"
                                              FontWeight="Bold"
                                              Margin="0,0,0,8"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                         <materialDesign:Chip x:Name="CharacterTypeChip"
-                                                           Content="主角"
+                                                           Content="{DynamicResource Loc.CM.TypeProtagonist}"
                                                            Margin="0,0,8,0"/>
                                         <materialDesign:Chip x:Name="CharacterFactionChip"
-                                                           Content="玄天宗"
+                                                           Content="{DynamicResource Loc.CM.FactionPlaceholder}"
                                                            Background="{DynamicResource SecondaryHueLightBrush}"/>
                                     </StackPanel>
                                     <TextBlock x:Name="CharacterCultivationText"
-                                             Text="筑基期"
+                                             Text="{DynamicResource Loc.CM.RealmPlaceholder}"
                                              FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                 </StackPanel>
@@ -373,14 +377,14 @@
                                           Click="EditCharacter_Click">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Edit" Margin="0,0,8,0"/>
-                                            <TextBlock Text="编辑"/>
+                                            <TextBlock Text="{DynamicResource Loc.Dlg.Edit}"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                           Click="DeleteCharacter_Click">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Delete" Margin="0,0,8,0"/>
-                                            <TextBlock Text="删除"/>
+                                            <TextBlock Text="{DynamicResource Loc.Dlg.Delete}"/>
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
@@ -389,12 +393,12 @@
                             <!-- 角色描述 -->
                             <materialDesign:Card Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="角色备注"
+                                    <TextBlock Text="{DynamicResource Loc.CM.RemarksTitle}"
                                              FontSize="16"
                                              FontWeight="Medium"
                                              Margin="0,0,0,8"/>
                                     <TextBlock x:Name="CharacterDescriptionText"
-                                             Text="角色备注内容..."
+                                             Text="{DynamicResource Loc.CM.RemarksHint}"
                                              TextWrapping="Wrap"
                                              LineHeight="20"/>
                                 </StackPanel>
@@ -404,60 +408,60 @@
                             <materialDesign:Card Padding="0" Margin="0,0,0,16">
                                 <TabControl Style="{StaticResource MaterialDesignTabControl}">
                                     <!-- 外貌特征 -->
-                                    <TabItem Header="外貌特征">
+                                    <TabItem Header="{DynamicResource Loc.CM.Appearance}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterAppearanceText"
-                                                     Text="外貌特征描述..."
+                                                     Text="{DynamicResource Loc.CM.AppearanceHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
                                     </TabItem>
 
                                     <!-- 性格特点 -->
-                                    <TabItem Header="性格特点">
+                                    <TabItem Header="{DynamicResource Loc.CM.Personality}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterPersonalityText"
-                                                     Text="性格特点描述..."
+                                                     Text="{DynamicResource Loc.CM.PersonalityHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
                                     </TabItem>
 
                                     <!-- 背景故事 -->
-                                    <TabItem Header="背景故事">
+                                    <TabItem Header="{DynamicResource Loc.CM.Backstory}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterBackgroundText"
-                                                     Text="背景故事描述..."
+                                                     Text="{DynamicResource Loc.CM.BackstoryHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
                                     </TabItem>
 
                                     <!-- 能力技能 -->
-                                    <TabItem Header="能力技能">
+                                    <TabItem Header="{DynamicResource Loc.CM.Abilities}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterAbilitiesText"
-                                                     Text="能力技能描述..."
+                                                     Text="{DynamicResource Loc.CM.AbilitiesHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
                                     </TabItem>
 
                                     <!-- 履历经历 -->
-                                    <TabItem Header="履历经历">
+                                    <TabItem Header="{DynamicResource Loc.CM.Experience}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterHistoryText"
-                                                     Text="履历经历描述..."
+                                                     Text="{DynamicResource Loc.CM.ExperienceHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
                                     </TabItem>
 
                                     <!-- 关键事件 -->
-                                    <TabItem Header="关键事件">
+                                    <TabItem Header="{DynamicResource Loc.CM.KeyEvents}">
                                         <Border Padding="16">
                                             <TextBlock x:Name="CharacterKeyEventsText"
-                                                     Text="关键事件描述..."
+                                                     Text="{DynamicResource Loc.CM.KeyEventsHint}"
                                                      TextWrapping="Wrap"
                                                      LineHeight="20"/>
                                         </Border>
@@ -471,7 +475,7 @@
                                   Click="BackToOverview_Click">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ArrowLeft" Margin="0,0,8,0"/>
-                                    <TextBlock Text="返回概览"/>
+                                    <TextBlock Text="{DynamicResource Loc.CM.BackToOverview}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>

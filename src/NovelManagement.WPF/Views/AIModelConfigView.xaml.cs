@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -40,7 +41,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _configService = new AIModelConfigService();
-                MessageBox.Show($"配置服务初始化失败，使用默认服务: {ex.Message}", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(TF("AMC.InitFallbackFmt", "配置服务初始化失败，使用默认服务: {0}", ex.Message), T("Msg.Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             
             LoadConfiguration();
@@ -66,8 +67,8 @@ namespace NovelManagement.WPF.Views
 
             // 绑定滑块事件
             TimeoutSlider.ValueChanged += TimeoutSlider_ValueChanged;
-            DialogueCreativitySlider.ValueChanged += (s, e) => UpdateSliderLabel("创造性", DialogueCreativitySlider.Value.ToString("F1"));
-            DialogueMaxLengthSlider.ValueChanged += (s, e) => UpdateSliderLabel("最大长度", $"{DialogueMaxLengthSlider.Value:F0}字符");
+            DialogueCreativitySlider.ValueChanged += (s, e) => UpdateSliderLabel(T("AMC.Creativity"), DialogueCreativitySlider.Value.ToString("F1"));
+            DialogueMaxLengthSlider.ValueChanged += (s, e) => UpdateSliderLabel(T("AMC.MaxLength"), TF("AMC.MaxLengthLiveFmt", "{0:F0}字符", DialogueMaxLengthSlider.Value));
             
             UpdateTimeoutLabel();
         }
@@ -77,7 +78,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void UpdateTimeoutLabel()
         {
-            TimeoutLabel.Text = $"{TimeoutSlider.Value:F0}秒";
+            TimeoutLabel.Text = TF("AMC.TimeoutLiveFmt", "{0:F0}秒", TimeoutSlider.Value);
         }
 
         /// <summary>
@@ -109,26 +110,26 @@ namespace NovelManagement.WPF.Views
             try
             {
                 TestConnectionButton.IsEnabled = false;
-                StatusText.Text = "正在测试连接...";
+                StatusText.Text = T("AMC.TestingConnection", "正在测试连接...");
 
                 var success = await _configService.TestConnectionAsync();
                 
                 if (success)
                 {
-                    StatusText.Text = "连接测试成功，所有模型响应正常";
-                    MessageBox.Show("连接测试成功！", "测试结果", MessageBoxButton.OK, MessageBoxImage.Information);
+                    StatusText.Text = T("AMC.TestSuccessStatus", "连接测试成功，所有模型响应正常");
+                    MessageBox.Show(T("AMC.TestSuccessMsg", "连接测试成功！"), T("AMC.TestResultTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    StatusText.Text = "连接测试失败，请检查配置";
-                    MessageBox.Show("连接测试失败，请检查API密钥和网络连接", "测试结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    StatusText.Text = T("AMC.TestFailStatus", "连接测试失败，请检查配置");
+                    MessageBox.Show(T("AMC.TestFailMsg", "连接测试失败，请检查API密钥和网络连接"), T("AMC.TestResultTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "连接测试失败");
-                StatusText.Text = "连接测试出现错误";
-                MessageBox.Show($"测试过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = T("AMC.TestErrorStatus", "连接测试出现错误");
+                MessageBox.Show(TF("AMC.TestErrorFmt", "测试过程中发生错误: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -144,21 +145,21 @@ namespace NovelManagement.WPF.Views
             try
             {
                 SaveConfigButton.IsEnabled = false;
-                StatusText.Text = "正在保存配置...";
+                StatusText.Text = T("AMC.SavingConfig", "正在保存配置...");
 
                 var config = GetCurrentConfiguration();
                 await _configService.SaveConfigurationAsync(config);
                 
-                StatusText.Text = "配置已保存";
-                MessageBox.Show("配置保存成功！", "保存结果", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = T("AMC.ConfigSaved", "配置已保存");
+                MessageBox.Show(T("AMC.SaveSuccessMsg", "配置保存成功！"), T("AMC.SaveResultTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 _logger?.LogInformation("AI模型配置已保存");
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "保存配置失败");
-                StatusText.Text = "保存配置失败";
-                MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = T("AMC.SaveFailStatus", "保存配置失败");
+                MessageBox.Show(TF("AMC.SaveFailFmt", "保存配置失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -171,13 +172,13 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ResetDefaults_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show("确定要重置为默认配置吗？这将覆盖当前所有设置。", 
-                "确认重置", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = MessageBox.Show(T("AMC.ResetConfirmMsg", "确定要重置为默认配置吗？这将覆盖当前所有设置。"), 
+                T("AMC.ResetConfirmTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question);
             
             if (result == MessageBoxResult.Yes)
             {
                 ResetToDefaults();
-                StatusText.Text = "已重置为默认配置";
+                StatusText.Text = T("AMC.ResetDone", "已重置为默认配置");
             }
         }
 
@@ -245,16 +246,16 @@ namespace NovelManagement.WPF.Views
         {
             return new AIModelConfigService.ModelConfiguration
             {
-                DefaultModel = (DefaultModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "DeepSeek-V3",
+                DefaultModel = (DefaultModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (DefaultModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "DeepSeek-V3",
                 ApiKey = ApiKeyPasswordBox.Password,
                 TimeoutSeconds = (int)TimeoutSlider.Value,
                 EnableCache = EnableCacheCheckBox.IsChecked ?? true,
                 EnableLogging = EnableLoggingCheckBox.IsChecked ?? false,
-                DialogueModel = (DialogueModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "DeepSeek-V3",
+                DialogueModel = (DialogueModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (DialogueModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "DeepSeek-V3",
                 DialogueCreativity = DialogueCreativitySlider.Value,
                 DialogueMaxLength = (int)DialogueMaxLengthSlider.Value,
-                AnalysisModel = (AnalysisModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "GPT-4",
-                FactionModel = (FactionModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Claude-3"
+                AnalysisModel = (AnalysisModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (AnalysisModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "GPT-4",
+                FactionModel = (FactionModelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (FactionModelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Claude-3"
             };
         }
 
@@ -301,8 +302,8 @@ namespace NovelManagement.WPF.Views
             {
                 var dialog = new SaveFileDialog
                 {
-                    Title = "导出AI模型配置",
-                    Filter = "JSON文件|*.json",
+                    Title = T("AMC.ExportDialogTitle", "导出AI模型配置"),
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"ai-model-config_{DateTime.Now:yyyyMMdd_HHmmss}.json"
                 };
@@ -313,16 +314,16 @@ namespace NovelManagement.WPF.Views
                 }
 
                 SaveConfigButton.IsEnabled = false;
-                StatusText.Text = "正在导出配置...";
+                StatusText.Text = T("AMC.Exporting", "正在导出配置...");
                 await _configService.ExportConfigurationAsync(GetCurrentConfiguration(), dialog.FileName);
-                StatusText.Text = $"配置已导出到 {Path.GetFileName(dialog.FileName)}";
-                MessageBox.Show($"配置已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = TF("AMC.ExportedStatusFmt", "配置已导出到 {0}", Path.GetFileName(dialog.FileName));
+                MessageBox.Show(TF("AMC.ExportedFmt", "配置已导出到：{0}", dialog.FileName), T("AMC.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导出配置失败");
-                StatusText.Text = "导出配置失败";
-                MessageBox.Show($"导出配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = T("AMC.ExportFailStatus", "导出配置失败");
+                MessageBox.Show(TF("AMC.ExportFailFmt", "导出配置失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -336,8 +337,8 @@ namespace NovelManagement.WPF.Views
             {
                 var dialog = new OpenFileDialog
                 {
-                    Title = "导入AI模型配置",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("AMC.ImportDialogTitle", "导入AI模型配置"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json",
                     CheckFileExists = true,
                     Multiselect = false
@@ -349,18 +350,18 @@ namespace NovelManagement.WPF.Views
                 }
 
                 SaveConfigButton.IsEnabled = false;
-                StatusText.Text = "正在导入配置...";
+                StatusText.Text = T("AMC.Importing", "正在导入配置...");
                 var config = await _configService.ImportConfigurationAsync(dialog.FileName);
                 ApplyConfiguration(config);
                 await _configService.SaveConfigurationAsync(config);
-                StatusText.Text = $"已导入并应用配置: {Path.GetFileName(dialog.FileName)}";
-                MessageBox.Show("配置导入成功，已自动应用并保存到本地。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = TF("AMC.ImportedStatusFmt", "已导入并应用配置: {0}", Path.GetFileName(dialog.FileName));
+                MessageBox.Show(T("AMC.ImportSuccessMsg", "配置导入成功，已自动应用并保存到本地。"), T("AMC.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导入配置失败");
-                StatusText.Text = "导入配置失败";
-                MessageBox.Show($"导入配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = T("AMC.ImportFailStatus", "导入配置失败");
+                MessageBox.Show(TF("AMC.ImportFailFmt", "导入配置失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -384,7 +385,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (item is ComboBoxItem comboBoxItem)
                 {
-                    var content = comboBoxItem.Content?.ToString();
+                    var content = comboBoxItem.Tag?.ToString() ?? comboBoxItem.Content?.ToString();
                     if (string.Equals(content, expectedValue, StringComparison.OrdinalIgnoreCase) ||
                         (!string.IsNullOrWhiteSpace(content) && content.StartsWith(expectedValue, StringComparison.OrdinalIgnoreCase)))
                     {

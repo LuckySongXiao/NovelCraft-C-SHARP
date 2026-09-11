@@ -1,4 +1,4 @@
-<Window x:Class="NovelManagement.WPF.Views.ThemeSettingsWindow"
+<Window x:Class="NovelManagement.WPF.Views.ThemeSettingsWindow" Icon="pack://application:,,,/Assets/icon.ico"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:NovelManagement.WPF.Views"
         mc:Ignorable="d"
-        Title="主题配置与皮肤设定" Height="660" Width="980"
+        Title="{DynamicResource Loc.TS.WindowTitle}" Height="660" Width="980"
         WindowStartupLocation="CenterOwner"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="13"
@@ -39,8 +39,8 @@
                                        VerticalAlignment="Center"
                                        Margin="0,0,16,0"/>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="主题配置与皮肤设定" FontSize="20" FontWeight="Medium"/>
-                    <TextBlock Text="内置三种皮肤，支持自定义皮肤与窗口框架颜色；检测到女频文时自动切换红粉花漾少女风"
+                    <TextBlock Text="{DynamicResource Loc.TS.Title}" FontSize="20" FontWeight="Medium"/>
+                    <TextBlock Text="{DynamicResource Loc.TS.Subtitle}"
                              FontSize="12" Opacity="0.85"/>
                 </StackPanel>
             </DockPanel>
@@ -55,7 +55,7 @@
 
             <!-- 左：皮肤列表 -->
             <DockPanel Grid.Column="0">
-                <TextBlock DockPanel.Dock="Top" Text="皮肤列表" FontSize="16" FontWeight="Medium" Margin="4,0,0,4"/>
+                <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Loc.TS.SkinList}" FontSize="16" FontWeight="Medium" Margin="4,0,0,4"/>
                 <ListBox x:Name="SkinListBox"
                          SelectionMode="Single"
                          SelectionChanged="SkinListBox_SelectionChanged">
@@ -93,12 +93,12 @@
 
             <!-- 右：选中皮肤详情与操作 -->
             <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                <TextBlock x:Name="SkinTitleText" Text="请选择皮肤" FontSize="18" FontWeight="Medium"/>
+                <TextBlock x:Name="SkinTitleText" Text="{DynamicResource Loc.TS.SelectSkin}" FontSize="18" FontWeight="Medium"/>
                 <TextBlock x:Name="SkinInfoText" FontSize="12"
                          Foreground="{DynamicResource AppMutedTextBrush}"
                          Margin="0,2,0,10"/>
 
-                <TextBlock Text="颜色预览" FontSize="14" FontWeight="Medium" Margin="2,0,0,6"/>
+                <TextBlock Text="{DynamicResource Loc.TS.ColorPreview}" FontSize="14" FontWeight="Medium" Margin="2,0,0,6"/>
                 <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="ColorPreviewList">
                         <ItemsControl.ItemsPanel>
@@ -128,35 +128,35 @@
                             Click="ApplySkin_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Check" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="应用皮肤"/>
+                            <TextBlock Text="{DynamicResource Loc.TS.ApplySkin}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,8"
-                            ToolTip="黑夜 19:00–07:00 自动切换，其余时间白昼"
+                            ToolTip="{DynamicResource Loc.TS.AutoTimeTooltip}"
                             Click="AutoByTime_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ClockOutline" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="跟随时间自动切换"/>
+                            <TextBlock Text="{DynamicResource Loc.TS.AutoByTime}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,8"
-                            ToolTip="以当前选中皮肤为基础新增自定义皮肤"
+                            ToolTip="{DynamicResource Loc.TS.AddCustomTooltip}"
                             Click="AddCustomSkin_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="新增自定义皮肤"/>
+                            <TextBlock Text="{DynamicResource Loc.TS.AddCustom}"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="EditSkinButton"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,8"
-                            ToolTip="编辑自定义皮肤的全部颜色（含窗口框架）"
+                            ToolTip="{DynamicResource Loc.TS.EditTooltip}"
                             Click="EditSkin_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Pencil" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="编辑"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Edit}"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="DeleteSkinButton"
@@ -165,12 +165,12 @@
                             Click="DeleteSkin_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="DeleteOutline" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="删除"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Delete}"/>
                         </StackPanel>
                     </Button>
                 </WrapPanel>
 
-                <TextBlock Text="提示：内置皮肤不可编辑或删除，可基于它复制为自定义皮肤后修改；切换项目或批量生成检测到女频文时，将临时切换为红粉花漾少女风，退出后自动恢复。"
+                <TextBlock Text="{DynamicResource Loc.TS.Hint}"
                          FontSize="11" Foreground="{DynamicResource AppMutedTextBrush}"
                          TextWrapping="Wrap" Margin="2,6,0,0"/>
             </StackPanel>
@@ -187,11 +187,11 @@
 
                 <StackPanel Grid.Row="0" Margin="16,12,16,4">
                     <TextBox x:Name="SkinNameTextBox"
-                             materialDesign:HintAssist.Hint="皮肤名称 *"
+                             materialDesign:HintAssist.Hint="{DynamicResource Loc.TS.SkinNameHint}"
                              materialDesign:HintAssist.IsFloating="True"
                              Margin="0,0,0,8"/>
                     <CheckBox x:Name="SkinIsDarkCheckBox"
-                              Content="深色基调（使用 MaterialDesign Dark / HandyControl SkinDark 资源）"/>
+                              Content="{DynamicResource Loc.TS.IsDark}"/>
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1" Margin="16,4,16,4" VerticalScrollBarVisibility="Auto">
@@ -224,11 +224,11 @@
                 </ScrollViewer>
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,8,16,12">
-                    <Button Content="保存皮肤"
+                    <Button Content="{DynamicResource Loc.TS.SaveSkin}"
                             Style="{StaticResource MaterialDesignRaisedButton}"
                             Margin="0,0,8,0"
                             Click="SaveSkin_Click"/>
-                    <Button Content="取消"
+                    <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                             Style="{StaticResource MaterialDesignFlatButton}"
                             Click="CancelEdit_Click"/>
                 </StackPanel>
@@ -244,7 +244,7 @@
             <DockPanel>
                 <TextBlock x:Name="ModeStateText" DockPanel.Dock="Left" VerticalAlignment="Center"
                          FontSize="12" Foreground="{DynamicResource AppMutedTextBrush}"/>
-                <Button Content="关闭" Width="96"
+                <Button Content="{DynamicResource Loc.Dlg.Close}" Width="96"
                         Style="{StaticResource MaterialDesignOutlinedButton}"
                         HorizontalAlignment="Right"
                         Click="Close_Click"/>

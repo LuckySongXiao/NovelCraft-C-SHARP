@@ -97,6 +97,24 @@ The Novel Management System is an intelligent book-writing and management platfo
 
 ---
 
+## 2.5 界面语言切换 Interface Language Switching
+
+### 中文（2026-09-10 新增）
+
+- **自动跟随**：默认跟随 Windows 显示语言（`zh-*` 中文，其余英文）
+- **手动切换**：点击标题栏语言切换按钮（中文界面显示 `EN`，英文界面显示 `中`），全界面即时生效并持久化到 `appsettings.user.json` 的 `Localization:Language` 节点，重启保持
+- 切换前已打开的弹窗保持原语言，重新打开后刷新；删除 `Localization` 节点恢复自动跟随
+- 英文版界面截图与纯英文说明书见 [User_Guide_EN.md](User_Guide_EN.md)（`images_en/` 目录）
+
+### English (added Sept 10, 2026)
+
+- **Automatic**: the UI follows the Windows display language by default (`zh-*` → Chinese, otherwise English)
+- **Manual**: click the title-bar language toggle (`EN` / `中`) — the whole UI switches immediately and the choice persists to `Localization:Language` in `appsettings.user.json`
+- Dialogs opened before the switch keep their old language until reopened; delete the `Localization` node to restore automatic detection
+- English-only screenshots and the pure-English guide: [User_Guide_EN.md](User_Guide_EN.md) (`images_en/`)
+
+---
+
 ## 3. 功能页面使用说明 Page-by-Page User Guide
 
 ### 3.1 仪表盘 Dashboard

@@ -4,9 +4,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:localization="clr-namespace:NovelManagement.WPF.Localization"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1200">
     
+    <UserControl.Resources>
+        <localization:StoredValueConverter x:Key="StoredValueConverter"/>
+    </UserControl.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,11 +20,11 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="剧情管理" 
+            <TextBlock Text="{DynamicResource Loc.PLM.Title}" 
                      FontSize="32" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理主线、支线剧情和时间线" 
+            <TextBlock Text="{DynamicResource Loc.PLM.Subtitle}" 
                      FontSize="16" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -39,7 +43,7 @@
                             Click="NewPlot_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建剧情"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.New}"/>
                         </StackPanel>
                     </Button>
                     
@@ -48,7 +52,7 @@
                             Click="ViewTimeline_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Timeline" Margin="0,0,8,0"/>
-                            <TextBlock Text="时间线视图"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.TimelineView}"/>
                         </StackPanel>
                     </Button>
                     
@@ -57,7 +61,7 @@
                             Click="PlotAnalysis_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ChartLine" Margin="0,0,8,0"/>
-                            <TextBlock Text="剧情分析"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.Analysis}"/>
                         </StackPanel>
                     </Button>
 
@@ -66,7 +70,7 @@
                             Click="ExportPlots_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
-                            <TextBlock Text="导出剧情"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.Export}"/>
                         </StackPanel>
                     </Button>
 
@@ -78,40 +82,40 @@
                     <Button Style="{StaticResource MaterialDesignRaisedAccentButton}"
                             Margin="0,0,8,0"
                             Click="AIGeneratePlot_Click"
-                            ToolTip="使用AI生成剧情">
+                            ToolTip="{DynamicResource Loc.PLM.AIGenerateTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Brain" Margin="0,0,8,0"/>
-                            <TextBlock Text="AI生成剧情"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.AIGenerate}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             Click="AIOptimizePlot_Click"
-                            ToolTip="使用AI优化选中剧情">
+                            ToolTip="{DynamicResource Loc.PLM.AIOptimizeTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
-                            <TextBlock Text="AI优化"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.AIOptimize}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             Click="AIPlotContinuity_Click"
-                            ToolTip="使用AI检查剧情连贯性">
+                            ToolTip="{DynamicResource Loc.PLM.AIConsistencyTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="CheckboxMarkedCircleOutline" Margin="0,0,8,0"/>
-                            <TextBlock Text="连贯性检查"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.ConsistencyCheck}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,12,0"
                             Click="AIPlotSuggestions_Click"
-                            ToolTip="使用AI获取剧情建议">
+                            ToolTip="{DynamicResource Loc.PLM.AISuggestTooltip}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Lightbulb" Margin="0,0,8,0"/>
-                            <TextBlock Text="剧情建议"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.Suggestions}"/>
                         </StackPanel>
                     </Button>
                 </WrapPanel>
@@ -119,32 +123,32 @@
                 <!-- 筛选和搜索 -->
                 <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
                     <ComboBox x:Name="PlotTypeFilter"
-                            materialDesign:HintAssist.Hint="剧情类型"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.PLM.TypeHint}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectionChanged="PlotTypeFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部"/>
-                        <ComboBoxItem Content="主线"/>
-                        <ComboBoxItem Content="支线"/>
-                        <ComboBoxItem Content="伏笔"/>
-                        <ComboBoxItem Content="回忆"/>
-                        <ComboBoxItem Content="番外"/>
+                        <ComboBoxItem Tag="全部" Content="{DynamicResource Loc.PLM.TypeAll}"/>
+                        <ComboBoxItem Tag="主线" Content="{DynamicResource Loc.PLM.TypeMain}"/>
+                        <ComboBoxItem Tag="支线" Content="{DynamicResource Loc.PLM.TypeSub}"/>
+                        <ComboBoxItem Tag="伏笔" Content="{DynamicResource Loc.PLM.TypeForeshadow}"/>
+                        <ComboBoxItem Tag="回忆" Content="{DynamicResource Loc.PLM.TypeFlashback}"/>
+                        <ComboBoxItem Tag="番外" Content="{DynamicResource Loc.PLM.TypeExtra}"/>
                     </ComboBox>
                     
                     <ComboBox x:Name="PlotStatusFilter"
-                            materialDesign:HintAssist.Hint="剧情状态"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.PLM.StatusHint}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectionChanged="PlotStatusFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部"/>
-                        <ComboBoxItem Content="规划中"/>
-                        <ComboBoxItem Content="进行中"/>
-                        <ComboBoxItem Content="已完成"/>
-                        <ComboBoxItem Content="暂停"/>
+                        <ComboBoxItem Tag="全部" Content="{DynamicResource Loc.PLM.TypeAll}"/>
+                        <ComboBoxItem Tag="规划中" Content="{DynamicResource Loc.PLM.StatusPlanned}"/>
+                        <ComboBoxItem Tag="进行中" Content="{DynamicResource Loc.PLM.StatusInProgress}"/>
+                        <ComboBoxItem Tag="已完成" Content="{DynamicResource Loc.PLM.StatusCompleted}"/>
+                        <ComboBoxItem Tag="暂停" Content="{DynamicResource Loc.PLM.StatusPaused}"/>
                     </ComboBox>
                     
                     <TextBox x:Name="SearchTextBox"
-                           materialDesign:HintAssist.Hint="搜索剧情..."
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.PLM.SearchHint}"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="200"
@@ -174,11 +178,11 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,12">
                         <DockPanel>
-                            <TextBlock Text="剧情列表" FontWeight="Medium" DockPanel.Dock="Left"/>
+                            <TextBlock Text="{DynamicResource Loc.PLM.List}" FontWeight="Medium" DockPanel.Dock="Left"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                 <ToggleButton x:Name="GroupByTypeToggle"
                                             Style="{StaticResource MaterialDesignActionToggleButton}"
-                                            ToolTip="按类型分组"
+                                            ToolTip="{DynamicResource Loc.PLM.GroupByTypeTooltip}"
                                             IsChecked="False"
                                             Checked="GroupBy_Changed"
                                             Unchecked="GroupBy_Changed">
@@ -228,12 +232,12 @@
 
                                             <!-- 剧情类型和状态标签 -->
                                             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
-                                                <materialDesign:Chip Content="{Binding Type}" 
+                                                <materialDesign:Chip Content="{Binding Type, Converter={StaticResource StoredValueConverter}}" 
                                                                    FontSize="10"
                                                                    Height="20"
                                                                    Background="{Binding TypeColor}"
                                                                    Margin="0,0,4,0"/>
-                                                <materialDesign:Chip Content="{Binding Status}" 
+                                                <materialDesign:Chip Content="{Binding Status, Converter={StaticResource StoredValueConverter}}" 
                                                                    FontSize="10"
                                                                    Height="20"
                                                                    Background="{Binding StatusColor}"/>
@@ -280,7 +284,7 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                   VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="剧情统计" 
+                        <TextBlock Text="{DynamicResource Loc.PLM.Stats}" 
                                  FontSize="24" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,24"/>
@@ -289,7 +293,7 @@
                         <UniformGrid Columns="2" Margin="0,0,0,24">
                             <materialDesign:Card Margin="0,0,8,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总剧情数" 
+                                    <TextBlock Text="{DynamicResource Loc.PLM.TotalCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="18" 
@@ -300,7 +304,7 @@
 
                             <materialDesign:Card Margin="8,0,0,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="主线剧情" 
+                                    <TextBlock Text="{DynamicResource Loc.PLM.MainCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="5" 
@@ -311,7 +315,7 @@
 
                             <materialDesign:Card Margin="0,8,8,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="支线剧情" 
+                                    <TextBlock Text="{DynamicResource Loc.PLM.SubCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="10" 
@@ -322,7 +326,7 @@
 
                             <materialDesign:Card Margin="8,8,0,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="完成进度" 
+                                    <TextBlock Text="{DynamicResource Loc.PLM.Progress}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="65%" 
@@ -333,7 +337,7 @@
                         </UniformGrid>
 
                         <!-- 剧情状态分布 -->
-                        <TextBlock Text="剧情状态分布" 
+                        <TextBlock Text="{DynamicResource Loc.PLM.StatusDistribution}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
@@ -346,7 +350,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="已完成" Margin="0,0,12,0" Background="#4CAF50"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.PLM.StatusCompleted}" Margin="0,0,12,0" Background="#4CAF50"/>
                                 <ProgressBar Grid.Column="1" Value="8" Maximum="18" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="8" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -358,7 +362,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="进行中" Margin="0,0,12,0" Background="#2196F3"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.PLM.StatusInProgress}" Margin="0,0,12,0" Background="#2196F3"/>
                                 <ProgressBar Grid.Column="1" Value="6" Maximum="18" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="6" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -370,14 +374,14 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="规划中" Margin="0,0,12,0" Background="#FF9800"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.PLM.StatusPlanned}" Margin="0,0,12,0" Background="#FF9800"/>
                                 <ProgressBar Grid.Column="1" Value="4" Maximum="18" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="4" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
                         </ItemsControl>
 
                         <!-- 最近更新的剧情 -->
-                        <TextBlock Text="最近更新" 
+                        <TextBlock Text="{DynamicResource Loc.PLM.RecentUpdate}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,24,0,16"/>
@@ -394,14 +398,14 @@
                                     </Grid.ColumnDefinitions>
                                     
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="主线：天劫降临" FontWeight="Medium"/>
-                                        <TextBlock Text="林轩面临天劫考验的关键剧情" 
+                                        <TextBlock Text="{DynamicResource Loc.PLM.SampleMain}" FontWeight="Medium"/>
+                                        <TextBlock Text="{DynamicResource Loc.PLM.SampleMainDesc}" 
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                  FontSize="12"/>
                                     </StackPanel>
                                     
                                     <TextBlock Grid.Column="1" 
-                                             Text="2小时前" 
+                                             Text="{DynamicResource Loc.PLM.HoursAgo2}" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                              VerticalAlignment="Center"/>
                                 </Grid>
@@ -418,14 +422,14 @@
                                     </Grid.ColumnDefinitions>
                                     
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="支线：苏雨薇的秘密" FontWeight="Medium"/>
-                                        <TextBlock Text="揭示苏雨薇身世之谜的支线剧情" 
+                                        <TextBlock Text="{DynamicResource Loc.PLM.SampleSub}" FontWeight="Medium"/>
+                                        <TextBlock Text="{DynamicResource Loc.PLM.SampleSubDesc}" 
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                  FontSize="12"/>
                                     </StackPanel>
                                     
                                     <TextBlock Grid.Column="1" 
-                                             Text="1天前" 
+                                             Text="{DynamicResource Loc.PLM.DayAgo1}" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                              VerticalAlignment="Center"/>
                                 </Grid>

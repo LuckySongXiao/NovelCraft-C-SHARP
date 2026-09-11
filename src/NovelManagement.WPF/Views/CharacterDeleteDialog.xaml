@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="删除角色确认"
+        Title="{DynamicResource Loc.CDD.Title}"
         Height="560" Width="760"
         MinHeight="520" MinWidth="700"
         WindowStartupLocation="CenterOwner"
@@ -29,10 +29,10 @@
                                    VerticalAlignment="Center"
                                    Margin="0,0,16,0"/>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="删除角色确认" 
+                <TextBlock Text="{DynamicResource Loc.CDD.Title}" 
                          FontSize="24" 
                          FontWeight="Bold"/>
-                <TextBlock Text="此操作不可撤销，请谨慎操作" 
+                <TextBlock Text="{DynamicResource Loc.CDD.Warning}" 
                          FontSize="14" 
                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
             </StackPanel>
@@ -64,24 +64,24 @@
                     <!-- 角色信息 -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock x:Name="CharacterNameText" 
-                                 Text="角色姓名" 
+                                 Text="{DynamicResource Loc.CM.NamePlaceholder}" 
                                  FontSize="18" 
                                  FontWeight="Bold" 
                                  Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <materialDesign:Chip x:Name="CharacterTypeChip" 
-                                               Content="主角" 
+                                               Content="{DynamicResource Loc.CM.TypeProtagonist}" 
                                                FontSize="12"
                                                Height="24"
                                                Margin="0,0,8,0"/>
                             <materialDesign:Chip x:Name="CharacterFactionChip" 
-                                               Content="玄天宗" 
+                                               Content="{DynamicResource Loc.CM.FactionPlaceholder}" 
                                                FontSize="12"
                                                Height="24"
                                                Background="{DynamicResource SecondaryHueLightBrush}"/>
                         </StackPanel>
                         <TextBlock x:Name="CharacterCultivationText" 
-                                 Text="筑基期" 
+                                 Text="{DynamicResource Loc.CM.RealmPlaceholder}" 
                                  FontSize="12"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                     </StackPanel>
@@ -98,21 +98,21 @@
                                                Width="20" Height="20"
                                                VerticalAlignment="Center"
                                                Margin="0,0,8,0"/>
-                        <TextBlock Text="删除警告" 
+                        <TextBlock Text="{DynamicResource Loc.CDD.DeleteWarning}" 
                                  FontWeight="Bold" 
                                  FontSize="14"/>
                     </StackPanel>
                     
                     <TextBlock TextWrapping="Wrap" LineHeight="20">
-                        <Run Text="删除此角色将会："/>
+                        <Run Text="{DynamicResource Loc.CDD.Consequences}"/>
                         <LineBreak/>
-                        <Run Text="• 永久删除角色的所有信息"/>
+                        <Run Text="{DynamicResource Loc.CDD.C1}"/>
                         <LineBreak/>
-                        <Run Text="• 删除与其他角色的关系连接"/>
+                        <Run Text="{DynamicResource Loc.CDD.C2}"/>
                         <LineBreak/>
-                        <Run Text="• 从所有相关剧情中移除"/>
+                        <Run Text="{DynamicResource Loc.CDD.C3}"/>
                         <LineBreak/>
-                        <Run Text="• 此操作无法撤销"/>
+                        <Run Text="{DynamicResource Loc.CDD.C4}"/>
                     </TextBlock>
                 </StackPanel>
             </materialDesign:Card>
@@ -120,11 +120,11 @@
             <!-- 确认输入 -->
             <materialDesign:Card Padding="16" Margin="0,16,0,0">
                 <StackPanel>
-                    <TextBlock Text="请输入角色姓名以确认删除：" 
+                    <TextBlock Text="{DynamicResource Loc.CDD.ConfirmInputHint}" 
                              FontWeight="Medium" 
                              Margin="0,0,0,8"/>
                     <TextBox x:Name="ConfirmNameTextBox"
-                           materialDesign:HintAssist.Hint="可直接确认删除，或输入角色姓名再次确认"
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.CDD.ConfirmOptionalHint}"
                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
                            TextChanged="ConfirmNameTextBox_TextChanged"/>
                 </StackPanel>
@@ -137,13 +137,13 @@
                   HorizontalAlignment="Right" 
                   Margin="0,24,0,0">
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                  Content="取消"
+                  Content="{DynamicResource Loc.Dlg.Cancel}"
                   Margin="0,0,12,0"
                   Click="Cancel_Click"
                   IsCancel="True"/>
             <Button x:Name="DeleteButton"
                   Style="{StaticResource MaterialDesignRaisedButton}"
-                  Content="确认删除"
+                  Content="{DynamicResource Loc.CDD.ConfirmDelete}"
                   Background="{DynamicResource MaterialDesignValidationErrorBrush}"
                   BorderBrush="{DynamicResource MaterialDesignValidationErrorBrush}"
                   Click="Delete_Click"/>

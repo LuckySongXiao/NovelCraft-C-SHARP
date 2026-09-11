@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="新建卷宗" Height="600" Width="500"
+        Title="{DynamicResource Loc.VM.NewVolume}" Height="600" Width="500"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -25,17 +25,17 @@
 
         <!-- 标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <materialDesign:PackIcon Kind="BookPlus" 
-                                   Width="48" Height="48" 
+            <materialDesign:PackIcon Kind="BookPlus"
+                                   Width="48" Height="48"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-            <TextBlock Text="新建卷宗" 
-                     FontSize="24" 
-                     FontWeight="Bold" 
+            <TextBlock Text="{DynamicResource Loc.VM.NewVolume}"
+                     FontSize="24"
+                     FontWeight="Bold"
                      HorizontalAlignment="Center"
                      Margin="0,8,0,0"/>
-            <TextBlock Text="为您的书籍创建新的卷宗" 
-                     FontSize="14" 
+            <TextBlock Text="{DynamicResource Loc.NVD.Subtitle}"
+                     FontSize="14"
                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                      HorizontalAlignment="Center"
                      Margin="0,4,0,0"/>
@@ -46,14 +46,14 @@
             <StackPanel>
                 <!-- 卷宗名称 -->
                 <TextBox x:Name="VolumeNameTextBox"
-                       materialDesign:HintAssist.Hint="卷宗名称"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.NameHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="100"/>
 
                 <!-- 卷宗描述 -->
                 <TextBox x:Name="VolumeDescriptionTextBox"
-                       materialDesign:HintAssist.Hint="卷宗描述"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.DescriptionHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -65,55 +65,55 @@
 
                 <!-- 卷宗类型 -->
                 <ComboBox x:Name="VolumeTypeComboBox"
-                        materialDesign:HintAssist.Hint="卷宗类型"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.TypeHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="主线剧情"/>
-                    <ComboBoxItem Content="支线剧情"/>
-                    <ComboBoxItem Content="番外篇"/>
-                    <ComboBoxItem Content="序章"/>
-                    <ComboBoxItem Content="终章"/>
-                    <ComboBoxItem Content="其他"/>
+                    <ComboBoxItem Tag="主线剧情" Content="{DynamicResource Loc.NVD.TypeMain}"/>
+                    <ComboBoxItem Tag="支线剧情" Content="{DynamicResource Loc.NVD.TypeSub}"/>
+                    <ComboBoxItem Tag="番外篇" Content="{DynamicResource Loc.NVD.TypeExtra}"/>
+                    <ComboBoxItem Tag="序章" Content="{DynamicResource Loc.NVD.TypePrologue}"/>
+                    <ComboBoxItem Tag="终章" Content="{DynamicResource Loc.NVD.TypeFinale}"/>
+                    <ComboBoxItem Tag="其他" Content="{DynamicResource Loc.PG.GenreOther}"/>
                 </ComboBox>
 
                 <!-- 卷宗顺序 -->
                 <TextBox x:Name="VolumeOrderTextBox"
-                       materialDesign:HintAssist.Hint="卷宗顺序"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.OrderHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
 
                 <!-- 目标章节数 -->
                 <TextBox x:Name="TargetChapterCountTextBox"
-                       materialDesign:HintAssist.Hint="目标章节数"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.TargetChaptersHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
 
                 <!-- 预计字数 -->
                 <TextBox x:Name="EstimatedWordCountTextBox"
-                       materialDesign:HintAssist.Hint="预计字数"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.EstimatedWordsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
 
                 <!-- 卷宗主题 -->
                 <TextBox x:Name="VolumeThemeTextBox"
-                       materialDesign:HintAssist.Hint="卷宗主题"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.ThemeHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>
 
                 <!-- 关键角色 -->
                 <TextBox x:Name="KeyCharactersTextBox"
-                       materialDesign:HintAssist.Hint="关键角色（用逗号分隔）"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.KeyCharactersHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="300"/>
 
                 <!-- 重要事件 -->
                 <TextBox x:Name="ImportantEventsTextBox"
-                       materialDesign:HintAssist.Hint="重要事件概述"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.ImportantEventsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -125,19 +125,19 @@
 
                 <!-- 卷宗状态 -->
                 <ComboBox x:Name="VolumeStatusComboBox"
-                        materialDesign:HintAssist.Hint="卷宗状态"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.StatusHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="计划中" IsSelected="True"/>
-                    <ComboBoxItem Content="进行中"/>
-                    <ComboBoxItem Content="已完成"/>
-                    <ComboBoxItem Content="暂停"/>
-                    <ComboBoxItem Content="已取消"/>
+                    <ComboBoxItem Tag="计划中" Content="{DynamicResource Loc.TL.Data.计划中}" IsSelected="True"/>
+                    <ComboBoxItem Tag="进行中" Content="{DynamicResource Loc.PLM.StatusInProgress}"/>
+                    <ComboBoxItem Tag="已完成" Content="{DynamicResource Loc.PLM.StatusCompleted}"/>
+                    <ComboBoxItem Tag="暂停" Content="{DynamicResource Loc.PLM.StatusPaused}"/>
+                    <ComboBoxItem Tag="已取消" Content="{DynamicResource Loc.TL.Data.已取消}"/>
                 </ComboBox>
 
                 <!-- 标签 -->
                 <TextBox x:Name="VolumeTagsTextBox"
-                       materialDesign:HintAssist.Hint="标签（用逗号分隔）"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NVD.TagsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>
@@ -145,16 +145,16 @@
         </ScrollViewer>
 
         <!-- 按钮区域 -->
-        <StackPanel Grid.Row="2" 
-                  Orientation="Horizontal" 
-                  HorizontalAlignment="Right" 
+        <StackPanel Grid.Row="2"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Right"
                   Margin="0,24,0,0">
-            <Button Content="取消" 
+            <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                   Style="{StaticResource MaterialDesignOutlinedButton}"
                   Margin="0,0,12,0"
                   Width="80"
                   Click="Cancel_Click"/>
-            <Button Content="创建" 
+            <Button Content="{DynamicResource Loc.Dlg.Create}"
                   Style="{StaticResource MaterialDesignRaisedButton}"
                   Width="80"
                   Click="Create_Click"/>

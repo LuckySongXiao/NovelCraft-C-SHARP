@@ -98,7 +98,7 @@
                     <!-- 标题文本 -->
                     <TextBlock Grid.Column="1"
                              x:Name="TitleTextBlock"
-                             Text="AI思维过程"
+                             Text="{DynamicResource Loc.TC.WindowTitle}"
                              FontWeight="Medium"
                              FontSize="14"
                              Foreground="White"
@@ -124,7 +124,7 @@
                           Padding="0"
                           Foreground="White"
                           Click="MinimizeButton_Click"
-                          ToolTip="最小化">
+                          ToolTip="{DynamicResource Loc.TC.MinimizeTip}">
                         <materialDesign:PackIcon Kind="WindowMinimize" Width="16" Height="16"/>
                     </Button>
 
@@ -136,7 +136,7 @@
                           Padding="0"
                           Foreground="White"
                           Click="CloseButton_Click"
-                          ToolTip="关闭">
+                          ToolTip="{DynamicResource Loc.Dlg.Close}">
                         <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
                     </Button>
                 </Grid>
@@ -194,7 +194,7 @@
                                         <StackPanel Orientation="Horizontal" 
                                                   Margin="0,4,0,0"
                                                   Visibility="{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <TextBlock Text="置信度: "
+                                            <TextBlock Text="{DynamicResource Loc.TC.ConfidenceLabel}"
                                                      FontSize="9"
                                                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                             <TextBlock Text="{Binding ConfidencePercentage}"
@@ -274,7 +274,7 @@
                     <!-- 状态文本 -->
                     <TextBlock Grid.Column="0"
                              x:Name="StatusTextBlock"
-                             Text="准备中..."
+                             Text="{DynamicResource Loc.TC.StatusPreparing}"
                              FontSize="10"
                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                              VerticalAlignment="Center"/>
@@ -287,7 +287,7 @@
                               Style="{StaticResource MaterialDesignIconButton}"
                               Width="20" Height="20"
                               Padding="0"
-                              ToolTip="暂停/继续"
+                              ToolTip="{DynamicResource Loc.TC.PauseResumeTip}"
                               Click="PauseButton_Click">
                             <materialDesign:PackIcon x:Name="PauseIcon" 
                                                    Kind="Pause" 
@@ -298,7 +298,7 @@
                               Style="{StaticResource MaterialDesignIconButton}"
                               Width="20" Height="20"
                               Padding="0"
-                              ToolTip="导出思维链"
+                              ToolTip="{DynamicResource Loc.TC.ExportTip}"
                               Click="ExportButton_Click">
                             <materialDesign:PackIcon Kind="Export" Width="12" Height="12"/>
                         </Button>

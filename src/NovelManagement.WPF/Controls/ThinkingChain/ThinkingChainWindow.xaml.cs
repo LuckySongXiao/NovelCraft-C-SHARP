@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using NovelManagement.AI.Services.ThinkingChain;
 
+using static NovelManagement.WPF.Localization.LocalizationManager;
 namespace NovelManagement.WPF.Controls.ThinkingChain
 {
     /// <summary>
@@ -201,8 +202,8 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
                 switch (e.PropertyName)
                 {
                     case nameof(NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain.Title):
-                        TitleTextBlock.Text = ThinkingChain?.Title ?? "AI思维过程";
-                        Title = ThinkingChain?.Title ?? "AI思维过程";
+                        TitleTextBlock.Text = ThinkingChain?.Title ?? T("TC.WindowTitle", "AI思维过程");
+                        Title = ThinkingChain?.Title ?? T("TC.WindowTitle", "AI思维过程");
                         break;
                     case nameof(NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain.Progress):
                         ProgressBar.Value = (ThinkingChain?.Progress ?? 0) * 100;
@@ -310,10 +311,10 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
             {
                 var saveFileDialog = new Microsoft.Win32.SaveFileDialog
                 {
-                    Title = "导出思维链",
-                    Filter = "Markdown文件 (*.md)|*.md|JSON文件 (*.json)|*.json|文本文件 (*.txt)|*.txt|HTML文件 (*.html)|*.html",
+                    Title = T("TC.ExportDialogTitle", "导出思维链"),
+                    Filter = T("TC.ExportFilter", "Markdown文件 (*.md)|*.md|JSON文件 (*.json)|*.json|文本文件 (*.txt)|*.txt|HTML文件 (*.html)|*.html"),
                     DefaultExt = ".md",
-                    FileName = $"思维链_{thinkingChain.Title}_{DateTime.Now:yyyyMMdd_HHmmss}"
+                    FileName = TF("TC.ExportFileNameFmt", "思维链_{0}_{1:yyyyMMdd_HHmmss}", thinkingChain.Title, DateTime.Now)
                 };
 
                 if (saveFileDialog.ShowDialog() == true)
@@ -336,7 +337,7 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
 
                             Dispatcher.Invoke(() =>
                             {
-                                MessageBox.Show($"思维链已导出到: {saveFileDialog.FileName}", "导出成功", 
+                                MessageBox.Show(TF("TC.ExportedFmt", "思维链已导出到: {0}", saveFileDialog.FileName), T("TC.ExportSuccessTitle", "导出成功"), 
                                     MessageBoxButton.OK, MessageBoxImage.Information);
                             });
                         }
@@ -344,7 +345,7 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
                         {
                             Dispatcher.Invoke(() =>
                             {
-                                MessageBox.Show($"导出失败: {ex.Message}", "导出错误", 
+                                MessageBox.Show(TF("TC.ExportFailedFmt", "导出失败: {0}", ex.Message), T("TC.ExportErrorTitle", "导出错误"), 
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                             });
                         }
@@ -353,7 +354,7 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败: {ex.Message}", "导出错误", 
+                MessageBox.Show(TF("TC.ExportFailedFmt", "导出失败: {0}", ex.Message), T("TC.ExportErrorTitle", "导出错误"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

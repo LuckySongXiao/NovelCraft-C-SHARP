@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using NovelManagement.Application.DTOs;
 using NovelManagement.Application.Services;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -59,6 +60,18 @@ namespace NovelManagement.WPF.Views
             /// 开始时间。
             /// </summary>
             public DateTime StartTime { get; set; }
+
+            /// <summary>本地化的格式显示文本。</summary>
+            public string FormatDisplay =>
+                NovelManagement.WPF.Localization.LocalizationManager.TF("IE.Fmt.Format", "格式: {0}", Format);
+
+            /// <summary>本地化的开始时间显示文本。</summary>
+            public string StartTimeDisplay =>
+                NovelManagement.WPF.Localization.LocalizationManager.TF("IE.Fmt.Time", "时间: {0:yyyy-MM-dd HH:mm}", StartTime);
+
+            /// <summary>本地化的文件大小显示文本。</summary>
+            public string FileSizeDisplay =>
+                NovelManagement.WPF.Localization.LocalizationManager.TF("IE.Fmt.Size", "大小: {0:N0} 字节", FileSize);
 
             /// <summary>
             /// 结束时间。
@@ -181,13 +194,13 @@ namespace NovelManagement.WPF.Views
             {
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导入导出", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), LocalizationManager.T("IE.FeatureName", "导入导出"), out _);
                     return;
                 }
 
-                // 设置默认输出路径
-                var defaultExportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "书籍导出");
-                OutputPathTextBox.Text = Path.Combine(defaultExportPath, "千面劫·宿命轮回.txt");
+                // 设置默认输出路径（文件夹/示例书名按当前语言显示）
+                var defaultExportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), LocalizationManager.T("IE.DefaultExportFolder", "书籍导出"));
+                OutputPathTextBox.Text = Path.Combine(defaultExportPath, LocalizationManager.T("IE.DefaultExportFileName", "千面劫·宿命轮回") + ".txt");
 
                 await RefreshSelectionOptionsAsync();
 
@@ -198,7 +211,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "初始化导入导出界面失败");
-                MessageBox.Show($"初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("IE.InitFailed", "初始化失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -495,15 +508,15 @@ namespace NovelManagement.WPF.Views
         {
             var dialog = new SaveFileDialog
             {
-                Title = "选择导出文件保存位置",
-                Filter = "所有支持的格式|*.txt;*.xlsx;*.docx;*.html;*.md;*.json|" +
-                        "文本文件|*.txt|" +
-                        "Excel文件|*.xlsx|" +
-                        "Word文档|*.docx|" +
-                        "网页文件|*.html|" +
-                        "Markdown文件|*.md|" +
-                        "JSON文件|*.json",
-                FileName = "千面劫·宿命轮回"
+                Title = LocalizationManager.T("IE.SaveDialogTitle", "选择导出文件保存位置"),
+                Filter = LocalizationManager.T("IE.FilterAll", "所有支持的格式") + "|*.txt;*.xlsx;*.docx;*.html;*.md;*.json|" +
+                        LocalizationManager.T("IE.FilterTxt", "文本文件") + "|*.txt|" +
+                        LocalizationManager.T("IE.FilterExcel", "Excel文件") + "|*.xlsx|" +
+                        LocalizationManager.T("IE.FilterWord", "Word文档") + "|*.docx|" +
+                        LocalizationManager.T("IE.FilterHtml", "网页文件") + "|*.html|" +
+                        LocalizationManager.T("IE.FilterMarkdown", "Markdown文件") + "|*.md|" +
+                        LocalizationManager.T("IE.FilterJson", "JSON文件") + "|*.json",
+                FileName = LocalizationManager.T("IE.DefaultExportFileName", "千面劫·宿命轮回")
             };
 
             if (dialog.ShowDialog() == true)
@@ -521,21 +534,21 @@ namespace NovelManagement.WPF.Views
             {
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导出", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), LocalizationManager.T("Dlg.Export", "导出"), out _);
                     return;
                 }
 
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(OutputPathTextBox.Text))
                 {
-                    MessageBox.Show("请选择输出文件路径", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectOutputPath", "请选择输出文件路径"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (ExportFormatComboBox.SelectedItem is not ComboBoxItem formatItem ||
                     ExportScopeComboBox.SelectedItem is not ComboBoxItem scopeItem)
                 {
-                    MessageBox.Show("请选择导出格式和范围", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectFormatAndScope", "请选择导出格式和范围"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -558,7 +571,7 @@ namespace NovelManagement.WPF.Views
                     var selectedItems = SelectionListBox.SelectedItems.Cast<ListBoxItem>().ToList();
                     if (selectedItems.Count == 0)
                     {
-                        MessageBox.Show("请选择要导出的项目", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(LocalizationManager.T("IE.SelectExportItems", "请选择要导出的项目"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -589,7 +602,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "启动导出失败");
-                MessageBox.Show($"启动导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("IE.StartExportFailed", "启动导出失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -632,13 +645,13 @@ namespace NovelManagement.WPF.Views
                     }
                     else
                     {
-                        MessageBox.Show("文件不存在", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(LocalizationManager.T("IE.FileNotFound", "文件不存在"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"打开文件失败: {history.FilePath}");
-                    MessageBox.Show($"打开文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LocalizationManager.TF("IE.OpenFileFailed", "打开文件失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -663,13 +676,13 @@ namespace NovelManagement.WPF.Views
                     }
                     else
                     {
-                        MessageBox.Show("文件夹不存在", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(LocalizationManager.T("IE.FolderNotFound", "文件夹不存在"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"打开文件夹失败: {history.FilePath}");
-                    MessageBox.Show($"打开文件夹失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LocalizationManager.TF("IE.OpenFolderFailed", "打开文件夹失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -685,14 +698,14 @@ namespace NovelManagement.WPF.Views
         {
             var dialog = new OpenFileDialog
             {
-                Title = "选择要导入的文件",
-                Filter = "所有支持的格式|*.xlsx;*.xls;*.docx;*.csv;*.txt;*.json;*.xml|" +
-                        "Excel文件|*.xlsx;*.xls|" +
-                        "Word文档|*.docx|" +
-                        "CSV文件|*.csv|" +
-                        "文本文件|*.txt|" +
-                        "JSON文件|*.json|" +
-                        "XML文件|*.xml",
+                Title = LocalizationManager.T("IE.ImportFileHint", "选择要导入的文件"),
+                Filter = LocalizationManager.T("IE.FilterAll", "所有支持的格式") + "|*.xlsx;*.xls;*.docx;*.csv;*.txt;*.json;*.xml|" +
+                        LocalizationManager.T("IE.FilterExcel", "Excel文件") + "|*.xlsx;*.xls|" +
+                        LocalizationManager.T("IE.FilterWord", "Word文档") + "|*.docx|" +
+                        LocalizationManager.T("IE.FilterCsv", "CSV文件") + "|*.csv|" +
+                        LocalizationManager.T("IE.FilterTxt", "文本文件") + "|*.txt|" +
+                        LocalizationManager.T("IE.FilterJson", "JSON文件") + "|*.json|" +
+                        LocalizationManager.T("IE.FilterXml", "XML文件") + "|*.xml",
                 Multiselect = false
             };
 
@@ -725,13 +738,13 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(ImportFilePathTextBox.Text))
                 {
-                    MessageBox.Show("请选择要预览的文件", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectPreviewFile", "请选择要预览的文件"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (ImportFormatComboBox.SelectedItem is not ComboBoxItem formatItem)
                 {
-                    MessageBox.Show("请选择文件格式", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectFileFormat", "请选择文件格式"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -744,7 +757,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "预览导入文件失败");
-                MessageBox.Show($"预览文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("IE.PreviewFailed", "预览文件失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -757,20 +770,20 @@ namespace NovelManagement.WPF.Views
             {
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "导入", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), LocalizationManager.T("Dlg.Import", "导入"), out _);
                     return;
                 }
 
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(ImportFilePathTextBox.Text))
                 {
-                    MessageBox.Show("请选择要导入的文件", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectImportFileMsg", "请选择要导入的文件"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (ImportFormatComboBox.SelectedItem is not ComboBoxItem formatItem)
                 {
-                    MessageBox.Show("请选择文件格式", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("IE.SelectFileFormat", "请选择文件格式"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -797,7 +810,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "启动导入失败");
-                MessageBox.Show($"启动导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("IE.StartImportFailed", "启动导入失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -828,16 +841,16 @@ namespace NovelManagement.WPF.Views
         {
             if (sender is Button button && button.Tag is OperationHistoryViewModel history)
             {
-                var details = $"操作ID: {history.OperationId}\n" +
-                             $"格式: {history.Format}\n" +
-                             $"文件: {history.FilePath}\n" +
-                             $"大小: {history.FileSize:N0} 字节\n" +
-                             $"状态: {GetStatusDescription(history.Status)}\n" +
-                             $"开始时间: {history.StartTime:yyyy-MM-dd HH:mm:ss}\n" +
-                             $"完成时间: {history.EndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "未完成"}\n" +
-                             $"备注: {history.Notes ?? "无"}";
+                var details = LocalizationManager.TF("IE.DetailsOpId", "操作ID: {0}", history.OperationId) + "\n" +
+                             LocalizationManager.TF("IE.DetailsFormat", "格式: {0}", history.Format) + "\n" +
+                             LocalizationManager.TF("IE.DetailsFile", "文件: {0}", history.FilePath) + "\n" +
+                             LocalizationManager.TF("IE.DetailsSize", "大小: {0:N0} 字节", history.FileSize) + "\n" +
+                             LocalizationManager.TF("IE.DetailsStatus", "状态: {0}", GetStatusDescription(history.Status)) + "\n" +
+                             LocalizationManager.TF("IE.DetailsStartTime", "开始时间: {0}", history.StartTime.ToString("yyyy-MM-dd HH:mm:ss")) + "\n" +
+                             LocalizationManager.TF("IE.DetailsEndTime", "完成时间: {0}", history.EndTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? LocalizationManager.T("IE.NotCompleted", "未完成")) + "\n" +
+                             LocalizationManager.TF("IE.DetailsNotes", "备注: {0}", history.Notes ?? LocalizationManager.T("IE.None", "无"));
 
-                MessageBox.Show(details, "导入详情", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(details, LocalizationManager.T("IE.ImportDetails", "导入详情"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -912,7 +925,7 @@ namespace NovelManagement.WPF.Views
         {
             ExportStatusText.Text = result.CurrentStep;
             ExportProgressBar.Value = result.Progress;
-            ExportProgressText.Text = $"{result.ProcessedItems} / {result.TotalItems} 项目已处理";
+            ExportProgressText.Text = LocalizationManager.TF("IE.ItemsProcessedFmt", "{0} / {1} 项目已处理", result.ProcessedItems, result.TotalItems);
 
             if (result.Status == OperationStatus.Completed || 
                 result.Status == OperationStatus.Failed || 
@@ -926,12 +939,12 @@ namespace NovelManagement.WPF.Views
 
                 if (result.Status == OperationStatus.Completed)
                 {
-                    MessageBox.Show($"导出完成！\n文件保存在: {result.OutputPath}", "导出成功", 
+                    MessageBox.Show(LocalizationManager.TF("IE.ExportDone", "导出完成！\n文件保存在: {0}", result.OutputPath), LocalizationManager.T("IE.ExportSuccessTitle", "导出成功"), 
                                   MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else if (result.Status == OperationStatus.Failed)
                 {
-                    MessageBox.Show($"导出失败: {result.ErrorMessage}", "导出失败", 
+                    MessageBox.Show(LocalizationManager.TF("IE.ExportFailedMsg", "导出失败: {0}", result.ErrorMessage), LocalizationManager.T("IE.ExportFailedTitle", "导出失败"), 
                                   MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -944,7 +957,7 @@ namespace NovelManagement.WPF.Views
         {
             ImportStatusText.Text = result.CurrentStep;
             ImportProgressBar.Value = result.Progress;
-            ImportProgressText.Text = $"{result.ProcessedItems} / {result.TotalItems} 项目已处理";
+            ImportProgressText.Text = LocalizationManager.TF("IE.ItemsProcessedFmt", "{0} / {1} 项目已处理", result.ProcessedItems, result.TotalItems);
 
             if (result.Status == OperationStatus.Completed || 
                 result.Status == OperationStatus.Failed || 
@@ -958,16 +971,16 @@ namespace NovelManagement.WPF.Views
 
                 if (result.Status == OperationStatus.Completed)
                 {
-                    var message = $"导入完成！\n处理了 {result.ProcessedItems} 条记录";
+                    var message = LocalizationManager.TF("IE.ImportDone", "导入完成！\n处理了 {0} 条记录", result.ProcessedItems);
                     if (result.Warnings.Count > 0)
                     {
-                        message += $"\n警告: {string.Join(", ", result.Warnings)}";
+                        message += "\n" + LocalizationManager.TF("IE.WarningsLine", "警告: {0}", string.Join(", ", result.Warnings));
                     }
-                    MessageBox.Show(message, "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(message, LocalizationManager.T("IE.ImportSuccessTitle", "导入成功"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else if (result.Status == OperationStatus.Failed)
                 {
-                    MessageBox.Show($"导入失败: {result.ErrorMessage}", "导入失败", 
+                    MessageBox.Show(LocalizationManager.TF("IE.ImportFailedMsg", "导入失败: {0}", result.ErrorMessage), LocalizationManager.T("IE.ImportFailedTitle", "导入失败"), 
                                   MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -982,15 +995,15 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         private void ShowImportPreviewDialog(ImportPreviewDto preview)
         {
-            var message = $"文件信息:\n" +
-                         $"文件名: {preview.FileInfo.FileName}\n" +
-                         $"大小: {preview.FileInfo.FileSize:N0} 字节\n" +
-                         $"格式: {preview.FileInfo.Format}\n" +
-                         $"记录数: {preview.FileInfo.RecordCount}\n\n" +
-                         $"检测到的数据类型: {string.Join(", ", preview.DetectedDataTypes)}\n\n" +
-                         $"字段信息:\n{string.Join("\n", preview.Fields.Select(f => $"- {f.Name} ({f.Type})"))}";
+            var message = LocalizationManager.T("IE.PreviewFileInfo", "文件信息:") + "\n" +
+                         LocalizationManager.TF("IE.PreviewFileName", "文件名: {0}", preview.FileInfo.FileName) + "\n" +
+                         LocalizationManager.TF("IE.DetailsSize", "大小: {0:N0} 字节", preview.FileInfo.FileSize) + "\n" +
+                         LocalizationManager.TF("IE.DetailsFormat", "格式: {0}", preview.FileInfo.Format) + "\n" +
+                         LocalizationManager.TF("IE.PreviewRecordCount", "记录数: {0}", preview.FileInfo.RecordCount) + "\n\n" +
+                         LocalizationManager.TF("IE.PreviewDetectedTypes", "检测到的数据类型: {0}", string.Join(", ", preview.DetectedDataTypes)) + "\n\n" +
+                         LocalizationManager.T("IE.PreviewFieldsHeader", "字段信息:") + "\n" + string.Join("\n", preview.Fields.Select(f => $"- {f.Name} ({f.Type})"));
 
-            MessageBox.Show(message, "文件预览", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(message, LocalizationManager.T("IE.PreviewTitle", "文件预览"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         /// <summary>
@@ -1000,12 +1013,12 @@ namespace NovelManagement.WPF.Views
         {
             return status switch
             {
-                OperationStatus.Pending => "等待中",
-                OperationStatus.InProgress => "进行中",
-                OperationStatus.Completed => "已完成",
-                OperationStatus.Failed => "已失败",
-                OperationStatus.Cancelled => "已取消",
-                _ => "未知"
+                OperationStatus.Pending => LocalizationManager.T("IE.StatusPending", "等待中"),
+                OperationStatus.InProgress => LocalizationManager.T("IE.StatusInProgress", "进行中"),
+                OperationStatus.Completed => LocalizationManager.T("IE.StatusCompleted", "已完成"),
+                OperationStatus.Failed => LocalizationManager.T("IE.StatusFailed", "已失败"),
+                OperationStatus.Cancelled => LocalizationManager.T("IE.StatusCancelled", "已取消"),
+                _ => LocalizationManager.T("IE.StatusUnknown", "未知")
             };
         }
 

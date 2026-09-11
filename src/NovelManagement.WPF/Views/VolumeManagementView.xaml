@@ -6,7 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1200">
-    
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,12 +16,12 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="卷宗管理" 
-                     FontSize="32" 
-                     FontWeight="Bold" 
+            <TextBlock Text="{DynamicResource Loc.VM.Title}"
+                     FontSize="32"
+                     FontWeight="Bold"
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理项目的卷宗和章节结构" 
-                     FontSize="16" 
+            <TextBlock Text="{DynamicResource Loc.VM.Subtitle}"
+                     FontSize="16"
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
 
@@ -34,25 +34,25 @@
                             Click="NewVolume_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建卷宗"/>
+                            <TextBlock Text="{DynamicResource Loc.VM.NewVolume}"/>
                         </StackPanel>
                     </Button>
-                    
+
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,12,0"
                             Click="NewChapter_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="FileDocument" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建章节"/>
+                            <TextBlock Text="{DynamicResource Loc.PO.FeatureNewChapter}"/>
                         </StackPanel>
                     </Button>
-                    
+
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,12,0"
                             Click="ExportVolume_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
-                            <TextBlock Text="导出当前内容"/>
+                            <TextBlock Text="{DynamicResource Loc.VM.ExportCurrent}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -61,7 +61,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <ToggleButton x:Name="TreeViewToggle"
                                 Style="{StaticResource MaterialDesignActionToggleButton}"
-                                ToolTip="树形视图"
+                                ToolTip="{DynamicResource Loc.VM.TreeView}"
                                 IsChecked="True"
                                 Checked="ViewMode_Changed"
                                 Unchecked="ViewMode_Changed">
@@ -69,7 +69,7 @@
                     </ToggleButton>
                     <ToggleButton x:Name="ListViewToggle"
                                 Style="{StaticResource MaterialDesignActionToggleButton}"
-                                ToolTip="列表视图"
+                                ToolTip="{DynamicResource Loc.VM.ListView}"
                                 Margin="8,0,0,0"
                                 Checked="ViewMode_Changed"
                                 Unchecked="ViewMode_Changed">
@@ -96,14 +96,14 @@
                     </Grid.RowDefinitions>
 
                     <!-- 树形视图标题 -->
-                    <Border Grid.Row="0" 
-                          Background="{DynamicResource MaterialDesignDivider}" 
+                    <Border Grid.Row="0"
+                          Background="{DynamicResource MaterialDesignDivider}"
                           Padding="16,12">
-                        <TextBlock Text="项目结构" FontWeight="Medium"/>
+                        <TextBlock Text="{DynamicResource Loc.VM.ProjectStructure}" FontWeight="Medium"/>
                     </Border>
 
                     <!-- 树形控件 -->
-                    <TreeView Grid.Row="1" 
+                    <TreeView Grid.Row="1"
                             x:Name="VolumeTreeView"
                             Padding="8"
                             SelectedItemChanged="VolumeTreeView_SelectedItemChanged">
@@ -113,16 +113,16 @@
                                 <Setter Property="Padding" Value="4"/>
                             </Style>
                         </TreeView.ItemContainerStyle>
-                        
+
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="{Binding IconKind}" 
-                                                           Width="16" Height="16" 
+                                    <materialDesign:PackIcon Kind="{Binding IconKind}"
+                                                           Width="16" Height="16"
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"/>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Info}" 
+                                    <TextBlock Text="{Binding Info}"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                              VerticalAlignment="Center"
                                              Margin="8,0,0,0"/>
@@ -134,8 +134,8 @@
             </materialDesign:Card>
 
             <!-- 分隔符 -->
-            <GridSplitter Grid.Column="1" 
-                          HorizontalAlignment="Stretch" 
+            <GridSplitter Grid.Column="1"
+                          HorizontalAlignment="Stretch"
                           Background="{DynamicResource MaterialDesignDivider}"/>
 
             <!-- 右侧：详细信息和编辑区域 -->
@@ -143,86 +143,86 @@
                 <!-- 默认显示项目统计信息 -->
                 <materialDesign:Card Padding="24" x:Name="DefaultCard">
                     <StackPanel>
-                        <TextBlock Text="项目统计" 
-                                 FontSize="24" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.VM.ProjectStats}"
+                                 FontSize="24"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,24"/>
 
                         <!-- 统计卡片 -->
                         <UniformGrid Columns="2" Margin="0,0,0,24">
                             <materialDesign:Card Margin="0,0,8,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总卷数" 
-                                             FontSize="14" 
+                                    <TextBlock Text="{DynamicResource Loc.VM.TotalVolumes}"
+                                             FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="{Binding TotalVolumeCount}" 
-                                             FontSize="32" 
+                                    <TextBlock Text="{Binding TotalVolumeCount}"
+                                             FontSize="32"
                                              FontWeight="Bold"/>
                                 </StackPanel>
                             </materialDesign:Card>
 
                             <materialDesign:Card Margin="8,0,0,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总章节数" 
-                                             FontSize="14" 
+                                    <TextBlock Text="{DynamicResource Loc.VM.TotalChapters}"
+                                             FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="{Binding TotalChapterCount}" 
-                                             FontSize="32" 
+                                    <TextBlock Text="{Binding TotalChapterCount}"
+                                             FontSize="32"
                                              FontWeight="Bold"/>
                                 </StackPanel>
                             </materialDesign:Card>
 
                             <materialDesign:Card Margin="0,8,8,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总字数" 
-                                             FontSize="14" 
+                                    <TextBlock Text="{DynamicResource Loc.PO.TotalWords}"
+                                             FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="{Binding TotalWordCount, StringFormat={}{0:N0}}" 
-                                             FontSize="32" 
+                                    <TextBlock Text="{Binding TotalWordCount, StringFormat={}{0:N0}}"
+                                             FontSize="32"
                                              FontWeight="Bold"/>
                                 </StackPanel>
                             </materialDesign:Card>
 
                             <materialDesign:Card Margin="8,8,0,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="平均章节字数" 
-                                             FontSize="14" 
+                                    <TextBlock Text="{DynamicResource Loc.VM.AvgChapterWords}"
+                                             FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                    <TextBlock Text="{Binding AverageChapterWordCount, StringFormat={}{0:N0}}" 
-                                             FontSize="32" 
+                                    <TextBlock Text="{Binding AverageChapterWordCount, StringFormat={}{0:N0}}"
+                                             FontSize="32"
                                              FontWeight="Bold"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </UniformGrid>
 
                         <!-- 最近更新 -->
-                        <TextBlock Text="最近更新" 
-                                 FontSize="18" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.VM.RecentUpdates}"
+                                 FontSize="18"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <ItemsControl ItemsSource="{Binding RecentUpdates}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
-                                          BorderThickness="0,0,0,1" 
-                                          Padding="0,0,0,8" 
+                                    <Border BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                          BorderThickness="0,0,0,1"
+                                          Padding="0,0,0,8"
                                           Margin="0,0,0,8">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            
+
                                             <StackPanel Grid.Column="0">
                                                 <TextBlock Text="{Binding Title}" FontWeight="Medium"/>
-                                                <TextBlock Text="{Binding Subtitle}" 
+                                                <TextBlock Text="{Binding Subtitle}"
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          FontSize="12"/>
                                             </StackPanel>
-                                            
-                                            <TextBlock Grid.Column="1" 
-                                                     Text="{Binding RelativeTime}" 
+
+                                            <TextBlock Grid.Column="1"
+                                                     Text="{Binding RelativeTime}"
                                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                      VerticalAlignment="Center"/>
                                         </Grid>

@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Views
 {
@@ -32,7 +33,7 @@ namespace NovelManagement.WPF.Views
         public EditProjectDialog(ProjectManagementView.ProjectViewModel project)
         {
             InitializeComponent();
-            
+
             if (project == null)
                 throw new ArgumentNullException(nameof(project));
 
@@ -64,7 +65,7 @@ namespace NovelManagement.WPF.Views
             // 设置项目类型
             foreach (ComboBoxItem item in ProjectTypeComboBox.Items)
             {
-                if (item.Content.ToString() == ProjectData.Type)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == ProjectData.Type)
                 {
                     ProjectTypeComboBox.SelectedItem = item;
                     break;
@@ -74,7 +75,7 @@ namespace NovelManagement.WPF.Views
             // 设置项目状态
             foreach (ComboBoxItem item in ProjectStatusComboBox.Items)
             {
-                if (item.Content.ToString() == ProjectData.Status)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == ProjectData.Status)
                 {
                     ProjectStatusComboBox.SelectedItem = item;
                     break;
@@ -90,14 +91,14 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(ProjectNameTextBox.Text))
             {
-                MessageBox.Show("请输入项目名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("NPD.NameRequired", "请输入项目名称"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 ProjectNameTextBox.Focus();
                 return false;
             }
 
             if (ProjectTypeComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择项目类型", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("NPD.TypeRequired", "请选择项目类型"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 ProjectTypeComboBox.Focus();
                 return false;
             }
@@ -112,8 +113,10 @@ namespace NovelManagement.WPF.Views
         {
             ProjectData.Name = ProjectNameTextBox.Text.Trim();
             ProjectData.Description = ProjectDescriptionTextBox.Text.Trim();
-            ProjectData.Type = (ProjectTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "";
-            ProjectData.Status = (ProjectStatusComboBox.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "进行中";
+            ProjectData.Type = (ProjectTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                  ?? (ProjectTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+            ProjectData.Status = (ProjectStatusComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                    ?? (ProjectStatusComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "进行中";
         }
 
         #endregion
@@ -137,7 +140,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存项目失败：{ex.Message}", "错误", 
+                MessageBox.Show(LocalizationManager.TF("EPD.SaveFailed", "保存项目失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

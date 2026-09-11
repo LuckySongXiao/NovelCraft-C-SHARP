@@ -9,6 +9,8 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using NovelManagement.WPF.Localization;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.WPF.Services.Copilot;
 
 namespace NovelManagement.WPF.Views.Copilot
@@ -110,14 +112,14 @@ namespace NovelManagement.WPF.Views.Copilot
                 var stage = _pipeline.CurrentStage;
                 var generating = _pipeline.IsGenerating;
                 StageBadgeText.Text = stage == PipelineStage.NotStarted
-                    ? "流水线：未开始（回复「开始规划」启动）"
+                    ? T("CP.StageNotStartedHint", "流水线：未开始（回复「开始规划」启动）")
                     : generating
-                        ? $"流水线：{DescribeStage(stage)} · 生成中…"
-                        : $"流水线：{DescribeStage(stage)}";
+                        ? TF("CP.StageGenerating", $"流水线：{DescribeStage(stage)} · 生成中…", DescribeStage(stage))
+                        : TF("CP.Stage", $"流水线：{DescribeStage(stage)}", DescribeStage(stage));
             }
             else
             {
-                StageBadgeText.Text = "流水线：未开始";
+                StageBadgeText.Text = T("CP.StageNotStarted", "流水线：未开始");
             }
 
             EditBanner.Visibility = _session.IsEditing ? Visibility.Visible : Visibility.Collapsed;
@@ -126,7 +128,7 @@ namespace NovelManagement.WPF.Views.Copilot
             var referral = _session.ChapterRef;
             if (referral != null)
             {
-                ChapterRefText.Text = $"已关联《{referral.ProjectName}》 第{referral.VolumeOrder}卷「{referral.VolumeTitle}」 第{referral.ChapterOrder}章《{referral.ChapterTitle}》 — 输入要求直接处理本章";
+                ChapterRefText.Text = TF("CP.ChapterRef", $"已关联《{referral.ProjectName}》 第{referral.VolumeOrder}卷「{referral.VolumeTitle}」 第{referral.ChapterOrder}章《{referral.ChapterTitle}》 — 输入要求直接处理本章", referral.ProjectName, referral.VolumeOrder, referral.VolumeTitle, referral.ChapterOrder, referral.ChapterTitle);
                 ChapterRefBanner.Visibility = Visibility.Visible;
             }
             else
@@ -137,13 +139,13 @@ namespace NovelManagement.WPF.Views.Copilot
 
         private static string DescribeStage(PipelineStage stage) => stage switch
         {
-            PipelineStage.BlueprintPending => "总纲规划",
-            PipelineStage.PlotLinesPending => "剧情线规划",
-            PipelineStage.VolumesPending => "分卷规划",
-            PipelineStage.ChapterDraftsPending => "章节剧情草稿",
-            PipelineStage.ChapterContentInProgress => "章节正文创作",
-            PipelineStage.Completed => "已完成",
-            _ => "未开始"
+            PipelineStage.BlueprintPending => T("CP.StageBlueprint", "总纲规划"),
+            PipelineStage.PlotLinesPending => T("CP.StagePlotLines", "剧情线规划"),
+            PipelineStage.VolumesPending => T("CP.StageVolumes", "分卷规划"),
+            PipelineStage.ChapterDraftsPending => T("CP.StageChapterDrafts", "章节剧情草稿"),
+            PipelineStage.ChapterContentInProgress => T("CP.StageChapterContent", "章节正文创作"),
+            PipelineStage.Completed => T("CP.StageCompleted", "已完成"),
+            _ => T("CP.StageNone", "未开始")
         };
 
         #endregion
@@ -355,11 +357,11 @@ namespace NovelManagement.WPF.Views.Copilot
 
             return status switch
             {
-                ProposalStatus.Pending => CardMode ? string.Empty : "待裁决",
-                ProposalStatus.Accepted => "已采纳",
-                ProposalStatus.Modified => "已修改",
-                ProposalStatus.Rejected => CardMode ? "已放弃整卡" : "已放弃",
-                ProposalStatus.Expired => "已过期（已被新卡片取代）",
+                ProposalStatus.Pending => CardMode ? string.Empty : T("CP.StatusItemPending", "待裁决"),
+                ProposalStatus.Accepted => T("CP.StatusAccepted", "已采纳"),
+                ProposalStatus.Modified => T("CP.StatusModified", "已修改"),
+                ProposalStatus.Rejected => CardMode ? T("CP.StatusCardRejected", "已放弃整卡") : T("CP.StatusRejected", "已放弃"),
+                ProposalStatus.Expired => T("CP.StatusExpired", "已过期（已被新卡片取代）"),
                 _ => status.ToString()
             };
         }

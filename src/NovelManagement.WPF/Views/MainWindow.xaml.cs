@@ -8,6 +8,7 @@ using MaterialDesignThemes.Wpf;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.Application.Services;
 using NovelManagement.WPF.Events;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 using NovelManagement.WPF.Services.Copilot;
 using NovelManagement.WPF.Views.Copilot;
@@ -45,6 +46,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // 语言切换按钮：初始文本 = 可切换到的语言；语言变更后同步刷新
+        UpdateLanguageToggleText();
+        Localization.LocalizationManager.LanguageChanged += OnLocalizationLanguageChanged;
 
         _navigationService = App.ServiceProvider?.GetService<NavigationService>();
         _projectContextService = App.ServiceProvider?.GetService<ProjectContextService>();
@@ -162,7 +167,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"创建项目失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.CreateProjectFailed", "创建项目失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -176,8 +181,8 @@ public partial class MainWindow : Window
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "导入项目",
-                Filter = "项目文件|*.npj;*.json|JSON文件|*.json|所有文件|*.*",
+                Title = LocalizationManager.T("Common.ImportProject", "导入项目"),
+                Filter = LocalizationManager.T("MW.ImportFilter", "项目文件|*.npj;*.json|JSON文件|*.json|所有文件|*.*"),
                 DefaultExt = "npj"
             };
 
@@ -187,7 +192,7 @@ public partial class MainWindow : Window
                 var projectData = new NewProjectDialog.NewProjectModel
                 {
                     Name = fileName,
-                    Description = $"从文件 {dialog.FileName} 导入的项目",
+                    Description = LocalizationManager.TF("MW.ImportedFrom", "从文件 {0} 导入的项目", dialog.FileName),
                     Type = "导入项目",
                     TargetWordCount = 100000,
                     EnableAI = true,
@@ -208,7 +213,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"导入项目失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.ImportFailed", "导入项目失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -225,7 +230,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开项目概览失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.ProjectOverview", "项目概览"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -241,7 +246,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开卷宗管理失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.VolumeManagement", "卷宗管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -257,7 +262,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开人物管理失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.PeopleGroup", "人物管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -273,7 +278,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"加载关系网络界面失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.LoadViewFailed", "加载{0}界面失败：{1}", LocalizationManager.T("Nav.RelationshipNetwork", "关系网络"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -289,7 +294,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开势力管理失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.FactionManagement", "势力管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -305,7 +310,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开剧情管理失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.PlotManagement", "剧情管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -321,7 +326,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开设定管理失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.SettingsGroup", "设定管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -341,7 +346,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开前置条件生成失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.Prerequisite", "前置条件生成"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -357,7 +362,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开AI协作失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Common.AICollab", "AI协作"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -374,8 +379,8 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             var detail = ex.InnerException?.Message;
-            var message = string.IsNullOrWhiteSpace(detail) ? ex.Message : $"{ex.Message}\n详细信息：{detail}";
-            MessageBox.Show($"打开AI模型配置失败：{message}", "错误",
+            var message = string.IsNullOrWhiteSpace(detail) ? ex.Message : LocalizationManager.TF("MW.ErrorDetail", "详细信息：{0}", detail);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.AIConfiguration", "AI模型配置"), message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -385,15 +390,8 @@ public partial class MainWindow : Window
     /// </summary>
     private void Help_Click(object sender, RoutedEventArgs e)
     {
-        var helpMessage =
-            "常用入口说明：\n" +
-            "1. 左侧导航用于项目、人物、设定、AI 协作等功能切换。\n" +
-            "2. 右上角齿轮用于打开 AI 模型配置中心。\n" +
-            "3. AI 模型配置会保存到当前用户的本地配置目录，不会覆盖发布目录。\n" +
-            "4. 修改模型配置后，部分选项需要重启应用才会完全生效。\n\n" +
-            "如果某个页面打不开，请把完整弹窗内容发给我继续修复。";
-
-        MessageBox.Show(helpMessage, "使用帮助", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(LocalizationManager.T("MW.HelpText", "常用入口说明：\n1. 左侧导航用于项目、人物、设定、AI 协作等功能切换。\n2. 右上角齿轮用于打开 AI 模型配置中心。\n3. AI 模型配置会保存到当前用户的本地配置目录，不会覆盖发布目录。\n4. 修改模型配置后，部分选项需要重启应用才会完全生效。\n\n如果某个页面打不开，请把完整弹窗内容发给我继续修复。"),
+            LocalizationManager.T("MW.HelpTitle", "使用帮助"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -407,7 +405,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开对话生成器失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.DialogGen", "对话生成器"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -422,7 +420,7 @@ public partial class MainWindow : Window
             // 创建内容生成界面
             var contentWindow = new Window
             {
-                Title = "AI内容生成",
+                Title = LocalizationManager.T("MW.AIGenFileTitle", "AI内容生成"),
                 Width = 1000,
                 Height = 700,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
@@ -432,7 +430,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开内容生成失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.ContentGen", "内容生成"), ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -464,7 +462,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开质量检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.QualityCheck", "质量检查"), ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -480,7 +478,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开一致性检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.Consistency", "一致性检查"), ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -539,7 +537,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开生民体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.Population", "生民体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -555,7 +553,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开灵宝体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Treasure", "灵宝体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -571,7 +569,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开维度结构失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Dimension", "维度结构"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -587,7 +585,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开地图结构失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Map", "地图结构"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -603,7 +601,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开宠物体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Pet", "宠物体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -623,11 +621,11 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(equipmentSystemView);
 
             // 更新窗口标题
-            this.Title = "书籍管理系统 - 装备体系管理";
+            this.Title = PageTitle("World.Equipment.Title");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开装备体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Equipment", "装备体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -647,11 +645,11 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(techniqueSystemView);
 
             // 更新窗口标题
-            this.Title = "书籍管理系统 - 功法体系管理";
+            this.Title = PageTitle("World.Technique.Title");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开功法体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Technique", "功法体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -671,11 +669,11 @@ public partial class MainWindow : Window
             MainContentArea.Children.Add(businessSystemView);
 
             // 更新窗口标题
-            this.Title = "书籍管理系统 - 商业体系管理";
+            this.Title = PageTitle("World.Business.Title");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开商业体系失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("World.Business", "商业体系"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -691,7 +689,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开时间线失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Side.Btn.Timeline", "时间线"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -718,7 +716,7 @@ public partial class MainWindow : Window
             var window = App.ServiceProvider?.GetService<OperationsManagementWindow>();
             if (window == null)
             {
-                MessageBox.Show("运维管理窗口未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.T("MW.OpsWindowNotInit", "运维管理窗口未初始化"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -727,7 +725,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开发布与运维管理失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenOpsFailed", "打开发布与运维管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -738,7 +736,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (!TryGetCurrentProjectId("统计报告", out var currentProjectId))
+            if (!TryGetCurrentProjectId(LocalizationManager.T("Nav.StatisticsReport", "统计报告"), out var currentProjectId))
             {
                 return;
             }
@@ -746,14 +744,14 @@ public partial class MainWindow : Window
             var statisticsService = App.ServiceProvider?.GetService<ProjectStatisticsService>();
             if (statisticsService == null)
             {
-                MessageBox.Show("项目统计服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.T("MW.StatisticsServiceNotInit", "项目统计服务未初始化"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             var summary = await statisticsService.GetProjectStatisticsAsync(currentProjectId);
             if (summary == null)
             {
-                MessageBox.Show("未找到当前项目，请重新选择项目。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("MW.ProjectNotFound", "未找到当前项目，请重新选择项目。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -763,7 +761,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开统计报告失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OpenFailed", "打开{0}失败：{1}", LocalizationManager.T("Nav.StatisticsReport", "统计报告"), ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -778,75 +776,83 @@ public partial class MainWindow : Window
             NavigationTarget.ProjectManagement => new NavigationViewRequest
             {
                 View = new ProjectManagementView(),
-                Title = "书籍管理系统 - 项目管理"
+                Title = PageTitle("Nav.ProjectManagement")
             },
             NavigationTarget.ProjectOverview => new NavigationViewRequest
             {
                 View = new ProjectOverviewView(),
-                Title = "书籍管理系统 - 项目概览"
+                Title = PageTitle("Nav.ProjectOverview")
             },
             NavigationTarget.VolumeManagement => new NavigationViewRequest
             {
                 View = new VolumeManagementView(),
-                Title = "书籍管理系统 - 卷宗管理"
+                Title = PageTitle("Nav.VolumeManagement")
             },
             NavigationTarget.CharacterManagement => new NavigationViewRequest
             {
                 View = GetOrCreateCharacterManagementView(),
-                Title = "书籍管理系统 - 角色管理"
+                Title = PageTitle("Nav.CharacterManagement")
             },
             NavigationTarget.Timeline => new NavigationViewRequest
             {
                 View = new TimelineView(),
-                Title = "书籍管理系统 - 时间线管理"
+                Title = PageTitle("Nav.Timeline")
             },
             NavigationTarget.RelationshipNetwork => new NavigationViewRequest
             {
                 View = GetOrCreateRelationshipNetworkView(),
-                Title = "书籍管理系统 - 关系网络"
+                Title = PageTitle("Nav.RelationshipNetwork")
             },
             NavigationTarget.FactionManagement => new NavigationViewRequest
             {
                 View = new FactionManagementView(),
-                Title = "书籍管理系统 - 势力管理"
+                Title = PageTitle("Nav.FactionManagement")
             },
             NavigationTarget.PlotManagement => new NavigationViewRequest
             {
                 View = new PlotManagementView(),
-                Title = "书籍管理系统 - 剧情管理"
+                Title = PageTitle("Nav.PlotManagement")
             },
             NavigationTarget.AICollaboration => new NavigationViewRequest
             {
                 View = new AIAssistantWorkspaceView(),
-                Title = "书籍管理系统 - AI协作创作"
+                Title = PageTitle("Nav.AICollaboration")
             },
             NavigationTarget.AIConfiguration => new NavigationViewRequest
             {
                 View = new AIConfigurationView(),
-                Title = "书籍管理系统 - AI模型配置"
+                Title = PageTitle("Nav.AIConfiguration")
             },
             NavigationTarget.ImportExport => new NavigationViewRequest
             {
                 View = new ImportExportView(),
-                Title = "书籍管理系统 - 导入导出管理"
+                Title = PageTitle("Nav.ImportExport")
             },
             NavigationTarget.WorldSettingManagement => new NavigationViewRequest
             {
                 View = new WorldSettingManagementView(),
-                Title = "书籍管理系统 - 世界设定管理"
+                Title = PageTitle("Nav.WorldSettingManagement")
             },
             NavigationTarget.DialogGeneration => new NavigationViewRequest
             {
                 View = new DialogGenerationView(),
-                Title = "书籍管理系统 - AI对话生成器"
+                Title = PageTitle("Nav.DialogGenerator")
             },
             NavigationTarget.ProjectHealthCheck => new NavigationViewRequest
             {
                 View = new ProjectHealthCheckView(),
-                Title = "书籍管理系统 - 项目体检报告"
+                Title = PageTitle("Nav.HealthCheck")
             },
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, null)
         };
+    }
+
+    /// <summary>
+    /// 构造「书籍管理系统 - 页面名」格式的本地化窗口标题。
+    /// </summary>
+    private static string PageTitle(string navKey)
+    {
+        return Localization.LocalizationManager.TF("App.TitleBar.Page", "书籍管理系统 - {0}", Localization.LocalizationManager.T(navKey));
     }
 
     private void RenderNavigationView(UserControl view, string title)
@@ -1135,7 +1141,7 @@ public partial class MainWindow : Window
                     activities.Add(new RecentActivityItem
                     {
                         Icon = PackIconKind.Book,
-                        Message = $"项目《{project.Name}》有内容更新",
+                        Message = LocalizationManager.TF("MW.ActivityProjectUpdated", "项目《{0}》有内容更新", project.Name),
                         Timestamp = project.LastUpdatedAt
                     });
                 }
@@ -1157,7 +1163,7 @@ public partial class MainWindow : Window
                         activities.Add(new RecentActivityItem
                         {
                             Icon = PackIconKind.FileDocument,
-                            Message = $"更新了章节：{chapter.Title}",
+                            Message = LocalizationManager.TF("MW.ActivityChapterUpdated", "更新了章节：{0}", chapter.Title),
                             Timestamp = ToLocalTime(chapter.UpdatedAt)
                         });
                     }
@@ -1174,7 +1180,7 @@ public partial class MainWindow : Window
                         activities.Add(new RecentActivityItem
                         {
                             Icon = PackIconKind.Account,
-                            Message = $"角色资料更新：{character.Name}",
+                            Message = LocalizationManager.TF("MW.ActivityCharacterUpdated", "角色资料更新：{0}", character.Name),
                             Timestamp = ToLocalTime(character.UpdatedAt)
                         });
                     }
@@ -1310,7 +1316,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"打开项目页面失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.OpenPageFailed", "打开项目页面失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1352,10 +1358,10 @@ public partial class MainWindow : Window
 
     private void UpdateCurrentProjectDisplay(string? projectName)
     {
-        var display = string.IsNullOrWhiteSpace(projectName) ? "未选择" : projectName;
+        var display = string.IsNullOrWhiteSpace(projectName) ? LocalizationManager.T("MW.NoSelection", "未选择") : projectName;
         if (CurrentProjectStatusText != null)
         {
-            CurrentProjectStatusText.Text = $"当前项目: {display}";
+            CurrentProjectStatusText.Text = LocalizationManager.TF("Common.CurrentProject", null, display);
         }
 
         if (DashboardProjectNameText != null)
@@ -1365,7 +1371,7 @@ public partial class MainWindow : Window
 
         if (DashboardProjectSubtitleText != null && _projectContextService != null)
         {
-            DashboardProjectSubtitleText.Text = _projectContextService.CurrentProjectId.HasValue ? "当前打开的项目" : "";
+            DashboardProjectSubtitleText.Text = _projectContextService.CurrentProjectId.HasValue ? LocalizationManager.T("MW.CurrentOpenProject", "当前打开的项目") : "";
         }
     }
 
@@ -1379,6 +1385,31 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 语言切换按钮：中文 ↔ English 实时切换，并持久化到 appsettings.user.json。
+    /// </summary>
+    private void LanguageToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var target = LocalizationManager.IsEnglish ? "zh-CN" : "en-US";
+        LocalizationManager.SetLanguage(target, App.UserConfigurationFilePath, Serilog.Log.Logger);
+        UpdateLanguageToggleText();
+    }
+
+    /// <summary>LanguageChanged 事件回调：刷新按钮文本（按钮显示可切换到的目标语言）。</summary>
+    private void OnLocalizationLanguageChanged(object? sender, EventArgs e)
+    {
+        UpdateLanguageToggleText();
+    }
+
+    /// <summary>按当前语言刷新切换按钮文本：中文界面显示 EN，英文界面显示 中。</summary>
+    private void UpdateLanguageToggleText()
+    {
+        if (LanguageToggleText != null)
+        {
+            LanguageToggleText.Text = LocalizationManager.IsEnglish ? "中" : "EN";
+        }
+    }
+
+    /// <summary>
     /// 一键生成书籍按钮：RWKV 自命名新书 + 双 Agent 生成大纲与第一章。
     /// </summary>
     private async void OneClickGenerate_Click(object sender, RoutedEventArgs e)
@@ -1386,11 +1417,11 @@ public partial class MainWindow : Window
         var generationService = App.ServiceProvider?.GetService<IOneClickNovelGenerationService>();
         if (generationService == null)
         {
-            MessageBox.Show("一键生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.T("MW.OneClickServiceMissing", "一键生成服务未注册"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
-        var progressWindow = new SimpleProgressDialog("一键生成书籍") { Owner = this };
+        var progressWindow = new SimpleProgressDialog(LocalizationManager.T("Side.Btn.OneClick", "一键生成书籍")) { Owner = this };
         var progress = new Progress<string>(message => progressWindow.UpdateMessage(message));
         progressWindow.Show();
 
@@ -1401,15 +1432,15 @@ public partial class MainWindow : Window
             progressWindow.Close();
 
             MessageBox.Show(
-                result.IsSuccess ? result.Message : $"一键生成失败：{result.Message}",
-                result.IsSuccess ? "一键生成完成" : "错误",
+                result.IsSuccess ? result.Message : LocalizationManager.TF("MW.OneClickFailed", "一键生成失败：{0}", result.Message),
+                result.IsSuccess ? LocalizationManager.T("MW.OneClickDone", "一键生成完成") : LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK,
                 result.IsSuccess ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
             progressWindow.Close();
-            MessageBox.Show($"一键生成失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.OneClickFailed", "一键生成失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1421,13 +1452,13 @@ public partial class MainWindow : Window
         var batchService = App.ServiceProvider?.GetService<IFullNovelBatchGenerationService>();
         if (batchService == null)
         {
-            MessageBox.Show("长篇批量生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.T("MW.BatchServiceMissing", "长篇批量生成服务未注册"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
         if (batchService.IsRunning)
         {
-            MessageBox.Show("批量生成任务已在运行中，可用「生成进度」按钮查看。", "提示",
+            MessageBox.Show(LocalizationManager.T("MW.BatchAlreadyRunning", "批量生成任务已在运行中，可用「生成进度」按钮查看。"), LocalizationManager.T("Msg.Tip", "提示"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -1440,15 +1471,18 @@ public partial class MainWindow : Window
 
         var options = dialog.Options;
         var modeText = options.UnlimitedMode
-            ? "无限续写模式"
-            : $"{(options.NextThreeChaptersThenNewVolume ? "快速切卷（每卷 3 章后切新卷）" : "标准模式")}，每卷 {options.ChaptersPerVolume} 章";
+            ? LocalizationManager.T("MW.BatchModeUnlimited", "无限续写模式")
+            : string.Format(
+                (options.NextThreeChaptersThenNewVolume
+                    ? LocalizationManager.T("MW.BatchModeQuickSwitch", "快速切卷（每卷 3 章后切新卷）")
+                    : LocalizationManager.T("MW.BatchModeStandard", "标准模式"))
+                + LocalizationManager.T("MW.BatchModeSuffix", "，每卷 {0} 章"),
+                options.ChaptersPerVolume);
         var confirm = MessageBox.Show(
-            $"将启动长篇批量生成：{modeText} × 每章 ≥{options.ChapterTargetWords} 字。\n" +
-            "采样采用 RWKV 官方创意参数 + DRY 抗复读采样，\n" +
-            "章节正文使用“切片创作 + 拼接”工艺（16K 上下文限制）。\n\n" +
-            "任务在后台运行，期间可正常使用软件其他功能。\n" +
-            "若存在未完成的批量任务将自动从断点继续。\n\n确定开始？",
-            "长篇批量生成", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            LocalizationManager.TF("MW.BatchConfirm",
+                "将启动长篇批量生成：{0} × 每章 ≥{1} 字。\n采样采用 RWKV 官方创意参数 + DRY 抗复读采样，\n章节正文使用“切片创作 + 拼接”工艺（16K 上下文限制）。\n\n任务在后台运行，期间可正常使用软件其他功能。\n若存在未完成的批量任务将自动从断点继续。\n\n确定开始？",
+                modeText, options.ChapterTargetWords),
+            LocalizationManager.T("Side.Btn.BatchGenerate", "长篇批量生成"), MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (confirm != MessageBoxResult.Yes)
         {
             return;
@@ -1459,16 +1493,16 @@ public partial class MainWindow : Window
             var result = await batchService.StartAsync(options);
             if (result.Success)
             {
-                MessageBox.Show(result.Message, "已启动", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(result.Message, LocalizationManager.T("MW.Started", "已启动"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show(result.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message, LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"启动批量生成失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.BatchStartFailed", "启动批量生成失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1480,49 +1514,49 @@ public partial class MainWindow : Window
         var batchService = App.ServiceProvider?.GetService<IFullNovelBatchGenerationService>();
         if (batchService == null)
         {
-            MessageBox.Show("长篇批量生成服务未注册", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.T("MW.BatchServiceMissing", "长篇批量生成服务未注册"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
         var s = batchService.GetStatus();
         var builder = new System.Text.StringBuilder();
-        builder.AppendLine($"状态：{(s.IsRunning ? "运行中" : "未运行")}");
-        builder.AppendLine($"阶段：{s.Phase}");
+        builder.AppendLine(LocalizationManager.TF("MW.StatusLine", "状态：{0}", s.IsRunning ? LocalizationManager.T("MW.BatchStatusRunning", "运行中") : LocalizationManager.T("MW.BatchStatusNotRunning", "未运行")));
+        builder.AppendLine(LocalizationManager.TF("MW.PhaseLine", "阶段：{0}", s.Phase));
         if (!string.IsNullOrWhiteSpace(s.BookTitle))
         {
-            builder.AppendLine($"书名：{s.BookTitle}");
+            builder.AppendLine(LocalizationManager.TF("MW.BookTitleLine", "书名：{0}", s.BookTitle));
         }
 
-        builder.AppendLine($"规格：{s.VolumeCount} 卷 × {s.ChaptersPerVolume} 章");
+        builder.AppendLine(LocalizationManager.TF("MW.SpecLine", "规格：{0} 卷 × {1} 章", s.VolumeCount, s.ChaptersPerVolume));
         if (s.CompletedChapters > 0 || s.FailedChapters > 0 || s.CurrentChapter > 0)
         {
-            builder.AppendLine($"位置：第 {Math.Max(s.CurrentVolume, 1)} 卷 第 {Math.Max(s.CurrentChapter, 1)} 章");
-            builder.AppendLine($"已完成：{s.CompletedChapters} 章，失败：{s.FailedChapters} 章");
+            builder.AppendLine(LocalizationManager.TF("MW.PositionLine", "位置：第 {0} 卷 第 {1} 章", Math.Max(s.CurrentVolume, 1), Math.Max(s.CurrentChapter, 1)));
+            builder.AppendLine(LocalizationManager.TF("MW.DoneFailedLine", "已完成：{0} 章，失败：{1} 章", s.CompletedChapters, s.FailedChapters));
         }
 
         if (s.LastChapterScore.HasValue)
         {
-            builder.AppendLine($"最近章节评分：{s.LastChapterScore.Value:F1}/10");
+            builder.AppendLine(LocalizationManager.TF("MW.LastScoreLine", "最近章节评分：{0:F1}/10", s.LastChapterScore.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(s.RecentMessage))
         {
             builder.AppendLine();
-            builder.AppendLine($"最近消息：{s.RecentMessage}");
+            builder.AppendLine(LocalizationManager.TF("MW.LastMessageLine", "最近消息：{0}", s.RecentMessage));
         }
 
         if (!string.IsNullOrWhiteSpace(s.LastError))
         {
-            builder.AppendLine($"最近错误：{s.LastError}");
+            builder.AppendLine(LocalizationManager.TF("MW.LastErrorLine", "最近错误：{0}", s.LastError));
         }
 
         if (s.StartedAt.HasValue)
         {
             builder.AppendLine();
-            builder.AppendLine($"开始时间：{s.StartedAt:HH:mm:ss}，已运行 {(DateTime.Now - s.StartedAt.Value).TotalMinutes:F0} 分钟");
+            builder.AppendLine(LocalizationManager.TF("MW.StartedLine", "开始时间：{0:HH:mm:ss}，已运行 {1:F0} 分钟", s.StartedAt.Value, (DateTime.Now - s.StartedAt.Value).TotalMinutes));
         }
 
-        MessageBox.Show(builder.ToString(), "长篇批量生成进度", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(builder.ToString(), LocalizationManager.T("MW.BatchProgressTitle", "长篇批量生成进度"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -1543,7 +1577,7 @@ public partial class MainWindow : Window
 
             _messageText = new System.Windows.Controls.TextBlock
             {
-                Text = "准备中...",
+                Text = LocalizationManager.T("MW.Preparing", "准备中..."),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(24, 18, 24, 12)
             };
@@ -1588,31 +1622,32 @@ public partial class MainWindow : Window
 
         if (CurrentLocationTextBlock != null)
         {
-            var currentLabel = GetNavigationLabel(_navigationService.CurrentTarget) ?? "仪表盘";
+            var currentLabel = GetNavigationLabel(_navigationService.CurrentTarget) ?? Localization.LocalizationManager.T("Nav.Dashboard");
             var source = _navigationService.CurrentContext?.Source;
             CurrentLocationTextBlock.Text = string.IsNullOrWhiteSpace(source)
-                ? $"当前位置：{currentLabel}"
-                : $"当前位置：{currentLabel} · 来源：{source}";
+                ? Localization.LocalizationManager.TF("Common.CurrentPosition", "当前位置：{0}", currentLabel)
+                : Localization.LocalizationManager.TF("Common.CurrentPosition.Source", "当前位置：{0} · 来源：{1}", currentLabel, source);
         }
     }
 
     private static string? GetNavigationLabel(NavigationTarget? target)
     {
+        var manager = Localization.LocalizationManager.T;
         return target switch
         {
-            NavigationTarget.ProjectManagement => "项目管理",
-            NavigationTarget.ProjectOverview => "项目概览",
-            NavigationTarget.VolumeManagement => "卷宗管理",
-            NavigationTarget.CharacterManagement => "角色管理",
-            NavigationTarget.Timeline => "时间线管理",
-            NavigationTarget.RelationshipNetwork => "关系网络",
-            NavigationTarget.FactionManagement => "势力管理",
-            NavigationTarget.PlotManagement => "剧情管理",
-            NavigationTarget.AICollaboration => "AI协作",
-            NavigationTarget.AIConfiguration => "AI模型配置",
-            NavigationTarget.ImportExport => "导入导出",
-            NavigationTarget.WorldSettingManagement => "世界设定",
-            NavigationTarget.DialogGeneration => "对话生成",
+            NavigationTarget.ProjectManagement => manager("Nav.ProjectManagement"),
+            NavigationTarget.ProjectOverview => manager("Nav.ProjectOverview"),
+            NavigationTarget.VolumeManagement => manager("Nav.VolumeManagement"),
+            NavigationTarget.CharacterManagement => manager("Nav.CharacterManagement"),
+            NavigationTarget.Timeline => manager("Nav.Timeline"),
+            NavigationTarget.RelationshipNetwork => manager("Nav.RelationshipNetwork"),
+            NavigationTarget.FactionManagement => manager("Nav.FactionManagement"),
+            NavigationTarget.PlotManagement => manager("Nav.PlotManagement"),
+            NavigationTarget.AICollaboration => manager("Common.AICollab"),
+            NavigationTarget.AIConfiguration => manager("Nav.AIConfiguration"),
+            NavigationTarget.ImportExport => manager("Nav.ImportExport"),
+            NavigationTarget.WorldSettingManagement => manager("Nav.WorldSettingManagement"),
+            NavigationTarget.DialogGeneration => manager("Side.Btn.DialogGen"),
             _ => null
         };
     }
@@ -1632,7 +1667,7 @@ public partial class MainWindow : Window
         var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
         if (guard == null)
         {
-            MessageBox.Show("项目校验服务未初始化", "错误",
+            MessageBox.Show(LocalizationManager.T("MW.ProjectGuardNotInit", "项目校验服务未初始化"), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
             projectId = Guid.Empty;
             return false;
@@ -1719,7 +1754,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"加载势力管理界面失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.LoadViewFailed", "加载{0}界面失败：{1}", LocalizationManager.T("Nav.FactionManagement", "势力管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1735,7 +1770,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"加载剧情管理界面失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.LoadViewFailed", "加载{0}界面失败：{1}", LocalizationManager.T("Nav.PlotManagement", "剧情管理"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1747,7 +1782,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (!TryGetCurrentProjectId("前置条件生成", out var projectId))
+            if (!TryGetCurrentProjectId(LocalizationManager.T("Side.Btn.Prerequisite", "前置条件生成"), out var projectId))
             {
                 return;
             }
@@ -1758,7 +1793,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"显示前置条件生成对话框失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.ShowPrereqDialogFailed", "显示前置条件生成对话框失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1774,8 +1809,8 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"加载AI协作界面失败：{ex.Message}\n\n详细信息：{ex.StackTrace}",
-                "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("MW.LoadAIViewFailed", "加载AI协作界面失败：{0}\n\n详细信息：{1}", ex.Message, ex.StackTrace),
+                LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -1826,7 +1861,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"加载对话生成器界面失败：{ex.Message}", "错误",
+            MessageBox.Show(LocalizationManager.TF("MW.LoadViewFailed", "加载{0}界面失败：{1}", LocalizationManager.T("Side.Btn.DialogGen", "对话生成器"), ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1836,7 +1871,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void ShowImportExport()
     {
-        if (!TryGetCurrentProjectId("导入导出", out _))
+        if (!TryGetCurrentProjectId(LocalizationManager.T("Nav.ImportExport", "导入导出"), out _))
         {
             return;
         }
@@ -1865,7 +1900,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(professionSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 职业体系管理";
+        this.Title = PageTitle("World.Profession.Title");
     }
 
     /// <summary>
@@ -1881,7 +1916,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(judicialSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 司法体系管理";
+        this.Title = PageTitle("World.Judicial.Title");
     }
 
     /// <summary>
@@ -1897,7 +1932,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(populationSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 生民体系管理";
+        this.Title = PageTitle("World.Population.Title");
     }
 
     /// <summary>
@@ -1913,7 +1948,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(cultivationSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 修炼体系管理";
+        this.Title = PageTitle("World.Cultivation.Title");
     }
 
     /// <summary>
@@ -1929,7 +1964,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(politicalSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 政治体系管理";
+        this.Title = PageTitle("World.Political.Title");
     }
 
     /// <summary>
@@ -1945,7 +1980,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(treasureSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 灵宝体系管理";
+        this.Title = PageTitle("World.Treasure.Title");
     }
 
     /// <summary>
@@ -1961,7 +1996,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(dimensionStructureView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 维度结构管理";
+        this.Title = PageTitle("World.Dimension.Title");
     }
 
     /// <summary>
@@ -1977,7 +2012,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(mapStructureView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 地图结构管理";
+        this.Title = PageTitle("World.Map.Title");
     }
 
     /// <summary>
@@ -1993,7 +2028,7 @@ public partial class MainWindow : Window
         MainContentArea.Children.Add(petSystemView);
 
         // 更新窗口标题
-        this.Title = "书籍管理系统 - 宠物体系管理";
+        this.Title = PageTitle("World.Pet.Title");
     }
 
     #endregion
@@ -2051,22 +2086,22 @@ public class RecentActivityItem
         var delta = DateTime.Now - time;
         if (delta.TotalMinutes < 1)
         {
-            return "刚刚";
+            return LocalizationManager.T("MW.TimeJustNow", "刚刚");
         }
 
         if (delta.TotalMinutes < 60)
         {
-            return $"{(int)delta.TotalMinutes}分钟前";
+            return LocalizationManager.TF("MW.TimeMinutesAgo", "{0}分钟前", (int)delta.TotalMinutes);
         }
 
         if (delta.TotalHours < 24)
         {
-            return $"{(int)delta.TotalHours}小时前";
+            return LocalizationManager.TF("MW.TimeHoursAgo", "{0}小时前", (int)delta.TotalHours);
         }
 
         if (delta.TotalDays < 30)
         {
-            return $"{(int)delta.TotalDays}天前";
+            return LocalizationManager.TF("MW.TimeDaysAgo", "{0}天前", (int)delta.TotalDays);
         }
 
         return time.ToString("MM-dd HH:mm");

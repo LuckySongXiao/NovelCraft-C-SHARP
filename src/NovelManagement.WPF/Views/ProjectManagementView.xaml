@@ -4,10 +4,12 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:localization="clr-namespace:NovelManagement.WPF.Localization"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1000">
 
     <UserControl.Resources>
+        <localization:StoredValueConverter x:Key="StoredValueConverter"/>
         <!-- 布尔值到可见性转换器 -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
@@ -30,7 +32,7 @@
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
-    
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -40,12 +42,12 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="项目管理" 
-                     FontSize="32" 
-                     FontWeight="Bold" 
+            <TextBlock Text="{DynamicResource Loc.Nav.ProjectManagement}"
+                     FontSize="32"
+                     FontWeight="Bold"
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理您的书籍创作项目" 
-                     FontSize="16" 
+            <TextBlock Text="{DynamicResource Loc.PM.Subtitle}"
+                     FontSize="16"
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
 
@@ -58,7 +60,7 @@
                             Click="NewProject_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建项目"/>
+                            <TextBlock Text="{DynamicResource Loc.Common.NewProject}"/>
                         </StackPanel>
                     </Button>
 
@@ -67,7 +69,7 @@
                             Click="ImportProject_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
-                            <TextBlock Text="导入项目"/>
+                            <TextBlock Text="{DynamicResource Loc.Common.ImportProject}"/>
                         </StackPanel>
                     </Button>
 
@@ -76,7 +78,7 @@
                             Click="ExportProject_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
-                            <TextBlock Text="导出项目"/>
+                            <TextBlock Text="{DynamicResource Loc.Side.Btn.ExportProject}"/>
                         </StackPanel>
                     </Button>
 
@@ -90,7 +92,7 @@
                             Click="ShowProjects_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Folder" Margin="0,0,8,0"/>
-                            <TextBlock Text="项目列表"/>
+                            <TextBlock Text="{DynamicResource Loc.PM.ProjectList}"/>
                         </StackPanel>
                     </Button>
 
@@ -100,7 +102,7 @@
                             Click="ShowRecycleBin_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Delete" Margin="0,0,8,0"/>
-                            <TextBlock Text="回收站"/>
+                            <TextBlock Text="{DynamicResource Loc.PM.RecycleBin}"/>
                         </StackPanel>
                     </Button>
 
@@ -112,7 +114,7 @@
                             Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="DeleteEmpty" Margin="0,0,8,0"/>
-                            <TextBlock Text="清空回收站"/>
+                            <TextBlock Text="{DynamicResource Loc.PM.EmptyRecycleBin}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -120,7 +122,7 @@
                 <!-- 搜索框 -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <TextBox x:Name="SearchTextBox"
-                           materialDesign:HintAssist.Hint="搜索项目..."
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.PM.SearchHint}"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="250"
@@ -139,8 +141,8 @@
                 </Grid.RowDefinitions>
 
                 <!-- 列表标题 -->
-                <Border Grid.Row="0" 
-                      Background="{DynamicResource MaterialDesignDivider}" 
+                <Border Grid.Row="0"
+                      Background="{DynamicResource MaterialDesignDivider}"
                       Padding="24,16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -151,11 +153,11 @@
                             <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Column="0" Text="项目名称" FontWeight="Medium"/>
-                        <TextBlock Grid.Column="1" Text="类型" FontWeight="Medium" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="2" Text="状态" FontWeight="Medium" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="3" Text="最后更新" FontWeight="Medium" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="4" Text="操作" FontWeight="Medium" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource Loc.PM.ProjectName}" FontWeight="Medium"/>
+                        <TextBlock Grid.Column="1" Text="{DynamicResource Loc.Dlg.Type}" FontWeight="Medium" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{DynamicResource Loc.Dlg.Status}" FontWeight="Medium" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{DynamicResource Loc.PM.LastUpdated}" FontWeight="Medium" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="{DynamicResource Loc.PM.Actions}" FontWeight="Medium" HorizontalAlignment="Center"/>
                     </Grid>
                 </Border>
 
@@ -164,8 +166,8 @@
                     <ItemsControl x:Name="ProjectListControl">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="{DynamicResource MaterialDesignDivider}" 
-                                      BorderThickness="0,0,0,1" 
+                                <Border BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                      BorderThickness="0,0,0,1"
                                       Padding="24,16">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -178,30 +180,30 @@
 
                                         <!-- 项目信息 -->
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{Binding Name}" 
-                                                     FontSize="16" 
+                                            <TextBlock Text="{Binding Name}"
+                                                     FontSize="16"
                                                      FontWeight="Medium"
                                                      Margin="0,0,0,4"/>
-                                            <TextBlock Text="{Binding Description}" 
+                                            <TextBlock Text="{Binding Description}"
                                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                      TextWrapping="Wrap"/>
                                         </StackPanel>
 
                                         <!-- 项目类型 -->
-                                        <TextBlock Grid.Column="1" 
-                                                 Text="{Binding Type}" 
+                                        <TextBlock Grid.Column="1"
+                                                 Text="{Binding Type, Converter={StaticResource StoredValueConverter}}"
                                                  HorizontalAlignment="Center"
                                                  VerticalAlignment="Center"/>
 
                                         <!-- 项目状态 -->
-                                        <materialDesign:Chip Grid.Column="2" 
-                                                           Content="{Binding Status}"
+                                        <materialDesign:Chip Grid.Column="2"
+                                                           Content="{Binding Status, Converter={StaticResource StoredValueConverter}}"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"/>
 
                                         <!-- 最后更新时间 -->
-                                        <TextBlock Grid.Column="3" 
-                                                 Text="{Binding LastUpdated}" 
+                                        <TextBlock Grid.Column="3"
+                                                 Text="{Binding LastUpdated}"
                                                  HorizontalAlignment="Center"
                                                  VerticalAlignment="Center"/>
 
@@ -211,7 +213,7 @@
                                                   HorizontalAlignment="Center">
 
                                             <!-- 根据当前模式显示不同的按钮 -->
-                                            <Button ToolTip="打开项目"
+                                            <Button ToolTip="{DynamicResource Loc.Dash.OpenProject}"
                                                   Click="OpenProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="OpenProjectButton">
@@ -227,7 +229,7 @@
                                                 </Button.Style>
                                                 <materialDesign:PackIcon Kind="FolderOpen"/>
                                             </Button>
-                                            <Button ToolTip="编辑项目"
+                                            <Button ToolTip="{DynamicResource Loc.PM.EditProject}"
                                                   Click="EditProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="EditProjectButton">
@@ -243,7 +245,7 @@
                                                 </Button.Style>
                                                 <materialDesign:PackIcon Kind="Edit"/>
                                             </Button>
-                                            <Button ToolTip="恢复项目"
+                                            <Button ToolTip="{DynamicResource Loc.PM.RestoreProject}"
                                                   Click="RestoreProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="RestoreProjectButton"
@@ -261,7 +263,7 @@
                                                 <materialDesign:PackIcon Kind="Restore"/>
                                             </Button>
                                             <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                  ToolTip="删除项目"
+                                                  ToolTip="{DynamicResource Loc.PM.DeleteProject}"
                                                   Click="DeleteProject_Click"
                                                   Tag="{Binding}"
                                                   x:Name="DeleteProjectButton">

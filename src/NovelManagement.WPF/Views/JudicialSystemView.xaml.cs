@@ -11,6 +11,7 @@ using NovelManagement.WPF.Commands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -148,7 +149,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "司法体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Judicial.Title", "司法体系管理"), out _);
                     JudicialSystems.Clear();
                     JudicialSystemListControl.ItemsSource = JudicialSystems;
                     UpdateStatistics();
@@ -176,7 +177,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载司法体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Jud.LoadFailed", "加载司法体系数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -255,7 +256,7 @@ namespace NovelManagement.WPF.Views
             // 设置法律体系类型选择
             foreach (ComboBoxItem item in LegalSystemTypeComboBox.Items)
             {
-                if (item.Content.ToString() == system.LegalSystemType)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == system.LegalSystemType)
                 {
                     LegalSystemTypeComboBox.SelectedItem = item;
                     break;
@@ -341,15 +342,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入司法体系"))
+                if (!EnsureCurrentProject(T("WS.Jud.ImportTitle", "导入司法体系")))
                 {
                     return;
                 }
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入司法体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Jud.ImportTitle", "导入司法体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -357,7 +358,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_judicialDataService == null)
                     {
-                        MessageBox.Show("司法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Jud.ServiceNotInit", "司法数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -373,12 +374,12 @@ namespace NovelManagement.WPF.Views
                     await PersistJudicialSystemsAsync();
                     FilterJudicialSystems();
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {JudicialSystems.Count} 个司法体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Jud.ImportDone", "已成功导入 {0} 个司法体系。", JudicialSystems.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -389,7 +390,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导出司法体系"))
+                if (!EnsureCurrentProject(T("WS.Jud.ExportTitle", "导出司法体系")))
                 {
                     return;
                 }
@@ -397,7 +398,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出司法体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"司法体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -406,17 +407,17 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_judicialDataService == null)
                     {
-                        MessageBox.Show("司法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Jud.ServiceNotInit", "司法数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
                     await _judicialDataService.ExportJudicialSystemsAsync(_currentProjectId, JudicialSystems, dialog.FileName);
-                    MessageBox.Show($"司法体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Jud.ExportDone", "司法体系数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -458,13 +459,13 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(JudicialNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入司法体系名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Jud.NameRequired", "请输入司法体系名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(JurisdictionTextBox.Text))
                 {
-                    MessageBox.Show("请输入司法管辖区", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("请输入司法管辖区", T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -473,7 +474,7 @@ namespace NovelManagement.WPF.Views
                 SelectedJudicialSystem.Description = JudicialDescriptionTextBox.Text.Trim();
                 SelectedJudicialSystem.Jurisdiction = JurisdictionTextBox.Text.Trim();
                 SelectedJudicialSystem.DimensionId = DimensionIdTextBox.Text.Trim();
-                SelectedJudicialSystem.LegalSystemType = (LegalSystemTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "成文法系";
+                SelectedJudicialSystem.LegalSystemType = (LegalSystemTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (LegalSystemTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "成文法系";
                 SelectedJudicialSystem.CourtCount = Courts.Count;
                 SelectedJudicialSystem.Courts = Courts.ToList();
 
@@ -485,7 +486,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistJudicialSystemsAsync();
-                MessageBox.Show("司法体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Jud.SaveSuccess", "司法体系保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterJudicialSystems();
@@ -493,7 +494,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.SaveFailedFmt", "保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -563,7 +564,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -681,7 +682,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -699,7 +700,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI司法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI司法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

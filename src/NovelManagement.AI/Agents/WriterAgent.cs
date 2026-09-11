@@ -22,8 +22,9 @@ namespace NovelManagement.AI.Agents
     {
         private const double RwkvNovelTemperature = 1.4;
         private const double RwkvNovelTopP = 0.3;
-        private const double RwkvNovelPresencePenalty = 0.0;
-        private const double RwkvNovelFrequencyPenalty = 0.0;
+        // 抗重复惩罚：RWKV7 长文无惩罚会整段复读（英文实测踩坑），温和开启
+        private const double RwkvNovelPresencePenalty = 0.4;
+        private const double RwkvNovelFrequencyPenalty = 0.6;
         private const int RwkvRollingContextChars = 1800;
         private const int RwkvMinUsefulChunkChars = 30;
         private const int RwkvMaxFinishingRounds = 3;
@@ -948,6 +949,46 @@ Response:";
             var generatedTail = LimitRwkvContext(generatedContent);
             var stateCard = BuildRwkvPromptStateCard(parameters, generatedContent);
 
+            if (Utilities.AIPromptLanguage.UseEnglish)
+            {
+                // 语种模板注册表优先（占位符 {TargetWords}）
+                var instruction = Utilities.PromptTemplate.Get("RWKV/ChapterWriting.Instruction")
+                    ?? $"Instruction: You are an English-language novelist. Write the chapter body in ENGLISH ONLY, following the given settings. Keep the style consistent, narrate naturally, and avoid list-like exposition. Do not output Markdown headings, lists, quotes or separators. Target length: about {targetWordCount} words.\n\nIf a sentence or paragraph repeats meaning already present in the generated text, do not rephrase it — advance the plot, add action detail or describe the environment instead.";
+                instruction = instruction.Replace("{TargetWords}", targetWordCount.ToString());
+
+                return
+$@"{instruction}
+
+Title:
+{chapterTitle}
+
+Style:
+{style}
+
+Outline:
+{outline}
+
+Key Plot:
+{keyPlots}
+
+Characters:
+{characters}
+
+State Memory:
+{stateCard}
+
+Requirements:
+{requirements}
+
+Existing Generated Content Tail:
+{generatedTail}
+
+Round:
+{round + 1}
+
+Response:";
+            }
+
             return
 $@"Instruction: 你是一名中文网络书籍作家。请按照给定设定创作章节正文，风格要统一，叙事自然，避免列表化说明。不要输出 Markdown 标题、列表、引用或分隔线。目标总字数约 {targetWordCount} 字。
 
@@ -1486,7 +1527,9 @@ Assistant:";
                 UsedBatch = batchEnabled,
                 FellBackToSingle = batchEnabled,
                 CandidateCount = candidatePrompts.Count,
-                Response = await _rwkvService.CompleteAsync(
+                // 流式请求：响应头立即返回、数据持续到达，避免经 Cloudflare Tunnel 时
+                // 因源站 >100s 未响应被 524 掐断（非流式 CompleteAsync 已实测踩坑）
+                Response = await _rwkvService.CompleteStreamAsync(
                     prompt: prompt,
                     maxTokens: maxTokens,
                     direction: direction,
@@ -1986,6 +2029,65 @@ Assistant:";
         /// <returns>系统提示</returns>
         protected override string BuildSystemPrompt(string taskType)
         {
+            // 语种模板注册表优先（PromptTemplates/{ID}/{lang}.txt，二次开发者可外置覆盖）
+            var systemTemplate = Utilities.PromptTemplate.Get("WriterAgent/" + taskType + ".System");
+            if (systemTemplate != null)
+            {
+                return systemTemplate;
+            }
+
+            if (Utilities.AIPromptLanguage.UseEnglish)
+            {
+                return taskType switch
+                {
+                    "GenerateChapterContent" => @"
+                    You are a professional novelist who writes high-quality book chapters.
+                    Your task is to write a polished chapter from the provided outline.
+
+                    Writing requirements:
+                    1. Vivid, fluent and engaging language
+                    2. Plausible, logically consistent plot development
+                    3. Distinct, well-drawn characters
+                    4. Rich, sensory scene description
+                    5. Natural dialogue that fits each character
+
+                    Think through: how to read the outline, how to structure the chapter,
+                    how to choose the style and voice, how to advance plot and relationships,
+                    and how to keep quality high.
+                ",
+                    "ContinueChapter" => @"
+                    You are a professional fiction continuation writer.
+                    Continue the existing chapter naturally, following the given direction.
+
+                    Requirements:
+                    1. Keep the style, narration and characterization consistent with the original
+                    2. Advance the plot plausibly and coherently
+                    3. Preserve the original formatting and paragraph structure
+                    4. Follow the requested direction
+                    5. Meet the requested length
+                    6. Keep character behaviour in line with established traits
+                    7. Respect the established worldbuilding and rules
+
+                    Output only the continuation text, with no explanations, labels or markup,
+                    so it can be appended directly to the original.
+                ",
+                    "MaintainWritingStyle" => @"
+                    You are a literary style analyst. Analyse the writing characteristics of the given content
+                    and provide concrete advice for keeping the style consistent.
+                ",
+                    "HandleDialogue" => @"
+                    You are a dialogue specialist. Write natural, flowing dialogue that fits the characters and situation.
+                ",
+                    "DescribeScene" => @"
+                    You are a scene description specialist. Write vivid, detailed, cinematic scene descriptions as the plot requires.
+                ",
+                    "PortrayPsychology" => @"
+                    You are a psychology-writing specialist. Render characters' inner worlds with nuance and truth.
+                ",
+                    _ => base.BuildSystemPrompt(taskType)
+                };
+            }
+
             return taskType switch
             {
                 "GenerateChapterContent" => @"
@@ -2068,6 +2170,63 @@ Assistant:";
         /// </summary>
         private string BuildChapterContentPrompt(Dictionary<string, object> parameters)
         {
+            // 语种模板注册表优先（占位符 {Title}/{Type}/{TargetWordCount}/{Style}/{Outline}/{KeyPlots}/{Characters}/{SpecialRequirements}）
+            var userTemplate = Utilities.PromptTemplate.Get("WriterAgent/GenerateChapterContent.User");
+            if (userTemplate != null)
+            {
+                var t = parameters;
+                return userTemplate
+                    .Replace("{Title}", t.GetValueOrDefault("ChapterTitle", "").ToString())
+                    .Replace("{Type}", t.GetValueOrDefault("ChapterType", "").ToString())
+                    .Replace("{TargetWordCount}", t.GetValueOrDefault("TargetWordCount", "2000").ToString())
+                    .Replace("{Style}", t.GetValueOrDefault("WritingStyle", "").ToString())
+                    .Replace("{Outline}", t.GetValueOrDefault("ChapterOutline", "").ToString())
+                    .Replace("{KeyPlots}", t.GetValueOrDefault("KeyPlots", "").ToString())
+                    .Replace("{Characters}", t.GetValueOrDefault("Characters", "").ToString())
+                    .Replace("{SpecialRequirements}", t.GetValueOrDefault("SpecialRequirements", "").ToString());
+            }
+
+            if (Utilities.AIPromptLanguage.UseEnglish)
+            {
+                var enTitle = parameters.GetValueOrDefault("ChapterTitle", "").ToString();
+                var enStyle = parameters.GetValueOrDefault("WritingStyle", "literary fiction").ToString();
+                var enType = parameters.GetValueOrDefault("ChapterType", "main chapter").ToString();
+                var enWords = parameters.GetValueOrDefault("TargetWordCount", "2000").ToString();
+                var enOutline = parameters.GetValueOrDefault("ChapterOutline", "").ToString();
+                var enPlots = parameters.GetValueOrDefault("KeyPlots", "").ToString();
+                var enChars = parameters.GetValueOrDefault("Characters", "").ToString();
+                var enReqs = parameters.GetValueOrDefault("SpecialRequirements", "").ToString();
+
+                return $@"Write a book chapter in the style of {enStyle}.
+
+【Chapter Info】
+Title: {enTitle}
+Type: {enType}
+Target length: about {enWords} words
+Writing style: {enStyle}
+
+【Outline】
+{enOutline}
+
+【Key Plot】
+{enPlots}
+
+【Main Characters】
+{enChars}
+
+【Special Requirements】
+{enReqs}
+
+【Requirements】
+1. Follow the requested writing style throughout
+2. Tight plotting, vivid description, strong imagery
+3. Distinct characters with natural dialogue
+4. Around {enWords} words
+5. Complete and coherent as a chapter
+
+Write ALL content in ENGLISH. Output only the chapter text — no explanations, labels or markup.";
+            }
+
             // 从UI传递的参数中提取信息
             var chapterTitle = parameters.GetValueOrDefault("ChapterTitle", "").ToString();
             var writingStyle = parameters.GetValueOrDefault("WritingStyle", "古风仙侠").ToString();

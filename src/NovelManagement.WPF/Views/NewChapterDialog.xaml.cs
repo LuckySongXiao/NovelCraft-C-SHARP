@@ -2,6 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Views
 {
@@ -47,7 +48,7 @@ namespace NovelManagement.WPF.Views
                 for (int i = 0; i < VolumeComboBox.Items.Count; i++)
                 {
                     var item = VolumeComboBox.Items[i] as System.Windows.Controls.ComboBoxItem;
-                    if (item?.Content?.ToString()?.Contains(volumeName) == true)
+                    if ((item?.Tag?.ToString() ?? item?.Content?.ToString())?.Contains(volumeName) == true)
                     {
                         VolumeComboBox.SelectedIndex = i;
                         break;
@@ -85,7 +86,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化对话框失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("NCD.InitFailed", "初始化对话框失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -104,7 +105,7 @@ namespace NovelManagement.WPF.Views
                 // 验证所属卷宗
                 if (VolumeComboBox.SelectedItem == null)
                 {
-                    MessageBox.Show("请选择所属卷宗", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NCD.VolumeRequired", "请选择所属卷宗"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     VolumeComboBox.Focus();
                     return false;
@@ -113,17 +114,17 @@ namespace NovelManagement.WPF.Views
                 // 验证章节标题
                 if (string.IsNullOrWhiteSpace(ChapterTitleTextBox.Text))
                 {
-                    MessageBox.Show("请输入章节标题", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NCD.TitleRequired", "请输入章节标题"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     ChapterTitleTextBox.Focus();
                     return false;
                 }
 
                 // 验证章节编号
-                if (string.IsNullOrWhiteSpace(ChapterNumberTextBox.Text) || 
+                if (string.IsNullOrWhiteSpace(ChapterNumberTextBox.Text) ||
                     !int.TryParse(ChapterNumberTextBox.Text, out int chapterNumber) || chapterNumber <= 0)
                 {
-                    MessageBox.Show("请输入有效的章节编号（正整数）", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NCD.NumberInvalid", "请输入有效的章节编号（正整数）"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     ChapterNumberTextBox.Focus();
                     return false;
@@ -132,7 +133,7 @@ namespace NovelManagement.WPF.Views
                 // 验证章节类型
                 if (ChapterTypeComboBox.SelectedItem == null)
                 {
-                    MessageBox.Show("请选择章节类型", "验证失败", 
+                    MessageBox.Show(LocalizationManager.T("NCD.TypeRequired", "请选择章节类型"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     ChapterTypeComboBox.Focus();
                     return false;
@@ -143,7 +144,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (!int.TryParse(TargetWordCountTextBox.Text, out int wordCount) || wordCount <= 0)
                     {
-                        MessageBox.Show("请输入有效的目标字数（正整数）", "验证失败", 
+                        MessageBox.Show(LocalizationManager.T("NCD.TargetWordsInvalid", "请输入有效的目标字数（正整数）"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"),
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                         TargetWordCountTextBox.Focus();
                         return false;
@@ -154,7 +155,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"验证输入时发生错误：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("NVD.ValidateFailed", "验证输入时发生错误：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -167,14 +168,17 @@ namespace NovelManagement.WPF.Views
         {
             var data = new ChapterData
             {
-                Volume = (VolumeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                Volume = (VolumeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString()
+                            ?? (VolumeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
                 Title = ChapterTitleTextBox.Text.Trim(),
                 Number = int.Parse(ChapterNumberTextBox.Text),
-                Type = (ChapterTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                Type = (ChapterTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString()
+                          ?? (ChapterTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
                 Summary = ChapterSummaryTextBox.Text.Trim(),
                 RelatedCharacters = RelatedCharactersTextBox.Text.Trim(),
                 KeyEvents = KeyEventsTextBox.Text.Trim(),
-                Status = (ChapterStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                Status = (ChapterStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString()
+                            ?? (ChapterStatusComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
                 Tags = ChapterTagsTextBox.Text.Trim(),
                 Notes = ChapterNotesTextBox.Text.Trim()
             };
@@ -232,7 +236,7 @@ namespace NovelManagement.WPF.Views
                 ChapterData = CollectFormData();
                 IsConfirmed = true;
 
-                MessageBox.Show($"章节 '{ChapterData.Title}' 创建成功！", "成功", 
+                MessageBox.Show(LocalizationManager.TF("NCD.ChapterCreated", "章节 '{0}' 创建成功！", ChapterData.Title), LocalizationManager.T("Msg.Success", "成功"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
                 DialogResult = true;
@@ -240,7 +244,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建章节时发生错误：{ex.Message}", "错误", 
+                MessageBox.Show(LocalizationManager.TF("NCD.CreateFailed", "创建章节时发生错误：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

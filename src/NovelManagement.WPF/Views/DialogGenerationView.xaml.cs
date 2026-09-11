@@ -15,6 +15,7 @@ using NovelManagement.AI.Interfaces;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using MaterialDesignThemes.Wpf;
 
 namespace NovelManagement.WPF.Views
@@ -109,7 +110,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _dialogGenerationService = new DialogGenerationService();
-                MessageBox.Show($"服务初始化失败，使用默认服务: {ex.Message}", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(TF("DG.InitFallbackFmt", "服务初始化失败，使用默认服务: {0}", ex.Message), T("Msg.Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -141,12 +142,12 @@ namespace NovelManagement.WPF.Views
             var value = (int)LengthSlider.Value;
             LengthLabel.Text = value switch
             {
-                1 or 2 => "很短",
-                3 or 4 => "较短", 
-                5 or 6 => "中等",
-                7 or 8 => "较长",
-                9 or 10 => "很长",
-                _ => "中等"
+                1 or 2 => T("DG.LenVeryShort", "很短"),
+                3 or 4 => T("DG.LenShortish", "较短"), 
+                5 or 6 => T("DG.LenMedium", "中等"),
+                7 or 8 => T("DG.LenLongish", "较长"),
+                9 or 10 => T("DG.LenVeryLong", "很长"),
+                _ => T("DG.LenMedium", "中等")
             };
         }
 
@@ -172,7 +173,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _isGenerating = true;
-                ShowLoading("正在生成对话...");
+                ShowLoading(T("DG.Generating", "正在生成对话..."));
 
                 var parameters = GetGenerationParameters();
                 var result = await GenerateDialogueAsync(parameters);
@@ -184,13 +185,13 @@ namespace NovelManagement.WPF.Views
                 }
                 else
                 {
-                    MessageBox.Show("对话生成失败，请检查参数设置", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("DG.GenerateFailedMsg", "对话生成失败，请检查参数设置"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "对话生成过程中发生错误");
-                MessageBox.Show($"生成失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.GenFailFmt", "生成失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -209,7 +210,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 _isGenerating = true;
-                ShowLoading("正在优化对话...");
+                ShowLoading(T("DG.Optimizing", "正在优化对话..."));
 
                 var parameters = GetGenerationParameters();
                 parameters["existingDialogue"] = ResultTextBox.Text;
@@ -226,7 +227,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "对话优化过程中发生错误");
-                MessageBox.Show($"优化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.OptFailFmt", "优化失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -251,7 +252,7 @@ namespace NovelManagement.WPF.Views
             if (!string.IsNullOrEmpty(ResultTextBox.Text))
             {
                 Clipboard.SetText(ResultTextBox.Text);
-                MessageBox.Show("对话内容已复制到剪贴板", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("DG.CopiedMsg", "对话内容已复制到剪贴板"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -262,20 +263,20 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(ResultTextBox.Text))
             {
-                MessageBox.Show("当前没有可保存的对话内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("DG.NothingToSave", "当前没有可保存的对话内容。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             try
             {
-                if (_currentProjectGuard == null || !_currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), "保存对话到项目", out var projectId))
+                if (_currentProjectGuard == null || !_currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), T("DG.SaveToProject", "保存对话到项目"), out var projectId))
                 {
                     return;
                 }
 
                 if (_volumeService == null || _chapterService == null)
                 {
-                    MessageBox.Show("章节或卷宗服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("DG.ServiceNotInit", "章节或卷宗服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -293,12 +294,12 @@ namespace NovelManagement.WPF.Views
                 };
 
                 await _chapterService.CreateChapterAsync(chapter);
-                MessageBox.Show($"已保存到项目章节草稿：{chapter.Title}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("DG.SavedToChapterFmt", "已保存到项目章节草稿：{0}", chapter.Title), T("DG.SaveSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "保存对话到项目失败");
-                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.SaveFailFmt", "保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -309,7 +310,7 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(ResultTextBox.Text))
             {
-                MessageBox.Show("当前没有可导出的对话内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("DG.NothingToExport", "当前没有可导出的对话内容。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -317,8 +318,8 @@ namespace NovelManagement.WPF.Views
             {
                 var dialog = new SaveFileDialog
                 {
-                    Title = "导出对话",
-                    Filter = "Markdown 文件|*.md|文本文件|*.txt|JSON 文件|*.json",
+                    Title = T("DG.ExportDialogTitle", "导出对话"),
+                    Filter = T("DG.ExportFilter", "Markdown 文件|*.md|文本文件|*.txt|JSON 文件|*.json"),
                     FileName = $"{BuildDialogueDraftTitle().Replace(' ', '_')}.md",
                     AddExtension = true
                 };
@@ -336,9 +337,9 @@ namespace NovelManagement.WPF.Views
                     {
                         Characters = CharactersTextBox.Text?.Trim(),
                         Situation = SituationTextBox.Text?.Trim(),
-                        Purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
-                        Emotion = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
-                        Style = (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
+                        Purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
+                        Emotion = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
+                        Style = (StyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
                         QualityScore = _currentResult?.QualityScore,
                         Content = ResultTextBox.Text,
                         ExportedAt = DateTime.Now
@@ -348,12 +349,12 @@ namespace NovelManagement.WPF.Views
                 };
 
                 File.WriteAllText(dialog.FileName, content);
-                MessageBox.Show($"已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("DG.ExportedFmt", "已导出到：{0}", dialog.FileName), T("DG.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导出对话失败");
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.ExportFailFmt", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -364,7 +365,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var inputDialog = new TextInputDialog("保存对话模板", "模板名称", $"对话模板_{DateTime.Now:yyyyMMdd_HHmmss}")
+                var inputDialog = new TextInputDialog(T("DG.SaveTemplateTitle"), T("DG.TemplateNameLabel"), TF("DG.TemplateFileNameFmt", "对话模板_{0:yyyyMMdd_HHmmss}", DateTime.Now))
                 {
                     Owner = Window.GetWindow(this)
                 };
@@ -378,12 +379,12 @@ namespace NovelManagement.WPF.Views
                 var templatePath = Path.Combine(GetDialogTemplateDirectory(), $"{SanitizeFileName(template.Name)}.json");
                 Directory.CreateDirectory(Path.GetDirectoryName(templatePath)!);
                 File.WriteAllText(templatePath, JsonSerializer.Serialize(template, new JsonSerializerOptions { WriteIndented = true }));
-                MessageBox.Show($"模板已保存：{templatePath}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("DG.TemplateSavedFmt", "模板已保存：{0}", templatePath), T("DG.SaveSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "保存对话模板失败");
-                MessageBox.Show($"模板保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.TemplateSaveFailFmt", "模板保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -399,8 +400,8 @@ namespace NovelManagement.WPF.Views
 
                 var dialog = new OpenFileDialog
                 {
-                    Title = "加载对话模板",
-                    Filter = "对话模板|*.json",
+                    Title = T("DG.LoadTemplateTitle", "加载对话模板"),
+                    Filter = T("DG.TemplateFilter", "对话模板|*.json"),
                     InitialDirectory = templateDirectory
                 };
 
@@ -412,17 +413,17 @@ namespace NovelManagement.WPF.Views
                 var template = JsonSerializer.Deserialize<DialogTemplate>(File.ReadAllText(dialog.FileName));
                 if (template == null)
                 {
-                    MessageBox.Show("模板内容无效。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("DG.TemplateInvalid", "模板内容无效。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 ApplyTemplate(template);
-                MessageBox.Show($"模板已加载：{template.Name}", "加载成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("DG.TemplateLoadedFmt", "模板已加载：{0}", template.Name), T("DG.LoadSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载对话模板失败");
-                MessageBox.Show($"模板加载失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.TemplateLoadFailFmt", "模板加载失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -445,7 +446,7 @@ namespace NovelManagement.WPF.Views
 - 详细的场景描述有助于生成更好的对话
 - 可以多次优化以获得满意的结果";
 
-            MessageBox.Show(helpText, "帮助", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(helpText, T("DG.Help"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         #endregion
@@ -461,11 +462,11 @@ namespace NovelManagement.WPF.Views
             return new Dictionary<string, object>
             {
                 ["characters"] = CharactersTextBox.Text?.Trim() ?? "",
-                ["relationship"] = (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
+                ["relationship"] = (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
                 ["situation"] = SituationTextBox.Text?.Trim() ?? "",
-                ["purpose"] = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
-                ["emotion"] = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
-                ["style"] = (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
+                ["purpose"] = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
+                ["emotion"] = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
+                ["style"] = (StyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "",
                 ["length"] = (int)LengthSlider.Value
             };
         }
@@ -525,7 +526,7 @@ namespace NovelManagement.WPF.Views
             ResultTextBox.Text = result.Content;
             
             // 更新质量评分显示
-            QualityChip.Content = $"质量评分: {result.QualityScore:F1}/10";
+            QualityChip.Content = TF("DG.QualityChipFmt", "质量评分: {0:F1}/10", result.QualityScore);
             
             // 根据评分设置颜色
             if (result.QualityScore >= 8.0)
@@ -572,11 +573,11 @@ namespace NovelManagement.WPF.Views
             {
                 if (_characterService == null)
                 {
-                    MessageBox.Show("角色服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("DG.CharacterServiceNotInit", "角色服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                if (_currentProjectGuard == null || !_currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), "从角色库选择", out var projectId))
+                if (_currentProjectGuard == null || !_currentProjectGuard.TryGetCurrentProjectId(Window.GetWindow(this), T("DG.SelectFromLibrary", "从角色库选择"), out var projectId))
                 {
                     return;
                 }
@@ -584,7 +585,7 @@ namespace NovelManagement.WPF.Views
                 var characters = (await _characterService.GetCharactersByProjectIdAsync(projectId)).ToList();
                 if (characters.Count == 0)
                 {
-                    MessageBox.Show("当前项目还没有角色，请先创建角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("DG.NoCharacters", "当前项目还没有角色，请先创建角色。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -601,7 +602,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "从角色库选择失败");
-                MessageBox.Show($"加载角色失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.LoadCharsFailFmt", "加载角色失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -628,7 +629,7 @@ namespace NovelManagement.WPF.Views
         private string BuildDialogueDraftTitle()
         {
             var characters = CharactersTextBox.Text?.Trim();
-            var purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "对话";
+            var purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "对话";
             return string.IsNullOrWhiteSpace(characters)
                 ? $"AI对话草稿_{DateTime.Now:yyyyMMdd_HHmmss}"
                 : $"{characters} - {purpose}";
@@ -639,9 +640,9 @@ namespace NovelManagement.WPF.Views
             return string.Join(",", new[]
             {
                 "AI对话",
-                (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
-                (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
-                (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()
+                (EmotionComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
+                (StyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString(),
+                (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()
             }.Where(v => !string.IsNullOrWhiteSpace(v)));
         }
 
@@ -673,11 +674,11 @@ namespace NovelManagement.WPF.Views
             {
                 Name = name,
                 Characters = CharactersTextBox.Text?.Trim() ?? string.Empty,
-                Relationship = (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                Relationship = (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (RelationshipComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 Situation = SituationTextBox.Text?.Trim() ?? string.Empty,
-                Purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
-                Emotion = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
-                Style = (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                Purpose = (PurposeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PurposeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                Emotion = (EmotionComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (EmotionComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                Style = (StyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (StyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 Length = (int)LengthSlider.Value,
                 SavedAt = DateTime.Now
             };
@@ -699,7 +700,7 @@ namespace NovelManagement.WPF.Views
         {
             foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
             {
-                if (string.Equals(item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(item.Tag?.ToString() ?? item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
                 {
                     comboBox.SelectedItem = item;
                     return;
@@ -761,19 +762,19 @@ namespace NovelManagement.WPF.Views
                 Margin = new Thickness(0, 16, 0, 0)
             };
 
-            var okButton = new Button { Content = "确定", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var okButton = new Button { Content = T("Dlg.OK"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             okButton.Click += (_, _) =>
             {
                 if (string.IsNullOrWhiteSpace(InputText))
                 {
-                    MessageBox.Show("请输入内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("DG.EnterContent", "请输入内容。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 DialogResult = true;
             };
 
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = T("Dlg.Cancel"), Width = 84, IsCancel = true };
             buttons.Children.Add(okButton);
             buttons.Children.Add(cancelButton);
             panel.Children.Add(buttons);
@@ -791,13 +792,13 @@ namespace NovelManagement.WPF.Views
 
         public CharacterSelectionDialog(IReadOnlyList<string> characterNames)
         {
-            Title = "从角色库选择";
+            Title = T("DG.SelectFromLibrary", "从角色库选择");
             Width = 360;
             Height = 460;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
             var panel = new StackPanel { Margin = new Thickness(20) };
-            panel.Children.Add(new TextBlock { Text = "请选择参与对话的角色：", Margin = new Thickness(0, 0, 0, 12) });
+            panel.Children.Add(new TextBlock { Text = T("DG.SelectCharactersPrompt", "请选择参与对话的角色："), Margin = new Thickness(0, 0, 0, 12) });
 
             var listPanel = new StackPanel();
             foreach (var name in characterNames)
@@ -821,19 +822,19 @@ namespace NovelManagement.WPF.Views
                 Margin = new Thickness(0, 16, 0, 0)
             };
 
-            var okButton = new Button { Content = "确定", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var okButton = new Button { Content = T("Dlg.OK"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             okButton.Click += (_, _) =>
             {
                 if (SelectedCharacters.Count == 0)
                 {
-                    MessageBox.Show("请至少选择一个角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("DG.SelectAtLeastOne", "请至少选择一个角色。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 DialogResult = true;
             };
 
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = T("Dlg.Cancel"), Width = 84, IsCancel = true };
             buttons.Children.Add(okButton);
             buttons.Children.Add(cancelButton);
             panel.Children.Add(buttons);

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="新建项目" Height="600" Width="500"
+        Title="{DynamicResource Loc.Common.NewProject}" Height="600" Width="500"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -24,8 +24,8 @@
         </Grid.RowDefinitions>
 
         <!-- 标题栏（颜色随主题皮肤可自定义） -->
-        <materialDesign:ColorZone Grid.Row="0" 
-                                  Mode="PrimaryMid" 
+        <materialDesign:ColorZone Grid.Row="0"
+                                  Mode="PrimaryMid"
                                   Background="{DynamicResource AppTitleBarBackgroundBrush}"
                                   Foreground="{DynamicResource AppTitleBarForegroundBrush}"
                                   Padding="16">
@@ -35,9 +35,9 @@
                                        Width="24" Height="24"
                                        VerticalAlignment="Center"
                                        Margin="0,0,16,0"/>
-                <TextBlock Text="新建项目" 
-                         FontSize="20" 
-                         FontWeight="Medium" 
+                <TextBlock Text="{DynamicResource Loc.Common.NewProject}"
+                         FontSize="20"
+                         FontWeight="Medium"
                          VerticalAlignment="Center"/>
             </DockPanel>
         </materialDesign:ColorZone>
@@ -48,26 +48,26 @@
                 <!-- 项目基本信息 -->
                 <materialDesign:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="项目基本信息" 
-                                 FontSize="18" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.NPD.BasicInfo}"
+                                 FontSize="18"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <!-- 项目名称 -->
                         <TextBox x:Name="ProjectNameTextBox"
-                               materialDesign:HintAssist.Hint="项目名称 *"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.NameHint}"
                                materialDesign:HintAssist.IsFloating="True"
                                Margin="0,0,0,16"/>
 
                         <!-- 作者 -->
                         <TextBox x:Name="AuthorTextBox"
-                               materialDesign:HintAssist.Hint="作者"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.Dlg.Author}"
                                materialDesign:HintAssist.IsFloating="True"
                                Margin="0,0,0,16"/>
 
                         <!-- 项目描述 -->
                         <TextBox x:Name="ProjectDescriptionTextBox"
-                               materialDesign:HintAssist.Hint="项目描述"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.DescriptionHint}"
                                materialDesign:HintAssist.IsFloating="True"
                                AcceptsReturn="True"
                                TextWrapping="Wrap"
@@ -77,23 +77,23 @@
 
                         <!-- 项目类型 -->
                         <ComboBox x:Name="ProjectTypeComboBox"
-                                materialDesign:HintAssist.Hint="项目类型 *"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.TypeHint}"
                                 materialDesign:HintAssist.IsFloating="True"
                                 Margin="0,0,0,16">
-                            <ComboBoxItem Content="修仙书籍"/>
-                            <ComboBoxItem Content="都市书籍"/>
-                            <ComboBoxItem Content="科幻书籍"/>
-                            <ComboBoxItem Content="奇幻书籍"/>
-                            <ComboBoxItem Content="历史书籍"/>
-                            <ComboBoxItem Content="军事书籍"/>
-                            <ComboBoxItem Content="悬疑书籍"/>
-                            <ComboBoxItem Content="言情书籍"/>
-                            <ComboBoxItem Content="其他"/>
+                            <ComboBoxItem Tag="修仙书籍" Content="{DynamicResource Loc.OG.TypeXianxia}"/>
+                            <ComboBoxItem Tag="都市书籍" Content="{DynamicResource Loc.OG.TypeUrban}"/>
+                            <ComboBoxItem Tag="科幻书籍" Content="{DynamicResource Loc.OG.TypeScifi}"/>
+                            <ComboBoxItem Tag="奇幻书籍" Content="{DynamicResource Loc.NPD.TypeFantasy}"/>
+                            <ComboBoxItem Tag="历史书籍" Content="{DynamicResource Loc.OG.TypeHistory}"/>
+                            <ComboBoxItem Tag="军事书籍" Content="{DynamicResource Loc.NPD.TypeMilitary}"/>
+                            <ComboBoxItem Tag="悬疑书籍" Content="{DynamicResource Loc.OG.TypeMystery}"/>
+                            <ComboBoxItem Tag="言情书籍" Content="{DynamicResource Loc.OG.TypeRomance}"/>
+                            <ComboBoxItem Tag="其他" Content="{DynamicResource Loc.PG.GenreOther}"/>
                         </ComboBox>
 
                         <!-- 目标字数 -->
                         <TextBox x:Name="TargetWordCountTextBox"
-                               materialDesign:HintAssist.Hint="目标字数"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.TargetWordsHint}"
                                materialDesign:HintAssist.IsFloating="True"
                                Margin="0,0,0,0"/>
                     </StackPanel>
@@ -102,26 +102,26 @@
                 <!-- 项目设置 -->
                 <materialDesign:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="项目设置" 
-                                 FontSize="18" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.PO.ProjectSettings}"
+                                 FontSize="18"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <!-- 启用AI协作 -->
                         <CheckBox x:Name="EnableAICheckBox"
-                                Content="启用AI协作创作"
+                                Content="{DynamicResource Loc.NPD.EnableAI}"
                                 IsChecked="True"
                                 Margin="0,0,0,8"/>
 
                         <!-- 自动保存 -->
                         <CheckBox x:Name="AutoSaveCheckBox"
-                                Content="启用自动保存"
+                                Content="{DynamicResource Loc.NPD.EnableAutoSave}"
                                 IsChecked="True"
                                 Margin="0,0,0,8"/>
 
                         <!-- 版本控制 -->
                         <CheckBox x:Name="VersionControlCheckBox"
-                                Content="启用版本控制"
+                                Content="{DynamicResource Loc.NPD.EnableVersionControl}"
                                 IsChecked="False"
                                 Margin="0,0,0,0"/>
                     </StackPanel>
@@ -130,20 +130,20 @@
                 <!-- 模板选择 -->
                 <materialDesign:Card Padding="16">
                     <StackPanel>
-                        <TextBlock Text="项目模板" 
-                                 FontSize="18" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.NPD.TemplateSection}"
+                                 FontSize="18"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <ComboBox x:Name="ProjectTemplateComboBox"
-                                materialDesign:HintAssist.Hint="内置模板"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.BuiltInTemplates}"
                                 materialDesign:HintAssist.IsFloating="True"
                                 IsEnabled="False">
-                            <ComboBoxItem Content="标准模板" IsSelected="True"/>
+                            <ComboBoxItem Tag="标准模板" Content="{DynamicResource Loc.NPD.StdTemplate}" IsSelected="True"/>
                         </ComboBox>
 
-                        <TextBlock Text="当前项目管理暂提供一个内置标准模板，用于快速创建正式项目骨架" 
-                                 FontSize="12" 
+                        <TextBlock Text="{DynamicResource Loc.NPD.TemplateNote}"
+                                 FontSize="12"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  Margin="0,8,0,0"
                                  TextWrapping="Wrap"/>
@@ -153,15 +153,15 @@
         </ScrollViewer>
 
         <!-- 按钮栏 -->
-        <Border Grid.Row="2" 
-              Background="{DynamicResource MaterialDesignDivider}" 
+        <Border Grid.Row="2"
+              Background="{DynamicResource MaterialDesignDivider}"
               Padding="24,16">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="取消" 
+                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                       Style="{StaticResource MaterialDesignFlatButton}"
                       Margin="0,0,8,0"
                       Click="Cancel_Click"/>
-                <Button Content="创建项目" 
+                <Button Content="{DynamicResource Loc.NPD.CreateProject}"
                       Style="{StaticResource MaterialDesignRaisedButton}"
                       Click="CreateProject_Click"/>
             </StackPanel>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using Microsoft.Win32;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Services
 {
@@ -26,7 +27,7 @@ namespace NovelManagement.WPF.Services
         {
             // 设置基本信息
             SettingNameTextBlock.Text = result.SettingName;
-            AnalysisTimeText.Text = $"分析时间: {result.AnalyzedAt:yyyy-MM-dd HH:mm:ss}";
+            AnalysisTimeText.Text = LocalizationManager.TF("AR.AnalysisTimeFmt", "分析时间: {0}", result.AnalyzedAt.ToString("yyyy-MM-dd HH:mm:ss"));
 
             // 设置评分
             OverallScoreText.Text = result.OverallScore.ToString("F1");
@@ -61,10 +62,11 @@ namespace NovelManagement.WPF.Services
             {
                 var saveFileDialog = new SaveFileDialog
                 {
-                    Title = "导出分析报告",
+                    Title = LocalizationManager.T("AR.ExportDialogTitle", "导出分析报告"),
                     FileName = BuildSafeFileName(_result.SettingName),
                     DefaultExt = ".md",
-                    Filter = "Markdown 文件 (*.md)|*.md|文本文件 (*.txt)|*.txt",
+                    Filter = LocalizationManager.T("AR.FilterMarkdown", "Markdown 文件 (*.md)") + "|*.md|" +
+                            LocalizationManager.T("AR.FilterText", "文本文件 (*.txt)") + "|*.txt",
                     AddExtension = true,
                     OverwritePrompt = true
                 };
@@ -80,11 +82,11 @@ namespace NovelManagement.WPF.Services
                     : BuildMarkdownReport(_result);
 
                 File.WriteAllText(saveFileDialog.FileName, content, Encoding.UTF8);
-                MessageBox.Show($"分析报告已导出到：{saveFileDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.TF("AR.ExportSuccess", "分析报告已导出到：{0}", saveFileDialog.FileName), LocalizationManager.T("AR.ExportSuccessTitle", "导出成功"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出分析报告失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("AR.ExportFailed", "导出分析报告失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

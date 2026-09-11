@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="生民体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Pop.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddPopulationSystem_Click"
-                            ToolTip="新建生民体系">
+                            ToolTip="{DynamicResource Loc.WS.Pop.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportPopulation_Click"
-                            ToolTip="导入生民数据">
+                            ToolTip="{DynamicResource Loc.WS.Pop.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportPopulation_Click"
-                            ToolTip="导出生民数据">
+                            ToolTip="{DynamicResource Loc.WS.Pop.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索生民体系..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,15 +100,15 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="RegionFilterComboBox"
-                                     materialDesign:HintAssist.Hint="区域筛选"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.RegionHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="RegionFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部区域"/>
-                                <ComboBoxItem Content="修仙界"/>
-                                <ComboBoxItem Content="凡人界"/>
-                                <ComboBoxItem Content="魔界"/>
-                                <ComboBoxItem Content="妖界"/>
-                                <ComboBoxItem Content="仙界"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllRegions}"/>
+                                <ComboBoxItem Tag="修仙界" Content="{DynamicResource Loc.WS.Pop.Data.修仙界}"/>
+                                <ComboBoxItem Tag="凡人界" Content="{DynamicResource Loc.WS.Pop.Data.凡人界}"/>
+                                <ComboBoxItem Tag="魔界" Content="{DynamicResource Loc.WS.Pop.Data.魔界}"/>
+                                <ComboBoxItem Tag="妖界" Content="{DynamicResource Loc.WS.Pop.Data.妖界}"/>
+                                <ComboBoxItem Tag="仙界" Content="{DynamicResource Loc.WS.Pop.Data.仙界}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -177,14 +177,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="总人口: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Pop.TotalLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding TotalPopulation}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 密度: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Pop.DensityLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -205,7 +205,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="生民体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pop.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -216,21 +216,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="修仙界: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.修仙界}"/>
                                         <Run Text="{Binding CultivationWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="凡人界: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.凡人界}"/>
                                         <Run Text="{Binding MortalWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="其他界: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Pop.OtherLabel}"/>
                                         <Run Text="{Binding OtherWorldCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -254,12 +254,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个生民体系查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pop.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的生民体系" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pop.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -269,7 +269,7 @@
                         <!-- 生民详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -283,13 +283,13 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="PopulationNameTextBox"
-                                        materialDesign:HintAssist.Hint="生民体系名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="RegionNameTextBox"
-                                        materialDesign:HintAssist.Hint="区域名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.RegionNameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
@@ -303,19 +303,19 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="DimensionIdTextBox"
-                                        materialDesign:HintAssist.Hint="维度ID"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.DimensionId}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="TotalPopulationTextBox"
-                                        materialDesign:HintAssist.Hint="总人口"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.TotalHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
 
                             <TextBox x:Name="PopulationDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="生民体系描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -324,7 +324,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 人口统计 -->
-                            <TextBlock Text="人口统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pop.PopStats}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -340,29 +340,29 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="PopulationDensityTextBox"
-                                        materialDesign:HintAssist.Hint="人口密度"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.DensityHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="GrowthRateTextBox"
-                                        materialDesign:HintAssist.Hint="人口增长率(%)"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.GrowthRateHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <ComboBox Grid.Column="4"
                                          x:Name="DevelopmentLevelComboBox"
-                                         materialDesign:HintAssist.Hint="发展水平"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.DevLevelHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                                    <ComboBoxItem Content="原始社会"/>
-                                    <ComboBoxItem Content="奴隶社会"/>
-                                    <ComboBoxItem Content="封建社会"/>
-                                    <ComboBoxItem Content="资本主义社会"/>
-                                    <ComboBoxItem Content="修仙文明"/>
-                                    <ComboBoxItem Content="高等文明"/>
+                                    <ComboBoxItem Tag="原始社会" Content="{DynamicResource Loc.WS.Pop.Data.原始社会}"/>
+                                    <ComboBoxItem Tag="奴隶社会" Content="{DynamicResource Loc.WS.Pop.Data.奴隶社会}"/>
+                                    <ComboBoxItem Tag="封建社会" Content="{DynamicResource Loc.WS.Pop.Data.封建社会}"/>
+                                    <ComboBoxItem Tag="资本主义社会" Content="{DynamicResource Loc.WS.Pop.Data.资本主义社会}"/>
+                                    <ComboBoxItem Tag="修仙文明" Content="{DynamicResource Loc.WS.Pop.Data.修仙文明}"/>
+                                    <ComboBoxItem Tag="高等文明" Content="{DynamicResource Loc.WS.Pop.Data.高等文明}"/>
                                 </ComboBox>
                             </Grid>
 
                             <!-- 社会阶层 -->
-                            <TextBlock Text="社会阶层" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pop.ClassesTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -380,13 +380,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="阶层列表" 
+                                                 Text="{DynamicResource Loc.WS.Pop.ClassList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddSocialClass_Click"
-                                              ToolTip="添加阶层">
+                                              ToolTip="{DynamicResource Loc.WS.Pop.AddClassTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -407,19 +407,19 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="阶层名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.ClassNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <TextBox Grid.Column="1" 
                                                                Text="{Binding Population}" 
-                                                               materialDesign:HintAssist.Hint="人口数量"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.ClassPopHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <TextBox Grid.Column="2" 
                                                                Text="{Binding Description}" 
-                                                               materialDesign:HintAssist.Hint="阶层描述"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pop.ClassDescHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -427,7 +427,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveSocialClass_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除阶层">
+                                                              ToolTip="{DynamicResource Loc.WS.Pop.DeleteClassTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -443,11 +443,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SavePopulationSystem_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

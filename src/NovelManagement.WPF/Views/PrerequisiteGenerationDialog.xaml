@@ -3,7 +3,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="前置条件生成" 
+        Title="{DynamicResource Loc.PG.Title}" 
         Height="760"
         Width="920"
         WindowStartupLocation="CenterOwner"
@@ -20,12 +20,12 @@
 
         <!-- 标题和说明 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="AI编辑前置条件生成" 
+            <TextBlock Text="{DynamicResource Loc.PG.Header}" 
                        Style="{StaticResource MaterialDesignHeadline5TextBlock}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,10"/>
             
-            <TextBlock Text="为确保AI编辑功能正常运行，系统将检查并生成必要的前置数据，并按项目基础信息、世界观、大纲、配套设定、卷章写作的顺序展示当前流程状态。"
+            <TextBlock Text="{DynamicResource Loc.PG.Desc}"
                        Style="{StaticResource MaterialDesignBody1TextBlock}"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"
@@ -37,7 +37,7 @@
             <StackPanel>
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
-                        <TextBlock Text="项目选择"
+                        <TextBlock Text="{DynamicResource Loc.PG.ProjectSelection}"
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
 
@@ -54,11 +54,11 @@
                                       SelectedValuePath="ProjectId"
                                       SelectionChanged="ProjectComboBox_SelectionChanged"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                      materialDesign:HintAssist.Hint="选择已有项目"/>
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.PG.HintSelectProject}"/>
 
                             <TextBlock x:Name="ProjectSummaryTextBlock"
                                        Grid.Column="2"
-                                       Text="请选择项目后查看当前写作流程状态。"
+                                       Text="{DynamicResource Loc.PG.SummaryPlaceholder}"
                                        TextWrapping="Wrap"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource MaterialDesignBodyLight}"/>
@@ -68,14 +68,14 @@
 
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
-                        <TextBlock Text="AI 上下文约束摘要"
+                        <TextBlock Text="{DynamicResource Loc.PG.ContextSummary}"
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
 
                         <TextBox x:Name="ContextSummaryTextBox"
                                  Height="180"
                                  IsReadOnly="True"
-                                 Text="请选择项目后查看 AI 将遵循的上位设定与生成顺序。"
+                                 Text="{DynamicResource Loc.PG.ContextPlaceholder}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"
                                  VerticalScrollBarVisibility="Auto"
@@ -85,7 +85,7 @@
 
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
-                        <TextBlock Text="书籍撰写工艺流程图"
+                        <TextBlock Text="{DynamicResource Loc.PG.FlowChart}"
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
 
@@ -94,7 +94,7 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="1. 项目基础信息" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.StageProject}" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="ProjectInfoStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
@@ -103,7 +103,7 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="2. 世界观" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.StageWorld}" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="WorldStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
@@ -112,7 +112,7 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="3. 大纲" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.StageOutline}" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="OutlineStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
@@ -121,7 +121,7 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="4. 配套设定" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.StageSupport}" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="SupportStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
@@ -130,7 +130,7 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     BorderBrush="{DynamicResource AppSubtleBorderBrush}" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="5. 卷章写作" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.StageWriting}" FontWeight="SemiBold"/>
                                     <TextBlock x:Name="WritingStageTextBlock" Margin="0,6,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
@@ -141,7 +141,7 @@
                 <!-- 当前状态 -->
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
-                        <TextBlock Text="当前项目数据状态" 
+                        <TextBlock Text="{DynamicResource Loc.PG.DataStatus}" 
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
                         
@@ -153,22 +153,22 @@
                             
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                 <TextBlock x:Name="PlotsStatusTextBlock" 
-                                           Text="剧情大纲: 检查中..." 
+                                           Text="{DynamicResource Loc.PG.PlotsChecking}" 
                                            Margin="0,2"/>
                                 <TextBlock x:Name="CharactersStatusTextBlock" 
-                                           Text="主要角色: 检查中..." 
+                                           Text="{DynamicResource Loc.PG.CharactersChecking}" 
                                            Margin="0,2"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                 <TextBlock x:Name="WorldSettingsStatusTextBlock"
-                                           Text="世界设定: 检查中..."
+                                           Text="{DynamicResource Loc.PG.WorldChecking}"
                                            Margin="0,2"/>
                                 <TextBlock x:Name="FactionsStatusTextBlock"
-                                           Text="势力组织: 检查中..."
+                                           Text="{DynamicResource Loc.PG.FactionsChecking}"
                                            Margin="0,2"/>
                                 <TextBlock x:Name="CultivationSystemStatusTextBlock"
-                                           Text="修炼体系: 检查中..."
+                                           Text="{DynamicResource Loc.PG.CultivationChecking}"
                                            Margin="0,2"/>
                             </StackPanel>
                         </Grid>
@@ -178,72 +178,72 @@
                 <!-- 生成选项 -->
                 <materialDesign:Card Margin="0,0,0,15" Padding="15">
                     <StackPanel>
-                        <TextBlock Text="生成选项"
+                        <TextBlock Text="{DynamicResource Loc.PG.Options}"
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
 
                         <!-- 基础生成选项 -->
                         <CheckBox x:Name="GeneratePlotsCheckBox"
-                                  Content="生成剧情大纲"
+                                  Content="{DynamicResource Loc.PG.GenPlots}"
                                   Margin="0,5"
                                   IsChecked="True"/>
 
                         <CheckBox x:Name="GenerateCharactersCheckBox"
-                                  Content="生成主要角色"
+                                  Content="{DynamicResource Loc.PG.GenCharacters}"
                                   Margin="0,5"
                                   IsChecked="True"/>
 
                         <CheckBox x:Name="GenerateWorldSettingsCheckBox"
-                                  Content="生成世界设定"
+                                  Content="{DynamicResource Loc.PG.GenWorld}"
                                   Margin="0,5"
                                   IsChecked="True"/>
 
                         <CheckBox x:Name="GenerateFactionsCheckBox"
-                                  Content="生成势力组织"
+                                  Content="{DynamicResource Loc.PG.GenFactions}"
                                   Margin="0,5"
                                   IsChecked="True"/>
 
                         <CheckBox x:Name="GenerateCultivationSystemCheckBox"
-                                  Content="生成修炼体系（AI 自定义等级体系）"
+                                  Content="{DynamicResource Loc.PG.GenCultivation}"
                                   Margin="0,5"
                                   IsChecked="True"/>
 
                         <!-- 高级选项 -->
-                        <Expander Header="高级选项" Margin="0,10,0,0">
+                        <Expander Header="{DynamicResource Loc.PG.AdvancedOptions}" Margin="0,10,0,0">
                             <StackPanel Margin="20,10,0,0">
                                 <!-- 书籍类型选择 -->
                                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                                    <TextBlock Text="书籍类型:" VerticalAlignment="Center" Width="80"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.GenreLabel}" VerticalAlignment="Center" Width="80"/>
                                     <ComboBox x:Name="NovelGenreComboBox" Width="150" SelectedIndex="0">
-                                        <ComboBoxItem Content="修仙"/>
-                                        <ComboBoxItem Content="都市"/>
-                                        <ComboBoxItem Content="玄幻"/>
-                                        <ComboBoxItem Content="科幻"/>
-                                        <ComboBoxItem Content="历史"/>
-                                        <ComboBoxItem Content="其他"/>
+                                        <ComboBoxItem Tag="修仙" Content="{DynamicResource Loc.PG.GenreXianxia}"/>
+                                        <ComboBoxItem Tag="都市" Content="{DynamicResource Loc.PG.GenreUrban}"/>
+                                        <ComboBoxItem Tag="玄幻" Content="{DynamicResource Loc.PG.GenreFantasy}"/>
+                                        <ComboBoxItem Tag="科幻" Content="{DynamicResource Loc.PG.GenreScifi}"/>
+                                        <ComboBoxItem Tag="历史" Content="{DynamicResource Loc.PG.GenreHistory}"/>
+                                        <ComboBoxItem Tag="其他" Content="{DynamicResource Loc.PG.GenreOther}"/>
                                     </ComboBox>
                                 </StackPanel>
 
                                 <!-- 世界观风格 -->
                                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                                    <TextBlock Text="世界观:" VerticalAlignment="Center" Width="80"/>
+                                    <TextBlock Text="{DynamicResource Loc.PG.WorldLabel}" VerticalAlignment="Center" Width="80"/>
                                     <ComboBox x:Name="WorldStyleComboBox" Width="150" SelectedIndex="0">
-                                        <ComboBoxItem Content="东方玄幻"/>
-                                        <ComboBoxItem Content="西方奇幻"/>
-                                        <ComboBoxItem Content="现代都市"/>
-                                        <ComboBoxItem Content="未来科幻"/>
-                                        <ComboBoxItem Content="古代历史"/>
-                                        <ComboBoxItem Content="混合风格"/>
+                                        <ComboBoxItem Tag="东方玄幻" Content="{DynamicResource Loc.PG.WorldEastern}"/>
+                                        <ComboBoxItem Tag="西方奇幻" Content="{DynamicResource Loc.PG.WorldWestern}"/>
+                                        <ComboBoxItem Tag="现代都市" Content="{DynamicResource Loc.PG.WorldModern}"/>
+                                        <ComboBoxItem Tag="未来科幻" Content="{DynamicResource Loc.PG.WorldFuture}"/>
+                                        <ComboBoxItem Tag="古代历史" Content="{DynamicResource Loc.PG.WorldAncient}"/>
+                                        <ComboBoxItem Tag="混合风格" Content="{DynamicResource Loc.PG.WorldMixed}"/>
                                     </ComboBox>
                                 </StackPanel>
 
                                 <!-- AI生成选项 -->
                                 <CheckBox x:Name="UseAIGenerationCheckBox"
-                                          Content="使用AI智能生成 (更个性化)"
+                                          Content="{DynamicResource Loc.PG.UseAiGen}"
                                           Margin="0,10,0,5"/>
 
                                 <TextBox x:Name="AIPromptTextBox"
-                                         materialDesign:HintAssist.Hint="AI生成提示 (描述您想要的书籍风格、主题等)"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.PG.HintAiPrompt}"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                          TextWrapping="Wrap"
                                          Height="60"
@@ -252,7 +252,7 @@
 
                                 <!-- 允许后续编辑 -->
                                 <CheckBox x:Name="AllowUserEditingCheckBox"
-                                          Content="允许用户后续编辑和删减"
+                                          Content="{DynamicResource Loc.PG.AllowEditing}"
                                           Margin="0,10,0,0"
                                           IsChecked="True"/>
                             </StackPanel>
@@ -266,7 +266,7 @@
                                      Padding="15"
                                      Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="生成进度" 
+                        <TextBlock Text="{DynamicResource Loc.PG.Progress}" 
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
                         
@@ -275,7 +275,7 @@
                                      Margin="0,0,0,10"/>
                         
                         <TextBlock x:Name="ProgressStatusTextBlock" 
-                                   Text="准备开始生成..." 
+                                   Text="{DynamicResource Loc.PG.Preparing}" 
                                    Style="{StaticResource MaterialDesignBody2TextBlock}"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -286,7 +286,7 @@
                                      Padding="15"
                                      Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock Text="生成结果" 
+                        <TextBlock Text="{DynamicResource Loc.PG.Result}" 
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                    Margin="0,0,0,10"/>
                         
@@ -307,33 +307,33 @@
                     Margin="0,20,0,0">
 
             <Button x:Name="BackButton"
-                    Content="返回上一界面"
+                    Content="{DynamicResource Loc.PG.Back}"
                     Style="{StaticResource MaterialDesignFlatButton}"
                     Margin="0,0,10,0"
                     Click="Back_Click"/>
             
             <Button x:Name="CheckStatusButton"
-                    Content="检查状态"
+                    Content="{DynamicResource Loc.PG.CheckStatus}"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     Margin="0,0,10,0"
                     Click="CheckStatus_Click">
                 <Button.ToolTip>
-                    <ToolTip Content="重新检查当前项目的数据状态"/>
+                    <ToolTip Content="{DynamicResource Loc.PG.CheckStatusTip}"/>
                 </Button.ToolTip>
             </Button>
             
             <Button x:Name="GenerateButton"
-                    Content="开始生成"
+                    Content="{DynamicResource Loc.PG.StartGenerate}"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     Margin="0,0,10,0"
                     Click="Generate_Click">
                 <Button.ToolTip>
-                    <ToolTip Content="根据选择的选项生成前置数据"/>
+                    <ToolTip Content="{DynamicResource Loc.PG.GenerateTip}"/>
                 </Button.ToolTip>
             </Button>
             
             <Button x:Name="CloseButton"
-                    Content="关闭"
+                    Content="{DynamicResource Loc.Dlg.Close}"
                     Style="{StaticResource MaterialDesignFlatButton}"
                     Click="Close_Click"/>
         </StackPanel>

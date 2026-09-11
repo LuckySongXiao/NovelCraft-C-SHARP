@@ -22,6 +22,8 @@ using NovelManagement.AI.Services.Ollama;
 using NovelManagement.AI.Services.ThinkingChain;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using NovelManagement.WPF.Services;
+using NovelManagement.WPF.Localization;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using Microsoft.Extensions.Configuration;
 
 namespace NovelManagement.WPF.Views
@@ -211,8 +213,8 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI协作界面构造失败: {ex.Message}\n\n详细信息: {ex}",
-                    "初始化错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.CtorFailed", $"AI协作界面构造失败: {ex.Message}\n\n详细信息: {ex}", ex.Message, ex),
+                    T("AC.InitError", "初始化错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -289,8 +291,8 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"延迟初始化失败: {ex.Message}");
-                MessageBox.Show($"AI协作系统初始化失败: {ex.Message}",
-                    "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.InitFailed", $"AI协作系统初始化失败: {ex.Message}", ex.Message),
+                    T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -339,8 +341,8 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"AI服务初始化失败: {ex.Message}");
-                MessageBox.Show($"AI服务初始化失败：{ex.Message}\n\n应用程序将继续运行，但AI功能可能不可用。",
-                    "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(TF("AC.AIServiceInitFailed", $"AI服务初始化失败：{ex.Message}\n\n应用程序将继续运行，但AI功能可能不可用。", ex.Message),
+                    T("Msg.Warning", "警告"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -388,7 +390,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"UI初始化失败: {ex.Message}");
-                MessageBox.Show($"UI初始化失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.UIInitFailed", $"UI初始化失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -468,7 +470,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"初始化失败: {ex.Message}");
-                MessageBox.Show($"AI协作系统初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.InitFailed", $"AI协作系统初始化失败: {ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -597,15 +599,15 @@ namespace NovelManagement.WPF.Views
                         var capabilities = await agent.GetCapabilitiesAsync();
                         var capabilityText = string.Join("\n", capabilities.Select(c => $"• {c.Name}: {c.Description}"));
 
-                        MessageBox.Show($"Agent: {agent.Name}\n描述: {agent.Description}\n版本: {agent.Version}\n\n能力列表:\n{capabilityText}",
-                                      "Agent详情", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(TF("AC.AgentDetailsBody", $"Agent: {agent.Name}\n描述: {agent.Description}\n版本: {agent.Version}\n\n能力列表:\n{capabilityText}", agent.Name, agent.Description, agent.Version, capabilityText),
+                                      T("AC.AgentDetails", "Agent详情"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"查看Agent详情失败: {ex.Message}");
-                MessageBox.Show($"查看Agent详情失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.ViewAgentDetailsFailed", $"查看Agent详情失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -629,7 +631,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"重置Agent失败: {ex.Message}");
-                MessageBox.Show($"重置Agent失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.ResetAgentFailed", $"重置Agent失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -759,7 +761,7 @@ namespace NovelManagement.WPF.Views
                 return prompt;
             }
 
-            MessageBox.Show("请先在右侧快速测试区域输入项目设定、章节大纲或待处理文本。", "提示",
+            MessageBox.Show(T("AC.EnterTestPromptFirst", "请先在右侧快速测试区域输入项目设定、章节大纲或待处理文本。"), T("Msg.Tip", "提示"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return null;
         }
@@ -921,12 +923,12 @@ namespace NovelManagement.WPF.Views
         {
             return status switch
             {
-                AgentStatus.Idle => "空闲中",
-                AgentStatus.Working => "工作中",
-                AgentStatus.Waiting => "等待中",
-                AgentStatus.Error => "错误状态",
-                AgentStatus.Offline => "离线",
-                _ => "未知状态"
+                AgentStatus.Idle => T("AC.StatusIdle", "空闲中"),
+                AgentStatus.Working => T("AC.StatusWorking", "工作中"),
+                AgentStatus.Waiting => T("AC.StatusWaiting", "等待中"),
+                AgentStatus.Error => T("AC.StatusError", "错误状态"),
+                AgentStatus.Offline => T("AC.StatusOffline", "离线"),
+                _ => T("AC.StatusUnknown", "未知状态")
             };
         }
 
@@ -971,13 +973,13 @@ namespace NovelManagement.WPF.Views
         {
             return status switch
             {
-                WorkflowStatus.Pending => "等待执行",
-                WorkflowStatus.Running => "执行中",
-                WorkflowStatus.Completed => "已完成",
-                WorkflowStatus.Paused => "已暂停",
-                WorkflowStatus.Cancelled => "已取消",
-                WorkflowStatus.Failed => "执行失败",
-                _ => "未知状态"
+                WorkflowStatus.Pending => T("AC.WfPending", "等待执行"),
+                WorkflowStatus.Running => T("AC.WfRunning", "执行中"),
+                WorkflowStatus.Completed => T("AC.WfCompleted", "已完成"),
+                WorkflowStatus.Paused => T("AC.WfPaused", "已暂停"),
+                WorkflowStatus.Cancelled => T("AC.WfCancelled", "已取消"),
+                WorkflowStatus.Failed => T("AC.WfFailed", "执行失败"),
+                _ => T("AC.StatusUnknown", "未知状态")
             };
         }
 
@@ -995,7 +997,7 @@ namespace NovelManagement.WPF.Views
         private void UpdateTaskQueueStatus()
         {
             var queueStatus = _taskQueue.GetQueueStatus();
-            TaskQueueStatusText.Text = $"({queueStatus.PendingTasks} 待处理, {queueStatus.RunningTasks} 运行中, {queueStatus.CompletedTasks} 已完成)";
+            TaskQueueStatusText.Text = TF("AC.TaskQueueStatus", $"({queueStatus.PendingTasks} 待处理, {queueStatus.RunningTasks} 运行中, {queueStatus.CompletedTasks} 已完成)", queueStatus.PendingTasks, queueStatus.RunningTasks, queueStatus.CompletedTasks);
         }
 
         /// <summary>
@@ -1051,7 +1053,7 @@ namespace NovelManagement.WPF.Views
                         {
                             AddLog($"   服务器版本: {testResult.ServerInfo["Version"]}");
                         }
-                        ShowSnackbar("Ollama连接测试成功", PackIconKind.CheckCircle, Brushes.Green);
+                        ShowSnackbar(T("AC.OllamaConnTestOk", "Ollama连接测试成功"), PackIconKind.CheckCircle, Brushes.Green);
 
                         // 连接成功后刷新模型列表
                         await RefreshModelsAsync();
@@ -1062,7 +1064,7 @@ namespace NovelManagement.WPF.Views
                     else
                     {
                         AddLog($"❌ Ollama连接测试失败: {testResult.ErrorMessage}");
-                        ShowSnackbar($"Ollama连接测试失败: {testResult.ErrorMessage}", PackIconKind.AlertCircle, Brushes.Red);
+                        ShowSnackbar(TF("AC.OllamaConnTestFail", $"Ollama连接测试失败: {testResult.ErrorMessage}", testResult.ErrorMessage), PackIconKind.AlertCircle, Brushes.Red);
                     }
                 }
                 else if (_currentProvider == "DeepSeek" && _deepSeekApiService != null)
@@ -1077,24 +1079,24 @@ namespace NovelManagement.WPF.Views
                     if (isConnected)
                     {
                         AddLog("✅ DeepSeek API连接测试成功");
-                        ShowSnackbar("DeepSeek API连接测试成功", PackIconKind.CheckCircle, Brushes.Green);
+                        ShowSnackbar(T("AC.DeepSeekConnTestOk", "DeepSeek API连接测试成功"), PackIconKind.CheckCircle, Brushes.Green);
                     }
                     else
                     {
                         AddLog("❌ DeepSeek API连接测试失败");
-                        ShowSnackbar("DeepSeek API连接测试失败", PackIconKind.AlertCircle, Brushes.Red);
+                        ShowSnackbar(T("AC.DeepSeekConnTestFail", "DeepSeek API连接测试失败"), PackIconKind.AlertCircle, Brushes.Red);
                     }
                 }
                 else
                 {
                     AddLog($"❌ {_currentProvider}服务未初始化或不支持");
-                    ShowSnackbar($"{_currentProvider}服务未初始化", PackIconKind.Alert, Brushes.Red);
+                    ShowSnackbar(TF("AC.ProviderNotInit", $"{_currentProvider}服务未初始化", _currentProvider), PackIconKind.Alert, Brushes.Red);
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"❌ 连接测试异常: {ex.Message}");
-                ShowSnackbar($"连接测试异常: {ex.Message}", PackIconKind.Alert, Brushes.Red);
+                ShowSnackbar(TF("AC.ConnTestException", $"连接测试异常: {ex.Message}", ex.Message), PackIconKind.Alert, Brushes.Red);
             }
         }
 
@@ -1117,7 +1119,7 @@ namespace NovelManagement.WPF.Views
                     {
                         var errors = ollamaConfig.GetValidationErrors();
                         AddLog($"❌ Ollama配置验证失败: {string.Join(", ", errors)}");
-                        ShowSnackbar("配置验证失败", PackIconKind.Alert, Brushes.Red);
+                        ShowSnackbar(T("AC.ConfigValidationFailed", "配置验证失败"), PackIconKind.Alert, Brushes.Red);
                         return;
                     }
 
@@ -1126,7 +1128,7 @@ namespace NovelManagement.WPF.Views
                     if (success)
                     {
                         AddLog("✅ Ollama配置已保存");
-                        ShowSnackbar("Ollama配置保存成功", PackIconKind.ContentSave, Brushes.Green);
+                        ShowSnackbar(T("AC.OllamaConfigSaved", "Ollama配置保存成功"), PackIconKind.ContentSave, Brushes.Green);
 
                         // 重新初始化AI服务
                         await ReinitializeAIServicesAsync();
@@ -1134,7 +1136,7 @@ namespace NovelManagement.WPF.Views
                     else
                     {
                         AddLog("❌ Ollama配置保存失败");
-                        ShowSnackbar("Ollama配置保存失败", PackIconKind.Alert, Brushes.Red);
+                        ShowSnackbar(T("AC.OllamaConfigSaveFailed", "Ollama配置保存失败"), PackIconKind.Alert, Brushes.Red);
                     }
                 }
                 else if (_currentProvider == "DeepSeek" && _deepSeekApiService != null)
@@ -1147,7 +1149,7 @@ namespace NovelManagement.WPF.Views
                     {
                         var errors = _currentConfiguration.GetValidationErrors();
                         AddLog($"❌ DeepSeek配置验证失败: {string.Join(", ", errors)}");
-                        ShowSnackbar("配置验证失败", PackIconKind.Alert, Brushes.Red);
+                        ShowSnackbar(T("AC.ConfigValidationFailed", "配置验证失败"), PackIconKind.Alert, Brushes.Red);
                         return;
                     }
 
@@ -1157,7 +1159,7 @@ namespace NovelManagement.WPF.Views
                     {
                         SaveConfigurationAsync();
                         AddLog("✅ DeepSeek配置已保存");
-                        ShowSnackbar("DeepSeek配置保存成功", PackIconKind.ContentSave, Brushes.Green);
+                        ShowSnackbar(T("AC.DeepSeekConfigSaved", "DeepSeek配置保存成功"), PackIconKind.ContentSave, Brushes.Green);
 
                         // 重新初始化AI服务
                         await ReinitializeAIServicesAsync();
@@ -1165,19 +1167,19 @@ namespace NovelManagement.WPF.Views
                     else
                     {
                         AddLog("❌ DeepSeek配置保存失败");
-                        ShowSnackbar("DeepSeek配置保存失败", PackIconKind.Alert, Brushes.Red);
+                        ShowSnackbar(T("AC.DeepSeekConfigSaveFailed", "DeepSeek配置保存失败"), PackIconKind.Alert, Brushes.Red);
                     }
                 }
                 else
                 {
                     AddLog($"❌ 不支持的提供者: {_currentProvider}");
-                    ShowSnackbar($"不支持的提供者: {_currentProvider}", PackIconKind.Alert, Brushes.Red);
+                    ShowSnackbar(TF("AC.UnsupportedProvider", $"不支持的提供者: {_currentProvider}", _currentProvider), PackIconKind.Alert, Brushes.Red);
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"❌ 保存配置异常: {ex.Message}");
-                ShowSnackbar($"保存配置异常: {ex.Message}", PackIconKind.Alert, Brushes.Red);
+                ShowSnackbar(TF("AC.SaveConfigException", $"保存配置异常: {ex.Message}", ex.Message), PackIconKind.Alert, Brushes.Red);
             }
         }
 
@@ -1220,8 +1222,8 @@ namespace NovelManagement.WPF.Views
                 // 创建测试思维链
                 var testChain = new ThinkingChain
                 {
-                    Title = "测试思维链",
-                    Description = "这是一个测试思维链，展示AI的思考过程",
+                    Title = T("AC.TestChainTitle", "测试思维链"),
+                    Description = T("AC.TestChainDesc", "这是一个测试思维链，展示AI的思考过程"),
                     TaskId = Guid.NewGuid().ToString(),
                     AgentId = "TestAgent"
                 };
@@ -1231,11 +1233,11 @@ namespace NovelManagement.WPF.Views
                 // 添加测试步骤
                 var steps = new[]
                 {
-                    new { Title = "分析问题", Content = "首先分析用户提出的问题，理解需求的核心要点", Type = ThinkingStepType.Analysis },
-                    new { Title = "制定计划", Content = "根据问题分析结果，制定解决方案的具体步骤", Type = ThinkingStepType.Planning },
-                    new { Title = "推理过程", Content = "运用逻辑推理，逐步推导出可能的解决方案", Type = ThinkingStepType.Reasoning },
-                    new { Title = "方案评估", Content = "评估各种解决方案的可行性和优缺点", Type = ThinkingStepType.Evaluation },
-                    new { Title = "综合结论", Content = "综合所有分析结果，得出最终的解决方案", Type = ThinkingStepType.Conclusion }
+                    new { Title = T("AC.TestStepAnalysisTitle", "分析问题"), Content = T("AC.TestStepAnalysisContent", "首先分析用户提出的问题，理解需求的核心要点"), Type = ThinkingStepType.Analysis },
+                    new { Title = T("AC.TestStepPlanningTitle", "制定计划"), Content = T("AC.TestStepPlanningContent", "根据问题分析结果，制定解决方案的具体步骤"), Type = ThinkingStepType.Planning },
+                    new { Title = T("AC.TestStepReasoningTitle", "推理过程"), Content = T("AC.TestStepReasoningContent", "运用逻辑推理，逐步推导出可能的解决方案"), Type = ThinkingStepType.Reasoning },
+                    new { Title = T("AC.TestStepEvaluationTitle", "方案评估"), Content = T("AC.TestStepEvaluationContent", "评估各种解决方案的可行性和优缺点"), Type = ThinkingStepType.Evaluation },
+                    new { Title = T("AC.TestStepConclusionTitle", "综合结论"), Content = T("AC.TestStepConclusionContent", "综合所有分析结果，得出最终的解决方案"), Type = ThinkingStepType.Conclusion }
                 };
 
                 // 模拟流式添加步骤
@@ -1256,7 +1258,7 @@ namespace NovelManagement.WPF.Views
                     testChain.UpdateProgress();
                 }
 
-                testChain.FinalOutput = "测试思维链执行完成，所有步骤都已成功处理。";
+                testChain.FinalOutput = T("AC.TestChainFinal", "测试思维链执行完成，所有步骤都已成功处理。");
                 testChain.Complete();
 
                 // 显示思维链
@@ -1484,7 +1486,7 @@ namespace NovelManagement.WPF.Views
         private void UpdateActiveThinkingChainsText()
         {
             var count = _floatingTextManager?.ActiveWindowCount ?? 0;
-            ActiveThinkingChainsText.Text = $"({count} 个活动窗口)";
+            ActiveThinkingChainsText.Text = TF("AC.ActiveWindows", $"({count} 个活动窗口)", count);
         }
 
         /// <summary>
@@ -1538,7 +1540,7 @@ namespace NovelManagement.WPF.Views
         {
             // 这里可以实现Snackbar显示逻辑
             // 暂时使用MessageBox代替
-            MessageBox.Show(message, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(message, T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         #endregion
@@ -1585,7 +1587,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_statisticsService == null)
                 {
-                    MessageBox.Show("统计服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("AC.StatisticsServiceNotInit", "统计服务未初始化"), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -1597,25 +1599,25 @@ namespace NovelManagement.WPF.Views
                     var saveDialog = new Microsoft.Win32.SaveFileDialog
                     {
                         Filter = "CSV文件|*.csv",
-                        FileName = $"AI使用统计_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
+                        FileName = TF("AC.ExportFileName", $"AI使用统计_{DateTime.Now:yyyyMMdd_HHmmss}", DateTime.Now.ToString("yyyyMMdd_HHmmss")) + ".csv"
                     };
 
                     if (saveDialog.ShowDialog() == true)
                     {
                         System.IO.File.WriteAllText(saveDialog.FileName, csvData, System.Text.Encoding.UTF8);
-                        MessageBox.Show($"统计数据已导出到: {saveDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(TF("AC.StatsExported", $"统计数据已导出到: {saveDialog.FileName}", saveDialog.FileName), T("AC.ExportSuccess", "导出成功"), MessageBoxButton.OK, MessageBoxImage.Information);
                         AddLog($"统计数据已导出: {saveDialog.FileName}");
                     }
                 }
                 else
                 {
-                    MessageBox.Show("没有可导出的统计数据", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("AC.NoStatsToExport", "没有可导出的统计数据"), T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
                 AddLog($"导出统计失败: {ex.Message}");
-                MessageBox.Show($"导出统计失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.ExportStatsFailed", $"导出统计失败: {ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1712,7 +1714,7 @@ namespace NovelManagement.WPF.Views
             {
                 var configWindow = new Window
                 {
-                    Title = "AI配置管理",
+                    Title = T("AC.ConfigWindowTitle", "AI配置管理"),
                     Width = 1200,
                     Height = 800,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
@@ -1723,7 +1725,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"打开配置窗口失败: {ex.Message}");
-                MessageBox.Show($"打开配置窗口失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.OpenConfigFailed", $"打开配置窗口失败: {ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1750,7 +1752,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"刷新失败: {ex.Message}");
-                MessageBox.Show($"刷新失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.RefreshFailed", $"刷新失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1779,7 +1781,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 AddLog($"刷新模型列表失败: {ex.Message}");
-                MessageBox.Show($"刷新模型列表失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.RefreshModelsFailed", $"刷新模型列表失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1798,7 +1800,7 @@ namespace NovelManagement.WPF.Views
                 var prompt = TestPromptTextBox?.Text?.Trim();
                 if (string.IsNullOrEmpty(prompt))
                 {
-                    MessageBox.Show("请输入测试提示词", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("AC.EnterTestPrompt", "请输入测试提示词"), T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1806,13 +1808,13 @@ namespace NovelManagement.WPF.Views
                     SendTestButton.IsEnabled = false;
 
                 if (TestResponseTextBox != null)
-                    TestResponseTextBox.Text = "正在处理...";
+                    TestResponseTextBox.Text = T("AC.ProcessingText", "正在处理...");
 
                 // 检查必要的服务是否已初始化
                 if (_modelManager == null)
                 {
                     if (TestResponseTextBox != null)
-                        TestResponseTextBox.Text = "错误: 模型管理器未初始化";
+                        TestResponseTextBox.Text = T("AC.ErrorModelManagerNotInit", "错误: 模型管理器未初始化");
                     AddLog("错误: 模型管理器未初始化");
                     return;
                 }
@@ -1845,14 +1847,14 @@ namespace NovelManagement.WPF.Views
 
                     if (!response.IsSuccess && TestResponseTextBox != null)
                     {
-                        TestResponseTextBox.Text = $"错误: {response.ErrorMessage}";
+                        TestResponseTextBox.Text = TF("AC.ErrorPrefix", $"错误: {response.ErrorMessage}", response.ErrorMessage);
                     }
                 }
                 else
                 {
                     var response = await _modelManager.ChatAsync(_currentProvider, request);
                     if (TestResponseTextBox != null)
-                        TestResponseTextBox.Text = response.IsSuccess ? response.Content : $"错误: {response.ErrorMessage}";
+                        TestResponseTextBox.Text = response.IsSuccess ? response.Content : TF("AC.ErrorPrefix", $"错误: {response.ErrorMessage}", response.ErrorMessage);
                 }
 
                 AddLog($"测试完成 - 提供者: {_currentProvider}");
@@ -1860,9 +1862,9 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 if (TestResponseTextBox != null)
-                    TestResponseTextBox.Text = $"测试失败: {ex.Message}";
+                    TestResponseTextBox.Text = TF("AC.TestFailed", $"测试失败: {ex.Message}", ex.Message);
                 AddLog($"测试失败: {ex.Message}");
-                MessageBox.Show($"测试失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("AC.TestFailedFull", $"测试失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1921,7 +1923,7 @@ namespace NovelManagement.WPF.Views
                         ModelComboBox.Items.Clear();
                         ModelComboBox.Items.Add(new ComboBoxItem
                         {
-                            Content = "正在加载模型列表...",
+                            Content = T("AC.LoadingModels", "正在加载模型列表..."),
                             IsEnabled = false
                         });
                         ModelComboBox.SelectedIndex = 0;
@@ -1974,7 +1976,7 @@ namespace NovelManagement.WPF.Views
                         ModelComboBox.Items.Clear();
                         ModelComboBox.Items.Add(new ComboBoxItem
                         {
-                            Content = $"加载失败: {ex.Message}",
+                            Content = TF("AC.LoadFailed", $"加载失败: {ex.Message}", ex.Message),
                             IsEnabled = false
                         });
                         ModelComboBox.SelectedIndex = 0;
@@ -1986,7 +1988,7 @@ namespace NovelManagement.WPF.Views
                 {
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        MessageBox.Show($"刷新模型列表失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(TF("AC.RefreshModelsFailed", $"刷新模型列表失败：{ex.Message}", ex.Message), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     });
                 }
             }
@@ -2022,7 +2024,7 @@ namespace NovelManagement.WPF.Views
                 {
                     Id = model,
                     Name = model,
-                    Description = $"DeepSeek {model} 模型",
+                    Description = TF("AC.DeepSeekModelDesc", $"DeepSeek {model} 模型", model),
                     Size = 0,
                     IsDownloaded = true,
                     Capabilities = new List<string> { "chat", "completion" }
@@ -2054,7 +2056,7 @@ namespace NovelManagement.WPF.Views
                 {
                     Content = displayText,
                     Tag = model.Id,
-                    ToolTip = $"模型: {model.Name}\n描述: {model.Description}\n大小: {FormatBytes(model.Size)}"
+                    ToolTip = TF("AC.ModelTooltip", $"模型: {model.Name}\n描述: {model.Description}\n大小: {FormatBytes(model.Size)}", model.Name, model.Description, FormatBytes(model.Size))
                 };
 
                 ModelComboBox.Items.Add(item);
@@ -2187,7 +2189,7 @@ namespace NovelManagement.WPF.Views
                     else
                     {
                         ConnectionStatusIcon.Foreground = Brushes.Orange;
-                        ConnectionStatusText.Text = "检查中...";
+                        ConnectionStatusText.Text = T("AC.Checking", "检查中...");
                     }
                 });
 
@@ -2205,12 +2207,12 @@ namespace NovelManagement.WPF.Views
                         {
                             ConnectionStatusIcon.Foreground = Brushes.Green;
                             var version = testResult.ServerInfo.TryGetValue("Version", out var ver) ? ver.ToString() : "Unknown";
-                            ConnectionStatusText.Text = $"Ollama在线 (v{version})";
+                            ConnectionStatusText.Text = TF("AC.OllamaOnline", $"Ollama在线 (v{version})", version);
                         }
                         else
                         {
                             ConnectionStatusIcon.Foreground = Brushes.Red;
-                            ConnectionStatusText.Text = "Ollama离线";
+                            ConnectionStatusText.Text = T("AC.OllamaOffline", "Ollama离线");
                         }
                     });
                 }
@@ -2224,8 +2226,8 @@ namespace NovelManagement.WPF.Views
 
                         ConnectionStatusIcon.Foreground = configured ? Brushes.Green : Brushes.Orange;
                         ConnectionStatusText.Text = configured
-                            ? $"DeepSeek已配置 ({_currentConfiguration!.DefaultModel})"
-                            : "DeepSeek未完成配置";
+                            ? TF("AC.DeepSeekConfigured", $"DeepSeek已配置 ({_currentConfiguration!.DefaultModel})", _currentConfiguration!.DefaultModel)
+                            : T("AC.DeepSeekNotConfigured", "DeepSeek未完成配置");
                     });
                 }
                 else
@@ -2233,7 +2235,7 @@ namespace NovelManagement.WPF.Views
                     await Dispatcher.InvokeAsync(() =>
                     {
                         ConnectionStatusIcon.Foreground = Brushes.Gray;
-                        ConnectionStatusText.Text = $"{_currentProvider}暂不支持状态探测";
+                        ConnectionStatusText.Text = TF("AC.StatusProbeUnsupported", $"{_currentProvider}暂不支持状态探测", _currentProvider);
                     });
                 }
             }
@@ -2244,7 +2246,7 @@ namespace NovelManagement.WPF.Views
                     if (ConnectionStatusIcon != null && ConnectionStatusText != null)
                     {
                         ConnectionStatusIcon.Foreground = Brushes.Red;
-                        ConnectionStatusText.Text = "连接失败";
+                        ConnectionStatusText.Text = T("AC.ConnectionFailed", "连接失败");
                     }
                     AddLog($"检查连接状态失败: {ex.Message}");
                 });

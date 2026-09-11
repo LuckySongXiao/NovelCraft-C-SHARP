@@ -9,6 +9,8 @@ using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Utilities;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
+using NovelManagement.WPF.Localization;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Services.Copilot;
 
@@ -113,7 +115,7 @@ public class CopilotSessionService
         _editTarget = null;
         _chapterRef = null;
 
-        PostSystem($"已连接《{projectName}》的创作助手。你可以直接告诉我想法（例如规划这本书、看看第三章、打开剧情管理），我会帮你完成。");
+        PostSystem(TF("CPS.Connected", $"已连接《{projectName}》的创作助手。你可以直接告诉我想法（例如规划这本书、看看第三章、打开剧情管理），我会帮你完成。", projectName));
     }
 
     /// <summary>
@@ -184,7 +186,7 @@ public class CopilotSessionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "创作助手处理消息失败");
-            PostAssistant($"处理失败：{ex.Message}");
+            PostAssistant(TF("CPS.ProcessFailed", $"处理失败：{ex.Message}", ex.Message));
         }
         finally
         {
@@ -203,14 +205,14 @@ public class CopilotSessionService
             case "start":
                 if (_pipelineService.CurrentStage != PipelineStage.NotStarted && _pipelineService.CurrentProjectId == projectId)
                 {
-                    PostAssistant("流水线已在进行中（当前阶段：" + DescribeStage(_pipelineService.CurrentStage) + "）。回复「继续创作」推进，或「重新生成」调整当前阶段。");
+                    PostAssistant(TF("CPS.PipelineInProgress", "流水线已在进行中（当前阶段：" + DescribeStage(_pipelineService.CurrentStage) + "）。回复「继续创作」推进，或「重新生成」调整当前阶段。", DescribeStage(_pipelineService.CurrentStage)));
                     return;
                 }
 
                 // 愿景来源：本条消息本身就是想法时直接使用；否则请用户描述
                 if (rawText.Contains("开始规划", StringComparison.Ordinal) || rawText.Contains("开始创作", StringComparison.Ordinal))
                 {
-                    PostAssistant("请先用一句话告诉我你对这本书的想法（题材、主角、核心冲突或想写的故事），我会据此规划全书总纲。");
+                    PostAssistant(T("CPS.AskIdea", "请先用一句话告诉我你对这本书的想法（题材、主角、核心冲突或想写的故事），我会据此规划全书总纲。"));
                     _awaitingVision = true;
                     return;
                 }
@@ -232,7 +234,7 @@ public class CopilotSessionService
             case "regen":
                 if (_pipelineService.CurrentProjectId != projectId || _pipelineService.CurrentStage == PipelineStage.NotStarted)
                 {
-                    PostAssistant("当前没有进行中的流水线阶段可重新生成。回复「开始规划」可启动。");
+                    PostAssistant(T("CPS.NoStageToRegenerate", "当前没有进行中的流水线阶段可重新生成。回复「开始规划」可启动。"));
                     return;
                 }
 
@@ -276,9 +278,12 @@ public class CopilotSessionService
         });
 
         var destination = DescribeTarget(intent.Target.Value);
-        var suffix = intent.OrdinalNumber.HasValue ? $"（定位第{intent.OrdinalNumber.Value}{(intent.Target == NovelManagement.WPF.Services.NavigationTarget.VolumeManagement ? "章" : "项")}）"
-            : (string.IsNullOrWhiteSpace(intent.EntityName) ? string.Empty : $"（定位：{intent.EntityName}）");
-        PostAssistant($"已切换到{destination}{suffix}。");
+        var suffix = intent.OrdinalNumber.HasValue
+            ? (intent.Target == NovelManagement.WPF.Services.NavigationTarget.VolumeManagement
+                ? TF("CPS.LocateOrdinalChapter", $"（定位第{intent.OrdinalNumber.Value}章）", intent.OrdinalNumber.Value)
+                : TF("CPS.LocateOrdinalItem", $"（定位第{intent.OrdinalNumber.Value}项）", intent.OrdinalNumber.Value))
+            : (string.IsNullOrWhiteSpace(intent.EntityName) ? string.Empty : TF("CPS.LocateEntity", $"（定位：{intent.EntityName}）", intent.EntityName));
+        PostAssistant(TF("CPS.SwitchedTo", $"已切换到{destination}{suffix}。", destination, suffix));
         return Task.CompletedTask;
     }
 
@@ -299,14 +304,14 @@ public class CopilotSessionService
 
             var lines = new List<string>
             {
-                $"《{_projectName}》当前进度：",
-                $"- 卷宗：{volumes.Count()} 卷",
-                $"- 剧情/剧情线：{plots.Count(p => p.Type != "系统" && p.Type != "总纲")} 条",
-                $"- 章节：{chapterList.Count} 章（已完成正文 {finishedChapters} 章，共 {totalWords} 字）"
+                TF("CPS.StatusHeader", $"《{_projectName}》当前进度：", _projectName),
+                TF("CPS.StatusVolumes", $"- 卷宗：{volumes.Count()} 卷", volumes.Count()),
+                TF("CPS.StatusPlots", $"- 剧情/剧情线：{plots.Count(p => p.Type != "系统" && p.Type != "总纲")} 条", plots.Count(p => p.Type != "系统" && p.Type != "总纲")),
+                TF("CPS.StatusChapters", $"- 章节：{chapterList.Count} 章（已完成正文 {finishedChapters} 章，共 {totalWords} 字）", chapterList.Count, finishedChapters, totalWords)
             };
 
             var stageText = BuildPipelineStatusText();
-            lines.Add($"- 流水线：{_pipelineService.CurrentStage switch { PipelineStage.NotStarted => "未开始", _ => DescribeStage(_pipelineService.CurrentStage) }}");
+            lines.Add(TF("CPS.StatusPipeline", $"- 流水线：{_pipelineService.CurrentStage switch { PipelineStage.NotStarted => "未开始", _ => DescribeStage(_pipelineService.CurrentStage) }}", _pipelineService.CurrentStage == PipelineStage.NotStarted ? T("CP.StageNone", "未开始") : DescribeStage(_pipelineService.CurrentStage)));
             if (_pipelineService.CurrentStage != PipelineStage.NotStarted)
             {
                 lines.Add(stageText);
@@ -317,7 +322,7 @@ public class CopilotSessionService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "查询统计失败");
-            PostAssistant($"查询失败：{ex.Message}");
+            PostAssistant(TF("CPS.QueryFailed", $"查询失败：{ex.Message}", ex.Message));
         }
     }
 
@@ -336,7 +341,7 @@ public class CopilotSessionService
 
         if (!_rwkvService.IsAvailable)
         {
-            PostAssistant("AI 推理服务当前离线，无法回答自由问题。导航、查询与流水线操作不受影响；可在「AI模型配置」页检查服务状态。");
+            PostAssistant(T("CPS.OfflineFreeQa", "AI 推理服务当前离线，无法回答自由问题。导航、查询与流水线操作不受影响；可在「AI模型配置」页检查服务状态。"));
             return;
         }
 
@@ -351,11 +356,11 @@ public class CopilotSessionService
         if (response.Success && !string.IsNullOrWhiteSpace(response.Text))
         {
             var cleaned = AIOutputSanitizer.ExtractCleanOutput(response.Text)?.Trim();
-            PostAssistant(string.IsNullOrWhiteSpace(cleaned) ? "AI 返回了空内容，请换个问法。" : cleaned);
+            PostAssistant(string.IsNullOrWhiteSpace(cleaned) ? T("CPS.EmptyAIResponse", "AI 返回了空内容，请换个问法。") : cleaned);
         }
         else
         {
-            PostAssistant($"AI 推理失败：{response.Error ?? "未知错误"}");
+            PostAssistant(TF("CPS.AIInferFailed", $"AI 推理失败：{response.Error ?? "未知错误"}", response.Error ?? T("CPS.UnknownError", "未知错误")));
         }
     }
 
@@ -378,10 +383,10 @@ public class CopilotSessionService
         _chapterRef = referral;
         var brief = string.IsNullOrWhiteSpace(referral.Summary)
             ? string.Empty
-            : "｜梗概：" + TruncateForPrompt(referral.Summary, 60);
-        PostSystem($"已关联《{referral.ProjectName}》第{referral.VolumeOrder}卷第{referral.ChapterOrder}章《{referral.ChapterTitle}》{brief}。\n" +
+            : TF("CPS.RefBrief", "｜梗概：" + TruncateForPrompt(referral.Summary, 60), TruncateForPrompt(referral.Summary, 60));
+        PostSystem(TF("CPS.AttachedRef", $"已关联《{referral.ProjectName}》第{referral.VolumeOrder}卷第{referral.ChapterOrder}章《{referral.ChapterTitle}》{brief}。\n" +
             "直接输入要求即可处理本章（如：润色全文 / 重写开头 / 扩写战斗场面 / 续写结尾），处理结果将生成确认卡，采纳后直接更新本章正文；" +
-            "也可以针对本章提问（如：这章的节奏有什么问题）。输入「取消关联」可解除。");
+            "也可以针对本章提问（如：这章的节奏有什么问题）。输入「取消关联」可解除。", referral.ProjectName, referral.VolumeOrder, referral.ChapterOrder, referral.ChapterTitle, brief));
         SessionChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -396,7 +401,7 @@ public class CopilotSessionService
         }
 
         _chapterRef = null;
-        PostSystem("已取消章节关联，恢复普通助手模式。");
+        PostSystem(T("CPS.ChapterRefCleared", "已取消章节关联，恢复普通助手模式。"));
         SessionChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -419,7 +424,7 @@ public class CopilotSessionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "关联章节《{Title}》处理失败", referral.ChapterTitle);
-            PostAssistant($"章节处理失败：{ex.Message}");
+            PostAssistant(TF("CPS.ChapterProcessFailed", $"章节处理失败：{ex.Message}", ex.Message));
         }
     }
 
@@ -443,7 +448,7 @@ public class CopilotSessionService
     {
         if (!_rwkvService.IsAvailable)
         {
-            PostAssistant("AI 推理服务当前离线，无法分析章节内容。处理章节与取消关联不受影响。");
+            PostAssistant(T("CPS.OfflineChapterQa", "AI 推理服务当前离线，无法分析章节内容。处理章节与取消关联不受影响。"));
             return;
         }
 
@@ -465,17 +470,17 @@ public class CopilotSessionService
             if (response.Success && !string.IsNullOrWhiteSpace(response.Text))
             {
                 var cleaned = AIOutputSanitizer.ExtractCleanOutput(response.Text)?.Trim();
-                PostAssistant(string.IsNullOrWhiteSpace(cleaned) ? "AI 返回了空内容，请换个问法。" : cleaned);
+                PostAssistant(string.IsNullOrWhiteSpace(cleaned) ? T("CPS.EmptyAIResponse", "AI 返回了空内容，请换个问法。") : cleaned);
             }
             else
             {
-                PostAssistant($"AI 推理失败：{response.Error ?? "未知错误"}");
+                PostAssistant(TF("CPS.AIInferFailed", $"AI 推理失败：{response.Error ?? "未知错误"}", response.Error ?? T("CPS.UnknownError", "未知错误")));
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "章节问答失败");
-            PostAssistant($"章节问答失败：{ex.Message}");
+            PostAssistant(TF("CPS.ChapterQaFailed", $"章节问答失败：{ex.Message}", ex.Message));
         }
     }
 
@@ -518,7 +523,7 @@ public class CopilotSessionService
         var acceptedItems = proposal.Items.Where(i => i.Status is ProposalStatus.Accepted or ProposalStatus.Modified).ToList();
         if (acceptedItems.Count == 0)
         {
-            PostAssistant("请先勾选要采纳的项（点击各项「采纳」），或使用「全部采纳」。");
+            PostAssistant(T("CPS.NoItemsSelected", "请先勾选要采纳的项（点击各项「采纳」），或使用「全部采纳」。"));
             return;
         }
 
@@ -526,13 +531,13 @@ public class CopilotSessionService
         {
             var persistedCount = await PersistProposalAsync(proposal, acceptedItems);
             proposal.Status = ProposalStatus.Accepted;
-            PostSystem($"已落库 {persistedCount} 项到数据库。");
+            PostSystem(TF("CPS.Persisted", $"已落库 {persistedCount} 项到数据库。", persistedCount));
 
             if (proposal.TargetChapterId.HasValue && proposal.TargetChapterId.Value != Guid.Empty)
             {
                 // 章节关联处理：已直接更新目标章节，不推进流水线
                 var target = await _chapterService.GetChapterByIdAsync(proposal.TargetChapterId.Value);
-                PostAssistant($"《{target?.Title ?? "目标章节"}》正文已更新。可继续输入新的处理要求，或输入「取消关联」解除关联。");
+                PostAssistant(TF("CPS.ChapterUpdated", $"《{target?.Title ?? "目标章节"}》正文已更新。可继续输入新的处理要求，或输入「取消关联」解除关联。", target?.Title ?? T("CPS.DefaultChapterTitle", "目标章节")));
             }
             else
             {
@@ -542,7 +547,7 @@ public class CopilotSessionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "采纳确认卡落库失败");
-            PostAssistant($"落库失败：{ex.Message}");
+            PostAssistant(TF("CPS.PersistFailed", $"落库失败：{ex.Message}", ex.Message));
         }
         finally
         {
@@ -562,7 +567,7 @@ public class CopilotSessionService
         }
 
         proposal.Status = ProposalStatus.Rejected;
-        PostSystem("已放弃本卡全部内容，正在重新生成…");
+        PostSystem(T("CPS.CardRejectedRegenerating", "已放弃本卡全部内容，正在重新生成…"));
         await _pipelineService.RegenerateCurrentStageAsync("整卡放弃，请换思路重新生成", _projectId.Value);
         SessionChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -625,7 +630,7 @@ public class CopilotSessionService
         {
             item.EditedBody = text;
             item.Status = ProposalStatus.Modified;
-            PostSystem($"已更新「{item.Title}」的修改内容，点击该项「采纳」生效。");
+            PostSystem(TF("CPS.EditSaved", $"已更新「{item.Title}」的修改内容，点击该项「采纳」生效。", item.Title));
         }
 
         SessionChanged?.Invoke(this, EventArgs.Empty);
@@ -772,7 +777,7 @@ public class CopilotSessionService
         var volume = volumes.OrderByDescending(v => v.Order).FirstOrDefault();
         if (volume == null)
         {
-            throw new InvalidOperationException("项目还没有卷宗，请先采纳分卷确认卡。");
+            throw new InvalidOperationException(T("CPS.ErrNoVolumesForVolumes", "项目还没有卷宗，请先采纳分卷确认卡。"));
         }
 
         var chapters = await _chapterService.GetChapterListAsync(volume.Id);
@@ -785,7 +790,7 @@ public class CopilotSessionService
             if (summary.Length > 1000)
             {
                 summary = summary[..1000];
-                PostSystem($"「{item.Title}」梗概超过 1000 字，已截断保存。");
+                PostSystem(TF("CPS.SummaryTruncated", $"「{item.Title}」梗概超过 1000 字，已截断保存。", item.Title));
             }
 
             await _chapterService.CreateChapterAsync(new Chapter
@@ -813,7 +818,7 @@ public class CopilotSessionService
         if (targetChapterId.HasValue && targetChapterId.Value != Guid.Empty)
         {
             var target = await _chapterService.GetChapterByIdAsync(targetChapterId.Value)
-                ?? throw new InvalidOperationException("目标章节不存在或已被删除，请重新关联。");
+                ?? throw new InvalidOperationException(T("CPS.ErrChapterMissing", "目标章节不存在或已被删除，请重新关联。"));
             await _chapterService.UpdateChapterContentAsync(target.Id, item.EffectiveBody);
             return 1;
         }
@@ -822,14 +827,14 @@ public class CopilotSessionService
         var volume = volumes.OrderByDescending(v => v.Order).FirstOrDefault();
         if (volume == null)
         {
-            throw new InvalidOperationException("项目还没有卷宗。");
+            throw new InvalidOperationException(T("CPS.ErrNoVolumes", "项目还没有卷宗。"));
         }
 
         var chapters = await _chapterService.GetChapterListAsync(volume.Id);
         var chapter = chapters.OrderBy(c => c.Order).FirstOrDefault(c => string.IsNullOrWhiteSpace(c.Content));
         if (chapter == null)
         {
-            throw new InvalidOperationException("当前卷没有待写章节。");
+            throw new InvalidOperationException(T("CPS.ErrNoPendingChapters", "当前卷没有待写章节。"));
         }
 
         await _chapterService.UpdateChapterContentAsync(chapter.Id, item.EffectiveBody);
@@ -859,14 +864,14 @@ public class CopilotSessionService
         var stage = _pipelineService.CurrentStage;
         if (stage == PipelineStage.NotStarted)
         {
-            return "创作流水线尚未开始。回复「开始规划」并描述你的想法即可启动。";
+            return T("CPS.StatusNotStarted", "创作流水线尚未开始。回复「开始规划」并描述你的想法即可启动。");
         }
 
         var snapshot = _pipelineService.GetStateSnapshot();
         var stageName = DescribeStage(stage);
         return snapshot.Finished
-            ? $"流水线已完成 {_pipelineService.GetStateSnapshot().ConfirmedVolumeCount} 卷创作。回复「继续创作」可追加下一卷。"
-            : $"流水线进行中：{stageName}（第{snapshot.CurrentVolumeOrder}卷 第{snapshot.CurrentChapterOrder}章）。等待你对当前确认卡做出裁决。";
+            ? TF("CPS.StatusCompleted", $"流水线已完成 {_pipelineService.GetStateSnapshot().ConfirmedVolumeCount} 卷创作。回复「继续创作」可追加下一卷。", _pipelineService.GetStateSnapshot().ConfirmedVolumeCount)
+            : TF("CPS.StatusInProgress", $"流水线进行中：{stageName}（第{snapshot.CurrentVolumeOrder}卷 第{snapshot.CurrentChapterOrder}章）。等待你对当前确认卡做出裁决。", stageName, snapshot.CurrentVolumeOrder, snapshot.CurrentChapterOrder);
     }
 
     /// <summary>
@@ -874,13 +879,13 @@ public class CopilotSessionService
     /// </summary>
     internal static string DescribeStage(PipelineStage stage) => stage switch
     {
-        PipelineStage.BlueprintPending => "总纲规划",
-        PipelineStage.PlotLinesPending => "剧情线规划",
-        PipelineStage.VolumesPending => "分卷规划",
-        PipelineStage.ChapterDraftsPending => "章节剧情草稿",
-        PipelineStage.ChapterContentInProgress => "章节正文创作",
-        PipelineStage.Completed => "已完成",
-        _ => "未开始"
+        PipelineStage.BlueprintPending => T("CP.StageBlueprint", "总纲规划"),
+        PipelineStage.PlotLinesPending => T("CP.StagePlotLines", "剧情线规划"),
+        PipelineStage.VolumesPending => T("CP.StageVolumes", "分卷规划"),
+        PipelineStage.ChapterDraftsPending => T("CP.StageChapterDrafts", "章节剧情草稿"),
+        PipelineStage.ChapterContentInProgress => T("CP.StageChapterContent", "章节正文创作"),
+        PipelineStage.Completed => T("CP.StageCompleted", "已完成"),
+        _ => T("CP.StageNone", "未开始")
     };
 
     /// <summary>
@@ -888,20 +893,20 @@ public class CopilotSessionService
     /// </summary>
     internal static string DescribeTarget(NovelManagement.WPF.Services.NavigationTarget target) => target switch
     {
-        NovelManagement.WPF.Services.NavigationTarget.ProjectManagement => "项目管理",
-        NovelManagement.WPF.Services.NavigationTarget.ProjectOverview => "项目概览",
-        NovelManagement.WPF.Services.NavigationTarget.VolumeManagement => "卷章管理",
-        NovelManagement.WPF.Services.NavigationTarget.CharacterManagement => "角色管理",
-        NovelManagement.WPF.Services.NavigationTarget.Timeline => "时间线",
-        NovelManagement.WPF.Services.NavigationTarget.RelationshipNetwork => "关系网络",
-        NovelManagement.WPF.Services.NavigationTarget.FactionManagement => "势力管理",
-        NovelManagement.WPF.Services.NavigationTarget.PlotManagement => "剧情管理",
-        NovelManagement.WPF.Services.NavigationTarget.AICollaboration => "AI协作创作",
-        NovelManagement.WPF.Services.NavigationTarget.AIConfiguration => "AI模型配置",
-        NovelManagement.WPF.Services.NavigationTarget.ImportExport => "导入导出",
-        NovelManagement.WPF.Services.NavigationTarget.WorldSettingManagement => "世界设定",
-        NovelManagement.WPF.Services.NavigationTarget.DialogGeneration => "对话生成器",
-        NovelManagement.WPF.Services.NavigationTarget.ProjectHealthCheck => "项目体检报告",
+        NovelManagement.WPF.Services.NavigationTarget.ProjectManagement => T("Nav.ProjectManagement", "项目管理"),
+        NovelManagement.WPF.Services.NavigationTarget.ProjectOverview => T("Nav.ProjectOverview", "项目概览"),
+        NovelManagement.WPF.Services.NavigationTarget.VolumeManagement => T("CPS.DestVolumeManagement", "卷章管理"),
+        NovelManagement.WPF.Services.NavigationTarget.CharacterManagement => T("Nav.CharacterManagement", "角色管理"),
+        NovelManagement.WPF.Services.NavigationTarget.Timeline => T("CPS.DestTimeline", "时间线"),
+        NovelManagement.WPF.Services.NavigationTarget.RelationshipNetwork => T("Nav.RelationshipNetwork", "关系网络"),
+        NovelManagement.WPF.Services.NavigationTarget.FactionManagement => T("Nav.FactionManagement", "势力管理"),
+        NovelManagement.WPF.Services.NavigationTarget.PlotManagement => T("Nav.PlotManagement", "剧情管理"),
+        NovelManagement.WPF.Services.NavigationTarget.AICollaboration => T("Nav.AICollaboration", "AI协作创作"),
+        NovelManagement.WPF.Services.NavigationTarget.AIConfiguration => T("Nav.AIConfiguration", "AI模型配置"),
+        NovelManagement.WPF.Services.NavigationTarget.ImportExport => T("Nav.ImportExport", "导入导出"),
+        NovelManagement.WPF.Services.NavigationTarget.WorldSettingManagement => T("Nav.WorldSettingManagement", "世界设定"),
+        NovelManagement.WPF.Services.NavigationTarget.DialogGeneration => T("CPS.DestDialogGeneration", "对话生成器"),
+        NovelManagement.WPF.Services.NavigationTarget.ProjectHealthCheck => T("Nav.ProjectHealthCheck", "项目体检报告"),
         _ => target.ToString()
     };
 

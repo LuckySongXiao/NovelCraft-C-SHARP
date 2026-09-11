@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views;
@@ -30,7 +31,13 @@ public class AIAssistantWorkspaceView : UserControl
         _modeComboBox = new ComboBox
         {
             Margin = new Thickness(0, 0, 0, 12),
-            ItemsSource = new[] { "角色补全", "剧情补全", "世界设定补全", "书籍大纲" },
+            ItemsSource = new[]
+            {
+                new ComboBoxItem { Tag = "角色补全", Content = T("AAW.ModeCharacter", "角色补全") },
+                new ComboBoxItem { Tag = "剧情补全", Content = T("AAW.ModePlot", "剧情补全") },
+                new ComboBoxItem { Tag = "世界设定补全", Content = T("AAW.ModeWorld", "世界设定补全") },
+                new ComboBoxItem { Tag = "书籍大纲", Content = T("AAW.ModeOutline", "书籍大纲") },
+            },
             SelectedIndex = 0
         };
 
@@ -41,7 +48,7 @@ public class AIAssistantWorkspaceView : UserControl
             MinHeight = 120,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Margin = new Thickness(0, 0, 0, 12),
-            Text = "请输入你的创作需求，AI 会返回可直接用于继续编辑的内容。"
+            Text = T("AAW.PromptPlaceholder", "请输入你的创作需求，AI 会返回可直接用于继续编辑的内容。")
         };
 
         _resultTextBox = new TextBox
@@ -56,12 +63,12 @@ public class AIAssistantWorkspaceView : UserControl
         _statusTextBlock = new TextBlock
         {
             Margin = new Thickness(0, 8, 0, 0),
-            Text = _aiAssistantService == null ? "AI助手服务未初始化" : "就绪"
+            Text = _aiAssistantService == null ? T("AAW.ServiceNotInit", "AI助手服务未初始化") : T("AAW.StatusReady", "就绪")
         };
 
         _generateButton = new Button
         {
-            Content = "开始生成",
+            Content = T("AAW.StartGenerate", "开始生成"),
             Padding = new Thickness(16, 8, 16, 8),
             MinWidth = 120
         };
@@ -69,7 +76,7 @@ public class AIAssistantWorkspaceView : UserControl
 
         var outlineButton = new Button
         {
-            Content = "打开AI大纲生成器",
+            Content = T("AAW.OpenOutlineGen", "打开AI大纲生成器"),
             Margin = new Thickness(12, 0, 0, 0),
             Padding = new Thickness(16, 8, 16, 8)
         };
@@ -77,7 +84,7 @@ public class AIAssistantWorkspaceView : UserControl
 
         var prerequisiteButton = new Button
         {
-            Content = "前置条件生成",
+            Content = T("AAW.PrerequisiteGen", "前置条件生成"),
             Margin = new Thickness(12, 0, 0, 0),
             Padding = new Thickness(16, 8, 16, 8)
         };
@@ -102,22 +109,22 @@ public class AIAssistantWorkspaceView : UserControl
                 {
                     new TextBlock
                     {
-                        Text = "AI 工作台",
+                        Text = T("AAW.Title", "AI 工作台"),
                         FontSize = 28,
                         FontWeight = FontWeights.Bold
                     },
                     new TextBlock
                     {
                         Margin = new Thickness(0, 8, 0, 16),
-                        Text = "这里提供稳定版 AI 助手入口，可直接生成角色、剧情、世界设定或书籍大纲。",
+                        Text = T("AAW.Subtitle", "这里提供稳定版 AI 助手入口，可直接生成角色、剧情、世界设定或书籍大纲。"),
                         TextWrapping = TextWrapping.Wrap
                     },
-                    new TextBlock { Text = "生成模式" },
+                    new TextBlock { Text = T("AAW.ModeLabel", "生成模式") },
                     _modeComboBox,
-                    new TextBlock { Text = "输入需求" },
+                    new TextBlock { Text = T("AAW.InputLabel", "输入需求") },
                     _promptTextBox,
                     actionPanel,
-                    new TextBlock { Text = "生成结果" },
+                    new TextBlock { Text = T("AAW.ResultLabel", "生成结果") },
                     _resultTextBox,
                     _statusTextBlock
                 }
@@ -129,24 +136,25 @@ public class AIAssistantWorkspaceView : UserControl
     {
         if (_aiAssistantService == null)
         {
-            MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(T("AAW.ServiceNotInitMsg", "AI助手服务未初始化。"), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
         var prompt = _promptTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(prompt))
         {
-            MessageBox.Show("请输入生成需求。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(T("AAW.EnterRequest", "请输入生成需求。"), T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         try
         {
             _generateButton.IsEnabled = false;
-            _statusTextBlock.Text = "AI 正在生成...";
-            var requirements = await BuildWorkspaceRequirementsAsync(_modeComboBox.SelectedItem?.ToString() ?? "角色补全", prompt);
+            _statusTextBlock.Text = T("AAW.Generating", "AI 正在生成...");
+            var mode = (_modeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "角色补全";
+            var requirements = await BuildWorkspaceRequirementsAsync(mode, prompt);
 
-            AIAssistantResult result = _modeComboBox.SelectedItem?.ToString() switch
+            AIAssistantResult result = mode switch
             {
                 "角色补全" => await _aiAssistantService.GenerateCharacterAsync(new Dictionary<string, object>
                 {
@@ -187,18 +195,18 @@ public class AIAssistantWorkspaceView : UserControl
 
             if (!result.IsSuccess)
             {
-                _resultTextBox.Text = result.Message ?? "AI 生成失败。";
-                _statusTextBlock.Text = "生成失败";
+                _resultTextBox.Text = result.Message ?? T("AAW.FailedFallback", "AI 生成失败。");
+                _statusTextBlock.Text = T("AAW.GenerateFailed", "生成失败");
                 return;
             }
 
-            _resultTextBox.Text = result.Data?.ToString() ?? result.Message ?? "AI 已完成生成。";
-            _statusTextBlock.Text = "生成完成";
+            _resultTextBox.Text = result.Data?.ToString() ?? result.Message ?? T("AAW.DoneFallback", "AI 已完成生成。");
+            _statusTextBlock.Text = T("AAW.GenerateDone", "生成完成");
         }
         catch (Exception ex)
         {
             _resultTextBox.Text = ex.ToString();
-            _statusTextBlock.Text = "生成异常";
+            _statusTextBlock.Text = T("AAW.GenerateError", "生成异常");
         }
         finally
         {
@@ -250,7 +258,7 @@ public class AIAssistantWorkspaceView : UserControl
     {
         if (_projectContextService?.CurrentProjectId == null)
         {
-            MessageBox.Show("请先打开一个项目，再使用 AI 大纲生成器。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(T("AAW.OpenProjectFirstOutline", "请先打开一个项目，再使用 AI 大纲生成器。"), T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -265,7 +273,7 @@ public class AIAssistantWorkspaceView : UserControl
     {
         if (_projectContextService?.CurrentProjectId == null)
         {
-            MessageBox.Show("请先打开一个项目，再生成前置条件。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(T("AAW.OpenProjectFirstPrerequisite", "请先打开一个项目，再生成前置条件。"), T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

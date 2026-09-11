@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using NovelManagement.AI.Services.ThinkingChain.Models;
 using NovelManagement.AI.Services.ThinkingChain;
 
+using static NovelManagement.WPF.Localization.LocalizationManager;
 namespace NovelManagement.WPF.Controls.ThinkingChain
 {
     /// <summary>
@@ -281,7 +282,7 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
                 switch (e.PropertyName)
                 {
                     case nameof(NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain.Title):
-                        TitleTextBlock.Text = CurrentThinkingChain?.Title ?? "AI思维过程";
+                        TitleTextBlock.Text = CurrentThinkingChain?.Title ?? T("TC.WindowTitle", "AI思维过程");
                         break;
                     case nameof(NovelManagement.AI.Services.ThinkingChain.Models.ThinkingChain.Progress):
                         ProgressBar.Value = (CurrentThinkingChain?.Progress ?? 0) * 100;
@@ -336,12 +337,12 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
 
             var statusText = CurrentThinkingChain.Status switch
             {
-                ThinkingChainStatus.Pending => "准备中...",
-                ThinkingChainStatus.Processing => $"处理中... ({CurrentThinkingChain.CompletedSteps}/{CurrentThinkingChain.TotalSteps})",
-                ThinkingChainStatus.Completed => $"已完成 ({CurrentThinkingChain.Duration.TotalSeconds:F1}秒)",
-                ThinkingChainStatus.Failed => "处理失败",
-                ThinkingChainStatus.Cancelled => "已取消",
-                _ => "未知状态"
+                ThinkingChainStatus.Pending => T("TC.StatusPreparing", "准备中..."),
+                ThinkingChainStatus.Processing => TF("TC.StatusProcessingFmt", "处理中... ({0}/{1})", CurrentThinkingChain.CompletedSteps, CurrentThinkingChain.TotalSteps),
+                ThinkingChainStatus.Completed => TF("TC.StatusCompletedFmt", "已完成 ({0:F1}秒)", CurrentThinkingChain.Duration.TotalSeconds),
+                ThinkingChainStatus.Failed => T("TC.StatusFailed", "处理失败"),
+                ThinkingChainStatus.Cancelled => T("TC.StatusCancelled", "已取消"),
+                _ => T("TC.StatusUnknown", "未知状态")
             };
 
             StatusTextBlock.Text = statusText;
@@ -398,12 +399,12 @@ namespace NovelManagement.WPF.Controls.ThinkingChain
             if (IsPaused)
             {
                 PauseIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.Play;
-                PauseButton.ToolTip = "继续";
+                PauseButton.ToolTip = T("TC.ResumeTip", "继续");
             }
             else
             {
                 PauseIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.Pause;
-                PauseButton.ToolTip = "暂停";
+                PauseButton.ToolTip = T("TC.PauseTip", "暂停");
             }
         }
 

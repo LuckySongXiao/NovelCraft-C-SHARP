@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="编辑角色"
+        Title="{DynamicResource Loc.CED.Title}"
         Height="700" Width="600"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
@@ -20,11 +20,11 @@
 
         <!-- 标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="编辑角色信息" 
+            <TextBlock Text="{DynamicResource Loc.CED.Header}" 
                      FontSize="24" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="修改角色的详细信息" 
+            <TextBlock Text="{DynamicResource Loc.CED.Subtitle}" 
                      FontSize="14" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -35,7 +35,7 @@
                 <!-- 基本信息 -->
                 <materialDesign:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="基本信息" 
+                        <TextBlock Text="{DynamicResource Loc.CED.BasicInfo}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
@@ -50,21 +50,21 @@
                             <!-- 角色姓名 -->
                             <TextBox x:Name="NameTextBox"
                                    Grid.Column="0"
-                                   materialDesign:HintAssist.Hint="角色姓名"
+                                   materialDesign:HintAssist.Hint="{DynamicResource Loc.CM.NamePlaceholder}"
                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                    Margin="0,0,0,16"/>
 
                             <!-- 角色类型 -->
                             <ComboBox x:Name="TypeComboBox"
                                     Grid.Column="2"
-                                    materialDesign:HintAssist.Hint="角色类型"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.TypeHint}"
                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                     Margin="0,0,0,16">
-                                <ComboBoxItem Content="主角"/>
-                                <ComboBoxItem Content="主配角"/>
-                                <ComboBoxItem Content="次配角"/>
-                                <ComboBoxItem Content="反派"/>
-                                <ComboBoxItem Content="路人"/>
+                                <ComboBoxItem Tag="主角" Content="{DynamicResource Loc.CED.Data.主角}"/>
+                                <ComboBoxItem Tag="主配角" Content="{DynamicResource Loc.CED.Data.主配角}"/>
+                                <ComboBoxItem Tag="次配角" Content="{DynamicResource Loc.CED.Data.次配角}"/>
+                                <ComboBoxItem Tag="反派" Content="{DynamicResource Loc.CED.Data.反派}"/>
+                                <ComboBoxItem Tag="路人" Content="{DynamicResource Loc.CED.Data.路人}"/>
                             </ComboBox>
                         </Grid>
 
@@ -78,34 +78,34 @@
                             <!-- 所属势力 -->
                             <ComboBox x:Name="FactionComboBox"
                                     Grid.Column="0"
-                                    materialDesign:HintAssist.Hint="所属势力"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.FactionHint}"
                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                     IsEditable="True"
                                     Margin="0,0,0,16">
-                                <ComboBoxItem Content="玄天宗"/>
-                                <ComboBoxItem Content="血魔宗"/>
-                                <ComboBoxItem Content="散修"/>
-                                <ComboBoxItem Content="皇室"/>
-                                <ComboBoxItem Content="魔道联盟"/>
-                                <ComboBoxItem Content="正道联盟"/>
+                                <ComboBoxItem Tag="玄天宗" Content="{DynamicResource Loc.CED.Data.玄天宗}"/>
+                                <ComboBoxItem Tag="血魔宗" Content="{DynamicResource Loc.CED.Data.血魔宗}"/>
+                                <ComboBoxItem Tag="散修" Content="{DynamicResource Loc.CED.Data.散修}"/>
+                                <ComboBoxItem Tag="皇室" Content="{DynamicResource Loc.CED.Data.皇室}"/>
+                                <ComboBoxItem Tag="魔道联盟" Content="{DynamicResource Loc.CED.Data.魔道联盟}"/>
+                                <ComboBoxItem Tag="正道联盟" Content="{DynamicResource Loc.CED.Data.正道联盟}"/>
                             </ComboBox>
 
                             <!-- 修为等级 -->
                             <ComboBox x:Name="CultivationLevelComboBox"
                                     Grid.Column="2"
-                                    materialDesign:HintAssist.Hint="修为等级"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.CultivationHint}"
                                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                     IsEditable="True"
                                     Margin="0,0,0,16">
-                                <ComboBoxItem Content="练气期"/>
-                                <ComboBoxItem Content="筑基期"/>
-                                <ComboBoxItem Content="金丹期"/>
-                                <ComboBoxItem Content="元婴期"/>
-                                <ComboBoxItem Content="化神期"/>
-                                <ComboBoxItem Content="炼虚期"/>
-                                <ComboBoxItem Content="合体期"/>
-                                <ComboBoxItem Content="大乘期"/>
-                                <ComboBoxItem Content="渡劫期"/>
+                                <ComboBoxItem Tag="练气期" Content="{DynamicResource Loc.CED.Data.练气期}"/>
+                                <ComboBoxItem Tag="筑基期" Content="{DynamicResource Loc.CED.Data.筑基期}"/>
+                                <ComboBoxItem Tag="金丹期" Content="{DynamicResource Loc.CED.Data.金丹期}"/>
+                                <ComboBoxItem Tag="元婴期" Content="{DynamicResource Loc.CED.Data.元婴期}"/>
+                                <ComboBoxItem Tag="化神期" Content="{DynamicResource Loc.CED.Data.化神期}"/>
+                                <ComboBoxItem Tag="炼虚期" Content="{DynamicResource Loc.CED.Data.炼虚期}"/>
+                                <ComboBoxItem Tag="合体期" Content="{DynamicResource Loc.CED.Data.合体期}"/>
+                                <ComboBoxItem Tag="大乘期" Content="{DynamicResource Loc.CED.Data.大乘期}"/>
+                                <ComboBoxItem Tag="渡劫期" Content="{DynamicResource Loc.CED.Data.渡劫期}"/>
                             </ComboBox>
                         </Grid>
                     </StackPanel>
@@ -114,13 +114,13 @@
                 <!-- 角色描述 -->
                 <materialDesign:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="角色描述" 
+                        <TextBlock Text="{DynamicResource Loc.CED.Description}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
 
                         <TextBox x:Name="DescriptionTextBox"
-                               materialDesign:HintAssist.Hint="角色的简要描述和备注..."
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.DescriptionHint}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -134,10 +134,10 @@
                 <materialDesign:Card Padding="0" Margin="0,0,0,16">
                     <TabControl Style="{StaticResource MaterialDesignTabControl}">
                         <!-- 外貌特征 -->
-                        <TabItem Header="外貌特征">
+                        <TabItem Header="{DynamicResource Loc.CM.Appearance}">
                             <Border Padding="16">
                                 <TextBox x:Name="AppearanceTextBox"
-                                       materialDesign:HintAssist.Hint="描述角色的外貌特征..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.AppearanceHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -148,10 +148,10 @@
                         </TabItem>
 
                         <!-- 性格特点 -->
-                        <TabItem Header="性格特点">
+                        <TabItem Header="{DynamicResource Loc.CM.Personality}">
                             <Border Padding="16">
                                 <TextBox x:Name="PersonalityTextBox"
-                                       materialDesign:HintAssist.Hint="描述角色的性格特点..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.PersonalityHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -162,10 +162,10 @@
                         </TabItem>
 
                         <!-- 背景故事 -->
-                        <TabItem Header="背景故事">
+                        <TabItem Header="{DynamicResource Loc.CM.Backstory}">
                             <Border Padding="16">
                                 <TextBox x:Name="BackgroundTextBox"
-                                       materialDesign:HintAssist.Hint="描述角色的背景故事..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.BackstoryHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -176,10 +176,10 @@
                         </TabItem>
 
                         <!-- 能力技能 -->
-                        <TabItem Header="能力技能">
+                        <TabItem Header="{DynamicResource Loc.CM.Abilities}">
                             <Border Padding="16">
                                 <TextBox x:Name="AbilitiesTextBox"
-                                       materialDesign:HintAssist.Hint="描述角色的能力和技能..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.AbilitiesHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -190,10 +190,10 @@
                         </TabItem>
 
                         <!-- 履历经历 -->
-                        <TabItem Header="履历经历">
+                        <TabItem Header="{DynamicResource Loc.CM.Experience}">
                             <Border Padding="16">
                                 <TextBox x:Name="HistoryTextBox"
-                                       materialDesign:HintAssist.Hint="角色的历史履历和重要经历概述..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.ExperienceHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -203,10 +203,10 @@
                         </TabItem>
 
                         <!-- 关键事件 -->
-                        <TabItem Header="关键事件">
+                        <TabItem Header="{DynamicResource Loc.CM.KeyEvents}">
                             <Border Padding="16">
                                 <TextBox x:Name="KeyEventsTextBox"
-                                       materialDesign:HintAssist.Hint="角色的关键经历和重要事件摘要..."
+                                       materialDesign:HintAssist.Hint="{DynamicResource Loc.CED.KeyEventsHint}"
                                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                        TextWrapping="Wrap"
                                        AcceptsReturn="True"
@@ -225,20 +225,20 @@
                   HorizontalAlignment="Right" 
                   Margin="0,16,0,0">
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                  Content="AI自动补全"
+                  Content="{DynamicResource Loc.CED.AIAutoFill}"
                   Margin="0,0,12,0"
                   Click="AutoFillWithAI_Click"/>
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                  Content="重置内容"
+                  Content="{DynamicResource Loc.CED.Reset}"
                   Margin="0,0,12,0"
                   Click="ResetContent_Click"/>
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
-                  Content="取消"
+                  Content="{DynamicResource Loc.Dlg.Cancel}"
                   Margin="0,0,12,0"
                   Click="Cancel_Click"
                   IsCancel="True"/>
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
-                  Content="保存"
+                  Content="{DynamicResource Loc.Dlg.Save}"
                   Click="Save_Click"
                   IsDefault="True"/>
         </StackPanel>

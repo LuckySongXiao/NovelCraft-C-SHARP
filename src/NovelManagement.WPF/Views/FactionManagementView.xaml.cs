@@ -19,6 +19,7 @@ using NovelManagement.Core.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -81,6 +82,10 @@ namespace NovelManagement.WPF.Views
             /// 成员数量。
             /// </summary>
             public int MemberCount { get; set; }
+
+            /// <summary>本地化的成员数显示文本。</summary>
+            public string MemberCountDisplay =>
+                NovelManagement.WPF.Localization.LocalizationManager.TF("FM.MemberCountFmt", "成员: {0}人", MemberCount);
 
             /// <summary>
             /// 势力领袖名称。
@@ -257,7 +262,7 @@ namespace NovelManagement.WPF.Views
                     _allFactions = new List<FactionViewModel>();
                     _filteredFactions = new List<FactionViewModel>();
                     UpdateFactionList();
-                    EnsureCurrentProject("势力管理", out _);
+                    EnsureCurrentProject(T("FM.Title", "势力管理"), out _);
                     return;
                 }
 
@@ -280,7 +285,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载势力数据失败");
-                MessageBox.Show($"加载势力数据失败: {ex.Message}", "错误",
+                MessageBox.Show(TF("FM.LoadFailed", "加载势力数据失败: {0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
 
                 // 加载失败时使用空列表
@@ -409,14 +414,14 @@ namespace NovelManagement.WPF.Views
                 Id = (int)faction.Id.GetHashCode(), // 临时转换，实际应该使用Guid
                 Name = faction.Name,
                 DisplayName = faction.Name,
-                Type = faction.Type,
+                Type = LocalizeStoredValue(faction.Type),
                 PowerLevel = GetPowerLevelText(faction.PowerLevel),
                 NumericPowerLevel = faction.PowerLevel,
                 Description = faction.Description ?? string.Empty,
                 Territory = faction.Territory ?? string.Empty,
                 MemberCount = faction.MemberCount ?? 0,
-                Leader = "未设置", // TODO: 根据LeaderId查找角色名称
-                Ideology = string.IsNullOrWhiteSpace(faction.Tags) ? "未设置" : faction.Tags,
+                Leader = T("SV.NotSet", "未设置"), // TODO: 根据LeaderId查找角色名称
+                Ideology = string.IsNullOrWhiteSpace(faction.Tags) ? T("SV.NotSet", "未设置") : faction.Tags,
                 Resources = faction.Resources ?? string.Empty,
                 IconKind = GetIconKind(faction.Type),
                 IconColor = GetIconColor(faction.Type),
@@ -441,11 +446,11 @@ namespace NovelManagement.WPF.Views
         {
             return powerLevel switch
             {
-                >= 90 => "超级",
-                >= 70 => "一流",
-                >= 50 => "二流",
-                >= 30 => "三流",
-                _ => "普通"
+                >= 90 => T("FM.Data.超级", "超级"),
+                >= 70 => T("FM.Data.一流", "一流"),
+                >= 50 => T("FM.Data.二流", "二流"),
+                >= 30 => T("FM.Data.三流", "三流"),
+                _ => T("FM.Data.普通", "普通")
             };
         }
 
@@ -519,7 +524,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"筛选势力失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.FilterFailed", "筛选势力失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -546,8 +551,10 @@ namespace NovelManagement.WPF.Views
         private void ApplyFilters()
         {
             var searchText = SearchTextBox.Text?.Trim().ToLower() ?? string.Empty;
-            var selectedType = ((ComboBoxItem)FactionTypeFilter.SelectedItem)?.Content?.ToString();
-            var selectedPowerLevel = ((ComboBoxItem)PowerLevelFilter.SelectedItem)?.Content?.ToString();
+            var selectedType = ((ComboBoxItem)FactionTypeFilter.SelectedItem)?.Tag?.ToString()
+                              ?? ((ComboBoxItem)FactionTypeFilter.SelectedItem)?.Content?.ToString();
+            var selectedPowerLevel = ((ComboBoxItem)PowerLevelFilter.SelectedItem)?.Tag?.ToString()
+                                      ?? ((ComboBoxItem)PowerLevelFilter.SelectedItem)?.Content?.ToString();
 
             _filteredFactions = _allFactions.Where(f =>
             {
@@ -591,7 +598,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"选择势力失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.SelectFailed", "选择势力失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -608,7 +615,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"显示势力详情失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.ShowFailed", "显示势力详情失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -624,7 +631,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"切换视图模式失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("VM.SwitchViewFailed", "切换视图模式失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -636,7 +643,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("新建势力", out var projectId))
+                if (!EnsureCurrentProject(T("FM.New", "新建势力"), out var projectId))
                 {
                     return;
                 }
@@ -659,7 +666,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"新建势力操作失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.NewFailedFmt", "新建势力操作失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -671,15 +678,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入势力", out var projectId))
+                if (!EnsureCurrentProject(T("FM.Import", "导入势力"), out var projectId))
                 {
                     return;
                 }
 
                 var dialog = new OpenFileDialog
                 {
-                    Title = "导入势力数据",
-                    Filter = "JSON 文件|*.json",
+                    Title = T("FM.ImportTitle", "导入势力数据"),
+                    Filter = T("FM.JsonFilter", "JSON 文件") + "|*.json",
                     CheckFileExists = true
                 };
 
@@ -692,7 +699,7 @@ namespace NovelManagement.WPF.Views
                     ?? new List<FactionImportModel>();
                 if (items.Count == 0)
                 {
-                    MessageBox.Show("未读取到可导入的势力数据。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("FM.ImportEmpty", "未读取到可导入的势力数据。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -715,11 +722,11 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await LoadFactionsAsync();
-                MessageBox.Show($"已完成导入，共处理 {importedCount} 个势力。", "导入完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("FM.ImportDone", "已完成导入，共处理 {0} 个势力。", importedCount), T("PM.ImportComplete", "导入完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入势力操作失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.ImportFailedFmt", "导入势力操作失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -733,15 +740,15 @@ namespace NovelManagement.WPF.Views
             {
                 if (_filteredFactions.Count == 0)
                 {
-                    MessageBox.Show("当前没有可导出的势力。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("FM.ExportEmpty", "当前没有可导出的势力。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 var dialog = new SaveFileDialog
                 {
-                    Title = "导出势力数据",
-                    Filter = "JSON 文件|*.json",
-                    FileName = $"势力数据_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                    Title = T("FM.ExportTitle", "导出势力数据"),
+                    Filter = T("FM.JsonFilter", "JSON 文件") + "|*.json",
+                    FileName = string.Format(T("FM.ExportFileNameFmt", "势力数据_{0:yyyyMMdd_HHmmss}"), DateTime.Now) + ".json",
                     AddExtension = true
                 };
 
@@ -757,11 +764,11 @@ namespace NovelManagement.WPF.Views
                     WriteIndented = true
                 }));
 
-                MessageBox.Show($"已导出 {_filteredFactions.Count} 个势力到：{dialog.FileName}", "导出完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("FM.ExportDoneFmt", "已导出 {0} 个势力到：{1}", _filteredFactions.Count, dialog.FileName), T("PM.ExportComplete", "导出完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出势力操作失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.ExportFailedFmt", "导出势力操作失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -779,11 +786,11 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
-                MessageBox.Show("未找到主窗口，无法打开关系网络。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("FM.MainWindowNotFound", "未找到主窗口，无法打开关系网络。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"查看关系网络失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.OpenNetworkFailedFmt", "查看关系网络失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -797,7 +804,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_allFactions.Count == 0)
                 {
-                    MessageBox.Show("当前没有可分析的势力。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("FM.NoneToAnalyze", "当前没有可分析的势力。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -806,16 +813,16 @@ namespace NovelManagement.WPF.Views
                 {
                     var targetFaction = allFactions.First(f => f.Id == _selectedFaction.FactionId);
                     var analysis = await _factionAnalysisService.AnalyzeFactionAsync(targetFaction, allFactions);
-                    ShowAnalysisResultDialog(BuildSingleFactionAnalysisText(analysis), $"AI分析 - {targetFaction.Name}");
+                    ShowAnalysisResultDialog(BuildSingleFactionAnalysisText(analysis), TF("FM.AIAnalysisTitleFmt", "AI分析 - {0}", targetFaction.Name));
                     return;
                 }
 
                 var networkAnalysis = await _factionAnalysisService.AnalyzeFactionNetworkAsync(allFactions);
-                ShowAnalysisResultDialog(BuildNetworkAnalysisText(networkAnalysis), "AI势力网络分析");
+                ShowAnalysisResultDialog(BuildNetworkAnalysisText(networkAnalysis), T("FM.AINetworkAnalysis", "AI势力网络分析"));
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI分析势力失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("FM.AIFailed", "AI分析势力失败：{0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -887,29 +894,30 @@ namespace NovelManagement.WPF.Views
             DetailArea.Children.Clear();
 
             var total = _allFactions.Count;
-            var sectCount = _allFactions.Count(f => f.Type == "宗门");
-            var familyCount = _allFactions.Count(f => f.Type == "家族");
+            // 类型可能为「宗门 / 修仙宗门」等变体，按包含匹配计数
+            var sectCount = _allFactions.Count(f => f.Type.Contains("宗门", StringComparison.Ordinal));
+            var familyCount = _allFactions.Count(f => f.Type.Contains("家族", StringComparison.Ordinal));
             var relationshipCount = _allFactions.Sum(f => f.Allies.Count + f.Enemies.Count + f.Relationships.Count) / 2;
 
             var panel = new StackPanel();
             panel.Children.Add(new TextBlock
             {
-                Text = "势力统计",
+                Text = T("FM.Stats", "势力统计"),
                 FontSize = 24,
                 FontWeight = FontWeights.Medium,
                 Margin = new Thickness(0, 0, 0, 24)
             });
 
             var grid = new UniformGrid { Columns = 2, Margin = new Thickness(0, 0, 0, 24) };
-            grid.Children.Add(CreateStatCard("总势力数", total.ToString()));
-            grid.Children.Add(CreateStatCard("宗门势力", sectCount.ToString()));
-            grid.Children.Add(CreateStatCard("家族势力", familyCount.ToString()));
-            grid.Children.Add(CreateStatCard("关系数量", relationshipCount.ToString()));
+            grid.Children.Add(CreateStatCard(T("FM.TotalCount", "总势力数"), total.ToString()));
+            grid.Children.Add(CreateStatCard(T("FM.SectCount", "宗门势力"), sectCount.ToString()));
+            grid.Children.Add(CreateStatCard(T("FM.FamilyCount", "家族势力"), familyCount.ToString()));
+            grid.Children.Add(CreateStatCard(T("FM.StatRelations", "关系数量"), relationshipCount.ToString()));
             panel.Children.Add(grid);
 
             panel.Children.Add(new TextBlock
             {
-                Text = "实力等级分布",
+                Text = T("FM.LevelDistribution", "实力等级分布"),
                 FontSize = 18,
                 FontWeight = FontWeights.Medium,
                 Margin = new Thickness(0, 0, 0, 16)
@@ -917,11 +925,11 @@ namespace NovelManagement.WPF.Views
 
             foreach (var item in new[]
             {
-                new { Label = "超级势力", Count = _allFactions.Count(f => f.PowerLevel == "超级"), Color = "#F44336" },
-                new { Label = "一流势力", Count = _allFactions.Count(f => f.PowerLevel == "一流"), Color = "#FF9800" },
-                new { Label = "二流势力", Count = _allFactions.Count(f => f.PowerLevel == "二流"), Color = "#4CAF50" },
-                new { Label = "三流势力", Count = _allFactions.Count(f => f.PowerLevel == "三流"), Color = "#2196F3" },
-                new { Label = "普通势力", Count = _allFactions.Count(f => f.PowerLevel == "普通"), Color = "#9E9E9E" }
+                new { Label = T("FM.LegendSupreme", "超级势力"), Count = _allFactions.Count(f => f.PowerLevel == "超级"), Color = "#F44336" },
+                new { Label = T("FM.LegendFirst", "一流势力"), Count = _allFactions.Count(f => f.PowerLevel == "一流"), Color = "#FF9800" },
+                new { Label = T("FM.LegendSecond", "二流势力"), Count = _allFactions.Count(f => f.PowerLevel == "二流"), Color = "#4CAF50" },
+                new { Label = T("FM.LegendThird", "三流势力"), Count = _allFactions.Count(f => f.PowerLevel == "三流"), Color = "#2196F3" },
+                new { Label = T("FM.PowerOrdinary", "普通势力"), Count = _allFactions.Count(f => f.PowerLevel == "普通"), Color = "#9E9E9E" }
             })
             {
                 panel.Children.Add(CreateDistributionRow(item.Label, item.Count, Math.Max(total, 1), item.Color));
@@ -947,7 +955,7 @@ namespace NovelManagement.WPF.Views
             });
             panel.Children.Add(new TextBlock
             {
-                Text = $"{faction.Type} | {faction.PowerLevel}势力 | {faction.Status}",
+                Text = TF("FM.DetailSubtitleFmt", "{0} | {1}势力 | {2}", faction.Type, faction.PowerLevel, faction.Status),
                 Foreground = Brushes.Gray,
                 Margin = new Thickness(0, 8, 0, 20)
             });
@@ -958,24 +966,24 @@ namespace NovelManagement.WPF.Views
                 Margin = new Thickness(0, 0, 0, 20)
             };
 
-            buttonPanel.Children.Add(CreateActionButton("编辑", async (_, _) => await EditSelectedFactionAsync(faction), true));
-            buttonPanel.Children.Add(CreateActionButton("删除", async (_, _) => await DeleteSelectedFactionAsync(faction), false));
-            buttonPanel.Children.Add(CreateActionButton("AI分析", async (_, _) => await AnalyzeSelectedFactionAsync(faction), false));
-            buttonPanel.Children.Add(CreateActionButton("返回统计", (_, _) => RenderStatisticsPanel(), false));
+            buttonPanel.Children.Add(CreateActionButton(T("Dlg.Edit", "编辑"), async (_, _) => await EditSelectedFactionAsync(faction), true));
+            buttonPanel.Children.Add(CreateActionButton(T("Dlg.Delete", "删除"), async (_, _) => await DeleteSelectedFactionAsync(faction), false));
+            buttonPanel.Children.Add(CreateActionButton(T("WS.Cult.AIAnalysis", "AI分析"), async (_, _) => await AnalyzeSelectedFactionAsync(faction), false));
+            buttonPanel.Children.Add(CreateActionButton(T("FM.BackToStats", "返回统计"), (_, _) => RenderStatisticsPanel(), false));
             panel.Children.Add(buttonPanel);
 
-            panel.Children.Add(CreateInfoBlock("描述", faction.Description));
-            panel.Children.Add(CreateInfoBlock("领地", faction.Territory));
-            panel.Children.Add(CreateInfoBlock("总部", faction.Headquarters));
-            panel.Children.Add(CreateInfoBlock("成员数量", faction.MemberCount.ToString()));
-            panel.Children.Add(CreateInfoBlock("资源", faction.Resources));
-            panel.Children.Add(CreateInfoBlock("理念/标签", faction.Tags));
-            panel.Children.Add(CreateInfoBlock("历史", faction.History));
-            panel.Children.Add(CreateInfoBlock("特色能力", faction.SpecialAbilities));
-            panel.Children.Add(CreateInfoBlock("盟友", faction.Allies.Count == 0 ? "无" : string.Join("、", faction.Allies)));
-            panel.Children.Add(CreateInfoBlock("敌对势力", faction.Enemies.Count == 0 ? "无" : string.Join("、", faction.Enemies)));
-            panel.Children.Add(CreateInfoBlock("其他关系", faction.Relationships.Count == 0 ? "无" : string.Join(Environment.NewLine, faction.Relationships)));
-            panel.Children.Add(CreateInfoBlock("备注", faction.Notes));
+            panel.Children.Add(CreateInfoBlock(T("SV.InfoDescription", "描述"), faction.Description));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldTerritory", "领地"), faction.Territory));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldHeadquarters", "总部"), faction.Headquarters));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldMemberCount", "成员数量"), faction.MemberCount.ToString()));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldResources", "资源"), faction.Resources));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldTags", "理念/标签"), faction.Tags));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldHistory", "历史"), faction.History));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldSpecialAbilities", "特色能力"), faction.SpecialAbilities));
+            panel.Children.Add(CreateInfoBlock(T("FM.InfoAllies", "盟友"), faction.Allies.Count == 0 ? T("CM.None", "无") : string.Join(", ", faction.Allies)));
+            panel.Children.Add(CreateInfoBlock(T("FM.InfoEnemies", "敌对势力"), faction.Enemies.Count == 0 ? T("CM.None", "无") : string.Join(", ", faction.Enemies)));
+            panel.Children.Add(CreateInfoBlock(T("FM.InfoOtherRelations", "其他关系"), faction.Relationships.Count == 0 ? T("CM.None", "无") : string.Join(Environment.NewLine, faction.Relationships)));
+            panel.Children.Add(CreateInfoBlock(T("FM.FieldNotes", "备注"), faction.Notes));
 
             DetailArea.Children.Add(new MaterialDesignThemes.Wpf.Card
             {
@@ -1070,7 +1078,7 @@ namespace NovelManagement.WPF.Views
                     new TextBlock { Text = title, FontWeight = FontWeights.SemiBold },
                     new TextBlock
                     {
-                        Text = string.IsNullOrWhiteSpace(value) ? "未设置" : value,
+                        Text = string.IsNullOrWhiteSpace(value) ? T("SV.NotSet", "未设置") : value,
                         TextWrapping = TextWrapping.Wrap,
                         Foreground = Brushes.Gray,
                         Margin = new Thickness(0, 4, 0, 0)
@@ -1081,7 +1089,7 @@ namespace NovelManagement.WPF.Views
 
         private async Task EditSelectedFactionAsync(FactionViewModel faction)
         {
-            if (!EnsureCurrentProject("编辑势力", out var projectId))
+            if (!EnsureCurrentProject(T("FM.EditTitle", "编辑势力"), out var projectId))
             {
                 return;
             }
@@ -1099,7 +1107,7 @@ namespace NovelManagement.WPF.Views
             var entity = await _factionService.GetFactionByIdAsync(faction.FactionId);
             if (entity == null)
             {
-                MessageBox.Show("未找到要编辑的势力。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("FM.NotFoundForEdit", "未找到要编辑的势力。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -1115,7 +1123,7 @@ namespace NovelManagement.WPF.Views
 
         private async Task DeleteSelectedFactionAsync(FactionViewModel faction)
         {
-            var result = MessageBox.Show($"确定要删除势力“{faction.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show(TF("FM.DeleteConfirmFmt", "确定要删除势力“{0}”吗？", faction.Name), T("AICfg.ConfirmDeleteTitle", "确认删除"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes)
             {
                 return;
@@ -1132,7 +1140,7 @@ namespace NovelManagement.WPF.Views
             var allFactions = _allFactions.Select(ToFactionDto).ToList();
             var targetFaction = allFactions.First(f => f.Id == faction.FactionId);
             var analysis = await _factionAnalysisService.AnalyzeFactionAsync(targetFaction, allFactions);
-            ShowAnalysisResultDialog(BuildSingleFactionAnalysisText(analysis), $"AI分析 - {faction.Name}");
+            ShowAnalysisResultDialog(BuildSingleFactionAnalysisText(analysis), TF("FM.AIAnalysisTitleFmt", "AI分析 - {0}", faction.Name));
         }
 
         private static FactionDto ToFactionDto(FactionViewModel faction)
@@ -1157,44 +1165,44 @@ namespace NovelManagement.WPF.Views
         private static string BuildSingleFactionAnalysisText(FactionAnalysisService.FactionAnalysisResult analysis)
         {
             var builder = new StringBuilder();
-            builder.AppendLine($"势力：{analysis.FactionName}");
-            builder.AppendLine($"综合评分：{analysis.OverallScore:F1}");
-            builder.AppendLine($"实力评分：{analysis.PowerScore:F1}");
-            builder.AppendLine($"影响力评分：{analysis.InfluenceScore:F1}");
-            builder.AppendLine($"稳定性评分：{analysis.StabilityScore:F1}");
-            builder.AppendLine($"威胁等级：{analysis.ThreatLevel:F1}");
+            builder.AppendLine(TF("FM.ReportFactionFmt", "势力：{0}", analysis.FactionName));
+            builder.AppendLine(TF("FM.ReportOverallScoreFmt", "综合评分：{0}", analysis.OverallScore.ToString("F1")));
+            builder.AppendLine(TF("FM.ReportPowerScoreFmt", "实力评分：{0}", analysis.PowerScore.ToString("F1")));
+            builder.AppendLine(TF("FM.ReportInfluenceScoreFmt", "影响力评分：{0}", analysis.InfluenceScore.ToString("F1")));
+            builder.AppendLine(TF("FM.ReportStabilityScoreFmt", "稳定性评分：{0}", analysis.StabilityScore.ToString("F1")));
+            builder.AppendLine(TF("FM.ReportThreatLevelFmt", "威胁等级：{0}", analysis.ThreatLevel.ToString("F1")));
             builder.AppendLine();
-            builder.AppendLine("优势：");
+            builder.AppendLine(T("FM.ReportStrengths", "优势："));
             foreach (var item in analysis.Strengths.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("劣势：");
+            builder.AppendLine(T("FM.ReportWeaknesses", "劣势："));
             foreach (var item in analysis.Weaknesses.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("机会：");
+            builder.AppendLine(T("FM.ReportOpportunities", "机会："));
             foreach (var item in analysis.Opportunities.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("威胁：");
+            builder.AppendLine(T("FM.ReportThreats", "威胁："));
             foreach (var item in analysis.Threats.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("战略建议：");
+            builder.AppendLine(T("FM.ReportStrategies", "战略建议："));
             foreach (var item in analysis.StrategicRecommendations.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("关系分析：");
+            builder.AppendLine(T("FM.ReportRelations", "关系分析："));
             foreach (var item in analysis.Relationships.DefaultIfEmpty())
             {
                 if (item == null)
                 {
-                    builder.AppendLine("- 无");
+                    builder.AppendLine("- " + T("CM.None", "无"));
                     break;
                 }
 
@@ -1207,21 +1215,21 @@ namespace NovelManagement.WPF.Views
         private static string BuildNetworkAnalysisText(FactionAnalysisService.NetworkAnalysisResult analysis)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("势力网络分析");
-            builder.AppendLine($"势力总数：{analysis.TotalFactions}");
-            builder.AppendLine($"网络稳定性：{analysis.NetworkStability:F1}");
+            builder.AppendLine(T("FM.NetworkAnalysisTitle", "势力网络分析"));
+            builder.AppendLine(TF("FM.ReportTotalFactionsFmt", "势力总数：{0}", analysis.TotalFactions));
+            builder.AppendLine(TF("FM.ReportNetworkStabilityFmt", "网络稳定性：{0}", analysis.NetworkStability.ToString("F1")));
             builder.AppendLine();
-            builder.AppendLine("关键节点：");
+            builder.AppendLine(T("FM.ReportKeyNodes", "关键节点："));
             foreach (var item in analysis.KeyNodes.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("权力中心：");
+            builder.AppendLine(T("FM.ReportPowerCenters", "权力中心："));
             foreach (var item in analysis.PowerCenters.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
             }
-            builder.AppendLine("网络洞察：");
+            builder.AppendLine(T("FM.ReportInsights", "网络洞察："));
             foreach (var item in analysis.NetworkInsights.DefaultIfEmpty("无"))
             {
                 builder.AppendLine($"- {item}");
@@ -1267,13 +1275,13 @@ namespace NovelManagement.WPF.Views
             root.Children.Add(textBox);
 
             var buttonPanel = (StackPanel)root.Children[0];
-            var copyButton = new Button { Content = "复制结果", Width = 88, Margin = new Thickness(0, 0, 12, 0) };
+            var copyButton = new Button { Content = T("FM.CopyResult", "复制结果"), Width = 88, Margin = new Thickness(0, 0, 12, 0) };
             copyButton.Click += (_, _) =>
             {
                 Clipboard.SetText(text);
-                MessageBox.Show("结果已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("PLM.Copied", "结果已复制到剪贴板。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             };
-            var closeButton = new Button { Content = "关闭", Width = 88, IsDefault = true };
+            var closeButton = new Button { Content = T("FM.Close", "关闭"), Width = 88, IsDefault = true };
             closeButton.Click += (_, _) => window.Close();
             buttonPanel.Children.Add(copyButton);
             buttonPanel.Children.Add(closeButton);
@@ -1391,7 +1399,7 @@ namespace NovelManagement.WPF.Views
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
             _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
 
-            Title = faction == null ? "新建势力" : $"编辑势力 - {faction.Name}";
+            Title = faction == null ? T("FM.New", "新建势力") : TF("FM.EditTitleFmt", "编辑势力 - {0}", faction.Name);
             Width = 620;
             Height = 760;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1477,33 +1485,33 @@ namespace NovelManagement.WPF.Views
         private FrameworkElement BuildContent()
         {
             var panel = new StackPanel { Margin = new Thickness(20) };
-            panel.Children.Add(CreateLabel("势力名称"));
+            panel.Children.Add(CreateLabel(T("FM.FieldName", "Faction Name")));
             panel.Children.Add(_nameTextBox);
-            panel.Children.Add(CreateLabel("势力类型"));
+            panel.Children.Add(CreateLabel(T("FM.FieldType", "Faction Type")));
             panel.Children.Add(_typeComboBox);
-            panel.Children.Add(CreateLabel("父势力"));
+            panel.Children.Add(CreateLabel(T("FM.FieldParent", "Parent Faction")));
             panel.Children.Add(_parentFactionComboBox);
-            panel.Children.Add(CreateLabel("实力等级"));
+            panel.Children.Add(CreateLabel(T("FM.FieldPowerLevel", "Power Level")));
             panel.Children.Add(_powerLevelSlider);
-            panel.Children.Add(CreateLabel("成员数量"));
+            panel.Children.Add(CreateLabel(T("FM.FieldMemberCount", "成员数量")));
             panel.Children.Add(_memberCountTextBox);
-            panel.Children.Add(CreateLabel("领地"));
+            panel.Children.Add(CreateLabel(T("FM.FieldTerritory", "领地")));
             panel.Children.Add(_territoryTextBox);
-            panel.Children.Add(CreateLabel("总部"));
+            panel.Children.Add(CreateLabel(T("FM.FieldHeadquarters", "总部")));
             panel.Children.Add(_headquartersTextBox);
-            panel.Children.Add(CreateLabel("势力描述"));
+            panel.Children.Add(CreateLabel(T("FM.FieldDescription", "Faction Description")));
             panel.Children.Add(CreateMultilineTextBox(_descriptionTextBox, 80));
-            panel.Children.Add(CreateLabel("资源"));
+            panel.Children.Add(CreateLabel(T("FM.FieldResources", "资源")));
             panel.Children.Add(CreateMultilineTextBox(_resourcesTextBox, 60));
-            panel.Children.Add(CreateLabel("历史"));
+            panel.Children.Add(CreateLabel(T("FM.FieldHistory", "历史")));
             panel.Children.Add(CreateMultilineTextBox(_historyTextBox, 80));
-            panel.Children.Add(CreateLabel("特色能力"));
+            panel.Children.Add(CreateLabel(T("FM.FieldSpecialAbilities", "特色能力")));
             panel.Children.Add(CreateMultilineTextBox(_abilitiesTextBox, 60));
-            panel.Children.Add(CreateLabel("标签"));
+            panel.Children.Add(CreateLabel(T("FM.FieldTags", "Tags")));
             panel.Children.Add(_tagsTextBox);
-            panel.Children.Add(CreateLabel("状态"));
+            panel.Children.Add(CreateLabel(T("FM.FieldStatus", "Status")));
             panel.Children.Add(_statusComboBox);
-            panel.Children.Add(CreateLabel("备注"));
+            panel.Children.Add(CreateLabel(T("FM.FieldNotes", "备注")));
             panel.Children.Add(CreateMultilineTextBox(_notesTextBox, 80));
 
             var buttonPanel = new StackPanel
@@ -1522,7 +1530,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
                 {
-                    MessageBox.Show("请输入势力名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请输入势力名称。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1547,7 +1555,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("AAW.ServiceNotInitMsg", "AI助手服务未初始化。"), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1563,7 +1571,7 @@ namespace NovelManagement.WPF.Views
 
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("PLM.AIFillFailed", "AI自动补全失败。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1587,7 +1595,7 @@ namespace NovelManagement.WPF.Views
                 _nameTextBox.Text = string.IsNullOrWhiteSpace(generatedName) ? "AI势力" : generatedName;
             }
 
-            MessageBox.Show("已完成势力信息自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("已完成势力信息自动补全。", T("CED.AIAutoFill", "AI自动补全"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async Task<string> BuildAiPromptAsync()

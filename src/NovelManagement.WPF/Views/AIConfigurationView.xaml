@@ -45,20 +45,20 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="AI模型配置" Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
-                    <TextBlock Text="配置和管理AI模型提供者" 
+                    <TextBlock Text="{DynamicResource Loc.Nav.AIConfiguration}" Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+                    <TextBlock Text="{DynamicResource Loc.AICfg.Subtitle}"
                                Style="{StaticResource MaterialDesignBody2TextBlock}"
                                Opacity="0.68"/>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button x:Name="TestConnectionButton"
-                            Content="测试连接"
+                            Content="{DynamicResource Loc.AICfg.TestConnection}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="8,0"
                             Click="TestConnectionButton_Click"/>
                     <Button x:Name="SaveConfigButton"
-                            Content="保存配置"
+                            Content="{DynamicResource Loc.AICfg.SaveConfig}"
                             Style="{StaticResource MaterialDesignRaisedButton}"
                             Click="SaveConfigButton_Click"/>
                 </StackPanel>
@@ -78,26 +78,26 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                            <TextBlock Text="推荐配置顺序" Style="{StaticResource InfoTitleStyle}"/>
-                            <TextBlock Text="1. 先选择默认提供者" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
-                            <TextBlock Text="2. 再填写 API Key 或本地模型路径" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
-                            <TextBlock Text="3. 点击测试连接并保存配置" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.RecommendedOrder}" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.Step1}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.Step2}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.Step3}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                            <TextBlock Text="使用建议" Style="{StaticResource InfoTitleStyle}"/>
-                            <TextBlock Text="MainAgent 建议使用云端强模型" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
-                            <TextBlock Text="SubAgent 建议使用本地模型做整理与归档" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
-                            <TextBlock Text="发布版保存到用户目录，不会覆盖安装文件" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.UsageTips}" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.TipMainAgentCloud}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.TipSubAgentLocal}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.TipReleaseDir}" Style="{StaticResource MaterialDesignBody2TextBlock}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="当前配置文件位置" Style="{StaticResource InfoTitleStyle}"/>
+                            <TextBlock Text="{DynamicResource Loc.AICfg.ConfigFileLocation}" Style="{StaticResource InfoTitleStyle}"/>
                             <TextBlock x:Name="ConfigPathTextBlock"
-                                       Text="加载中..."
+                                       Text="{DynamicResource Loc.AICfg.LoadingDots}"
                                        TextWrapping="Wrap"
                                        Style="{StaticResource MaterialDesignBody2TextBlock}"/>
-                            <TextBlock Text="保存后配置立即生效，无需重启应用。"
+                            <TextBlock Text="{DynamicResource Loc.AICfg.SaveEffectiveNote}"
                                        Margin="0,8,0,0"
                                        Opacity="0.72"
                                        TextWrapping="Wrap"
@@ -109,7 +109,7 @@
                 <!-- Provider Selection -->
                 <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
                     <StackPanel>
-                        <TextBlock Text="默认AI提供者" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{DynamicResource Loc.AICfg.DefaultProvider}" Style="{StaticResource SectionHeaderStyle}"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -117,29 +117,29 @@
                             </Grid.ColumnDefinitions>
                             <ComboBox x:Name="DefaultProviderComboBox"
                                       Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="默认决策类AI提供者"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDefaultDecisionProvider}"
                                       Style="{StaticResource MaterialDesignComboBox}"
                                       SelectionChanged="DefaultProviderComboBox_SelectionChanged"
                                       Margin="0,0,8,0">
-                                <ComboBoxItem Content="llama.cpp (本地GGUF)" Tag="LlamaCpp"/>
-                                <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
-                                <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
-                                <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
-                                <ComboBoxItem Content="小米米模 (云端模型)" Tag="XiaoMiMiMo"/>
-                                <ComboBoxItem Content="MCP (协议模型)" Tag="MCP"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderLlamaCpp}" Tag="LlamaCpp"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOllama}" Tag="Ollama"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderZhipuAI}" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderDeepSeek}" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderXiaoMiMiMo}" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderMCP}" Tag="MCP"/>
                             </ComboBox>
                             <ComboBox x:Name="DefaultCompletionProviderComboBox"
                                       Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="默认续写类AI提供者"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDefaultCompletionProvider}"
                                       Style="{StaticResource MaterialDesignComboBox}"
                                       SelectionChanged="DefaultCompletionProviderComboBox_SelectionChanged"
                                       Margin="8,0,0,0">
-                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
-                                <ComboBoxItem Content="llama.cpp (本地GGUF)" Tag="LlamaCpp"/>
-                                <ComboBoxItem Content="Ollama (本地模型)" Tag="Ollama"/>
-                                <ComboBoxItem Content="智谱AI (云端免费)" Tag="ZhipuAI"/>
-                                <ComboBoxItem Content="DeepSeek (云端模型)" Tag="DeepSeek"/>
-                                <ComboBoxItem Content="小米米模 (云端模型)" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderRWKV}" Tag="RWKV"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderLlamaCpp}" Tag="LlamaCpp"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOllama}" Tag="Ollama"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderZhipuAI}" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderDeepSeek}" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderXiaoMiMiMo}" Tag="XiaoMiMiMo"/>
                             </ComboBox>
                         </Grid>
                     </StackPanel>
@@ -147,14 +147,14 @@
 
                 <materialDesign:Card Style="{StaticResource ConfigCardStyle}">
                     <StackPanel>
-                        <TextBlock Text="MainAgent / SubAgent 双代理配置" Style="{StaticResource SectionHeaderStyle}"/>
-                        <TextBlock Text="建议由稠密模型承担 MainAgent，MoE 或本地 GGUF 模型承担 SubAgent。SubAgent 负责总结需求、整理定稿并归档。"
+                        <TextBlock Text="{DynamicResource Loc.AICfg.DualAgentTitle}" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBlock Text="{DynamicResource Loc.AICfg.DualAgentDesc}"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68"
                                    Margin="0,0,0,12"/>
 
                         <CheckBox x:Name="EnableDualAgentWorkflowCheckBox"
-                                  Content="启用 MainAgent / SubAgent 双代理写作流"
+                                  Content="{DynamicResource Loc.AICfg.EnableDualAgent}"
                                   IsChecked="True"
                                   Margin="0,0,0,12"/>
 
@@ -172,55 +172,55 @@
 
                             <ComboBox x:Name="MainAgentProviderComboBox"
                                       Grid.Row="0" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="MainAgent 提供者"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMainAgentProvider}"
                                       Margin="0,0,8,8">
-                                <ComboBoxItem Content="DeepSeek (推荐稠密模型)" Tag="DeepSeek" IsSelected="True"/>
-                                <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
-                                <ComboBoxItem Content="llama.cpp (推荐 GGUF)" Tag="LlamaCpp"/>
-                                <ComboBoxItem Content="Ollama" Tag="Ollama"/>
-                                <ComboBoxItem Content="小米米模" Tag="XiaoMiMiMo"/>
-                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
-                                <ComboBoxItem Content="OpenAI" Tag="OpenAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderDeepSeekDense}" Tag="DeepSeek" IsSelected="True"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderZhipuAIOnly}" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderLlamaCppGguf}" Tag="LlamaCpp"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOllamaShort}" Tag="Ollama"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderXiaoMi}" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderRWKV}" Tag="RWKV"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOpenAI}" Tag="OpenAI"/>
                             </ComboBox>
 
                             <TextBox x:Name="MainAgentModelTextBox"
                                      Grid.Row="0" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="MainAgent 模型（可选，留空使用提供者默认模型）"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMainAgentModel}"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="MainAgentRoleDescriptionTextBox"
                                      Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                     materialDesign:HintAssist.Hint="MainAgent 职责描述"
-                                     Text="结合 SubAgent 的需求简报撰写正式文案，专注内容创作。"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMainAgentRole}"
+                                     Text="{DynamicResource Loc.AICfg.MainAgentRoleText}"
                                      Margin="0,0,0,8"/>
 
                             <ComboBox x:Name="SubAgentProviderComboBox"
                                       Grid.Row="2" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="SubAgent 提供者"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintSubAgentProvider}"
                                       Margin="0,0,8,8">
-                                <ComboBoxItem Content="llama.cpp (推荐 MoE/GGUF)" Tag="LlamaCpp" IsSelected="True"/>
-                                <ComboBoxItem Content="RWKV (本地续写)" Tag="RWKV"/>
-                                <ComboBoxItem Content="Ollama" Tag="Ollama"/>
-                                <ComboBoxItem Content="小米米模" Tag="XiaoMiMiMo"/>
-                                <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
-                                <ComboBoxItem Content="DeepSeek" Tag="DeepSeek"/>
-                                <ComboBoxItem Content="OpenAI" Tag="OpenAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderLlamaCppMoe}" Tag="LlamaCpp" IsSelected="True"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderRWKV}" Tag="RWKV"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOllamaShort}" Tag="Ollama"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderXiaoMi}" Tag="XiaoMiMiMo"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderZhipuAIOnly}" Tag="ZhipuAI"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderDeepSeekOnly}" Tag="DeepSeek"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.AICfg.ProviderOpenAI}" Tag="OpenAI"/>
                             </ComboBox>
 
                             <TextBox x:Name="SubAgentModelTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="SubAgent 模型（可选，留空使用提供者默认模型）"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintSubAgentModel}"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="SubAgentRoleDescriptionTextBox"
                                      Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                     materialDesign:HintAssist.Hint="SubAgent 职责描述"
-                                     Text="总结写作需求，整理 MainAgent 草稿，并将纯净内容写入项目档案库。"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintSubAgentRole}"
+                                     Text="{DynamicResource Loc.AICfg.SubAgentRoleText}"
                                      Margin="0,0,0,8"/>
                         </Grid>
 
                         <CheckBox x:Name="EnableArchiveWriteCheckBox"
-                                  Content="允许 SubAgent 将纯净定稿写入正式项目档案库"
+                                  Content="{DynamicResource Loc.AICfg.AllowArchiveWrite}"
                                   IsChecked="True"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -233,7 +233,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="RWKV 续写模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.RwkvTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle"
                                                        x:Name="RwkvStatusIcon"
@@ -241,29 +241,29 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="RwkvStatusText"
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="本地 RWKV 推理服务，默认优先集成纯 CUDA 版，适配 RWKV7-G1i 并为 RWKV8 RPU 预留，扫描支持 .pth / .safetensors / .st"
+                        <TextBlock Text="{DynamicResource Loc.AICfg.RwkvDesc}"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68" Margin="0,0,0,8"/>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Button x:Name="RwkvRefreshStatusButton"
-                                    Content="刷新状态"
+                                    Content="{DynamicResource Loc.AICfg.RefreshStatus}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="RwkvRefreshStatusButton_Click"
                                     Margin="0,0,8,0"/>
                             <Button x:Name="RwkvStartRuntimeButton"
-                                    Content="一键启动"
+                                    Content="{DynamicResource Loc.AICfg.StartRuntime}"
                                     Style="{StaticResource MaterialDesignRaisedButton}"
                                     Click="RwkvStartRuntimeButton_Click"
                                     Margin="0,0,8,0"/>
                             <Button x:Name="RwkvStopRuntimeButton"
-                                    Content="一键关闭"
+                                    Content="{DynamicResource Loc.AICfg.StopRuntime}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="RwkvStopRuntimeButton_Click"/>
                         </StackPanel>
@@ -284,13 +284,13 @@
 
                             <TextBox x:Name="RwkvBaseUrlTextBox"
                                      Grid.Row="0" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="推理服务地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintRwkvBaseUrl}"
                                      Text="http://localhost:8000"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvModelNameTextBox"
                                      Grid.Row="0" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="模型名称"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintModelName}"
                                      Text="rwkv7-g1i"
                                      Margin="8,0,0,8"/>
 
@@ -301,11 +301,11 @@
                                 </Grid.ColumnDefinitions>
                                 <ComboBox x:Name="RwkvModelComboBox"
                                           Grid.Column="0"
-                                          materialDesign:HintAssist.Hint="选择RWKV模型"
+                                          materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintSelectRwkvModel}"
                                           SelectionChanged="RwkvModelComboBox_SelectionChanged"/>
                                 <Button x:Name="RwkvRefreshModelsButton"
                                         Grid.Column="1"
-                                        Content="扫描"
+                                        Content="{DynamicResource Loc.AICfg.Scan}"
                                         Style="{StaticResource MaterialDesignOutlinedButton}"
                                         Click="RwkvRefreshModelsButton_Click"
                                         Margin="8,0,0,0"/>
@@ -313,7 +313,7 @@
 
                             <ComboBox x:Name="RwkvStrategyComboBox"
                                       Grid.Row="1" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="推理策略"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintStrategy}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="cuda fp16" IsSelected="True"/>
                                 <ComboBoxItem Content="cuda fp32"/>
@@ -322,55 +322,55 @@
 
                             <TextBox x:Name="RwkvMaxTokensTextBox"
                                      Grid.Row="2" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="单次续写最大Token数 (1-200)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxTokens}"
                                      Text="200"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvTemperatureTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="温度 (0-2)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTemperature}"
                                      Text="1.0"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="RwkvTopPTextBox"
                                      Grid.Row="3" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="Top-P 采样"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTopP}"
                                      Text="0.7"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvTopKTextBox"
                                      Grid.Row="3" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="Top-K 采样"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTopK}"
                                      Text="50"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="RwkvFrequencyPenaltyTextBox"
                                      Grid.Row="4" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="频率惩罚"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintFreqPenalty}"
                                      Text="0.0"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvPresencePenaltyTextBox"
                                      Grid.Row="4" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="出现惩罚"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintPresencePenalty}"
                                      Text="0.0"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="RwkvTimeoutTextBox"
                                      Grid.Row="5" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTimeoutSeconds}"
                                      Text="120"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="RwkvMaxRetriesTextBox"
                                      Grid.Row="5" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxRetries}"
                                      Text="3"
                                      Margin="8,0,0,8"/>
                         </Grid>
 
                         <!-- RWKV Server Settings -->
-                        <Expander Header="服务启动设置" Margin="0,8,0,0">
+                        <Expander Header="{DynamicResource Loc.AICfg.ServerSettings}" Margin="0,8,0,0">
                             <Grid Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -384,36 +384,36 @@
 
                                 <CheckBox x:Name="RwkvAutoStartServerCheckBox"
                                           Grid.Row="0" Grid.Column="0"
-                                          Content="自动启动推理服务"
+                                          Content="{DynamicResource Loc.AICfg.AutoStartServer}"
                                           IsChecked="False"
                                           Margin="0,0,8,8"/>
 
                                 <TextBox x:Name="RwkvGpuDeviceIdTextBox"
                                          Grid.Row="0" Grid.Column="1"
-                                         materialDesign:HintAssist.Hint="GPU设备ID (-1为自动)"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintGpuDeviceId}"
                                          Text="-1"
                                          Margin="8,0,0,8"/>
 
                                 <TextBox x:Name="RwkvPythonPathTextBox"
                                          Grid.Row="1" Grid.Column="0"
-                                         materialDesign:HintAssist.Hint="Python解释器路径"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintPythonPath}"
                                          Text="python"
                                          Margin="0,0,8,8"/>
 
                                 <TextBox x:Name="RwkvServerScriptPathTextBox"
                                          Grid.Row="1" Grid.Column="1"
-                                         materialDesign:HintAssist.Hint="RWKV 本地推理可执行文件路径"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintRwkvExePath}"
                                          Margin="8,0,0,8"/>
 
                                 <TextBox x:Name="RwkvContextSizeTextBox"
                                          Grid.Row="2" Grid.Column="0"
-                                         materialDesign:HintAssist.Hint="上下文大小"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintContextSize}"
                                          Text="8192"
                                          Margin="0,0,8,8"/>
 
                                 <TextBox x:Name="RwkvMaxConcurrentRequestsTextBox"
                                          Grid.Row="2" Grid.Column="1"
-                                         materialDesign:HintAssist.Hint="最大并发请求数"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxConcurrent}"
                                          Text="20"
                                          Margin="8,0,0,8"/>
                             </Grid>
@@ -429,7 +429,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="llama.cpp 本地推理配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.LlamaTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle"
                                                        x:Name="LlamaStatusIcon"
@@ -437,35 +437,35 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="LlamaStatusText"
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="基于 llama-server.exe 的本地 GGUF 推理服务，支持按后端与模型按需启动"
+                        <TextBlock Text="{DynamicResource Loc.AICfg.LlamaDesc}"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68"
                                    Margin="0,0,0,8"/>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Button x:Name="LlamaRefreshStatusButton"
-                                    Content="刷新状态"
+                                    Content="{DynamicResource Loc.AICfg.RefreshStatus}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="LlamaRefreshStatusButton_Click"
                                     Margin="0,0,8,0"/>
                             <Button x:Name="LlamaRefreshModelsButton"
-                                    Content="扫描模型"
+                                    Content="{DynamicResource Loc.AICfg.ScanModels}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="LlamaRefreshModelsButton_Click"
                                     Margin="0,0,8,0"/>
                             <Button x:Name="StartLlamaRuntimeButton"
-                                    Content="一键启动"
+                                    Content="{DynamicResource Loc.AICfg.StartRuntime}"
                                     Style="{StaticResource MaterialDesignRaisedButton}"
                                     Click="StartLlamaRuntimeButton_Click"
                                     Margin="0,0,8,0"/>
                             <Button x:Name="StopLlamaRuntimeButton"
-                                    Content="一键关闭"
+                                    Content="{DynamicResource Loc.AICfg.StopRuntime}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="StopLlamaRuntimeButton_Click"/>
                         </StackPanel>
@@ -490,7 +490,7 @@
 
                             <ComboBox x:Name="LlamaBackendComboBox"
                                       Grid.Row="0" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="llama.cpp 后端"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintLlamaBackend}"
                                       Margin="0,0,8,8"
                                       SelectionChanged="LlamaBackendComboBox_SelectionChanged">
                                 <ComboBoxItem Content="CUDA" Tag="cuda" IsSelected="True"/>
@@ -501,63 +501,63 @@
 
                             <TextBox x:Name="LlamaBaseUrlTextBox"
                                      Grid.Row="0" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="服务地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintServerUrl}"
                                      Text="http://localhost:8081"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="LlamaExecutablePathTextBox"
                                      Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="llama-server.exe 路径"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintLlamaExePath}"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="LlamaModelDirectoryTextBox"
                                      Grid.Row="1" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="GGUF 模型目录"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintGgufDir}"
                                      Margin="8,0,0,8"/>
 
                             <ComboBox x:Name="LlamaModelComboBox"
                                       Grid.Row="2" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="按需启动模型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintOnDemandModel}"
                                       Margin="0,0,8,8"
                                       SelectionChanged="LlamaModelComboBox_SelectionChanged"/>
 
                             <TextBox x:Name="LlamaMmprojPathTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="mmproj 路径（可选）"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMmprojPath}"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="LlamaContextSizeTextBox"
                                      Grid.Row="3" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="上下文长度"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintContextLength}"
                                      Text="262144"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="LlamaGpuLayersTextBox"
                                      Grid.Row="3" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="GPU Layers (-1 全量自动)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintGpuLayers}"
                                      Text="-1"
                                      Margin="8,0,0,8"/>
 
                             <PasswordBox x:Name="LlamaApiKeyPasswordBox"
                                          Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
-                                         materialDesign:HintAssist.Hint="服务 API Key（可选）"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintLlamaApiKey}"
                                          Margin="0,0,0,8"/>
 
                             <TextBox x:Name="LlamaParallelSlotsTextBox"
                                      Grid.Row="5" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="并行槽位"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintParallelSlots}"
                                      Text="1"
                                      Margin="0,0,8,8"/>
 
                             <CheckBox x:Name="LlamaEnableFlashAttentionCheckBox"
                                       Grid.Row="5" Grid.Column="1"
-                                      Content="启用 Flash Attention"
+                                      Content="{DynamicResource Loc.AICfg.EnableFlashAttention}"
                                       IsChecked="True"
                                       Margin="8,0,0,8"/>
 
                             <ComboBox x:Name="LlamaCacheTypeKComboBox"
                                       Grid.Row="6" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="KV Cache K 类型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintCacheTypeK}"
                                       Margin="0,0,8,8">
                                 <ComboBoxItem Content="q8_0" IsSelected="True"/>
                                 <ComboBoxItem Content="q4_0"/>
@@ -567,7 +567,7 @@
 
                             <ComboBox x:Name="LlamaCacheTypeVComboBox"
                                       Grid.Row="6" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="KV Cache V 类型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintCacheTypeV}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="q8_0" IsSelected="True"/>
                                 <ComboBoxItem Content="q4_0"/>
@@ -577,31 +577,31 @@
 
                             <CheckBox x:Name="LlamaEnableCpuMoeCheckBox"
                                       Grid.Row="7" Grid.Column="0"
-                                      Content="MoE 使用 CPU 异构推理"
+                                      Content="{DynamicResource Loc.AICfg.EnableCpuMoe}"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
 
                             <TextBox x:Name="LlamaCpuMoeLayerCountTextBox"
                                      Grid.Row="7" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="前 N 层使用 CPU-MoE（0=全量或关闭）"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintCpuMoeLayers}"
                                      Text="0"
                                      Margin="8,0,0,8"/>
 
                             <CheckBox x:Name="LlamaEnableAutoFitCheckBox"
                                       Grid.Row="8" Grid.Column="0"
-                                      Content="自动贴合显存"
+                                      Content="{DynamicResource Loc.AICfg.AutoFitVram}"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
 
                             <TextBox x:Name="LlamaFitContextSizeTextBox"
                                      Grid.Row="8" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="AutoFit 最小上下文"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintAutoFitContext}"
                                      Text="262144"
                                      Margin="8,0,0,8"/>
 
                             <CheckBox x:Name="LlamaDisableWarmupCheckBox"
                                       Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2"
-                                      Content="跳过 warmup 加速启动"
+                                      Content="{DynamicResource Loc.AICfg.SkipWarmup}"
                                       IsChecked="True"
                                       Margin="0,0,0,8"/>
                         </Grid>
@@ -616,7 +616,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="智谱AI 云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.ZhipuTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle"
                                                        x:Name="ZhipuAIStatusIcon"
@@ -624,13 +624,13 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="ZhipuAIStatusText"
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="智谱AI免费在线模型 (glm-4-flash)，通过OpenAI兼容接口调用"
+                        <TextBlock Text="{DynamicResource Loc.AICfg.ZhipuDesc}"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68" Margin="0,0,0,8"/>
 
@@ -649,18 +649,18 @@
 
                             <PasswordBox x:Name="ZhipuAIApiKeyPasswordBox"
                                          Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                         materialDesign:HintAssist.Hint="API密钥 (在 open.bigmodel.cn 获取)"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintZhipuApiKey}"
                                          Margin="0,0,0,8"/>
 
                             <TextBox x:Name="ZhipuAIBaseUrlTextBox"
                                      Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="API地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintApiUrl}"
                                      Text="https://open.bigmodel.cn/api/paas/v4"
                                      Margin="0,0,8,8"/>
 
                             <ComboBox x:Name="ZhipuAIModelComboBox"
                                       Grid.Row="1" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="默认模型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDefaultModel}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="glm-4.7-flash" IsSelected="True"/>
                                 <ComboBoxItem Content="glm-4-flash"/>
@@ -671,25 +671,25 @@
 
                             <TextBox x:Name="ZhipuAITimeoutTextBox"
                                      Grid.Row="2" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTimeoutSeconds}"
                                      Text="120"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="ZhipuAIMaxRetriesTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxRetries}"
                                      Text="3"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="ZhipuAITemperatureTextBox"
                                      Grid.Row="3" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="温度参数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTemperatureParam}"
                                      Text="0.7"
                                      Margin="0,0,8,8"/>
 
                             <CheckBox x:Name="ZhipuAIEnableStreamingCheckBox"
                                       Grid.Row="3" Grid.Column="1"
-                                      Content="启用流式响应"
+                                      Content="{DynamicResource Loc.AICfg.EnableStreaming}"
                                       IsChecked="True"
                                       Margin="8,0,0,8"/>
                         </Grid>
@@ -704,7 +704,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Ollama 本地模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.OllamaTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle" 
                                                        x:Name="OllamaStatusIcon"
@@ -712,7 +712,7 @@
                                                        Foreground="Orange"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="OllamaStatusText" 
-                                         Text="检查中..."
+                                         Text="{DynamicResource Loc.AICfg.StatusChecking}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
@@ -733,66 +733,66 @@
                             
                             <TextBox x:Name="OllamaBaseUrlTextBox"
                                      Grid.Row="0" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="服务器地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintServerAddr}"
                                      Text="http://localhost:11434"
                                      Margin="0,0,8,8"/>
                             
                             <ComboBox x:Name="OllamaModelComboBox"
                                       Grid.Row="0" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="默认模型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDefaultModel}"
                                       Margin="8,0,0,8"/>
                             
                             <TextBox x:Name="OllamaTimeoutTextBox"
                                      Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTimeoutSeconds}"
                                      Text="120"
                                      Margin="0,0,8,8"/>
                             
                             <TextBox x:Name="OllamaMaxRetriesTextBox"
                                      Grid.Row="1" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxRetries}"
                                      Text="3"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="OllamaContextSizeTextBox"
                                      Grid.Row="2" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="上下文大小"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintContextSize}"
                                      Text="32768"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="OllamaMaxConcurrentRequestsTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="最大并发请求数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxConcurrent}"
                                      Text="3"
                                      Margin="8,0,0,8"/>
                             
                             <CheckBox x:Name="OllamaEnableGPUCheckBox"
                                       Grid.Row="3" Grid.Column="0"
-                                      Content="启用GPU加速"
+                                      Content="{DynamicResource Loc.AICfg.EnableGpu}"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
                             
                             <TextBox x:Name="OllamaGPUDeviceIdTextBox"
                                      Grid.Row="3" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="GPU设备ID (-1为自动)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintGpuDeviceId}"
                                      Text="-1"
                                      Margin="8,0,0,8"/>
                             
                             <CheckBox x:Name="OllamaVerboseLoggingCheckBox"
                                       Grid.Row="4" Grid.Column="0"
-                                      Content="启用详细日志"
+                                      Content="{DynamicResource Loc.AICfg.EnableVerboseLog}"
                                       Margin="0,0,8,8"/>
                             
                             <Button x:Name="RefreshModelsButton"
                                     Grid.Row="4" Grid.Column="1"
-                                    Content="刷新模型列表"
+                                    Content="{DynamicResource Loc.AICfg.RefreshModelList}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Click="RefreshModelsButton_Click"
                                     Margin="8,0,0,8"/>
                         </Grid>
                         
                         <!-- Model Management -->
-                        <Expander Header="模型管理" Margin="0,16,0,0">
+                        <Expander Header="{DynamicResource Loc.AICfg.ModelManagement}" Margin="0,16,0,0">
                             <StackPanel Margin="0,8,0,0">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -802,12 +802,12 @@
                                     
                                     <TextBox x:Name="ModelNameTextBox"
                                              Grid.Column="0"
-                                             materialDesign:HintAssist.Hint="模型名称 (例如: llama2, qwq:latest)"
+                                             materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintModelNameExample}"
                                              Margin="0,0,8,0"/>
                                     
                                     <Button x:Name="PullModelButton"
                                             Grid.Column="1"
-                                            Content="下载模型"
+                                            Content="{DynamicResource Loc.AICfg.PullModel}"
                                             Style="{StaticResource MaterialDesignRaisedButton}"
                                             Click="PullModelButton_Click"/>
                                 </Grid>
@@ -830,13 +830,13 @@
                                           materialDesign:DataGridAssist.CellPadding="8"
                                           materialDesign:DataGridAssist.ColumnHeaderPadding="8">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="模型名称" Binding="{Binding Name}" Width="*"/>
-                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeFormatted}" Width="100"/>
-                                        <DataGridTextColumn Header="修改时间" Binding="{Binding ModifiedAt, StringFormat=yyyy-MM-dd}" Width="120"/>
-                                        <DataGridTemplateColumn Header="操作" Width="120">
+                                        <DataGridTextColumn Header="{DynamicResource Loc.AICfg.ColModelName}" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="{DynamicResource Loc.AICfg.ColSize}" Binding="{Binding SizeFormatted}" Width="100"/>
+                                        <DataGridTextColumn Header="{DynamicResource Loc.AICfg.ColModifiedAt}" Binding="{Binding ModifiedAt, StringFormat=yyyy-MM-dd}" Width="120"/>
+                                        <DataGridTemplateColumn Header="{DynamicResource Loc.AICfg.ColActions}" Width="120">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <Button Content="删除"
+                                                    <Button Content="{DynamicResource Loc.Dlg.Delete}"
                                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                                             Foreground="Red"
                                                             Click="DeleteModelButton_Click"
@@ -859,7 +859,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="DeepSeek 云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.DeepSeekTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle" 
                                                        x:Name="DeepSeekStatusIcon"
@@ -867,7 +867,7 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="DeepSeekStatusText" 
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
@@ -886,18 +886,18 @@
                             
                             <PasswordBox x:Name="DeepSeekApiKeyPasswordBox"
                                          Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                         materialDesign:HintAssist.Hint="API密钥 (sk-...)"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDeepSeekApiKey}"
                                          Margin="0,0,0,8"/>
                             
                             <TextBox x:Name="DeepSeekBaseUrlTextBox"
                                      Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="API地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintApiUrl}"
                                      Text="https://api.deepseek.com"
                                      Margin="0,0,8,8"/>
                             
                             <ComboBox x:Name="DeepSeekModelComboBox"
                                       Grid.Row="1" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="模型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintModel}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="deepseek-v4-flash" IsSelected="True"/>
                                 <ComboBoxItem Content="deepseek-v4-pro"/>
@@ -907,13 +907,13 @@
                             
                             <CheckBox x:Name="DeepSeekEnableThinkingChainCheckBox"
                                       Grid.Row="2" Grid.Column="0"
-                                      Content="启用思维链"
+                                      Content="{DynamicResource Loc.AICfg.EnableThinkingChain}"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
                             
                             <TextBox x:Name="DeepSeekTimeoutTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTimeoutSeconds}"
                                      Text="60"
                                      Margin="8,0,0,8"/>
                         </Grid>
@@ -928,7 +928,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="小米米模云端模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.MiMoTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle"
                                                        x:Name="XiaoMiMiMoStatusIcon"
@@ -936,13 +936,13 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="XiaoMiMiMoStatusText"
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="小米米模 OpenAI 兼容接口配置，支持 mimo-v2.5-pro"
+                        <TextBlock Text="{DynamicResource Loc.AICfg.MiMoDesc}"
                                    Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                    Opacity="0.68" Margin="0,0,0,8"/>
 
@@ -960,18 +960,18 @@
 
                             <PasswordBox x:Name="XiaoMiMiMoApiKeyPasswordBox"
                                          Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                         materialDesign:HintAssist.Hint="API密钥"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintApiKey}"
                                          Margin="0,0,0,8"/>
 
                             <TextBox x:Name="XiaoMiMiMoBaseUrlTextBox"
                                      Grid.Row="1" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="API地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintApiUrl}"
                                      Text="https://api.xiaomimimo.com/v1"
                                      Margin="0,0,8,8"/>
 
                             <ComboBox x:Name="XiaoMiMiMoModelComboBox"
                                       Grid.Row="1" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="默认模型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintDefaultModel}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="mimo-v2.5-pro" IsSelected="True"/>
                                 <ComboBoxItem Content="mimo-v2.5"/>
@@ -980,25 +980,25 @@
 
                             <TextBox x:Name="XiaoMiMiMoTimeoutTextBox"
                                      Grid.Row="2" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="超时时间(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTimeoutSeconds}"
                                      Text="120"
                                      Margin="0,0,8,8"/>
 
                             <TextBox x:Name="XiaoMiMiMoMaxRetriesTextBox"
                                      Grid.Row="2" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="最大重试次数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintMaxRetries}"
                                      Text="3"
                                      Margin="8,0,0,8"/>
 
                             <TextBox x:Name="XiaoMiMiMoTemperatureTextBox"
                                      Grid.Row="3" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="温度参数"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintTemperatureParam}"
                                      Text="1.0"
                                      Margin="0,0,8,8"/>
 
                             <CheckBox x:Name="XiaoMiMiMoEnableStreamingCheckBox"
                                       Grid.Row="3" Grid.Column="1"
-                                      Content="启用流式响应"
+                                      Content="{DynamicResource Loc.AICfg.EnableStreaming}"
                                       IsChecked="True"
                                       Margin="8,0,0,8"/>
                         </Grid>
@@ -1013,7 +1013,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="MCP 协议模型配置" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Loc.AICfg.McpTitle}" Style="{StaticResource SectionHeaderStyle}"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Circle" 
                                                        x:Name="MCPStatusIcon"
@@ -1021,7 +1021,7 @@
                                                        Foreground="Gray"
                                                        Margin="0,0,4,0"/>
                                 <TextBlock x:Name="MCPStatusText" 
-                                         Text="未配置"
+                                         Text="{DynamicResource Loc.AICfg.StatusNotConfigured}"
                                          VerticalAlignment="Center"
                                          Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                             </StackPanel>
@@ -1040,13 +1040,13 @@
                             
                             <TextBox x:Name="MCPServerUrlTextBox"
                                      Grid.Row="0" Grid.Column="0"
-                                     materialDesign:HintAssist.Hint="服务器地址"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintServerAddr}"
                                      Text="ws://localhost:8080/mcp"
                                      Margin="0,0,8,8"/>
                             
                             <ComboBox x:Name="MCPConnectionTypeComboBox"
                                       Grid.Row="0" Grid.Column="1"
-                                      materialDesign:HintAssist.Hint="连接类型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintConnectionType}"
                                       Margin="8,0,0,8">
                                 <ComboBoxItem Content="WebSocket" IsSelected="True"/>
                                 <ComboBoxItem Content="HTTP"/>
@@ -1055,7 +1055,7 @@
                             
                             <ComboBox x:Name="MCPAuthTypeComboBox"
                                       Grid.Row="1" Grid.Column="0"
-                                      materialDesign:HintAssist.Hint="认证类型"
+                                      materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintAuthType}"
                                       Margin="0,0,8,8">
                                 <ComboBoxItem Content="None" IsSelected="True"/>
                                 <ComboBoxItem Content="ApiKey"/>
@@ -1065,19 +1065,19 @@
                             
                             <TextBox x:Name="MCPTimeoutTextBox"
                                      Grid.Row="1" Grid.Column="1"
-                                     materialDesign:HintAssist.Hint="连接超时(秒)"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.AICfg.HintConnectTimeout}"
                                      Text="30"
                                      Margin="8,0,0,8"/>
                             
                             <CheckBox x:Name="MCPAutoReconnectCheckBox"
                                       Grid.Row="2" Grid.Column="0"
-                                      Content="自动重连"
+                                      Content="{DynamicResource Loc.AICfg.AutoReconnect}"
                                       IsChecked="True"
                                       Margin="0,0,8,8"/>
                             
                             <CheckBox x:Name="MCPCompressionCheckBox"
                                       Grid.Row="2" Grid.Column="1"
-                                      Content="启用压缩"
+                                      Content="{DynamicResource Loc.AICfg.EnableCompression}"
                                       IsChecked="True"
                                       Margin="8,0,0,8"/>
                         </Grid>
@@ -1096,12 +1096,12 @@
                 
                 <TextBlock x:Name="StatusTextBlock" 
                            Grid.Column="0"
-                           Text="就绪"
+                           Text="{DynamicResource Loc.AICfg.StatusReady}"
                            VerticalAlignment="Center"
                            Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock Text="当前提供者: " 
+                    <TextBlock Text="{DynamicResource Loc.AICfg.CurrentProviderLabel}" 
                                VerticalAlignment="Center"
                                Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
                     <TextBlock x:Name="CurrentProviderTextBlock" 

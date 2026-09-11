@@ -111,7 +111,8 @@ namespace NovelManagement.AI.Services.RWKV
                 var maxTokens = request.MaxTokens > 0 ? request.MaxTokens : 1000;
                 var temperature = request.Temperature > 0 ? request.Temperature : _rwkvService.Configuration.Temperature;
 
-                var completion = await _rwkvService.CompleteAsync(
+                // 流式请求：绕过 Cloudflare Tunnel 100s 源站超时（524），长生成不再被掐断
+                var completion = await _rwkvService.CompleteStreamAsync(
                     prompt,
                     maxTokens: maxTokens,
                     temperature: temperature,

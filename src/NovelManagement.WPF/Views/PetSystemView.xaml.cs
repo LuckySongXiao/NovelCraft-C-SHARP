@@ -11,6 +11,7 @@ using NovelManagement.WPF.Commands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -148,7 +149,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "宠物体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Pet.Title", "宠物体系管理"), out _);
                     Pets.Clear();
                     PetListControl.ItemsSource = Pets;
                     UpdateStatistics();
@@ -175,7 +176,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载宠物数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Pet.LoadFailed", "加载宠物数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -264,7 +265,7 @@ namespace NovelManagement.WPF.Views
             // 设置类型选择
             foreach (ComboBoxItem item in PetTypeComboBox.Items)
             {
-                if (item.Content.ToString() == pet.Type)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == pet.Type)
                 {
                     PetTypeComboBox.SelectedItem = item;
                     break;
@@ -274,7 +275,7 @@ namespace NovelManagement.WPF.Views
             // 设置稀有度选择
             foreach (ComboBoxItem item in RarityComboBox.Items)
             {
-                if (item.Content.ToString() == pet.Rarity)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == pet.Rarity)
                 {
                     RarityComboBox.SelectedItem = item;
                     break;
@@ -284,7 +285,7 @@ namespace NovelManagement.WPF.Views
             // 设置成长阶段选择
             foreach (ComboBoxItem item in GrowthStageComboBox.Items)
             {
-                if (item.Content.ToString() == pet.GrowthStage)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == pet.GrowthStage)
                 {
                     GrowthStageComboBox.SelectedItem = item;
                     break;
@@ -400,8 +401,8 @@ namespace NovelManagement.WPF.Views
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入宠物体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Pet.ImportTitle", "导入宠物体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -409,7 +410,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_petDataService == null)
                     {
-                        MessageBox.Show("宠物数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Pet.ServiceNotInit", "宠物数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -424,12 +425,12 @@ namespace NovelManagement.WPF.Views
                     await PersistPetsAsync();
                     FilterPets();
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {Pets.Count} 个宠物。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Pet.ImportDone", "已成功导入 {0} 个宠物。", Pets.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -448,7 +449,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出宠物体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"宠物体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -457,17 +458,17 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_petDataService == null)
                     {
-                        MessageBox.Show("宠物数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Pet.ServiceNotInit", "宠物数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
                     await _petDataService.ExportPetsAsync(_currentProjectId, Pets, dialog.FileName);
-                    MessageBox.Show($"宠物体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Pet.ExportDone", "宠物体系数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -509,18 +510,18 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(PetNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入宠物名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Pet.NameRequired", "请输入宠物名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 // 更新宠物信息
                 SelectedPet.Name = PetNameTextBox.Text.Trim();
                 SelectedPet.Description = PetDescriptionTextBox.Text.Trim();
-                SelectedPet.Type = (PetTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "灵兽";
-                SelectedPet.Rarity = (RarityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "普通";
+                SelectedPet.Type = (PetTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PetTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "灵兽";
+                SelectedPet.Rarity = (RarityComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (RarityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "普通";
                 SelectedPet.Level = LevelTextBox.Text.Trim();
                 SelectedPet.Element = ElementTextBox.Text.Trim();
-                SelectedPet.GrowthStage = (GrowthStageComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "幼体";
+                SelectedPet.GrowthStage = (GrowthStageComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (GrowthStageComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "幼体";
                 SelectedPet.Attack = AttackTextBox.Text.Trim();
                 SelectedPet.Defense = DefenseTextBox.Text.Trim();
                 SelectedPet.Health = HealthTextBox.Text.Trim();
@@ -540,7 +541,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistPetsAsync();
-                MessageBox.Show("宠物保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Pet.SaveSuccess", "宠物保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterPets();
@@ -548,7 +549,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.SaveFailedFmt", "保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -618,7 +619,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -752,7 +753,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -770,7 +771,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI宠物体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI宠物体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

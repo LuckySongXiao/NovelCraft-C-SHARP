@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="长篇批量生成选项"
+        Title="{DynamicResource Loc.BGO.Title}"
         Width="480"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
@@ -14,20 +14,20 @@
         FontFamily="{DynamicResource MaterialDesignFont}">
     <StackPanel Margin="24,20,24,20">
 
-        <TextBlock Text="批量生成任务选项"
+        <TextBlock Text="{DynamicResource Loc.BGO.Header}"
                    FontSize="17"
                    FontWeight="SemiBold"
                    Margin="0,0,0,4"/>
-        <TextBlock Text="未完成的任务会自动从断点续跑；新选项仅影响后续章节与新卷。"
+        <TextBlock Text="{DynamicResource Loc.BGO.Desc}"
                    Foreground="{DynamicResource AppMutedTextBrush}"
                    TextWrapping="Wrap"
                    Margin="0,0,0,14"/>
 
         <CheckBox x:Name="ChkUnlimited"
-                  Content="无限续写模式（不设卷数上限，持续写新卷，直到手动取消）"
+                  Content="{DynamicResource Loc.BGO.UnlimitedMode}"
                   Margin="0,4,0,4"/>
         <CheckBox x:Name="ChkQuickSwitch"
-                  Content="快速切卷：当前卷再写 3 章即开始下一分卷（用于验证跨卷衔接）"
+                  Content="{DynamicResource Loc.BGO.QuickSwitch}"
                   Margin="0,4,0,10"/>
 
         <Grid Margin="0,4,0,4">
@@ -36,9 +36,9 @@
                 <ColumnDefinition Width="90"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="每卷章节数：" VerticalAlignment="Center"/>
+            <TextBlock Text="{DynamicResource Loc.BGO.ChaptersPerVolume}" VerticalAlignment="Center"/>
             <TextBox x:Name="TxtChaptersPerVolume" Grid.Column="1" Text="30" Padding="6,4"/>
-            <TextBlock Grid.Column="2" Text="（默认 30，范围 3–100）"
+            <TextBlock Grid.Column="2" Text="{DynamicResource Loc.BGO.ChaptersPerVolumeHint}"
                        VerticalAlignment="Center" Margin="8,0,0,0"
                        Foreground="{DynamicResource AppMutedTextBrush}"/>
         </Grid>
@@ -49,19 +49,19 @@
                 <ColumnDefinition Width="90"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="每章目标字数：" VerticalAlignment="Center"/>
+            <TextBlock Text="{DynamicResource Loc.BGO.TargetWordsPerChapter}" VerticalAlignment="Center"/>
             <TextBox x:Name="TxtChapterTargetWords" Grid.Column="1" Text="3000" Padding="6,4"/>
-            <TextBlock Grid.Column="2" Text="（默认 3000，范围 800–10000）"
+            <TextBlock Grid.Column="2" Text="{DynamicResource Loc.BGO.TargetWordsHint}"
                        VerticalAlignment="Center" Margin="8,0,0,0"
                        Foreground="{DynamicResource AppMutedTextBrush}"/>
         </Grid>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="取消"
+            <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                     IsCancel="True"
                     Style="{StaticResource MaterialDesignFlatButton}"
                     Width="88"/>
-            <Button Content="开始生成"
+            <Button Content="{DynamicResource Loc.BGO.StartGenerate}"
                     Click="Start_Click"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     Width="110"

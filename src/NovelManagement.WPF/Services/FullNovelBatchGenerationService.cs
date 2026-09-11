@@ -218,10 +218,12 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             var rwkvCfg = _configuration.GetSection("AI:Providers:RWKV");
             var cfgContextSize = int.TryParse(rwkvCfg["ContextSize"], out var ctxVal) ? ctxVal : 16 * 1024;
             _policy = ContextWritingPolicy.Resolve(cfgContextSize, rwkvCfg["WritingContextTier"]);
+            // world 模型正文前常有思维链规划前缀，单片预算下限 1200 tokens 保证正文完整输出（思维链挤占预算后仍能收尾）
+            const int SliceBudgetFloor = 1200;
             // 不切片档（32K+）的整章 token 预算随自定义每章字数放大（中文约 2 token/字），上限 32K 留出提示词空间
             _sliceBudget = _policy.UseSlicing
-                ? _policy.SliceMaxTokens
-                : Math.Clamp(_options.ChapterTargetWords * 2, _policy.SliceMaxTokens, 32768);
+                ? Math.Max(SliceBudgetFloor, _policy.SliceMaxTokens)
+                : Math.Clamp(_options.ChapterTargetWords * 2, Math.Max(SliceBudgetFloor, _policy.SliceMaxTokens), 32768);
             _logger.LogInformation("写作档位 {Tier}（上下文 {Ctx}）：{Mode}，单片预算 {Budget} tokens，最大片数 {Slices}，辅助信息配额 角色{Cast}/设定{Setting}/势力{Faction}",
                 _policy.TierName, cfgContextSize,
                 _policy.UseSlicing ? "切片生成" : "整章直出",

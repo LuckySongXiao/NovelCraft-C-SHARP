@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="灵宝体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Trea.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddTreasure_Click"
-                            ToolTip="新建灵宝">
+                            ToolTip="{DynamicResource Loc.WS.Trea.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportTreasure_Click"
-                            ToolTip="导入灵宝数据">
+                            ToolTip="{DynamicResource Loc.WS.Trea.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportTreasure_Click"
-                            ToolTip="导出灵宝数据">
+                            ToolTip="{DynamicResource Loc.WS.Trea.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索灵宝..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,33 +100,33 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="TreasureTypeFilterComboBox"
-                                     materialDesign:HintAssist.Hint="灵宝类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.TypeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="TreasureTypeFilter_SelectionChanged"
                                      Margin="0,0,0,8">
-                                <ComboBoxItem Content="全部类型"/>
-                                <ComboBoxItem Content="武器类"/>
-                                <ComboBoxItem Content="防具类"/>
-                                <ComboBoxItem Content="饰品类"/>
-                                <ComboBoxItem Content="法器类"/>
-                                <ComboBoxItem Content="丹药类"/>
-                                <ComboBoxItem Content="符箓类"/>
-                                <ComboBoxItem Content="阵法类"/>
-                                <ComboBoxItem Content="特殊类"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllTypes}"/>
+                                <ComboBoxItem Tag="武器类" Content="{DynamicResource Loc.WS.Trea.Data.武器类}"/>
+                                <ComboBoxItem Tag="防具类" Content="{DynamicResource Loc.WS.Trea.Data.防具类}"/>
+                                <ComboBoxItem Tag="饰品类" Content="{DynamicResource Loc.WS.Trea.Data.饰品类}"/>
+                                <ComboBoxItem Tag="法器类" Content="{DynamicResource Loc.WS.Trea.Data.法器类}"/>
+                                <ComboBoxItem Tag="丹药类" Content="{DynamicResource Loc.WS.Trea.Data.丹药类}"/>
+                                <ComboBoxItem Tag="符箓类" Content="{DynamicResource Loc.WS.Trea.Data.符箓类}"/>
+                                <ComboBoxItem Tag="阵法类" Content="{DynamicResource Loc.WS.Trea.Data.阵法类}"/>
+                                <ComboBoxItem Tag="特殊类" Content="{DynamicResource Loc.WS.Trea.Data.特殊类}"/>
                             </ComboBox>
                             <ComboBox x:Name="GradeFilterComboBox"
-                                     materialDesign:HintAssist.Hint="灵宝品级"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.GradeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="GradeFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部品级"/>
-                                <ComboBoxItem Content="凡品"/>
-                                <ComboBoxItem Content="灵品"/>
-                                <ComboBoxItem Content="宝品"/>
-                                <ComboBoxItem Content="王品"/>
-                                <ComboBoxItem Content="皇品"/>
-                                <ComboBoxItem Content="帝品"/>
-                                <ComboBoxItem Content="圣品"/>
-                                <ComboBoxItem Content="神品"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllGrades}"/>
+                                <ComboBoxItem Tag="凡品" Content="{DynamicResource Loc.WS.Trea.Data.凡品}"/>
+                                <ComboBoxItem Tag="灵品" Content="{DynamicResource Loc.WS.Trea.Data.灵品}"/>
+                                <ComboBoxItem Tag="宝品" Content="{DynamicResource Loc.WS.Trea.Data.宝品}"/>
+                                <ComboBoxItem Tag="王品" Content="{DynamicResource Loc.WS.Trea.Data.王品}"/>
+                                <ComboBoxItem Tag="皇品" Content="{DynamicResource Loc.WS.Trea.Data.皇品}"/>
+                                <ComboBoxItem Tag="帝品" Content="{DynamicResource Loc.WS.Trea.Data.帝品}"/>
+                                <ComboBoxItem Tag="圣品" Content="{DynamicResource Loc.WS.Trea.Data.圣品}"/>
+                                <ComboBoxItem Tag="神品" Content="{DynamicResource Loc.WS.Trea.Data.神品}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -195,14 +195,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="类型: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Trea.TypeLabelDup}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding Type}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 灵性: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Trea.SpiritLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -223,7 +223,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="灵宝统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Trea.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -234,21 +234,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="武器类: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.武器类}"/>
                                         <Run Text="{Binding WeaponCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="法器类: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.法器类}"/>
                                         <Run Text="{Binding ArtifactCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="丹药类: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.丹药类}"/>
                                         <Run Text="{Binding PillCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -272,12 +272,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个灵宝查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Trea.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的灵宝" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Trea.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -287,7 +287,7 @@
                         <!-- 灵宝详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -301,23 +301,23 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="TreasureNameTextBox"
-                                        materialDesign:HintAssist.Hint="灵宝名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="TreasureTypeComboBox"
-                                         materialDesign:HintAssist.Hint="灵宝类型"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.TypeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="武器类"/>
-                                    <ComboBoxItem Content="防具类"/>
-                                    <ComboBoxItem Content="饰品类"/>
-                                    <ComboBoxItem Content="法器类"/>
-                                    <ComboBoxItem Content="丹药类"/>
-                                    <ComboBoxItem Content="符箓类"/>
-                                    <ComboBoxItem Content="阵法类"/>
-                                    <ComboBoxItem Content="特殊类"/>
+                                    <ComboBoxItem Tag="武器类" Content="{DynamicResource Loc.WS.Trea.Data.武器类}"/>
+                                    <ComboBoxItem Tag="防具类" Content="{DynamicResource Loc.WS.Trea.Data.防具类}"/>
+                                    <ComboBoxItem Tag="饰品类" Content="{DynamicResource Loc.WS.Trea.Data.饰品类}"/>
+                                    <ComboBoxItem Tag="法器类" Content="{DynamicResource Loc.WS.Trea.Data.法器类}"/>
+                                    <ComboBoxItem Tag="丹药类" Content="{DynamicResource Loc.WS.Trea.Data.丹药类}"/>
+                                    <ComboBoxItem Tag="符箓类" Content="{DynamicResource Loc.WS.Trea.Data.符箓类}"/>
+                                    <ComboBoxItem Tag="阵法类" Content="{DynamicResource Loc.WS.Trea.Data.阵法类}"/>
+                                    <ComboBoxItem Tag="特殊类" Content="{DynamicResource Loc.WS.Trea.Data.特殊类}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -330,36 +330,36 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="GradeComboBox"
-                                         materialDesign:HintAssist.Hint="灵宝品级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.GradeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="凡品"/>
-                                    <ComboBoxItem Content="灵品"/>
-                                    <ComboBoxItem Content="宝品"/>
-                                    <ComboBoxItem Content="王品"/>
-                                    <ComboBoxItem Content="皇品"/>
-                                    <ComboBoxItem Content="帝品"/>
-                                    <ComboBoxItem Content="圣品"/>
-                                    <ComboBoxItem Content="神品"/>
+                                    <ComboBoxItem Tag="凡品" Content="{DynamicResource Loc.WS.Trea.Data.凡品}"/>
+                                    <ComboBoxItem Tag="灵品" Content="{DynamicResource Loc.WS.Trea.Data.灵品}"/>
+                                    <ComboBoxItem Tag="宝品" Content="{DynamicResource Loc.WS.Trea.Data.宝品}"/>
+                                    <ComboBoxItem Tag="王品" Content="{DynamicResource Loc.WS.Trea.Data.王品}"/>
+                                    <ComboBoxItem Tag="皇品" Content="{DynamicResource Loc.WS.Trea.Data.皇品}"/>
+                                    <ComboBoxItem Tag="帝品" Content="{DynamicResource Loc.WS.Trea.Data.帝品}"/>
+                                    <ComboBoxItem Tag="圣品" Content="{DynamicResource Loc.WS.Trea.Data.圣品}"/>
+                                    <ComboBoxItem Tag="神品" Content="{DynamicResource Loc.WS.Trea.Data.神品}"/>
                                 </ComboBox>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="SpiritLevelComboBox"
-                                         materialDesign:HintAssist.Hint="灵性等级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.SpiritLevelHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="无灵性"/>
-                                    <ComboBoxItem Content="微弱灵性"/>
-                                    <ComboBoxItem Content="初级灵性"/>
-                                    <ComboBoxItem Content="中级灵性"/>
-                                    <ComboBoxItem Content="高级灵性"/>
-                                    <ComboBoxItem Content="完整灵性"/>
-                                    <ComboBoxItem Content="超越灵性"/>
+                                    <ComboBoxItem Tag="无灵性" Content="{DynamicResource Loc.WS.Trea.Data.无灵性}"/>
+                                    <ComboBoxItem Tag="微弱灵性" Content="{DynamicResource Loc.WS.Trea.Data.微弱灵性}"/>
+                                    <ComboBoxItem Tag="初级灵性" Content="{DynamicResource Loc.WS.Trea.Data.初级灵性}"/>
+                                    <ComboBoxItem Tag="中级灵性" Content="{DynamicResource Loc.WS.Trea.Data.中级灵性}"/>
+                                    <ComboBoxItem Tag="高级灵性" Content="{DynamicResource Loc.WS.Trea.Data.高级灵性}"/>
+                                    <ComboBoxItem Tag="完整灵性" Content="{DynamicResource Loc.WS.Trea.Data.完整灵性}"/>
+                                    <ComboBoxItem Tag="超越灵性" Content="{DynamicResource Loc.WS.Trea.Data.超越灵性}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="TreasureDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="灵宝描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -368,7 +368,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 灵宝属性 -->
-                            <TextBlock Text="灵宝属性" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Trea.AttrsTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -382,12 +382,12 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="SpiritPowerTextBox"
-                                        materialDesign:HintAssist.Hint="灵力值"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.SpiritPowerHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="ElementAffinityTextBox"
-                                        materialDesign:HintAssist.Hint="元素亲和"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.ElementHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
@@ -400,17 +400,17 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="SpecialAbilityTextBox"
-                                        materialDesign:HintAssist.Hint="特殊能力"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.AbilityHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="UsageLimitTextBox"
-                                        materialDesign:HintAssist.Hint="使用限制"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.RestrictionHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
                             <!-- 炼制信息 -->
-                            <TextBlock Text="炼制信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Trea.CraftingTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -424,7 +424,7 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="CraftingMaterialsTextBox"
-                                        materialDesign:HintAssist.Hint="炼制材料"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.MaterialsHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         AcceptsReturn="True"
                                         TextWrapping="Wrap"
@@ -432,18 +432,18 @@
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="CraftingDifficultyComboBox"
-                                         materialDesign:HintAssist.Hint="炼制难度"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.DifficultyHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                                    <ComboBoxItem Content="简单"/>
-                                    <ComboBoxItem Content="普通"/>
-                                    <ComboBoxItem Content="困难"/>
-                                    <ComboBoxItem Content="极难"/>
-                                    <ComboBoxItem Content="传说"/>
+                                    <ComboBoxItem Tag="简单" Content="{DynamicResource Loc.WS.Trea.Data.简单}"/>
+                                    <ComboBoxItem Tag="普通" Content="{DynamicResource Loc.WS.Common.Data.普通}"/>
+                                    <ComboBoxItem Tag="困难" Content="{DynamicResource Loc.WS.Trea.Data.困难}"/>
+                                    <ComboBoxItem Tag="极难" Content="{DynamicResource Loc.WS.Trea.Data.极难}"/>
+                                    <ComboBoxItem Tag="传说" Content="{DynamicResource Loc.WS.Trea.Data.传说}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="CraftingMethodTextBox"
-                                    materialDesign:HintAssist.Hint="炼制方法"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Trea.MethodHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -455,11 +455,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveTreasure_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

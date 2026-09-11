@@ -2,9 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:localization="clr-namespace:NovelManagement.WPF.Localization"
              xmlns:hc="https://handyorg.github.io/handycontrol"
              Background="{DynamicResource MaterialDesignPaper}">
 
+    <UserControl.Resources>
+        <localization:StoredValueConverter x:Key="StoredValueConverter"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,7 +32,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="时间线管理" 
+                    <TextBlock Text="{DynamicResource Loc.TL.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +45,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddEvent_Click"
-                            ToolTip="新建事件">
+                            ToolTip="{DynamicResource Loc.TL.NewEvent}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportTimeline_Click"
-                            ToolTip="导入时间线数据">
+                            ToolTip="{DynamicResource Loc.TL.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportTimeline_Click"
-                            ToolTip="导出时间线数据">
+                            ToolTip="{DynamicResource Loc.TL.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.TL.AIAssistantTooltip}">
                         <materialDesign:PackIcon Kind="Robot" Width="24" Height="24"/>
                     </Button>
 
@@ -71,7 +75,7 @@
                             Foreground="White"
                             Margin="8,0"
                             Click="TestSelect_Click"
-                            ToolTip="测试选择">
+                            ToolTip="{DynamicResource Loc.TL.TestSelectionTooltip}">
                         <materialDesign:PackIcon Kind="TestTube" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -98,7 +102,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索事件..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -109,16 +113,16 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="CategoryFilterComboBox"
-                                     materialDesign:HintAssist.Hint="事件类别"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.CategoryHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="CategoryFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类别"/>
-                                <ComboBoxItem Content="历史事件"/>
-                                <ComboBoxItem Content="剧情事件"/>
-                                <ComboBoxItem Content="角色事件"/>
-                                <ComboBoxItem Content="势力事件"/>
-                                <ComboBoxItem Content="世界事件"/>
-                                <ComboBoxItem Content="修炼事件"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.TL.CategoryAll}"/>
+                                <ComboBoxItem Tag="历史事件" Content="{DynamicResource Loc.TL.Data.历史事件}"/>
+                                <ComboBoxItem Tag="剧情事件" Content="{DynamicResource Loc.TL.Data.剧情事件}"/>
+                                <ComboBoxItem Tag="角色事件" Content="{DynamicResource Loc.TL.Data.角色事件}"/>
+                                <ComboBoxItem Tag="势力事件" Content="{DynamicResource Loc.TL.Data.势力事件}"/>
+                                <ComboBoxItem Tag="世界事件" Content="{DynamicResource Loc.TL.Data.世界事件}"/>
+                                <ComboBoxItem Tag="修炼事件" Content="{DynamicResource Loc.TL.Data.修炼事件}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -209,7 +213,7 @@
                                                               CornerRadius="12"
                                                               Padding="8,4"
                                                               VerticalAlignment="Top">
-                                                            <TextBlock Text="{Binding Category}"
+                                                            <TextBlock Text="{Binding Category, Converter={StaticResource StoredValueConverter}}"
                                                                      Foreground="White"
                                                                      FontSize="11"
                                                                      FontWeight="Medium"/>
@@ -281,7 +285,7 @@
                                                               CornerRadius="8"
                                                               Padding="6,2"
                                                               Background="{Binding StatusColor}">
-                                                            <TextBlock Text="{Binding Status}"
+                                                            <TextBlock Text="{Binding Status, Converter={StaticResource StoredValueConverter}}"
                                                                      FontSize="11"
                                                                      Foreground="White"
                                                                      FontWeight="Medium"/>
@@ -299,7 +303,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="时间线统计" 
+                            <TextBlock Text="{DynamicResource Loc.TL.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -310,21 +314,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总事件: "/>
+                                        <Run Text="{DynamicResource Loc.TL.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="历史事件: "/>
+                                        <Run Text="{DynamicResource Loc.TL.HistoricalLabel}"/>
                                         <Run Text="{Binding HistoryCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="剧情事件: "/>
+                                        <Run Text="{DynamicResource Loc.TL.PlotLabel}"/>
                                         <Run Text="{Binding PlotCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="角色事件: "/>
+                                        <Run Text="{DynamicResource Loc.TL.CharacterLabel}"/>
                                         <Run Text="{Binding CharacterCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -340,7 +344,7 @@
                     <StackPanel x:Name="DetailPanel" Margin="24">
                         <!-- 默认显示：时间线统计信息 -->
                         <StackPanel x:Name="EmptyStatePanel" Visibility="Visible">
-                            <TextBlock Text="时间线统计"
+                            <TextBlock Text="{DynamicResource Loc.TL.Stats}"
                                      FontSize="24"
                                      FontWeight="Medium"
                                      Margin="0,0,0,24"/>
@@ -349,7 +353,7 @@
                             <UniformGrid Columns="2" Margin="0,0,0,24">
                                 <materialDesign:Card Margin="0,0,8,8" Padding="16">
                                     <StackPanel>
-                                        <TextBlock Text="总事件数"
+                                        <TextBlock Text="{DynamicResource Loc.TL.TotalCount}"
                                                  FontSize="14"
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                         <TextBlock x:Name="TotalEventsText"
@@ -361,7 +365,7 @@
 
                                 <materialDesign:Card Margin="8,0,0,8" Padding="16">
                                     <StackPanel>
-                                        <TextBlock Text="历史事件"
+                                        <TextBlock Tag="历史事件" Text="{DynamicResource Loc.TL.Data.历史事件}"
                                                  FontSize="14"
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                         <TextBlock x:Name="HistoryEventsText"
@@ -373,7 +377,7 @@
 
                                 <materialDesign:Card Margin="0,8,8,0" Padding="16">
                                     <StackPanel>
-                                        <TextBlock Text="剧情事件"
+                                        <TextBlock Tag="剧情事件" Text="{DynamicResource Loc.TL.Data.剧情事件}"
                                                  FontSize="14"
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                         <TextBlock x:Name="PlotEventsText"
@@ -385,7 +389,7 @@
 
                                 <materialDesign:Card Margin="8,8,0,0" Padding="16">
                                     <StackPanel>
-                                        <TextBlock Text="角色事件"
+                                        <TextBlock Tag="角色事件" Text="{DynamicResource Loc.TL.Data.角色事件}"
                                                  FontSize="14"
                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                         <TextBlock x:Name="CharacterEventsText"
@@ -397,7 +401,7 @@
                             </UniformGrid>
 
                             <!-- 事件状态分布 -->
-                            <TextBlock Text="事件状态分布"
+                            <TextBlock Text="{DynamicResource Loc.TL.StatusDistribution}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -410,7 +414,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <materialDesign:Chip Grid.Column="0" Content="已完成" Margin="0,0,12,0" Background="#4CAF50"/>
+                                    <materialDesign:Chip Grid.Column="0" Tag="已完成" Content="{DynamicResource Loc.TL.Data.已完成}" Margin="0,0,12,0" Background="#4CAF50"/>
                                     <ProgressBar Grid.Column="1" x:Name="CompletedProgressBar" Maximum="100" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" x:Name="CompletedCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                 </Grid>
@@ -422,7 +426,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <materialDesign:Chip Grid.Column="0" Content="进行中" Margin="0,0,12,0" Background="#2196F3"/>
+                                    <materialDesign:Chip Grid.Column="0" Tag="进行中" Content="{DynamicResource Loc.TL.Data.进行中}" Margin="0,0,12,0" Background="#2196F3"/>
                                     <ProgressBar Grid.Column="1" x:Name="InProgressProgressBar" Maximum="100" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" x:Name="InProgressCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                 </Grid>
@@ -434,20 +438,20 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <materialDesign:Chip Grid.Column="0" Content="计划中" Margin="0,0,12,0" Background="#FF9800"/>
+                                    <materialDesign:Chip Grid.Column="0" Tag="计划中" Content="{DynamicResource Loc.TL.Data.计划中}" Margin="0,0,12,0" Background="#FF9800"/>
                                     <ProgressBar Grid.Column="1" x:Name="PlannedProgressBar" Maximum="100" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" x:Name="PlannedCountText" Text="0" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                 </Grid>
                             </ItemsControl>
 
                             <!-- 最近事件 -->
-                            <TextBlock Text="最近事件"
+                            <TextBlock Text="{DynamicResource Loc.TL.RecentEvents}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,24,0,16"/>
 
                             <StackPanel x:Name="RecentEventsPanel">
-                                <TextBlock Text="暂无事件数据"
+                                <TextBlock Text="{DynamicResource Loc.TL.NoData}"
                                          FontSize="14"
                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                          HorizontalAlignment="Center"
@@ -458,7 +462,7 @@
                         <!-- 事件详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息"
+                            <TextBlock Text="{DynamicResource Loc.TL.BasicInfo}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -472,21 +476,21 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="EventTitleTextBox"
-                                        materialDesign:HintAssist.Hint="事件标题"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.EventTitleHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="EventCategoryComboBox"
-                                         materialDesign:HintAssist.Hint="事件类别"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.CategoryHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="历史事件"/>
-                                    <ComboBoxItem Content="剧情事件"/>
-                                    <ComboBoxItem Content="角色事件"/>
-                                    <ComboBoxItem Content="势力事件"/>
-                                    <ComboBoxItem Content="世界事件"/>
-                                    <ComboBoxItem Content="修炼事件"/>
+                                    <ComboBoxItem Tag="历史事件" Content="{DynamicResource Loc.TL.Data.历史事件}"/>
+                                    <ComboBoxItem Tag="剧情事件" Content="{DynamicResource Loc.TL.Data.剧情事件}"/>
+                                    <ComboBoxItem Tag="角色事件" Content="{DynamicResource Loc.TL.Data.角色事件}"/>
+                                    <ComboBoxItem Tag="势力事件" Content="{DynamicResource Loc.TL.Data.势力事件}"/>
+                                    <ComboBoxItem Tag="世界事件" Content="{DynamicResource Loc.TL.Data.世界事件}"/>
+                                    <ComboBoxItem Tag="修炼事件" Content="{DynamicResource Loc.TL.Data.修炼事件}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -499,13 +503,13 @@
 
                                 <DatePicker Grid.Column="0"
                                            x:Name="EventDatePicker"
-                                           materialDesign:HintAssist.Hint="事件日期"
+                                           materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.EventDateHint}"
                                            Style="{StaticResource MaterialDesignOutlinedDatePicker}"
                                            Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="EventLocationTextBox"
-                                        materialDesign:HintAssist.Hint="事件地点"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.EventLocationHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
@@ -519,29 +523,29 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="EventImportanceComboBox"
-                                         materialDesign:HintAssist.Hint="重要程度"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.ImportanceHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="低"/>
-                                    <ComboBoxItem Content="中"/>
-                                    <ComboBoxItem Content="高"/>
-                                    <ComboBoxItem Content="极高"/>
+                                    <ComboBoxItem Tag="低" Content="{DynamicResource Loc.TL.Data.低}"/>
+                                    <ComboBoxItem Tag="中" Content="{DynamicResource Loc.TL.Data.中}"/>
+                                    <ComboBoxItem Tag="高" Content="{DynamicResource Loc.TL.Data.高}"/>
+                                    <ComboBoxItem Tag="极高" Content="{DynamicResource Loc.TL.Data.极高}"/>
                                 </ComboBox>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="EventStatusComboBox"
-                                         materialDesign:HintAssist.Hint="事件状态"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.StatusHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="计划中"/>
-                                    <ComboBoxItem Content="进行中"/>
-                                    <ComboBoxItem Content="已完成"/>
-                                    <ComboBoxItem Content="已取消"/>
+                                    <ComboBoxItem Tag="计划中" Content="{DynamicResource Loc.TL.Data.计划中}"/>
+                                    <ComboBoxItem Tag="进行中" Content="{DynamicResource Loc.TL.Data.进行中}"/>
+                                    <ComboBoxItem Tag="已完成" Content="{DynamicResource Loc.TL.Data.已完成}"/>
+                                    <ComboBoxItem Tag="已取消" Content="{DynamicResource Loc.TL.Data.已取消}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="EventDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="事件描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.DescriptionHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -550,7 +554,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 参与者管理 -->
-                            <TextBlock Text="参与者管理"
+                            <TextBlock Text="{DynamicResource Loc.TL.ParticipantMgmt}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -568,13 +572,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="参与者列表"
+                                                 Text="{DynamicResource Loc.TL.ParticipantList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddParticipant_Click"
-                                              ToolTip="添加参与者">
+                                              ToolTip="{DynamicResource Loc.TL.AddParticipantTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -595,24 +599,24 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="参与者名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.ParticipantNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <ComboBox Grid.Column="1"
                                                                  Text="{Binding Type}"
-                                                                 materialDesign:HintAssist.Hint="参与者类型"
+                                                                 materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.ParticipantTypeHint}"
                                                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                  Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="角色"/>
-                                                            <ComboBoxItem Content="势力"/>
-                                                            <ComboBoxItem Content="组织"/>
-                                                            <ComboBoxItem Content="其他"/>
+                                                            <ComboBoxItem Tag="角色" Content="{DynamicResource Loc.TL.Data.角色}"/>
+                                                            <ComboBoxItem Tag="势力" Content="{DynamicResource Loc.TL.Data.势力}"/>
+                                                            <ComboBoxItem Tag="组织" Content="{DynamicResource Loc.TL.Data.组织}"/>
+                                                            <ComboBoxItem Tag="其他" Content="{DynamicResource Loc.TL.Data.其他}"/>
                                                         </ComboBox>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Role}"
-                                                               materialDesign:HintAssist.Hint="参与角色"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.ParticipantCharsHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -620,7 +624,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveParticipant_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除参与者">
+                                                              ToolTip="{DynamicResource Loc.TL.DeleteParticipantTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -633,13 +637,13 @@
                             </Border>
 
                             <!-- 影响和结果 -->
-                            <TextBlock Text="影响和结果"
+                            <TextBlock Text="{DynamicResource Loc.TL.ImpactTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
 
                             <TextBox x:Name="EventImpactTextBox"
-                                    materialDesign:HintAssist.Hint="事件影响和结果"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.TL.ImpactHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -651,11 +655,11 @@
                             <StackPanel Orientation="Horizontal"
                                       HorizontalAlignment="Right"
                                       Margin="0,16,0,0">
-                                <Button Content="保存"
+                                <Button Content="{DynamicResource Loc.Dlg.Save}"
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveEvent_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消"
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

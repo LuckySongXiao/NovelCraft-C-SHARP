@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:NovelManagement.WPF.Views"
         mc:Ignorable="d"
-        Title="AI助手" Height="600" Width="800"
+        Title="{DynamicResource Loc.AA.Title}" Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
         Style="{StaticResource MaterialDesignWindow}">
 
@@ -37,7 +37,7 @@
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource PrimaryHueMidBrush}"/>
                     <TextBlock x:Name="TitleTextBlock"
-                             Text="AI助手 - 设定管理" 
+                             Text="{DynamicResource Loc.AA.TitleSetting}" 
                              Style="{StaticResource MaterialDesignHeadline6TextBlock}"
                              VerticalAlignment="Center" 
                              Margin="12,0,0,0"/>
@@ -45,7 +45,7 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <ComboBox x:Name="ModelComboBox"
-                             materialDesign:HintAssist.Hint="选择AI模型"
+                             materialDesign:HintAssist.Hint="{DynamicResource Loc.AA.HintSelectModel}"
                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
                              Width="150"
                              Margin="0,0,8,0"
@@ -53,12 +53,12 @@
                         <ComboBoxItem Content="DeepSeek" Tag="DeepSeek"/>
                         <ComboBoxItem Content="llama.cpp" Tag="LlamaCpp"/>
                         <ComboBoxItem Content="Ollama" Tag="Ollama"/>
-                        <ComboBoxItem Content="智谱AI" Tag="ZhipuAI"/>
+                        <ComboBoxItem Tag="智谱AI" Content="{DynamicResource Loc.AA.ProviderZhipuAI}"/>
                     </ComboBox>
                     
                     <Button x:Name="SettingsButton"
                             Style="{StaticResource MaterialDesignIconButton}"
-                            ToolTip="设置"
+                            ToolTip="{DynamicResource Loc.Dlg.Settings}"
                             Click="Settings_Click">
                         <materialDesign:PackIcon Kind="Settings"/>
                     </Button>
@@ -76,33 +76,33 @@
             <!-- 左侧：功能面板 -->
             <materialDesign:Card Grid.Column="0" Margin="0,0,8,0">
                 <StackPanel Margin="12">
-                    <TextBlock Text="快速操作" 
+                    <TextBlock Text="{DynamicResource Loc.AA.QuickActions}" 
                              Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
                              Margin="0,0,0,12"/>
                     
                     <Button x:Name="GenerateSettingBtn"
-                            Content="生成设定"
+                            Content="{DynamicResource Loc.AA.GenerateSetting}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             HorizontalAlignment="Stretch"
                             Margin="0,0,0,8"
                             Click="GenerateSetting_Click"/>
                     
                     <Button x:Name="AnalyzeSettingBtn"
-                            Content="分析设定"
+                            Content="{DynamicResource Loc.AA.AnalyzeSetting}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             HorizontalAlignment="Stretch"
                             Margin="0,0,0,8"
                             Click="AnalyzeSetting_Click"/>
                     
                     <Button x:Name="OptimizeSettingBtn"
-                            Content="优化建议"
+                            Content="{DynamicResource Loc.AA.OptimizeSuggestion}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             HorizontalAlignment="Stretch"
                             Margin="0,0,0,8"
                             Click="OptimizeSetting_Click"/>
                     
                     <Button x:Name="CheckConsistencyBtn"
-                            Content="一致性检查"
+                            Content="{DynamicResource Loc.AA.ConsistencyCheck}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             HorizontalAlignment="Stretch"
                             Margin="0,0,0,8"
@@ -110,12 +110,12 @@
                     
                     <Separator Margin="0,12"/>
                     
-                    <TextBlock Text="上下文信息" 
+                    <TextBlock Text="{DynamicResource Loc.AA.ContextInfo}" 
                              Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
                              Margin="0,0,0,8"/>
                     
                     <TextBlock x:Name="ContextTextBlock"
-                             Text="当前上下文信息将显示在这里"
+                             Text="{DynamicResource Loc.AA.ContextPlaceholder}"
                              Style="{StaticResource MaterialDesignCaptionTextBlock}"
                              TextWrapping="Wrap"
                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
@@ -146,12 +146,12 @@
                                         <materialDesign:PackIcon Kind="Robot" 
                                                                Width="16" Height="16"
                                                                Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                                        <TextBlock Text="AI助手" 
+                                        <TextBlock Text="{DynamicResource Loc.AA.Title}" 
                                                  Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                                  Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                  Margin="4,0,0,0"/>
                                     </StackPanel>
-                                    <TextBlock Text="您好！我是您的AI助手，专门帮助您管理书籍设定。我可以帮您生成新设定、分析现有设定、提供优化建议等。请告诉我您需要什么帮助？"
+                                    <TextBlock Text="{DynamicResource Loc.AA.Welcome}"
                                              TextWrapping="Wrap"
                                              Style="{StaticResource MaterialDesignBody2TextBlock}"/>
                                 </StackPanel>
@@ -173,7 +173,7 @@
 
                             <TextBox x:Name="InputTextBox"
                                     Grid.Column="0"
-                                    materialDesign:HintAssist.Hint="输入您的问题或需求..."
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.AA.HintInput}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -189,7 +189,7 @@
                                    IsEnabled="{Binding ElementName=InputTextBox, Path=Text.Length, Converter={StaticResource GreaterThanZeroConverter}}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Send" Width="16" Height="16"/>
-                                    <TextBlock Text="发送" Margin="4,0,0,0"/>
+                                    <TextBlock Text="{DynamicResource Loc.AA.Send}" Margin="4,0,0,0"/>
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -213,17 +213,17 @@
                                            Foreground="Green"
                                            VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
-                             Text="就绪"
+                             Text="{DynamicResource Loc.AA.StatusReady}"
                              Style="{StaticResource MaterialDesignCaptionTextBlock}"
                              VerticalAlignment="Center"
                              Margin="4,0,0,0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="清空对话"
+                    <Button Content="{DynamicResource Loc.AA.ClearChat}"
                            Style="{StaticResource MaterialDesignFlatButton}"
                            Click="ClearChat_Click"/>
-                    <Button Content="关闭"
+                    <Button Content="{DynamicResource Loc.Dlg.Close}"
                            Style="{StaticResource MaterialDesignFlatButton}"
                            Click="Close_Click"/>
                 </StackPanel>

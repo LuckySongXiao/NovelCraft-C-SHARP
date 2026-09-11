@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -160,8 +161,8 @@ namespace NovelManagement.WPF.Views
                     PopulateFilterOptions();
                     UpdateCharacterList();
                     DrawNetworkGraph();
-                    ShowPlaceholderDetails("请选择项目后查看关系网络");
-                    EnsureCurrentProject("关系网络", out _);
+                    ShowPlaceholderDetails(T("RN.SelectProjectFirst", "请选择项目后查看关系网络"));
+                    EnsureCurrentProject(T("RN.Title", "关系网络"), out _);
                     return;
                 }
 
@@ -190,7 +191,7 @@ namespace NovelManagement.WPF.Views
                     _allCharacters = new List<CharacterNodeViewModel>();
                     _allRelationships = new List<RelationshipViewModel>();
                     _filteredCharacters = new List<CharacterNodeViewModel>();
-                    ShowPlaceholderDetails("角色服务不可用，无法加载真实关系网络");
+                    ShowPlaceholderDetails(T("RN.CharacterServiceUnavailable", "角色服务不可用，无法加载真实关系网络"));
                 }
 
                 PopulateFilterOptions();
@@ -198,8 +199,8 @@ namespace NovelManagement.WPF.Views
                 if (_filteredCharacters.Count == 0)
                 {
                     ShowPlaceholderDetails(_allCharacters.Count == 0
-                        ? "当前项目还没有角色，先去角色管理中创建角色"
-                        : "当前筛选条件下没有可显示的角色或关系");
+                        ? T("RN.NoCharacters", "当前项目还没有角色，先去角色管理中创建角色")
+                        : T("RN.NoFilteredResults", "当前筛选条件下没有可显示的角色或关系"));
                 }
             }
             catch (Exception ex)
@@ -213,9 +214,9 @@ namespace NovelManagement.WPF.Views
                 PopulateFilterOptions();
                 UpdateCharacterList();
                 DrawNetworkGraph();
-                ShowPlaceholderDetails("加载失败，请检查项目数据或稍后重试");
+                ShowPlaceholderDetails(T("RN.LoadFailedRetry", "加载失败，请检查项目数据或稍后重试"));
 
-                MessageBox.Show($"加载角色数据失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("RN.LoadCharactersFailedFmt", "加载角色数据失败：{0}", ex.Message), T("CC.SevWarning", "警告"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -270,7 +271,7 @@ namespace NovelManagement.WPF.Views
                     CharacterId = character.Id, // 保存真实的数据库ID
                     Name = character.Name,
                     Type = character.Type,
-                    Faction = character.Faction?.Name ?? "无势力",
+                    Faction = character.Faction?.Name ?? T("SV.NoFaction", "无势力"),
                     InitialLetter = character.Name.Length > 0 ? character.Name.Substring(0, 1) : "?",
                     ConnectionStrengthColor = GetCharacterColor(character.Type),
                     ConnectionCount = 0, // 将在加载关系时更新
@@ -398,7 +399,7 @@ namespace NovelManagement.WPF.Views
         private void UpdateCharacterList()
         {
             CharacterListControl.ItemsSource = _filteredCharacters;
-            CharacterCountLabel.Text = $"({_filteredCharacters.Count}个角色)";
+            CharacterCountLabel.Text = " (" + string.Format(T("RN.CharCountFmt", "{0}个角色"), _filteredCharacters.Count) + ")";
         }
 
         /// <summary>
@@ -586,7 +587,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (character == null)
                 {
-                    MessageBox.Show("角色数据为空", "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("角色数据为空", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -603,7 +604,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"选择角色时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"选择角色时发生错误: {ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -695,7 +696,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"显示角色详情时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"显示角色详情时发生错误: {ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 System.Diagnostics.Debug.WriteLine($"ShowCharacterDetails 错误: {ex}");
             }
         }
@@ -733,14 +734,14 @@ namespace NovelManagement.WPF.Views
 
             var statusBlock = new TextBlock
             {
-                Text = $"状态：{relationship.Status}",
+                Text = TF("RN.StatusFmt", "状态：{0}", LocalizeStoredValue(relationship.Status)),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             RelationshipDetailPanel.Children.Add(statusBlock);
 
             var descBlock = new TextBlock
             {
-                Text = $"描述：{relationship.Description}",
+                Text = TF("RN.DescriptionFmt", "描述：{0}", relationship.Description),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 8)
             };
@@ -899,7 +900,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_characterRelationshipService == null)
                     {
-                        MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("角色关系服务未初始化。", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -916,12 +917,12 @@ namespace NovelManagement.WPF.Views
 
                     await _characterRelationshipService.CreateCharacterRelationshipAsync(relationship);
                     await LoadCharactersDataAsync();
-                    MessageBox.Show("关系添加成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("关系添加成功！", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加关系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"添加关系失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -934,20 +935,20 @@ namespace NovelManagement.WPF.Views
             {
                 if (_allCharacters.Count < 2)
                 {
-                    MessageBox.Show("至少需要两个角色才能进行关系检测。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("至少需要两个角色才能进行关系检测。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 if (_characterRelationshipService == null)
                 {
-                    MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("角色关系服务未初始化。", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 var candidates = await DetectRelationshipCandidatesAsync();
                 if (candidates.Count == 0)
                 {
-                    MessageBox.Show("本次没有检测到新的可写入关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("本次没有检测到新的可写入关系。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -961,7 +962,7 @@ namespace NovelManagement.WPF.Views
                     var selectedCandidates = confirmDialog.GetSelectedCandidates();
                     if (selectedCandidates.Count == 0)
                     {
-                        MessageBox.Show("未选择任何候选关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("未选择任何候选关系。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
 
@@ -989,7 +990,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"智能检测失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"智能检测失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1021,7 +1022,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "显示全部角色失败");
-                MessageBox.Show($"显示全部角色失败: {ex.Message}", "错误",
+                MessageBox.Show(TF("RN.ShowFailed", "显示全部角色失败: {0}", ex.Message), T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1047,7 +1048,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"切换布局失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("RN.SwitchFailed", "切换布局失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1060,7 +1061,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_allCharacters.Count < 2)
                 {
-                    MessageBox.Show("至少需要两个角色才能进行网络分析。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("至少需要两个角色才能进行网络分析。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1070,7 +1071,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"网络分析失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"网络分析失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1084,7 +1085,7 @@ namespace NovelManagement.WPF.Views
                 var bitmap = CaptureNetworkBitmap();
                 if (bitmap == null)
                 {
-                    MessageBox.Show("当前没有可导出的网络图内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("当前没有可导出的网络图内容。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1101,12 +1102,12 @@ namespace NovelManagement.WPF.Views
                     var encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(bitmap));
                     encoder.Save(fileStream);
-                    MessageBox.Show($"网络图已导出到：{saveDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("RN.ExportDone", "网络图已导出到：{0}", saveDialog.FileName), T("AC.ExportSuccess", "导出成功"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.ExportFailedFmt", "导出失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1134,7 +1135,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开设置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"打开设置失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1150,7 +1151,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"重新布局失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"重新布局失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1166,7 +1167,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"适应窗口失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"适应窗口失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1180,7 +1181,7 @@ namespace NovelManagement.WPF.Views
                 var bitmap = CaptureNetworkBitmap();
                 if (bitmap == null)
                 {
-                    MessageBox.Show("当前没有可显示的网络图内容。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("当前没有可显示的网络图内容。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1189,7 +1190,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"全屏显示失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"全屏显示失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1213,14 +1214,14 @@ namespace NovelManagement.WPF.Views
                     {
                         if (_characterRelationshipService == null)
                         {
-                            MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("角色关系服务未初始化。", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
 
                         var relationship = await _characterRelationshipService.GetCharacterRelationshipByIdAsync(_selectedRelationship.RelationshipId);
                         if (relationship == null)
                         {
-                            MessageBox.Show("未找到要编辑的关系。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show(T("RN.NotFoundForEdit", "未找到要编辑的关系。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                             return;
                         }
 
@@ -1241,7 +1242,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"编辑关系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("RN.EditFailedFmt", "编辑关系失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1266,14 +1267,14 @@ namespace NovelManagement.WPF.Views
                     {
                         if (_characterRelationshipService == null)
                         {
-                            MessageBox.Show("角色关系服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("角色关系服务未初始化。", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
 
                         var deleted = await _characterRelationshipService.DeleteCharacterRelationshipAsync(_selectedRelationship.RelationshipId);
                         if (!deleted)
                         {
-                            MessageBox.Show("关系删除失败或关系不存在。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show(T("RN.DeleteFailedOrMissing", "关系删除失败或关系不存在。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                             return;
                         }
 
@@ -1296,7 +1297,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除关系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("RN.DeleteFailed", "删除关系失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1342,7 +1343,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"查看角色详情失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"查看角色详情失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1770,11 +1771,12 @@ namespace NovelManagement.WPF.Views
 
             var previousSelection = GetSelectedComboBoxContent(comboBox, defaultItem);
             comboBox.Items.Clear();
-            comboBox.Items.Add(new ComboBoxItem { Content = defaultItem });
+            // 默认项 Content 本地化显示（Tag 保留中文存储值供筛选逻辑比对）
+            comboBox.Items.Add(new ComboBoxItem { Tag = defaultItem, Content = Localization.LocalizationManager.LocalizeStoredValue(defaultItem) });
 
             foreach (var value in values)
             {
-                comboBox.Items.Add(new ComboBoxItem { Content = value });
+                comboBox.Items.Add(new ComboBoxItem { Tag = value, Content = Localization.LocalizationManager.LocalizeStoredValue(value) });
             }
 
             ResetComboBoxSelection(comboBox, previousSelection);
@@ -1782,7 +1784,8 @@ namespace NovelManagement.WPF.Views
 
         private static string GetSelectedComboBoxContent(ComboBox? comboBox, string fallback)
         {
-            return (comboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? fallback;
+            var item = comboBox?.SelectedItem as ComboBoxItem;
+        return item?.Tag?.ToString() ?? item?.Content?.ToString() ?? fallback;
         }
 
         private static void ResetComboBoxSelection(ComboBox? comboBox, string preferredValue)
@@ -1794,7 +1797,7 @@ namespace NovelManagement.WPF.Views
 
             foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
             {
-                if (string.Equals(item.Content?.ToString(), preferredValue, StringComparison.Ordinal))
+                if (string.Equals(item.Tag?.ToString() ?? item.Content?.ToString(), preferredValue, StringComparison.Ordinal))
                 {
                     comboBox.SelectedItem = item;
                     return;
@@ -1825,7 +1828,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "刷新关系网络数据失败");
-                MessageBox.Show($"刷新关系网络数据失败: {ex.Message}", "错误",
+                MessageBox.Show($"刷新关系网络数据失败: {ex.Message}", T("AC.ColError", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1855,7 +1858,7 @@ namespace NovelManagement.WPF.Views
                     // 更新角色信息
                     characterNode.Name = updatedCharacter.Name;
                     characterNode.Type = updatedCharacter.Type;
-                    characterNode.Faction = updatedCharacter.Faction?.Name ?? "无势力";
+                    characterNode.Faction = updatedCharacter.Faction?.Name ?? T("SV.NoFaction", "无势力");
                     characterNode.InitialLetter = updatedCharacter.Name.Length > 0 ?
                         updatedCharacter.Name.Substring(0, 1) : "?";
                     characterNode.ConnectionStrengthColor = GetCharacterColor(updatedCharacter.Type);
@@ -1866,7 +1869,7 @@ namespace NovelManagement.WPF.Views
                     {
                         filteredCharacter.Name = updatedCharacter.Name;
                         filteredCharacter.Type = updatedCharacter.Type;
-                        filteredCharacter.Faction = updatedCharacter.Faction?.Name ?? "无势力";
+                        filteredCharacter.Faction = updatedCharacter.Faction?.Name ?? T("SV.NoFaction", "无势力");
                         filteredCharacter.InitialLetter = updatedCharacter.Name.Length > 0 ?
                             updatedCharacter.Name.Substring(0, 1) : "?";
                         filteredCharacter.ConnectionStrengthColor = GetCharacterColor(updatedCharacter.Type);
@@ -1996,6 +1999,10 @@ namespace NovelManagement.WPF.Views
         /// 关系数量。
         /// </summary>
         public int RelationshipCount { get; set; }
+
+        /// <summary>本地化的关系数显示文本。</summary>
+        public string RelationshipCountDisplay =>
+            NovelManagement.WPF.Localization.LocalizationManager.TF("RN.RelationCountFmt", "{0}个关系", RelationshipCount);
 
         /// <summary>
         /// 节点横坐标。
@@ -2252,7 +2259,7 @@ namespace NovelManagement.WPF.Views
             };
             var typeComboBox = new ComboBox
             {
-                ItemsSource = new[] { "朋友关系", "爱情关系", "师徒关系", "敌对关系", "同门关系", "亲属关系" },
+                ItemsSource = DialogUiHelpers.BuildLocalizedItems(DialogUiHelpers.RelationshipTypeValues),
                 SelectedIndex = 0
             };
             var strengthSlider = new Slider
@@ -2265,7 +2272,7 @@ namespace NovelManagement.WPF.Views
             };
             var statusComboBox = new ComboBox
             {
-                ItemsSource = new[] { "稳定", "友好", "紧张", "敌对", "复杂" },
+                ItemsSource = DialogUiHelpers.BuildLocalizedItems(DialogUiHelpers.RelationshipStatusValues),
                 SelectedIndex = 0
             };
             var descriptionTextBox = new TextBox
@@ -2287,13 +2294,13 @@ namespace NovelManagement.WPF.Views
                     if (sourceComboBox.SelectedItem is not CharacterNodeViewModel source
                         || targetComboBox.SelectedItem is not CharacterNodeViewModel target)
                     {
-                        MessageBox.Show("请选择关系双方角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("请选择关系双方角色。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                         return false;
                     }
 
                     if (source.CharacterId == target.CharacterId)
                     {
-                        MessageBox.Show("关系双方不能是同一个角色。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("关系双方不能是同一个角色。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                         return false;
                     }
 
@@ -2301,9 +2308,9 @@ namespace NovelManagement.WPF.Views
                     TargetCharacterGuid = target.CharacterId;
                     FromCharacterName = source.Name;
                     ToCharacterName = target.Name;
-                    RelationshipType = typeComboBox.SelectedItem?.ToString() ?? "朋友关系";
+                    RelationshipType = DialogUiHelpers.GetSelectedStoredValue(typeComboBox) ?? "朋友关系";
                     Strength = (int)strengthSlider.Value;
-                    Status = statusComboBox.SelectedItem?.ToString() ?? "稳定";
+                    Status = DialogUiHelpers.GetSelectedStoredValue(statusComboBox) ?? "稳定";
                     Description = descriptionTextBox.Text.Trim();
                     return true;
                 });
@@ -2341,7 +2348,7 @@ namespace NovelManagement.WPF.Views
         /// <param name="relationship">待编辑的关系。</param>
         public EditRelationshipDialog(RelationshipViewModel relationship)
         {
-            Title = "编辑关系";
+            Title = T("RN.EditTitle", "编辑关系");
             Width = 460;
             Height = 380;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -2360,9 +2367,9 @@ namespace NovelManagement.WPF.Views
             };
             var typeComboBox = new ComboBox
             {
-                ItemsSource = new[] { "朋友关系", "爱情关系", "师徒关系", "敌对关系", "同门关系", "亲属关系" },
-                SelectedItem = relationship.RelationshipType
+                ItemsSource = DialogUiHelpers.BuildLocalizedItems(DialogUiHelpers.RelationshipTypeValues)
             };
+            DialogUiHelpers.SelectStoredValue(typeComboBox, relationship.RelationshipType);
             var strengthSlider = new Slider
             {
                 Minimum = 10,
@@ -2373,9 +2380,9 @@ namespace NovelManagement.WPF.Views
             };
             var statusComboBox = new ComboBox
             {
-                ItemsSource = new[] { "稳定", "友好", "紧张", "敌对", "复杂" },
-                SelectedItem = relationship.Status
+                ItemsSource = DialogUiHelpers.BuildLocalizedItems(DialogUiHelpers.RelationshipStatusValues)
             };
+            DialogUiHelpers.SelectStoredValue(statusComboBox, relationship.Status);
             var descriptionTextBox = new TextBox
             {
                 AcceptsReturn = true,
@@ -2393,9 +2400,9 @@ namespace NovelManagement.WPF.Views
                 descriptionTextBox,
                 confirmAction: () =>
                 {
-                    RelationshipType = typeComboBox.SelectedItem?.ToString() ?? relationship.RelationshipType;
+                    RelationshipType = DialogUiHelpers.GetSelectedStoredValue(typeComboBox) ?? relationship.RelationshipType;
                     Strength = (int)strengthSlider.Value;
-                    Status = statusComboBox.SelectedItem?.ToString() ?? relationship.Status;
+                    Status = DialogUiHelpers.GetSelectedStoredValue(statusComboBox) ?? relationship.Status;
                     Description = descriptionTextBox.Text.Trim();
                     return true;
                 });
@@ -2528,7 +2535,7 @@ namespace NovelManagement.WPF.Views
             panel.Children.Add(strengthSlider);
             panel.Children.Add(new TextBlock { Text = "关系状态", Margin = new Thickness(0, 12, 0, 0) });
             panel.Children.Add(statusComboBox);
-            panel.Children.Add(new TextBlock { Text = "关系描述", Margin = new Thickness(0, 12, 0, 0) });
+            panel.Children.Add(new TextBlock { Text = T("RN.RelDescription", "关系描述"), Margin = new Thickness(0, 12, 0, 0) });
             panel.Children.Add(descriptionTextBox);
 
             var buttonPanel = new StackPanel
@@ -2650,7 +2657,7 @@ namespace NovelManagement.WPF.Views
                     !double.TryParse(canvasWidthBox.Text, out var parsedCanvasWidth) ||
                     !double.TryParse(canvasHeightBox.Text, out var parsedCanvasHeight))
                 {
-                    MessageBox.Show("请输入有效的数值设置。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请输入有效的数值设置。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 

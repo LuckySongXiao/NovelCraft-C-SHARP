@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="司法体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Jud.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddJudicialSystem_Click"
-                            ToolTip="新建司法体系">
+                            ToolTip="{DynamicResource Loc.WS.Jud.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportJudicial_Click"
-                            ToolTip="导入司法数据">
+                            ToolTip="{DynamicResource Loc.WS.Jud.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportJudicial_Click"
-                            ToolTip="导出司法数据">
+                            ToolTip="{DynamicResource Loc.WS.Jud.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索司法体系..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,15 +100,15 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="LegalSystemFilterComboBox"
-                                     materialDesign:HintAssist.Hint="法律体系类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.TypeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="LegalSystemFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类型"/>
-                                <ComboBoxItem Content="成文法系"/>
-                                <ComboBoxItem Content="判例法系"/>
-                                <ComboBoxItem Content="宗教法系"/>
-                                <ComboBoxItem Content="习惯法系"/>
-                                <ComboBoxItem Content="混合法系"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllTypes}"/>
+                                <ComboBoxItem Tag="成文法系" Content="{DynamicResource Loc.WS.Jud.Data.成文法系}"/>
+                                <ComboBoxItem Tag="判例法系" Content="{DynamicResource Loc.WS.Jud.Data.判例法系}"/>
+                                <ComboBoxItem Tag="宗教法系" Content="{DynamicResource Loc.WS.Jud.Data.宗教法系}"/>
+                                <ComboBoxItem Tag="习惯法系" Content="{DynamicResource Loc.WS.Jud.Data.习惯法系}"/>
+                                <ComboBoxItem Tag="混合法系" Content="{DynamicResource Loc.WS.Jud.Data.混合法系}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -177,14 +177,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="管辖区: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Jud.JurisdictionLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding Jurisdiction}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 法院数: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Jud.CourtCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -205,7 +205,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="司法体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Jud.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -216,21 +216,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="成文法系: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.成文法系}"/>
                                         <Run Text="{Binding WrittenLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="判例法系: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.判例法系}"/>
                                         <Run Text="{Binding CaseLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="宗教法系: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.宗教法系}"/>
                                         <Run Text="{Binding ReligiousLawCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -254,12 +254,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个司法体系查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Jud.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的司法体系" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Jud.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -269,7 +269,7 @@
                         <!-- 司法详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -283,20 +283,20 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="JudicialNameTextBox"
-                                        materialDesign:HintAssist.Hint="司法体系名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="LegalSystemTypeComboBox"
-                                         materialDesign:HintAssist.Hint="法律体系类型"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.TypeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="成文法系"/>
-                                    <ComboBoxItem Content="判例法系"/>
-                                    <ComboBoxItem Content="宗教法系"/>
-                                    <ComboBoxItem Content="习惯法系"/>
-                                    <ComboBoxItem Content="混合法系"/>
+                                    <ComboBoxItem Tag="成文法系" Content="{DynamicResource Loc.WS.Jud.Data.成文法系}"/>
+                                    <ComboBoxItem Tag="判例法系" Content="{DynamicResource Loc.WS.Jud.Data.判例法系}"/>
+                                    <ComboBoxItem Tag="宗教法系" Content="{DynamicResource Loc.WS.Jud.Data.宗教法系}"/>
+                                    <ComboBoxItem Tag="习惯法系" Content="{DynamicResource Loc.WS.Jud.Data.习惯法系}"/>
+                                    <ComboBoxItem Tag="混合法系" Content="{DynamicResource Loc.WS.Jud.Data.混合法系}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -309,19 +309,19 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="JurisdictionTextBox"
-                                        materialDesign:HintAssist.Hint="司法管辖区"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.JurisdictionHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="DimensionIdTextBox"
-                                        materialDesign:HintAssist.Hint="维度ID"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.DimensionId}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
 
                             <TextBox x:Name="JudicialDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="司法体系描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -330,7 +330,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 法院体系 -->
-                            <TextBlock Text="法院体系" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Jud.CourtsTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -348,13 +348,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="法院列表" 
+                                                 Text="{DynamicResource Loc.WS.Jud.CourtList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddCourt_Click"
-                                              ToolTip="添加法院">
+                                              ToolTip="{DynamicResource Loc.WS.Jud.AddCourtTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -375,25 +375,25 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="法院名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.CourtNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="1" 
                                                                 SelectedItem="{Binding Level}" 
-                                                                materialDesign:HintAssist.Hint="法院层级"
+                                                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.CourtLevelHint}"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="最高法院"/>
-                                                            <ComboBoxItem Content="高级法院"/>
-                                                            <ComboBoxItem Content="中级法院"/>
-                                                            <ComboBoxItem Content="基层法院"/>
-                                                            <ComboBoxItem Content="专门法院"/>
+                                                            <ComboBoxItem Tag="最高法院" Content="{DynamicResource Loc.WS.Jud.Data.最高法院}"/>
+                                                            <ComboBoxItem Tag="高级法院" Content="{DynamicResource Loc.WS.Jud.Data.高级法院}"/>
+                                                            <ComboBoxItem Tag="中级法院" Content="{DynamicResource Loc.WS.Jud.Data.中级法院}"/>
+                                                            <ComboBoxItem Tag="基层法院" Content="{DynamicResource Loc.WS.Jud.Data.基层法院}"/>
+                                                            <ComboBoxItem Tag="专门法院" Content="{DynamicResource Loc.WS.Jud.Data.专门法院}"/>
                                                         </ComboBox>
                                                         
                                                         <TextBox Grid.Column="2" 
                                                                Text="{Binding Jurisdiction}" 
-                                                               materialDesign:HintAssist.Hint="管辖范围"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Jud.ScopeHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -401,7 +401,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveCourt_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除法院">
+                                                              ToolTip="{DynamicResource Loc.WS.Jud.DeleteCourtTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -417,11 +417,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveJudicialSystem_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

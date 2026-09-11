@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -74,7 +75,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "商业体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Business.Title", "商业体系管理"), out _);
                     BusinessSystems.Clear();
                     BusinessProducts.Clear();
                     BusinessServices.Clear();
@@ -104,7 +105,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载商业体系数据失败");
-                MessageBox.Show($"加载商业体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Bus.LoadFailed", "加载商业体系数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -161,15 +162,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入商业体系"))
+                if (!EnsureCurrentProject(T("WS.Bus.ImportTitle", "导入商业体系")))
                 {
                     return;
                 }
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入商业体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Bus.ImportTitle", "导入商业体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -180,7 +181,7 @@ namespace NovelManagement.WPF.Views
 
                 if (_businessDataService == null)
                 {
-                    MessageBox.Show("商业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("WS.Bus.ServiceNotInit", "商业数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -198,12 +199,12 @@ namespace NovelManagement.WPF.Views
                 await PersistBusinessSystemsAsync();
                 FilterBusinessSystems();
                 UpdateStatistics();
-                MessageBox.Show($"已成功导入 {BusinessSystems.Count} 个商业体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("Bus.ImportDone", "已成功导入 {0} 个商业体系。", BusinessSystems.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导入商业体系失败");
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -211,7 +212,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导出商业体系"))
+                if (!EnsureCurrentProject(T("WS.Bus.ExportTitle", "导出商业体系")))
                 {
                     return;
                 }
@@ -219,7 +220,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出商业体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"商业体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -231,17 +232,17 @@ namespace NovelManagement.WPF.Views
 
                 if (_businessDataService == null)
                 {
-                    MessageBox.Show("商业数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("WS.Bus.ServiceNotInit", "商业数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 await _businessDataService.ExportBusinessSystemsAsync(_currentProjectId, BusinessSystems, dialog.FileName);
-                MessageBox.Show($"商业体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("Bus.ExportDone", "商业体系数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导出商业体系失败");
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -266,7 +267,7 @@ namespace NovelManagement.WPF.Views
 
             foreach (ComboBoxItem item in BusinessCategoryComboBox.Items)
             {
-                if (item.Content?.ToString() == business.Category)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == business.Category)
                 {
                     BusinessCategoryComboBox.SelectedItem = item;
                     break;
@@ -344,14 +345,14 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
-                if (!EnsureCurrentProject("保存商业体系"))
+                if (!EnsureCurrentProject(T("WS.Bus.SaveTitle", "保存商业体系")))
                 {
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(BusinessNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入商业模式名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Bus.NameRequired", "请输入商业模式名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -359,7 +360,7 @@ namespace NovelManagement.WPF.Views
                 SelectedBusiness.Description = BusinessDescriptionTextBox.Text.Trim();
                 SelectedBusiness.Location = BusinessLocationTextBox.Text.Trim();
                 SelectedBusiness.Owner = BusinessOwnerTextBox.Text.Trim();
-                SelectedBusiness.Category = (BusinessCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "贸易商行";
+                SelectedBusiness.Category = (BusinessCategoryComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (BusinessCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "贸易商行";
                 SelectedBusiness.Products = BusinessProducts
                     .Where(product => !string.IsNullOrWhiteSpace(product.Name))
                     .Select(product => new BusinessProductViewModel
@@ -388,14 +389,14 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistBusinessSystemsAsync();
-                MessageBox.Show("商业体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Bus.SaveSuccess", "商业体系保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                 FilterBusinessSystems();
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "保存商业体系失败");
-                MessageBox.Show($"保存商业体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Bus.SaveFailed", "保存商业体系失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -470,7 +471,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -571,7 +572,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -589,7 +590,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI商业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI商业体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

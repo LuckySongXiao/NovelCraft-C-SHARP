@@ -16,11 +16,11 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="势力管理" 
+            <TextBlock Text="{DynamicResource Loc.FM.Title}" 
                      FontSize="32" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理书籍中的势力组织和关系网络" 
+            <TextBlock Text="{DynamicResource Loc.FM.Subtitle}" 
                      FontSize="16" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -34,7 +34,7 @@
                             Click="NewFaction_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,8,0"/>
-                            <TextBlock Text="新建势力"/>
+                            <TextBlock Text="{DynamicResource Loc.FM.New}"/>
                         </StackPanel>
                     </Button>
                     
@@ -43,7 +43,7 @@
                             Click="ImportFactions_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Import" Margin="0,0,8,0"/>
-                            <TextBlock Text="导入势力"/>
+                            <TextBlock Text="{DynamicResource Loc.FM.Import}"/>
                         </StackPanel>
                     </Button>
                     
@@ -52,7 +52,7 @@
                             Click="ExportFactions_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,8,0"/>
-                            <TextBlock Text="导出势力"/>
+                            <TextBlock Text="{DynamicResource Loc.FM.Export}"/>
                         </StackPanel>
                     </Button>
 
@@ -61,7 +61,7 @@
                             Click="ViewRelationshipNetwork_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="GraphOutline" Margin="0,0,8,0"/>
-                            <TextBlock Text="关系网络"/>
+                            <TextBlock Text="{DynamicResource Loc.RN.Title}"/>
                         </StackPanel>
                     </Button>
 
@@ -71,7 +71,7 @@
                             Click="AIAnalysisFaction_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Brain" Margin="0,0,8,0"/>
-                            <TextBlock Text="AI分析"/>
+                            <TextBlock Text="{DynamicResource Loc.FM.AIAnalysis}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -79,33 +79,33 @@
                 <!-- 筛选和搜索 -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <ComboBox x:Name="FactionTypeFilter"
-                            materialDesign:HintAssist.Hint="势力类型"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.FM.TypeHint}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectionChanged="FactionTypeFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部"/>
-                        <ComboBoxItem Content="宗门"/>
-                        <ComboBoxItem Content="家族"/>
-                        <ComboBoxItem Content="组织"/>
-                        <ComboBoxItem Content="国家"/>
-                        <ComboBoxItem Content="商会"/>
+                        <ComboBoxItem Tag="全部" Content="{DynamicResource Loc.FM.TypeAll}"/>
+                        <ComboBoxItem Tag="宗门" Content="{DynamicResource Loc.FM.Data.宗门}"/>
+                        <ComboBoxItem Tag="家族" Content="{DynamicResource Loc.FM.Data.家族}"/>
+                        <ComboBoxItem Tag="组织" Content="{DynamicResource Loc.FM.Data.组织}"/>
+                        <ComboBoxItem Tag="国家" Content="{DynamicResource Loc.FM.Data.国家}"/>
+                        <ComboBoxItem Tag="商会" Content="{DynamicResource Loc.FM.Data.商会}"/>
                     </ComboBox>
                     
                     <ComboBox x:Name="PowerLevelFilter"
-                            materialDesign:HintAssist.Hint="实力等级"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.FM.LevelHint}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectionChanged="PowerLevelFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部"/>
-                        <ComboBoxItem Content="超级"/>
-                        <ComboBoxItem Content="一流"/>
-                        <ComboBoxItem Content="二流"/>
-                        <ComboBoxItem Content="三流"/>
-                        <ComboBoxItem Content="普通"/>
+                        <ComboBoxItem Tag="全部" Content="{DynamicResource Loc.FM.TypeAll}"/>
+                        <ComboBoxItem Tag="超级" Content="{DynamicResource Loc.FM.Data.超级}"/>
+                        <ComboBoxItem Tag="一流" Content="{DynamicResource Loc.FM.Data.一流}"/>
+                        <ComboBoxItem Tag="二流" Content="{DynamicResource Loc.FM.Data.二流}"/>
+                        <ComboBoxItem Tag="三流" Content="{DynamicResource Loc.FM.Data.三流}"/>
+                        <ComboBoxItem Tag="普通" Content="{DynamicResource Loc.FM.Data.普通}"/>
                     </ComboBox>
                     
                     <TextBox x:Name="SearchTextBox"
-                           materialDesign:HintAssist.Hint="搜索势力..."
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.FM.SearchHint}"
                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
                            materialDesign:TextFieldAssist.LeadingIcon="Search"
                            Width="200"
@@ -135,10 +135,10 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,12">
                         <DockPanel>
-                            <TextBlock Text="势力列表" FontWeight="Medium" DockPanel.Dock="Left"/>
+                            <TextBlock Text="{DynamicResource Loc.FM.List}" FontWeight="Medium" DockPanel.Dock="Left"/>
                             <ToggleButton x:Name="HierarchyViewToggle"
                                         Style="{StaticResource MaterialDesignActionToggleButton}"
-                                        ToolTip="层级视图"
+                                        ToolTip="{DynamicResource Loc.FM.HierarchyTooltip}"
                                         DockPanel.Dock="Right"
                                         IsChecked="False"
                                         Checked="ViewMode_Changed"
@@ -199,7 +199,7 @@
                                                                        Height="20"
                                                                        Background="{Binding PowerLevelColor}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding MemberCount, StringFormat='成员: {0}人'}" 
+                                                <TextBlock Text="{Binding MemberCountDisplay}" 
                                                          FontSize="12"
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="0,2,0,0"/>
@@ -230,7 +230,7 @@
                 <!-- 默认显示势力统计信息 -->
                 <materialDesign:Card Padding="24" x:Name="DefaultCard">
                     <StackPanel>
-                        <TextBlock Text="势力统计" 
+                        <TextBlock Text="{DynamicResource Loc.FM.Stats}" 
                                  FontSize="24" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,24"/>
@@ -239,7 +239,7 @@
                         <UniformGrid Columns="2" Margin="0,0,0,24">
                             <materialDesign:Card Margin="0,0,8,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="总势力数" 
+                                    <TextBlock Text="{DynamicResource Loc.FM.TotalCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="12" 
@@ -250,7 +250,7 @@
 
                             <materialDesign:Card Margin="8,0,0,8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="宗门势力" 
+                                    <TextBlock Text="{DynamicResource Loc.FM.SectCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="5" 
@@ -261,7 +261,7 @@
 
                             <materialDesign:Card Margin="0,8,8,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="家族势力" 
+                                    <TextBlock Text="{DynamicResource Loc.FM.FamilyCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="4" 
@@ -272,7 +272,7 @@
 
                             <materialDesign:Card Margin="8,8,0,0" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="关系数量" 
+                                    <TextBlock Text="{DynamicResource Loc.CM.RelationCount}" 
                                              FontSize="14" 
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                     <TextBlock Text="28" 
@@ -283,7 +283,7 @@
                         </UniformGrid>
 
                         <!-- 实力等级分布 -->
-                        <TextBlock Text="实力等级分布" 
+                        <TextBlock Text="{DynamicResource Loc.FM.LevelDistribution}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
@@ -296,7 +296,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="超级势力" Margin="0,0,12,0" Background="#F44336"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.FM.LegendSupreme}" Margin="0,0,12,0" Background="#F44336"/>
                                 <ProgressBar Grid.Column="1" Value="2" Maximum="12" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="2" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -308,7 +308,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="一流势力" Margin="0,0,12,0" Background="#FF9800"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.FM.LegendFirst}" Margin="0,0,12,0" Background="#FF9800"/>
                                 <ProgressBar Grid.Column="1" Value="3" Maximum="12" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="3" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -320,7 +320,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="二流势力" Margin="0,0,12,0" Background="#4CAF50"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.FM.LegendSecond}" Margin="0,0,12,0" Background="#4CAF50"/>
                                 <ProgressBar Grid.Column="1" Value="4" Maximum="12" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="4" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>
@@ -332,7 +332,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <materialDesign:Chip Grid.Column="0" Content="三流势力" Margin="0,0,12,0" Background="#2196F3"/>
+                                <materialDesign:Chip Grid.Column="0" Content="{DynamicResource Loc.FM.LegendThird}" Margin="0,0,12,0" Background="#2196F3"/>
                                 <ProgressBar Grid.Column="1" Value="3" Maximum="12" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="3" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </Grid>

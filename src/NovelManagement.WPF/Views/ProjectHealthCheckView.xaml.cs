@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using MaterialDesignThemes.Wpf;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -73,7 +74,7 @@ namespace NovelManagement.WPF.Views
             _issues.Clear();
             UpdateSummary();
             IssueDetailPanel.Children.Clear();
-            AddDetailPlaceholder("选择上方问题查看详情与修复建议");
+            AddDetailPlaceholder(LocalizationManager.T("HC.SelectIssueHint", "选择上方问题查看详情与修复建议"));
             JumpButton.IsEnabled = false;
 
             if (_currentProjectId != Guid.Empty && _issues.Count == 0)
@@ -86,8 +87,8 @@ namespace NovelManagement.WPF.Views
         private void UpdateProjectInfo()
         {
             ProjectInfoText.Text = _currentProjectId == Guid.Empty
-                ? "请先选择项目"
-                : $"当前项目：{_currentProjectName}（{_currentProjectId:N}）";
+                ? LocalizationManager.T("HC.SelectProjectFirst", "请先选择项目")
+                : LocalizationManager.TF("HC.CurrentProject", "当前项目：{0}（{1}）", _currentProjectName, $"{_currentProjectId:N}");
         }
 
         #region 检查入口
@@ -121,14 +122,14 @@ namespace NovelManagement.WPF.Views
 
             if (_currentProjectId == Guid.Empty)
             {
-                MessageBox.Show("请先在项目管理中选择一个项目。", "项目体检",
+                MessageBox.Show(LocalizationManager.T("HC.SelectProjectMsg", "请先在项目管理中选择一个项目。"), LocalizationManager.T("HC.MsgTitle", "项目体检"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             if (_healthCheckService == null)
             {
-                MessageBox.Show("健康检查服务未初始化。", "项目体检",
+                MessageBox.Show(LocalizationManager.T("HC.ServiceNotInit", "健康检查服务未初始化。"), LocalizationManager.T("HC.MsgTitle", "项目体检"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -140,7 +141,7 @@ namespace NovelManagement.WPF.Views
                 SetCheckButtonsEnabled(false);
 
                 IssueDetailPanel.Children.Clear();
-                AddDetailPlaceholder("正在检查，请稍候……");
+                AddDetailPlaceholder(LocalizationManager.T("HC.Checking", "正在检查，请稍候……"));
 
                 var issues = await _healthCheckService.RunChecksAsync(_currentProjectId, mode);
 
@@ -153,13 +154,13 @@ namespace NovelManagement.WPF.Views
                 UpdateSummary();
                 IssueDetailPanel.Children.Clear();
                 AddDetailPlaceholder(issues.Count == 0
-                    ? "检查完成，未发现问题。"
-                    : "选择上方问题查看详情与修复建议");
+                    ? LocalizationManager.T("HC.NoIssues", "检查完成，未发现问题。")
+                    : LocalizationManager.T("HC.SelectIssueHint", "选择上方问题查看详情与修复建议"));
                 JumpButton.IsEnabled = false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"执行检查失败：{ex.Message}", "项目体检",
+                MessageBox.Show(LocalizationManager.TF("HC.CheckFailed", "执行检查失败：{0}", ex.Message), LocalizationManager.T("HC.MsgTitle", "项目体检"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -230,7 +231,7 @@ namespace NovelManagement.WPF.Views
                 {
                     Inlines =
                     {
-                        new System.Windows.Documents.Run("目标：") { FontWeight = FontWeights.Medium },
+                        new System.Windows.Documents.Run(LocalizationManager.T("HC.TargetLabel", "目标：")) { FontWeight = FontWeights.Medium },
                         new System.Windows.Documents.Run($"{issue.TargetType} · {issue.TargetName}")
                     },
                     TextWrapping = TextWrapping.Wrap,
@@ -242,7 +243,7 @@ namespace NovelManagement.WPF.Views
             {
                 Inlines =
                 {
-                    new System.Windows.Documents.Run("详情与建议：") { FontWeight = FontWeights.Medium },
+                    new System.Windows.Documents.Run(LocalizationManager.T("HC.DetailLabel", "详情与建议：")) { FontWeight = FontWeights.Medium },
                     new System.Windows.Documents.Run(issue.Detail)
                 },
                 TextWrapping = TextWrapping.Wrap,
@@ -271,14 +272,14 @@ namespace NovelManagement.WPF.Views
             var warningCount = _issues.Count(issue => issue.Severity == "警告");
             var infoCount = _issues.Count(issue => issue.Severity == "提示");
 
-            ErrorCountText.Text = $"错误 {errorCount}";
-            WarningCountText.Text = $"警告 {warningCount}";
-            InfoCountText.Text = $"提示 {infoCount}";
-            IssueCountText.Text = $"{_issues.Count} 个问题";
+            ErrorCountText.Text = LocalizationManager.TF("HC.ErrorCount", "错误 {0}", errorCount);
+            WarningCountText.Text = LocalizationManager.TF("HC.WarningCount", "警告 {0}", warningCount);
+            InfoCountText.Text = LocalizationManager.TF("HC.InfoCount", "提示 {0}", infoCount);
+            IssueCountText.Text = LocalizationManager.TF("HC.IssueCountFmt", "{0} 个问题", _issues.Count);
 
             LastCheckTimeText.Text = _issues.Count == 0 && errorCount == 0 && warningCount == 0 && infoCount == 0
-                ? $"尚未检查或检查通过（{DateTime.Now:HH:mm:ss}）"
-                : $"最近检查：{DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+                ? LocalizationManager.TF("HC.NotCheckedPassed", "尚未检查或检查通过（{0}）", DateTime.Now.ToString("HH:mm:ss"))
+                : LocalizationManager.TF("HC.LastCheck", "最近检查：{0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         }
 
         #endregion
@@ -317,12 +318,12 @@ namespace NovelManagement.WPF.Views
                 });
 
                 MessageBox.Show(
-                    $"已跳转到“{ResolveTargetDisplayName(target.Value)}”。\n目标：{issue.TargetType} · {issue.TargetName}（名称已复制到剪贴板，便于查找）",
-                    "跳转定位", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizationManager.TF("HC.JumpSuccess", "已跳转到“{0}”。\n目标：{1} · {2}（名称已复制到剪贴板，便于查找）", ResolveTargetDisplayName(target.Value), issue.TargetType, issue.TargetName),
+                    LocalizationManager.T("HC.JumpTitle", "跳转定位"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"跳转失败：{ex.Message}", "跳转定位",
+                MessageBox.Show(LocalizationManager.TF("HC.JumpFailed", "跳转失败：{0}", ex.Message), LocalizationManager.T("HC.JumpTitle", "跳转定位"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -365,13 +366,13 @@ namespace NovelManagement.WPF.Views
 
         private static string ResolveTargetDisplayName(NavigationTarget target) => target switch
         {
-            NavigationTarget.CharacterManagement => "角色管理",
-            NavigationTarget.RelationshipNetwork => "关系网络",
-            NavigationTarget.Timeline => "时间线管理",
-            NavigationTarget.FactionManagement => "势力管理",
-            NavigationTarget.PlotManagement => "剧情管理",
-            NavigationTarget.WorldSettingManagement => "世界设定管理",
-            NavigationTarget.VolumeManagement => "卷章管理",
+            NavigationTarget.CharacterManagement => LocalizationManager.T("HC.TargetCharacter", "角色管理"),
+            NavigationTarget.RelationshipNetwork => LocalizationManager.T("HC.TargetRelationship", "关系网络"),
+            NavigationTarget.Timeline => LocalizationManager.T("HC.TargetTimeline", "时间线管理"),
+            NavigationTarget.FactionManagement => LocalizationManager.T("HC.TargetFaction", "势力管理"),
+            NavigationTarget.PlotManagement => LocalizationManager.T("HC.TargetPlot", "剧情管理"),
+            NavigationTarget.WorldSettingManagement => LocalizationManager.T("HC.TargetWorldSetting", "世界设定管理"),
+            NavigationTarget.VolumeManagement => LocalizationManager.T("HC.TargetVolume", "卷章管理"),
             _ => target.ToString()
         };
 

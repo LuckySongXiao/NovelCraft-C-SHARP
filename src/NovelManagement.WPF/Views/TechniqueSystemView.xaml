@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="功法体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Tec.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddTechnique_Click"
-                            ToolTip="新建功法">
+                            ToolTip="{DynamicResource Loc.WS.Tec.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportTechnique_Click"
-                            ToolTip="导入功法数据">
+                            ToolTip="{DynamicResource Loc.WS.Tec.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportTechnique_Click"
-                            ToolTip="导出功法数据">
+                            ToolTip="{DynamicResource Loc.WS.Tec.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Robot" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索功法..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,16 +100,16 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="CategoryFilterComboBox"
-                                     materialDesign:HintAssist.Hint="功法类别"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.CategoryHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="CategoryFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类别"/>
-                                <ComboBoxItem Content="修炼功法"/>
-                                <ComboBoxItem Content="攻击功法"/>
-                                <ComboBoxItem Content="防御功法"/>
-                                <ComboBoxItem Content="辅助功法"/>
-                                <ComboBoxItem Content="身法功法"/>
-                                <ComboBoxItem Content="心法功法"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllCategories}"/>
+                                <ComboBoxItem Tag="修炼功法" Content="{DynamicResource Loc.WS.Tec.Data.修炼功法}"/>
+                                <ComboBoxItem Tag="攻击功法" Content="{DynamicResource Loc.WS.Tec.Data.攻击功法}"/>
+                                <ComboBoxItem Tag="防御功法" Content="{DynamicResource Loc.WS.Tec.Data.防御功法}"/>
+                                <ComboBoxItem Tag="辅助功法" Content="{DynamicResource Loc.WS.Tec.Data.辅助功法}"/>
+                                <ComboBoxItem Tag="身法功法" Content="{DynamicResource Loc.WS.Tec.Data.身法功法}"/>
+                                <ComboBoxItem Tag="心法功法" Content="{DynamicResource Loc.WS.Tec.Data.心法功法}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -178,14 +178,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="等级数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Prof.LevelCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding LevelCount}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 招式数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Tec.MoveCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -206,7 +206,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="功法体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Tec.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -217,21 +217,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="修炼功法: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.修炼功法}"/>
                                         <Run Text="{Binding CultivationCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="攻击功法: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.攻击功法}"/>
                                         <Run Text="{Binding AttackCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="防御功法: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.防御功法}"/>
                                         <Run Text="{Binding DefenseCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -255,12 +255,12 @@
                                                    Height="64"
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个功法查看详情"
+                            <TextBlock Text="{DynamicResource Loc.WS.Tec.NoSelection}"
                                      FontSize="16"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的功法"
+                            <TextBlock Text="{DynamicResource Loc.WS.Tec.NoSelectionHint}"
                                      FontSize="14"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
@@ -270,7 +270,7 @@
                         <!-- 功法详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息"
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -284,21 +284,21 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="TechniqueNameTextBox"
-                                        materialDesign:HintAssist.Hint="功法名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="TechniqueCategoryComboBox"
-                                         materialDesign:HintAssist.Hint="功法类别"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.CategoryHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="修炼功法"/>
-                                    <ComboBoxItem Content="攻击功法"/>
-                                    <ComboBoxItem Content="防御功法"/>
-                                    <ComboBoxItem Content="辅助功法"/>
-                                    <ComboBoxItem Content="身法功法"/>
-                                    <ComboBoxItem Content="心法功法"/>
+                                    <ComboBoxItem Tag="修炼功法" Content="{DynamicResource Loc.WS.Tec.Data.修炼功法}"/>
+                                    <ComboBoxItem Tag="攻击功法" Content="{DynamicResource Loc.WS.Tec.Data.攻击功法}"/>
+                                    <ComboBoxItem Tag="防御功法" Content="{DynamicResource Loc.WS.Tec.Data.防御功法}"/>
+                                    <ComboBoxItem Tag="辅助功法" Content="{DynamicResource Loc.WS.Tec.Data.辅助功法}"/>
+                                    <ComboBoxItem Tag="身法功法" Content="{DynamicResource Loc.WS.Tec.Data.身法功法}"/>
+                                    <ComboBoxItem Tag="心法功法" Content="{DynamicResource Loc.WS.Tec.Data.心法功法}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -311,26 +311,26 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="TechniqueGradeComboBox"
-                                         materialDesign:HintAssist.Hint="功法品级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.GradeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="凡级"/>
-                                    <ComboBoxItem Content="黄级"/>
-                                    <ComboBoxItem Content="玄级"/>
-                                    <ComboBoxItem Content="地级"/>
-                                    <ComboBoxItem Content="天级"/>
-                                    <ComboBoxItem Content="仙级"/>
+                                    <ComboBoxItem Tag="凡级" Content="{DynamicResource Loc.WS.Tec.Data.凡级}"/>
+                                    <ComboBoxItem Tag="黄级" Content="{DynamicResource Loc.WS.Tec.Data.黄级}"/>
+                                    <ComboBoxItem Tag="玄级" Content="{DynamicResource Loc.WS.Tec.Data.玄级}"/>
+                                    <ComboBoxItem Tag="地级" Content="{DynamicResource Loc.WS.Tec.Data.地级}"/>
+                                    <ComboBoxItem Tag="天级" Content="{DynamicResource Loc.WS.Tec.Data.天级}"/>
+                                    <ComboBoxItem Tag="仙级" Content="{DynamicResource Loc.WS.Tec.Data.仙级}"/>
                                 </ComboBox>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="TechniqueOriginTextBox"
-                                        materialDesign:HintAssist.Hint="功法来源"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.SourceHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
 
                             <TextBox x:Name="TechniqueDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="功法描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -339,7 +339,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 功法等级 -->
-                            <TextBlock Text="功法等级"
+                            <TextBlock Text="{DynamicResource Loc.WS.Tec.LevelsTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -357,13 +357,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="等级列表"
+                                                 Text="{DynamicResource Loc.WS.Common.LevelList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddLevel_Click"
-                                              ToolTip="添加等级">
+                                              ToolTip="{DynamicResource Loc.WS.Common.AddLevelTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -384,19 +384,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Level}"
-                                                               materialDesign:HintAssist.Hint="层数"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.LayerHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="层级名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.LayerNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Requirements}"
-                                                               materialDesign:HintAssist.Hint="修炼要求"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.ReqHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -404,7 +404,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveLevel_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除等级">
+                                                              ToolTip="{DynamicResource Loc.WS.Common.DeleteLevelTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -417,7 +417,7 @@
                             </Border>
 
                             <!-- 功法招式 -->
-                            <TextBlock Text="功法招式"
+                            <TextBlock Text="{DynamicResource Loc.WS.Tec.MovesTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -435,13 +435,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="招式列表"
+                                                 Text="{DynamicResource Loc.WS.Tec.MoveList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddMove_Click"
-                                              ToolTip="添加招式">
+                                              ToolTip="{DynamicResource Loc.WS.Tec.AddMoveTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -462,19 +462,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="招式名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.MoveNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Type}"
-                                                               materialDesign:HintAssist.Hint="招式类型"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.MoveTypeHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Description}"
-                                                               materialDesign:HintAssist.Hint="招式描述"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Tec.MoveDescHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -482,7 +482,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveMove_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除招式">
+                                                              ToolTip="{DynamicResource Loc.WS.Tec.DeleteMoveTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -498,11 +498,11 @@
                             <StackPanel Orientation="Horizontal"
                                       HorizontalAlignment="Right"
                                       Margin="0,16,0,0">
-                                <Button Content="保存"
+                                <Button Content="{DynamicResource Loc.Dlg.Save}"
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveTechnique_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消"
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

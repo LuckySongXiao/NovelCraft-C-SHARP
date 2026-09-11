@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.WPF.Models;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
@@ -139,7 +140,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"初始化服务异常：{ex.Message}");
-                MessageBox.Show($"初始化服务失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("CE.InitServiceFailed", "初始化服务失败：{0}", ex.Message), T("Msg.Warning"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -151,8 +152,8 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                // 获取默认卷ID
-                var defaultVolumeId = new Guid("00000000-0000-0000-0000-000000000002");
+                // 解析默认卷：取当前项目的第一个卷宗（修复占位 GUID 00000000-…-0002 导致的「未找到卷宗」）
+                var defaultVolumeId = await ResolveDefaultVolumeIdAsync();
 
                 // 初始化章节数据
                 ChapterData = new ChapterEditData
@@ -185,9 +186,38 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化编辑器失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.InitEditorFailed", "初始化编辑器失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// 解析默认卷：当前项目的第一个卷宗；无卷宗时返回 Guid.Empty（由保存流程提示先创建卷宗）。
+        /// </summary>
+        private async Task<Guid> ResolveDefaultVolumeIdAsync()
+        {
+            try
+            {
+                if (_volumeService != null && _projectContextService != null)
+                {
+                    var projectId = _projectContextService.GetCurrentProjectIdOrDefault();
+                    if (projectId != Guid.Empty)
+                    {
+                        var volumes = await _volumeService.GetVolumeListAsync(projectId);
+                        var first = volumes?.OrderBy(v => v.Order).FirstOrDefault();
+                        if (first != null)
+                        {
+                            return first.Id;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"解析默认卷失败：{ex.Message}");
+            }
+
+            return Guid.Empty;
         }
 
         /// <summary>
@@ -226,7 +256,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化编辑器失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.InitEditorFailed", "初始化编辑器失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -247,7 +277,7 @@ namespace NovelManagement.WPF.Views
             // 设置状态
             foreach (System.Windows.Controls.ComboBoxItem item in StatusComboBox.Items)
             {
-                if (item.Content.ToString() == ChapterData.Status)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == ChapterData.Status)
                 {
                     StatusComboBox.SelectedItem = item;
                     break;
@@ -258,7 +288,7 @@ namespace NovelManagement.WPF.Views
             ImportanceComboBox.SelectedIndex = ChapterData.ImportanceLevel - 1;
             
             // 设置目标字数
-            TargetWordCount.Text = $"目标: {ChapterData.TargetWordCount:N0}";
+            TargetWordCount.Text = TF("CE.TargetFmt", "目标: {0:N0}", ChapterData.TargetWordCount);
         }
 
         private async Task LoadEditorSuggestionsAsync()
@@ -397,8 +427,8 @@ namespace NovelManagement.WPF.Views
                 var paragraphs = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).Length;
                 var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Length;
 
-                CurrentWordCount.Text = $"当前字数: {wordCount:N0}";
-                WordCountLabel.Text = $"({wordCount:N0}字)";
+                CurrentWordCount.Text = TF("CE.CurrentWordsFmt", "当前字数: {0:N0}", wordCount);
+                WordCountLabel.Text = TF("CE.WordsParensFmt", "({0:N0}字)", wordCount);
                 
                 StatsWordCount.Text = wordCount.ToString("N0");
                 StatsParagraphs.Text = paragraphs.ToString();
@@ -406,7 +436,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更新字数统计失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.UpdateWordCountFailed", "更新字数统计失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -420,23 +450,23 @@ namespace NovelManagement.WPF.Views
             {
                 if (_hasUnsavedChanges)
                 {
-                    StatusLabel.Text = "状态: 有未保存的更改";
-                    Title = $"章节编辑器 - {ChapterData.Title} *";
+                    StatusLabel.Text = T("CE.StatusUnsaved", "状态: 有未保存的更改");
+                    Title = TF("CE.TitleFmtDirty", "章节编辑器 - {0} *", ChapterData.Title);
                 }
                 else
                 {
-                    StatusLabel.Text = "状态: 已保存";
-                    Title = $"章节编辑器 - {ChapterData.Title}";
+                    StatusLabel.Text = T("CE.StatusSaved", "状态: 已保存");
+                    Title = TF("CE.TitleFmt", "章节编辑器 - {0}", ChapterData.Title);
                 }
 
                 if (_lastSaved != default)
                 {
-                    LastSavedLabel.Text = $"最后保存: {_lastSaved:HH:mm:ss}";
+                    LastSavedLabel.Text = TF("CE.LastSavedFmt", "最后保存: {0}", _lastSaved.ToString("HH:mm:ss"));
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更新状态失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.UpdateStatusFailed", "更新状态失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -591,7 +621,7 @@ namespace NovelManagement.WPF.Views
         private void ExtractMetadataButton_Click(object sender, RoutedEventArgs e)
         {
             var updated = PopulateMetadataFromContent(onlyWhenEmpty: false);
-            ShowTransientStatus(updated ? "状态: 已从内容匹配角色和标签" : "状态: 未匹配到新的角色或标签");
+            ShowTransientStatus(updated ? T("CE.StatusMatched", "状态: 已从内容匹配角色和标签") : T("CE.StatusNoMatch", "状态: 未匹配到新的角色或标签"));
         }
 
         private void UpdateCharacterSuggestions()
@@ -911,7 +941,7 @@ namespace NovelManagement.WPF.Views
 
                 if (StatusComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem statusItem)
                 {
-                    ChapterData.Status = statusItem.Content.ToString();
+                    ChapterData.Status = statusItem.Tag?.ToString() ?? statusItem.Content?.ToString() ?? ChapterData.Status;
                 }
 
                 // 真正保存到数据库
@@ -927,7 +957,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存草稿失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.SaveDraftFailed", "保存草稿失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
@@ -956,7 +986,7 @@ namespace NovelManagement.WPF.Views
                 // 验证VolumeId
                 if (ChapterData.VolumeId == Guid.Empty)
                 {
-                    throw new InvalidOperationException("无法创建或获取有效的卷ID");
+                    throw new InvalidOperationException(T("CE.NoValidVolumeId", "无法创建或获取有效的卷ID"));
                 }
 
                 // 检查是否是新章节还是更新现有章节
@@ -970,7 +1000,7 @@ namespace NovelManagement.WPF.Views
                     var newChapter = new Chapter
                     {
                         Id = ChapterData.Id,
-                        Title = ChapterData.Title ?? "未命名章节",
+                        Title = ChapterData.Title ?? T("CE.Untitled", "未命名章节"),
                         Content = ChapterData.Content ?? "",
                         Summary = ChapterData.Summary,
                         Status = ChapterData.Status ?? "草稿",
@@ -1030,7 +1060,7 @@ namespace NovelManagement.WPF.Views
         {
             if (workflowResult?.SyncResult == null)
             {
-                return "状态: 草稿已保存";
+                return T("CE.DraftSaved", "状态: 草稿已保存");
             }
 
             return $"状态: 草稿已保存，{BuildWorkflowSummary(workflowResult, includeNames: false)}";
@@ -1040,7 +1070,7 @@ namespace NovelManagement.WPF.Views
         {
             if (workflowResult?.SyncResult == null)
             {
-                return "章节已保存！";
+                return T("CE.ChapterSaved", "章节已保存！");
             }
 
             return $"章节已保存！\n\n本次更新结果：\n{BuildWorkflowSummary(workflowResult, includeNames: true, lineBreak: Environment.NewLine)}";
@@ -1143,7 +1173,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开预览失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.PreviewFailed", "打开预览失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1174,7 +1204,7 @@ namespace NovelManagement.WPF.Views
                 var syncResult = await SaveDraftAsync();
                 IsSaved = true;
                 
-                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), "成功", 
+                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), T("OG.SuccessTitle", "成功"), 
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 DialogResult = true;
@@ -1182,7 +1212,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存章节失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.SaveFailed", "保存章节失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1200,7 +1230,7 @@ namespace NovelManagement.WPF.Views
 
             if (_hasUnsavedChanges)
             {
-                var result = MessageBox.Show("有未保存的更改，是否保存？", "确认",
+                var result = MessageBox.Show(T("CE.UnsavedConfirm", "有未保存的更改，是否保存？"), T("Common.Confirm"),
                     MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
@@ -1227,7 +1257,7 @@ namespace NovelManagement.WPF.Views
                 var syncResult = await SaveDraftAsync();
                 IsSaved = true;
                 _isClosingAfterSave = true;
-                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), "成功",
+                MessageBox.Show(BuildSaveSuccessDialogMessage(syncResult), T("OG.SuccessTitle", "成功"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 DialogResult = true;
                 Close();
@@ -1235,7 +1265,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _isClosingAfterSave = false;
-                MessageBox.Show($"保存章节失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.SaveFailed", "保存章节失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1290,7 +1320,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI编写失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CE.AIWriteFailed", "AI编写失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1309,7 +1339,7 @@ namespace NovelManagement.WPF.Views
 
                 if (string.IsNullOrWhiteSpace(ContentTextBox.Text))
                 {
-                    MessageBox.Show("请先输入一些内容，AI将基于现有内容进行续写", "提示",
+                    MessageBox.Show(T("CE.NeedContentForContinue", "请先输入一些内容，AI将基于现有内容进行续写"), T("Msg.Tip"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1332,7 +1362,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI续写失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CE.AIContinueFailed", "AI续写失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1351,7 +1381,7 @@ namespace NovelManagement.WPF.Views
 
                 if (string.IsNullOrWhiteSpace(ContentTextBox.Text))
                 {
-                    MessageBox.Show("请先输入内容再进行润色", "提示",
+                    MessageBox.Show(T("CE.NeedContentForPolish", "请先输入内容再进行润色"), T("Msg.Tip"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1422,7 +1452,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI润色失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CE.AIPolishFailed", "AI润色失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1441,7 +1471,7 @@ namespace NovelManagement.WPF.Views
 
                 if (string.IsNullOrWhiteSpace(ContentTextBox.Text))
                 {
-                    MessageBox.Show("请先输入内容再进行一致性检查", "提示",
+                    MessageBox.Show(T("CE.NeedContentForCheck", "请先输入内容再进行一致性检查"), T("Msg.Tip"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1456,13 +1486,13 @@ namespace NovelManagement.WPF.Views
                     !string.Equals(ContentTextBox.Text, consistencyDialog.AutoFixedContent, StringComparison.Ordinal))
                 {
                     ContentTextBox.Text = consistencyDialog.AutoFixedContent;
-                    MessageBox.Show("已将一致性自动修复结果回写到章节正文。", "自动修复完成",
+                    MessageBox.Show(T("CE.AutoFixDone", "已将一致性自动修复结果回写到章节正文。"), T("CE.AutoFixTitle", "自动修复完成"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"一致性检查失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CE.ConsistencyFailed", "一致性检查失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1523,7 +1553,7 @@ namespace NovelManagement.WPF.Views
                                 var initResult = await ollamaService.InitializeAsync(config);
                                 if (!initResult)
                                 {
-                                    MessageBox.Show("重新连接失败，请确保Ollama服务正在运行", "连接失败",
+                                    MessageBox.Show("重新连接失败，请确保Ollama服务正在运行", T("AC.ConnectionFailed", "连接失败"),
                                         MessageBoxButton.OK, MessageBoxImage.Error);
                                     return false;
                                 }
@@ -1542,7 +1572,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"检查AI服务状态失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.AICheckFailed", "检查AI服务状态失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -1559,12 +1589,12 @@ namespace NovelManagement.WPF.Views
                 var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
                 if (guard == null)
                 {
-                    MessageBox.Show("项目校验服务未初始化", "错误",
+                    MessageBox.Show(T("CE.ProjectValidationNotInit", "项目校验服务未初始化"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
-                if (!guard.TryGetCurrentProjectId(this, "AI编辑功能", out var projectId))
+                if (!guard.TryGetCurrentProjectId(this, T("CE.AIEditFeature", "AI编辑功能"), out var projectId))
                 {
                     return false;
                 }
@@ -1576,7 +1606,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"检查项目上下文失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CE.CheckProjectFailed", "检查项目上下文失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -1654,55 +1684,42 @@ namespace NovelManagement.WPF.Views
         /// <returns>默认卷ID</returns>
         private async Task<Guid> EnsureDefaultVolumeAsync(Guid projectId)
         {
+            // 优先复用当前项目已有的第一个卷宗
             try
             {
-                var defaultVolumeId = new Guid("00000000-0000-0000-0000-000000000002");
                 var volumeService = App.ServiceProvider?.GetService<VolumeService>();
-
                 if (volumeService != null)
                 {
-                    try
+                    var volumes = await volumeService.GetVolumeListAsync(projectId);
+                    var first = volumes?.OrderBy(v => v.Order).FirstOrDefault();
+                    if (first != null)
                     {
-                        // 检查卷是否已存在
-                        var existingVolume = await volumeService.GetVolumeByIdAsync(defaultVolumeId);
-                        if (existingVolume != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"默认卷已存在: {existingVolume.Title}");
-                            return defaultVolumeId;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // 卷不存在，继续创建
-                        System.Diagnostics.Debug.WriteLine("默认卷不存在，准备创建");
+                        return first.Id;
                     }
 
-                    // 创建默认卷
+                    // 无卷宗时按界面语言创建默认卷（真实 GUID，不再使用占位 ID）
                     var defaultVolume = new Volume
                     {
-                        Id = defaultVolumeId,
-                        Title = "默认卷",
-                        Description = "系统自动创建的默认卷",
+                        Id = Guid.NewGuid(),
+                        Title = Localization.LocalizationManager.T("VM.DefaultVolumeName", "Volume 1"),
+                        Description = Localization.LocalizationManager.T("VM.DefaultVolumeDesc", "系统自动创建的默认卷"),
                         ProjectId = projectId,
                         Order = 1,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
-
                     await volumeService.CreateVolumeAsync(defaultVolume);
                     System.Diagnostics.Debug.WriteLine($"成功创建默认卷: {defaultVolume.Title}");
+                    return defaultVolume.Id;
                 }
-
-                return defaultVolumeId;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"创建默认卷失败: {ex.Message}");
-                // 发生错误时返回固定的默认卷ID
-                return new Guid("00000000-0000-0000-0000-000000000002");
             }
-        }
 
+            return Guid.Empty;
+        }
 
         /// <summary>
         /// 确保前置条件存在
@@ -1724,9 +1741,9 @@ namespace NovelManagement.WPF.Views
                 if (result.IsSuccess && result.TotalGeneratedCount > 0)
                 {
                     // 显示生成结果
-                    var message = $"为确保AI编辑功能正常运行，系统已自动生成必要的前置数据：\n\n{result.GetGenerationSummary()}\n\n这些数据将帮助AI更好地理解您的书籍世界观和角色设定。";
+                    var message = Localization.LocalizationManager.TF("CE.PrereqGeneratedBody", "为确保AI编辑功能正常运行，系统已自动生成必要的前置数据：\n\n{0}\n\n这些数据将帮助AI更好地理解您的书籍世界观和角色设定。", result.GetGenerationSummary());
 
-                    MessageBox.Show(message, "前置数据生成完成",
+                    MessageBox.Show(message, Localization.LocalizationManager.T("CE.PrereqGeneratedTitle", "前置数据生成完成"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
 
                     System.Diagnostics.Debug.WriteLine($"前置条件生成完成: {result.GetDetailedReport()}");

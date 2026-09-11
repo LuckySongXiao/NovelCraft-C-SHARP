@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="章节预览" Height="600" Width="800"
+        Title="{DynamicResource Loc.CPV.Title}" Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -28,12 +28,12 @@
                 <!-- 左侧：章节信息 -->
                 <StackPanel DockPanel.Dock="Left">
                     <TextBlock x:Name="ChapterTitleText"
-                             Text="第45章：天劫降临" 
+                             Text="{DynamicResource Loc.CE.SampleTitle}" 
                              FontSize="24" 
                              FontWeight="Bold"/>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <TextBlock x:Name="WordCountText"
-                                 Text="字数: 2,800" 
+                                 Text="{DynamicResource Loc.CPV.Words}" 
                                  FontSize="14" 
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                         <TextBlock Text=" | " 
@@ -41,7 +41,7 @@
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  Margin="8,0"/>
                         <TextBlock x:Name="StatusText"
-                                 Text="状态: 写作中" 
+                                 Text="{DynamicResource Loc.CPV.Status}" 
                                  FontSize="14" 
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                         <TextBlock Text=" | " 
@@ -49,7 +49,7 @@
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  Margin="8,0"/>
                         <TextBlock x:Name="ImportanceText"
-                                 Text="重要性: ★★☆☆☆" 
+                                 Text="{DynamicResource Loc.CPV.Importance}" 
                                  FontSize="14" 
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                     </StackPanel>
@@ -62,7 +62,7 @@
                             Click="Export_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" Margin="0,0,4,0"/>
-                            <TextBlock Text="导出"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Export}"/>
                         </StackPanel>
                     </Button>
                     
@@ -71,7 +71,7 @@
                             Click="Print_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Printer" Margin="0,0,4,0"/>
-                            <TextBlock Text="打印"/>
+                            <TextBlock Text="{DynamicResource Loc.CPV.Print}"/>
                         </StackPanel>
                     </Button>
                     
@@ -79,7 +79,7 @@
                             Click="Close_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Close" Margin="0,0,4,0"/>
-                            <TextBlock Text="关闭"/>
+                            <TextBlock Text="{DynamicResource Loc.Dlg.Close}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -108,7 +108,7 @@
                           Padding="16,8">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Left"
-                                     Text="章节内容" 
+                                     Text="{DynamicResource Loc.CE.ContentTitle}" 
                                      FontWeight="Medium"/>
                             <StackPanel DockPanel.Dock="Right" 
                                       Orientation="Horizontal">
@@ -116,10 +116,10 @@
                                         Width="80"
                                         SelectedIndex="2"
                                         SelectionChanged="FontSize_Changed">
-                                    <ComboBoxItem Content="小"/>
-                                    <ComboBoxItem Content="中"/>
-                                    <ComboBoxItem Content="大"/>
-                                    <ComboBoxItem Content="特大"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.CPV.FontSmall}"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.CPV.FontMedium}"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.CPV.FontLarge}"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.CPV.FontXL}"/>
                                 </ComboBox>
                             </StackPanel>
                         </DockPanel>
@@ -135,7 +135,7 @@
                                  LineHeight="28"
                                  FontSize="16"
                                  FontFamily="Microsoft YaHei, SimSun"
-                                 Text="章节内容将在这里显示..."/>
+                                 Text="{DynamicResource Loc.CPV.ContentPlaceholder}"/>
                     </ScrollViewer>
                 </Grid>
             </materialDesign:Card>
@@ -150,32 +150,32 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <!-- 章节摘要 -->
-                        <TextBlock Text="章节摘要" 
+                        <TextBlock Text="{DynamicResource Loc.CE.SummaryHint}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,12"/>
                         
                         <TextBlock x:Name="SummaryText"
-                                 Text="章节摘要内容..."
+                                 Text="{DynamicResource Loc.CPV.SummaryPlaceholder}"
                                  TextWrapping="Wrap"
                                  FontSize="14"
                                  Margin="0,0,0,16"/>
 
                         <!-- 相关角色 -->
-                        <TextBlock Text="相关角色" 
+                        <TextBlock Text="{DynamicResource Loc.CE.RelatedChars}" 
                                  FontSize="14" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,8"/>
                         
                         <TextBlock x:Name="CharactersText"
-                                 Text="林轩, 张伟, 神秘老者"
+                                 Text="{DynamicResource Loc.CPV.SampleChars}"
                                  TextWrapping="Wrap"
                                  FontSize="12"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  Margin="0,0,0,16"/>
 
                         <!-- 标签 -->
-                        <TextBlock Text="标签" 
+                        <TextBlock Text="{DynamicResource Loc.CE.TagsHint}" 
                                  FontSize="14" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,8"/>
@@ -187,7 +187,7 @@
                         <!-- 统计信息 -->
                         <Separator Margin="0,0,0,16"/>
                         
-                        <TextBlock Text="统计信息" 
+                        <TextBlock Text="{DynamicResource Loc.CPV.StatsTitle}" 
                                  FontSize="14" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,12"/>
@@ -205,32 +205,32 @@
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="字数:" FontSize="12"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Loc.CE.WordsLabel}" FontSize="12"/>
                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="StatsWordCount" Text="2,800" FontSize="12" HorizontalAlignment="Right"/>
                             
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="段落:" FontSize="12"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Loc.CE.ParagraphsLabel}" FontSize="12"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" x:Name="StatsParagraphs" Text="15" FontSize="12" HorizontalAlignment="Right"/>
                             
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="行数:" FontSize="12"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Loc.CE.LinesLabel}" FontSize="12"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" x:Name="StatsLines" Text="120" FontSize="12" HorizontalAlignment="Right"/>
                             
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="预计阅读:" FontSize="12"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="StatsReadTime" Text="7分钟" FontSize="12" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource Loc.CPV.ReadTimeLabel}" FontSize="12"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="StatsReadTime" Text="{DynamicResource Loc.CPV.ReadTimeSample}" FontSize="12" HorizontalAlignment="Right"/>
                             
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="完成度:" FontSize="12"/>
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource Loc.CPV.CompletionLabel}" FontSize="12"/>
                             <TextBlock Grid.Row="4" Grid.Column="1" x:Name="StatsProgress" Text="100%" FontSize="12" HorizontalAlignment="Right"/>
                         </Grid>
 
                         <!-- 备注 -->
                         <Separator Margin="0,16,0,16"/>
                         
-                        <TextBlock Text="备注" 
+                        <TextBlock Text="{DynamicResource Loc.Dlg.Remarks}" 
                                  FontSize="14" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,8"/>
                         
                         <TextBlock x:Name="NotesText"
-                                 Text="注意描写主角的心理变化"
+                                 Text="{DynamicResource Loc.CPV.SampleNotes}"
                                  TextWrapping="Wrap"
                                  FontSize="12"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
@@ -246,12 +246,12 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Left"
                          x:Name="PreviewModeText"
-                         Text="预览模式: 阅读视图" 
+                         Text="{DynamicResource Loc.CPV.PreviewMode}" 
                          FontSize="12"
                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                 <TextBlock DockPanel.Dock="Right"
                          x:Name="LastModifiedText"
-                         Text="最后修改: 2024-01-15 14:30" 
+                         Text="{DynamicResource Loc.CPV.LastModified}" 
                          FontSize="12"
                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
             </DockPanel>

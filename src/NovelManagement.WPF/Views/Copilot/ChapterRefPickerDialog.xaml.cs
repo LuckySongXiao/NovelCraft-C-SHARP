@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services.Copilot;
 
 namespace NovelManagement.WPF.Views.Copilot
@@ -45,7 +46,7 @@ namespace NovelManagement.WPF.Views.Copilot
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"加载书籍列表失败：{ex.Message}", "关联章节",
+                MessageBox.Show(this, LocalizationManager.TF("CRP.LoadBooksFailed", "加载书籍列表失败：{0}", ex.Message), LocalizationManager.T("CRP.Title", "关联章节"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -65,12 +66,12 @@ namespace NovelManagement.WPF.Views.Copilot
             {
                 var volumes = (await _volumeService.GetVolumeListAsync(project.Id)).OrderBy(v => v.Order).ToList();
                 VolumeComboBox.ItemsSource = volumes
-                    .Select(v => new ItemDisplay(v.Id, $"第{v.Order}卷 {v.Title}", v))
+                    .Select(v => new ItemDisplay(v.Id, LocalizationManager.TF("CRP.VolumeDisplay", "第{0}卷 {1}", v.Order, v.Title), v))
                     .ToList();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"加载分卷失败：{ex.Message}", "关联章节",
+                MessageBox.Show(this, LocalizationManager.TF("CRP.LoadVolumesFailed", "加载分卷失败：{0}", ex.Message), LocalizationManager.T("CRP.Title", "关联章节"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -89,12 +90,12 @@ namespace NovelManagement.WPF.Views.Copilot
             {
                 var chapters = (await _chapterService.GetChapterListAsync(volume.Id)).OrderBy(c => c.Order).ToList();
                 ChapterComboBox.ItemsSource = chapters
-                    .Select(c => new ItemDisplay(c.Id, $"第{c.Order}章 《{c.Title}》", c))
+                    .Select(c => new ItemDisplay(c.Id, LocalizationManager.TF("CRP.ChapterDisplay", "第{0}章 《{1}》", c.Order, c.Title), c))
                     .ToList();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"加载章节失败：{ex.Message}", "关联章节",
+                MessageBox.Show(this, LocalizationManager.TF("CRP.LoadChaptersFailed", "加载章节失败：{0}", ex.Message), LocalizationManager.T("CRP.Title", "关联章节"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

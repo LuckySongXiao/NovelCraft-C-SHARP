@@ -13,6 +13,7 @@ using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Events;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -208,7 +209,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"服务初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.ServiceInitFailed", "服务初始化失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -237,7 +238,7 @@ namespace NovelManagement.WPF.Views
                     _allCharacters = new List<Character>();
                     _filteredCharacters = new List<Character>();
                     UpdateCharacterList();
-                    EnsureCurrentProject("角色管理", out _);
+                    EnsureCurrentProject(T("CM.Title", "人物管理"), out _);
                     return;
                 }
 
@@ -264,7 +265,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载角色数据失败");
-                MessageBox.Show($"加载角色数据失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.LoadDataFailed", "加载角色数据失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
 
                 _allCharacters = new List<Character>();
                 _filteredCharacters = new List<Character>();
@@ -478,7 +479,8 @@ namespace NovelManagement.WPF.Views
         private void ApplyFilters()
         {
             var searchText = SearchTextBox.Text?.Trim().ToLower() ?? string.Empty;
-            var selectedType = ((ComboBoxItem)CharacterTypeFilter.SelectedItem)?.Content?.ToString();
+            var selectedType = ((ComboBoxItem)CharacterTypeFilter.SelectedItem)?.Tag?.ToString()
+                              ?? ((ComboBoxItem)CharacterTypeFilter.SelectedItem)?.Content?.ToString();
 
             _filteredCharacters = _allCharacters.Where(c =>
             {
@@ -540,7 +542,7 @@ namespace NovelManagement.WPF.Views
 
             var currentName = CharacterNameText?.Text?.Trim();
             if (!string.IsNullOrWhiteSpace(currentName) &&
-                !string.Equals(currentName, "角色姓名", StringComparison.OrdinalIgnoreCase))
+                !string.Equals(currentName, T("CM.NamePlaceholder", "角色姓名"), StringComparison.OrdinalIgnoreCase))
             {
                 return _allCharacters.FirstOrDefault(character =>
                     !string.IsNullOrWhiteSpace(character.Name) &&
@@ -607,36 +609,36 @@ namespace NovelManagement.WPF.Views
                 // 填充角色信息
                 CharacterNameText.Text = character.Name;
                 CharacterTypeChip.Content = character.Type;
-                CharacterFactionChip.Content = character.Faction?.Name ?? "无";
-                CharacterCultivationText.Text = character.CultivationLevel ?? "未知";
+                CharacterFactionChip.Content = character.Faction?.Name ?? T("CM.None", "无");
+                CharacterCultivationText.Text = character.CultivationLevel ?? T("CM.Unknown", "未知");
                 CharacterDescriptionText.Text = !string.IsNullOrEmpty(character.Notes)
                     ? character.Notes
-                    : "暂无描述";
+                    : T("CM.NoDescription", "暂无描述");
                 CharacterAppearanceText.Text = !string.IsNullOrEmpty(character.Appearance)
                     ? character.Appearance
-                    : "暂无外貌描述";
+                    : T("CM.NoAppearance", "暂无外貌描述");
                 CharacterPersonalityText.Text = !string.IsNullOrEmpty(character.Personality)
                     ? character.Personality
-                    : "暂无性格描述";
+                    : T("CM.NoPersonality", "暂无性格描述");
                 CharacterBackgroundText.Text = !string.IsNullOrEmpty(character.Background)
                     ? character.Background
-                    : "暂无背景故事";
+                    : T("CM.NoBackstory", "暂无背景故事");
                 CharacterAbilitiesText.Text = !string.IsNullOrEmpty(character.Abilities)
                     ? character.Abilities
-                    : "暂无能力描述";
+                    : T("CM.NoAbilities", "暂无能力描述");
                 CharacterHistoryText.Text = !string.IsNullOrEmpty(character.History)
                     ? character.History
-                    : "暂无履历记录";
+                    : T("CM.NoHistory", "暂无履历记录");
                 CharacterKeyEventsText.Text = !string.IsNullOrEmpty(character.KeyEvents)
                     ? character.KeyEvents
-                    : "暂无关键事件";
+                    : T("CM.NoKeyEvents", "暂无关键事件");
 
                 _logger?.LogInformation($"显示角色详情: {character.Name}");
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "显示角色详情失败");
-                MessageBox.Show($"显示角色详情失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.ShowDetailFailed", "显示角色详情失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -653,7 +655,7 @@ namespace NovelManagement.WPF.Views
                 if (newCharacterDialog.ShowDialog() == true)
                 {
                     // 获取当前项目ID
-                    if (!EnsureCurrentProject("创建角色", out var currentProjectId))
+                    if (!EnsureCurrentProject(T("CM.EnsureCreateTitle", "创建角色"), out var currentProjectId))
                     {
                         return;
                     }
@@ -689,12 +691,12 @@ namespace NovelManagement.WPF.Views
 
                         if (isExistingCharacter)
                         {
-                            MessageBox.Show($"项目内已存在同名且描述一致的角色 '{createdCharacter.Name}'，已复用现有角色。如需区分，请调整性格或背景描述。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show(TF("CM.DuplicateReused", "项目内已存在同名且描述一致的角色 '{0}'，已复用现有角色。如需区分，请调整性格或背景描述。", createdCharacter.Name), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                             _logger?.LogInformation($"角色创建命中防重，复用现有角色: {createdCharacter.Name}");
                         }
                         else
                         {
-                            MessageBox.Show($"角色 '{createdCharacter.Name}' 创建成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show(TF("CM.CreateSuccess", "角色 '{0}' 创建成功！", createdCharacter.Name), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                             _logger?.LogInformation($"新建角色成功: {createdCharacter.Name}");
                         }
                     }
@@ -706,7 +708,7 @@ namespace NovelManagement.WPF.Views
                         ApplyFilters();
                         SelectCharacter(newCharacter);
 
-                        MessageBox.Show($"角色 '{newCharacter.Name}' 创建成功（仅本地）！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(TF("CM.CreateSuccessLocal", "角色 '{0}' 创建成功（仅本地）！", newCharacter.Name), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                         _logger?.LogWarning("角色服务不可用，仅创建本地数据");
                     }
                 }
@@ -714,7 +716,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "新建角色失败");
-                MessageBox.Show($"新建角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.CreateFailed", "新建角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -726,7 +728,7 @@ namespace NovelManagement.WPF.Views
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.NoMainWindow", "无法获取主窗口，无法打开导入导出页面。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -749,7 +751,7 @@ namespace NovelManagement.WPF.Views
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.NoMainWindow", "无法获取主窗口，无法打开导入导出页面。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -774,7 +776,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_selectedCharacter == null)
                 {
-                    MessageBox.Show("请先选择要编辑的角色", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CM.SelectToEdit", "请先选择要编辑的角色"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -822,7 +824,7 @@ namespace NovelManagement.WPF.Views
                                 _selectedCharacter = updatedCharacter;
                             }
 
-                            MessageBox.Show("角色信息更新成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show(T("CM.UpdateSuccess", "角色信息更新成功！"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                             _logger?.LogInformation($"角色编辑成功: {updatedCharacter.Name}");
 
                             // 触发角色更新事件，通知其他界面
@@ -831,7 +833,7 @@ namespace NovelManagement.WPF.Views
                         catch (Exception updateEx)
                         {
                             _logger?.LogError(updateEx, $"更新角色失败: {editedCharacter.Name}");
-                            throw new InvalidOperationException($"更新角色失败: {updateEx.Message}", updateEx);
+                            throw new InvalidOperationException(TF("CM.UpdateFailedInner", "更新角色失败: {0}", updateEx.Message), updateEx);
                         }
                     }
                     else
@@ -846,7 +848,7 @@ namespace NovelManagement.WPF.Views
                             _selectedCharacter = editedCharacter;
                         }
 
-                        MessageBox.Show("角色信息更新成功（仅本地）！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(T("CM.UpdateSuccessLocal", "角色信息更新成功（仅本地）！"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                         _logger?.LogWarning("角色服务不可用，仅更新本地数据");
 
                         // 即使是本地更新，也触发事件通知其他界面
@@ -857,7 +859,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "编辑角色失败");
-                MessageBox.Show($"编辑角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.EditFailed", "编辑角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -871,7 +873,7 @@ namespace NovelManagement.WPF.Views
                 var currentCharacter = ResolveCurrentCharacterForAction(sender);
                 if (currentCharacter == null)
                 {
-                    MessageBox.Show("请先选择要删除的角色", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CM.SelectToDelete", "请先选择要删除的角色"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -886,9 +888,8 @@ namespace NovelManagement.WPF.Views
                     {
                         var referenceDetails = string.Join("\n", referenceInfo.References);
                         var result = MessageBox.Show(
-                            $"角色 '{_selectedCharacter.Name}' 已被以下内容引用：\n\n{referenceDetails}\n\n" +
-                            "已被引用的角色只能编辑，不能删除。是否要编辑此角色？",
-                            "角色已被引用",
+                            TF("CM.ReferencedBody", "角色 '{0}' 已被以下内容引用：\n\n{1}\n\n已被引用的角色只能编辑，不能删除。是否要编辑此角色？", _selectedCharacter.Name, referenceDetails),
+                            T("CM.ReferencedTitle"),
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Warning);
 
@@ -922,12 +923,12 @@ namespace NovelManagement.WPF.Views
                             UpdateOverviewStatistics();
                             BackToOverview_Click(sender, e);
 
-                            MessageBox.Show($"角色 '{characterName}' 删除成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show(TF("CM.DeleteSuccess", "角色 '{0}' 删除成功！", characterName), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                             _logger?.LogInformation($"角色删除成功: {characterName}");
                         }
                         else
                         {
-                            MessageBox.Show($"删除失败: {deleteResult.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show(TF("CM.DeleteFailedMsg", "删除失败: {0}", deleteResult.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                             _logger?.LogWarning($"角色删除失败: {characterName}, 原因: {deleteResult.Message}");
                         }
                     }
@@ -938,7 +939,7 @@ namespace NovelManagement.WPF.Views
                         ApplyFilters();
                         BackToOverview_Click(sender, e);
 
-                        MessageBox.Show($"角色 '{characterName}' 删除成功（仅本地）！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(TF("CM.DeleteSuccessLocal", "角色 '{0}' 删除成功（仅本地）！", characterName), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                         _logger?.LogWarning("角色服务不可用，仅删除本地数据");
                     }
                 }
@@ -946,7 +947,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "删除角色失败");
-                MessageBox.Show($"删除角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.DeleteFailed", "删除角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1020,7 +1021,7 @@ namespace NovelManagement.WPF.Views
                             }
                             if (generatedCharacter != null)
                             {
-                                if (!EnsureCurrentProject("AI生成角色", out var currentProjectId))
+                                if (!EnsureCurrentProject(T("CM.AIGenerate", "AI生成角色"), out var currentProjectId))
                                 {
                                     return;
                                 }
@@ -1028,7 +1029,7 @@ namespace NovelManagement.WPF.Views
                                 generatedCharacter.ProjectId = currentProjectId;
                                 if (_characterService == null)
                                 {
-                                    MessageBox.Show("角色服务未初始化，无法保存 AI 生成角色。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show(T("CM.ServiceNotInitSave", "角色服务未初始化，无法保存 AI 生成角色。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
                                 }
 
@@ -1046,34 +1047,34 @@ namespace NovelManagement.WPF.Views
 
                                 if (isExistingCharacter)
                                 {
-                                    _aiAssistantService.ShowSuccess($"项目内已存在同名且描述一致的角色: {createdCharacter.Name}，已复用现有角色");
+                                    _aiAssistantService.ShowSuccess(TF("CM.AIDuplicateReused", "项目内已存在同名且描述一致的角色: {0}，已复用现有角色", createdCharacter.Name));
                                 }
                                 else
                                 {
-                                    _aiAssistantService.ShowSuccess($"成功生成角色: {createdCharacter.Name}");
+                                    _aiAssistantService.ShowSuccess(TF("CM.AIGenerateSuccess", "成功生成角色: {0}", createdCharacter.Name));
                                 }
                                 _logger?.LogInformation($"AI生成角色完成: {createdCharacter.Name}（是否复用现有: {isExistingCharacter}）");
                             }
                             else
                             {
-                                _aiAssistantService.ShowError("生成的角色数据格式不正确");
+                                _aiAssistantService.ShowError(T("CM.AIBadFormat", "生成的角色数据格式不正确"));
                             }
                         }
                         else
                         {
-                            _aiAssistantService.ShowError(result.Message ?? "AI生成角色失败");
+                            _aiAssistantService.ShowError(result.Message ?? T("CM.AIGenerateFailed", "AI生成角色失败"));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI生成角色异常");
-                MessageBox.Show($"AI生成角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.AIGenerateFailedEx", "AI生成角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1086,7 +1087,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_selectedCharacter == null)
                 {
-                    MessageBox.Show("请先选择要优化的角色", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CM.SelectToOptimize", "请先选择要优化的角色"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1117,7 +1118,7 @@ namespace NovelManagement.WPF.Views
                             {
                                 if (_characterService == null)
                                 {
-                                    MessageBox.Show("角色服务未初始化，无法保存优化结果。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show(T("CM.ServiceNotInitSaveOpt", "角色服务未初始化，无法保存优化结果。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
                                 }
 
@@ -1136,29 +1137,29 @@ namespace NovelManagement.WPF.Views
                                 UpdateOverviewStatistics();
                                 ShowCharacterDetails(savedCharacter);
 
-                                _aiAssistantService.ShowSuccess($"成功优化角色: {savedCharacter.Name}");
+                                _aiAssistantService.ShowSuccess(TF("CM.AIOptimizeSuccess", "成功优化角色: {0}", savedCharacter.Name));
                                 _logger?.LogInformation($"AI优化角色成功: {savedCharacter.Name}");
                             }
                             else
                             {
-                                _aiAssistantService.ShowError("优化后的角色数据格式不正确");
+                                _aiAssistantService.ShowError(T("CM.AIOptimizeBadFormat", "优化后的角色数据格式不正确"));
                             }
                         }
                         else
                         {
-                            _aiAssistantService.ShowError(result.Message ?? "AI优化角色失败");
+                            _aiAssistantService.ShowError(result.Message ?? T("CM.AIOptimizeFailed", "AI优化角色失败"));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI优化角色异常");
-                MessageBox.Show($"AI优化角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.AIOptimizeFailedEx", "AI优化角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1171,7 +1172,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_allCharacters.Count < 2)
                 {
-                    MessageBox.Show("至少需要2个角色才能进行关系分析", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("CM.NeedTwoChars", "至少需要2个角色才能进行关系分析"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1191,23 +1192,23 @@ namespace NovelManagement.WPF.Views
                         var analysisDialog = new RelationshipAnalysisDialog(result.Data);
                         analysisDialog.ShowDialog();
 
-                        _aiAssistantService.ShowSuccess("角色关系分析完成");
+                        _aiAssistantService.ShowSuccess(T("CM.RelationDone", "角色关系分析完成"));
                         _logger?.LogInformation("AI分析角色关系成功");
                     }
                     else
                     {
-                        _aiAssistantService.ShowError(result.Message ?? "AI分析角色关系失败");
+                        _aiAssistantService.ShowError(result.Message ?? T("CM.RelationFailed", "AI分析角色关系失败"));
                     }
                 }
                 else
                 {
-                    MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI分析角色关系异常");
-                MessageBox.Show($"AI分析角色关系失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CM.RelationFailedEx", "AI分析角色关系失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1305,7 +1306,7 @@ namespace NovelManagement.WPF.Views
         /// </summary>
         public CharacterGenerationDialog()
         {
-            Title = "AI角色生成参数";
+            Title = T("CM.AIGenParamsTitle", "AI角色生成参数");
             Width = 400;
             Height = 500;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1313,7 +1314,7 @@ namespace NovelManagement.WPF.Views
             // 延迟设置DialogResult，在窗口加载后
             Loaded += (s, e) =>
             {
-                var result = MessageBox.Show("是否使用默认参数生成角色？", "角色生成", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var result = MessageBox.Show(T("CM.UseDefaultParams", "是否使用默认参数生成角色？"), T("CM.AIGenTitle", "角色生成"), MessageBoxButton.YesNo, MessageBoxImage.Question);
                 DialogResult = result == MessageBoxResult.Yes;
             };
         }
@@ -1335,7 +1336,7 @@ namespace NovelManagement.WPF.Views
         /// <param name="character">待优化的角色实体</param>
         public CharacterOptimizationDialog(Character character)
         {
-            Title = $"优化角色: {character.Name}";
+            Title = TF("CM.OptimizeTitleFmt", "优化角色: {0}", character.Name);
             Width = 400;
             Height = 300;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1344,7 +1345,7 @@ namespace NovelManagement.WPF.Views
             Loaded += (s, e) =>
             {
                 SelectedOptimizationGoals = new List<string> { "完善背景故事", "优化性格描述", "增强能力设定" };
-                var result = MessageBox.Show("是否使用默认优化目标？", "角色优化", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                var result = MessageBox.Show(T("CM.UseDefaultGoals", "是否使用默认优化目标？"), T("CM.OptimizeTitle", "角色优化"), MessageBoxButton.YesNo, MessageBoxImage.Question);
                 DialogResult = result == MessageBoxResult.Yes;
             };
         }
@@ -1361,13 +1362,13 @@ namespace NovelManagement.WPF.Views
         /// <param name="analysisData">关系分析结果数据</param>
         public RelationshipAnalysisDialog(object analysisData)
         {
-            Title = "角色关系分析结果";
+            Title = T("CM.RelationResultTitle", "角色关系分析结果");
             Width = 600;
             Height = 400;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
             // 这里应该显示具体的分析结果，暂时简化
-            MessageBox.Show("角色关系分析结果已生成", "分析完成", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(T("CM.RelationResultDone", "角色关系分析结果已生成"), T("Msg.Done"), MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
         }
     }

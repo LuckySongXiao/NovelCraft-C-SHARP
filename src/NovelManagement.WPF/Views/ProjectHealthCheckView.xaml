@@ -31,14 +31,14 @@
                                                  Width="28" Height="28"
                                                  VerticalAlignment="Center"
                                                  Foreground="#D32F2F"/>
-                        <TextBlock Text="项目体检报告"
+                        <TextBlock Text="{DynamicResource Loc.HC.Title}"
                                    FontSize="22"
                                    FontWeight="Bold"
                                    Margin="8,0,0,0"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBlock x:Name="ProjectInfoText"
-                               Text="请先选择项目"
+                               Text="{DynamicResource Loc.HC.SelectProjectFirst}"
                                FontSize="13"
                                Foreground="{DynamicResource MaterialDesignBodyLight}"
                                Margin="0,4,0,0"/>
@@ -51,7 +51,7 @@
                             Click="ConsistencyCheckButton_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="LinkVariant" Margin="0,0,4,0"/>
-                            <TextBlock Text="一致性检查"/>
+                            <TextBlock Text="{DynamicResource Loc.HC.ConsistencyCheck}"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="QualityCheckButton"
@@ -60,7 +60,7 @@
                             Click="QualityCheckButton_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="StarCheckOutline" Margin="0,0,4,0"/>
-                            <TextBlock Text="质量检查"/>
+                            <TextBlock Text="{DynamicResource Loc.HC.QualityCheck}"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="FullCheckButton"
@@ -69,7 +69,7 @@
                             Click="FullCheckButton_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="0,0,4,0"/>
-                            <TextBlock Text="全部检查"/>
+                            <TextBlock Text="{DynamicResource Loc.HC.FullCheck}"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="ReCheckButton"
@@ -77,7 +77,7 @@
                             Click="ReCheckButton_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                            <TextBlock Text="复检"/>
+                            <TextBlock Text="{DynamicResource Loc.HC.Recheck}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -87,10 +87,10 @@
         <!-- 汇总统计 -->
         <materialDesign:Card Grid.Row="1" Padding="12,8" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="ErrorCountText" Text="错误 0" FontWeight="Bold" Foreground="#D32F2F" Margin="0,0,20,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="WarningCountText" Text="警告 0" FontWeight="Bold" Foreground="#F57C00" Margin="0,0,20,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="InfoCountText" Text="提示 0" FontWeight="Bold" Foreground="#1976D2" Margin="0,0,20,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="LastCheckTimeText" Text="尚未检查" Foreground="{DynamicResource MaterialDesignBodyLight}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ErrorCountText" Text="{DynamicResource Loc.HC.ErrorCount0}" FontWeight="Bold" Foreground="#D32F2F" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="WarningCountText" Text="{DynamicResource Loc.HC.WarningCount0}" FontWeight="Bold" Foreground="#F57C00" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="InfoCountText" Text="{DynamicResource Loc.HC.InfoCount0}" FontWeight="Bold" Foreground="#1976D2" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="LastCheckTimeText" Text="{DynamicResource Loc.HC.NotCheckedYet}" Foreground="{DynamicResource MaterialDesignBodyLight}" VerticalAlignment="Center"/>
             </StackPanel>
         </materialDesign:Card>
 
@@ -110,12 +110,12 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="8,4,8,8">
-                        <TextBlock Text="检查结果（已按严重级别排序）"
+                        <TextBlock Text="{DynamicResource Loc.HC.ResultsHeader}"
                                    FontSize="15"
                                    FontWeight="Medium"
                                    DockPanel.Dock="Left"/>
                         <TextBlock x:Name="IssueCountText"
-                                   Text="0 个问题"
+                                   Text="{DynamicResource Loc.HC.IssueCount0}"
                                    FontSize="13"
                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                    DockPanel.Dock="Right"
@@ -131,7 +131,7 @@
                         </ListView.ItemContainerStyle>
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="级别" Width="70">
+                                <GridViewColumn Header="{DynamicResource Loc.HC.ColSeverity}" Width="70">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Severity}" FontWeight="Bold">
@@ -154,16 +154,16 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="分类" Width="110"
+                                <GridViewColumn Header="{DynamicResource Loc.HC.ColCategory}" Width="110"
                                                 DisplayMemberBinding="{Binding Category}"/>
-                                <GridViewColumn Header="问题描述" Width="420">
+                                <GridViewColumn Header="{DynamicResource Loc.HC.ColDescription}" Width="420">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Description}" TextWrapping="Wrap"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="目标" Width="200">
+                                <GridViewColumn Header="{DynamicResource Loc.HC.ColTarget}" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
@@ -190,7 +190,7 @@
 
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="IssueDetailPanel">
-                            <TextBlock Text="选择上方问题查看详情与修复建议"
+                            <TextBlock Text="{DynamicResource Loc.HC.SelectIssueHint}"
                                        FontStyle="Italic"
                                        Foreground="{DynamicResource MaterialDesignBodyLight}"
                                        HorizontalAlignment="Center"
@@ -208,7 +208,7 @@
                                 Click="JumpButton_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="ArrowTopRight" Margin="0,0,4,0"/>
-                                <TextBlock Text="跳转定位到相关页面"/>
+                                <TextBlock Text="{DynamicResource Loc.HC.JumpButton}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

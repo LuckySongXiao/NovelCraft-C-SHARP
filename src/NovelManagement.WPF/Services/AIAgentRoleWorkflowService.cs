@@ -188,7 +188,23 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
 
             // 守卫：小模型在定稿阶段可能复刻“简报结构”而非正文，
             // 若定稿仍带简报特征而草稿是正文，则回退使用草稿。
-            if (LooksLikeRequirementBrief(finalContent) && !LooksLikeRequirementBrief(mainDraft.Content))
+            // 英文模式下小模型会把 "SubAgent requirement brief: ... MainAgent draft: ..." 整段复刻，
+            // 先尝试从回显中截取 draft 之后的正文；截不出再回退草稿。
+            if (TryExtractMainAgentDraft(finalContent, out var extractedDraft) &&
+                extractedDraft.Length >= 200 &&
+                !LooksLikeRequirementBrief(extractedDraft))
+            {
+                finalContent = extractedDraft;
+                await ReportDebugEventAsync(
+                    "C",
+                    "TryExecuteAsync",
+                    "SubAgent定稿为简报回显，已提取 MainAgent draft 正文",
+                    new Dictionary<string, object?>
+                    {
+                        ["taskType"] = taskType
+                    });
+            }
+            else if (LooksLikeRequirementBrief(finalContent) && !LooksLikeRequirementBrief(mainDraft.Content))
             {
                 finalContent = AIOutputSanitizer.ExtractCleanOutput(mainDraft.Content);
                 await ReportDebugEventAsync(
@@ -199,6 +215,29 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
                     {
                         ["taskType"] = taskType
                     });
+            }
+
+            // 语言/跑题守卫：英文模式下输出大量中文，或以 Markdown 说明文档开头，
+            // 视为模型跑题（实测 13B 会把简报模板解释成「用途说明」文档），回退 MainAgent 草稿。
+            var trimFinal = finalContent.TrimStart();
+            var offTopic = trimFinal.StartsWith("#") ||
+                           trimFinal.Contains("用途说明", StringComparison.Ordinal) ||
+                           (GenEn && ComputeCjkRatio(trimFinal) > 0.08);
+            if (offTopic && !LooksLikeRequirementBrief(mainDraft.Content))
+            {
+                var sanitizedDraft = AIOutputSanitizer.ExtractCleanOutput(mainDraft.Content);
+                if (!string.IsNullOrWhiteSpace(sanitizedDraft))
+                {
+                    finalContent = sanitizedDraft;
+                    await ReportDebugEventAsync(
+                        "C",
+                        "TryExecuteAsync",
+                        "SubAgent定稿跑题或语言错误，已回退为 MainAgent 草稿",
+                        new Dictionary<string, object?>
+                        {
+                            ["taskType"] = taskType
+                        });
+                }
             }
 
             var result = new AIAgentRoleWorkflowResult
@@ -467,6 +506,21 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
 
     private string BuildSubAgentRequirementSystemPrompt(AgentRoleWorkflowSettings settings)
     {
+        // 语种模板注册表优先（占位符 {RoleDescription}）
+        var template = NovelManagement.AI.Utilities.PromptTemplate.Get("Workflow/SubAgentRequirement.System");
+        if (template != null)
+        {
+            return template.Replace("{RoleDescription}", settings.SubAgentRoleDescription ?? string.Empty);
+        }
+
+        if (GenEn)
+        {
+            return
+                $"You are SubAgent. Duty: {EnMainRoleText}" +
+                "First summarize the writing requirements into a clean, actionable brief for MainAgent to write from." +
+                "Internal thinking is allowed, but the final output must not contain thinking, tags, JSON, code blocks, or explanatory prefixes/suffixes.";
+        }
+
         return
             $"你是 SubAgent。职责：{settings.SubAgentRoleDescription}" +
             "你需要先总结写作需求，输出一份纯净、可执行的需求简报，供 MainAgent 直接写作使用。" +
@@ -475,6 +529,24 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
 
     private string BuildMainAgentSystemPrompt(string taskType, AgentRoleWorkflowSettings settings)
     {
+        // 语种模板注册表优先（占位符 {RoleDescription}/{TaskName}）
+        var template = NovelManagement.AI.Utilities.PromptTemplate.Get("Workflow/MainAgent.System");
+        if (template != null)
+        {
+            return template
+                .Replace("{RoleDescription}", settings.MainAgentRoleDescription ?? string.Empty)
+                .Replace("{TaskName}", GetTaskDisplayName(taskType));
+        }
+
+        if (GenEn)
+        {
+            return
+                $"You are MainAgent. Duty: {EnMainRoleText}" +
+                $"The current task is {GetTaskDisplayName(taskType)}." +
+                "Based solely on SubAgent's requirement brief, produce the content draft." +
+                "Internal thinking is allowed, but output only the draft content, no explanations.";
+        }
+
         return
             $"你是 MainAgent。职责：{settings.MainAgentRoleDescription}" +
             $"当前任务是 {GetTaskDisplayName(taskType)}。" +
@@ -484,6 +556,24 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
 
     private string BuildSubAgentRefineSystemPrompt(string taskType, AgentRoleWorkflowSettings settings)
     {
+        // 语种模板注册表优先（占位符 {RoleDescription}/{TaskName}）
+        var template = NovelManagement.AI.Utilities.PromptTemplate.Get("Workflow/SubAgentRefine.System");
+        if (template != null)
+        {
+            return template
+                .Replace("{RoleDescription}", settings.SubAgentRoleDescription ?? string.Empty)
+                .Replace("{TaskName}", GetTaskDisplayName(taskType));
+        }
+
+        if (GenEn)
+        {
+            return
+                $"You are SubAgent. Duty: {EnMainRoleText}" +
+                $"Finalize the output for task {GetTaskDisplayName(taskType)}." +
+                "Strip thinking, explanations, prompt residue, tags, redundant headings, and verbal filler from MainAgent's draft; keep only publication-ready content." +
+                "The final output must be strictly clean.";
+        }
+
         return
             $"你是 SubAgent。职责：{settings.SubAgentRoleDescription}" +
             $"当前任务是 {GetTaskDisplayName(taskType)} 的定稿整理。" +
@@ -494,6 +584,20 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
     private string BuildSubAgentRequirementUserPrompt(string taskType, Dictionary<string, object> parameters)
     {
         var builder = new StringBuilder();
+        if (GenEn)
+        {
+            builder.AppendLine($"Task type: {GetTaskDisplayName(taskType)}");
+            builder.AppendLine("Organize the raw requirements below into a short writing brief (max 8 lines, plain text, no section headings):");
+            builder.AppendLine("- Line 1: the story goal in one sentence;");
+            builder.AppendLine("- Line 2: style and tone;");
+            builder.AppendLine("- Up to three more lines: characters and settings that must appear.");
+            builder.AppendLine("All content must be written in English. Do not output JSON, tags, code blocks, or any explanation.");
+            builder.AppendLine();
+            builder.AppendLine("Raw parameters:");
+            builder.AppendLine(SerializeParameters(parameters));
+            return builder.ToString();
+        }
+
         builder.AppendLine($"任务类型：{GetTaskDisplayName(taskType)}");
         builder.AppendLine("请将以下原始需求整理成一份简短的写作简报（不超过8行，纯文本，不要分节标题）：");
         builder.AppendLine("- 第一行：一句话故事目标；");
@@ -508,6 +612,15 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
 
     private string BuildMainAgentUserPrompt(string taskType, string requirementBrief)
     {
+        if (GenEn)
+        {
+            return
+                $"Task type: {GetTaskDisplayName(taskType)}{Environment.NewLine}" +
+                "Below is SubAgent's requirement brief. Write a high-quality content draft from it directly. No explanations."
+                + Environment.NewLine + GetTaskFormatInstruction(taskType)
+                + Environment.NewLine + Environment.NewLine + requirementBrief;
+        }
+
         return
             $"任务类型：{GetTaskDisplayName(taskType)}{Environment.NewLine}" +
             "以下是 SubAgent 输出的需求简报，请据此直接生成高质量文案草稿。不要输出解释。"
@@ -518,6 +631,20 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
     private string BuildSubAgentRefineUserPrompt(string taskType, string requirementBrief, string mainDraft)
     {
         var builder = new StringBuilder();
+        if (GenEn)
+        {
+            builder.AppendLine($"Task type: {GetTaskDisplayName(taskType)}");
+            builder.AppendLine("Based on the requirement brief and MainAgent's draft, output the final clean version.");
+            builder.AppendLine(GetTaskFormatInstruction(taskType));
+            builder.AppendLine();
+            builder.AppendLine("Requirement brief:");
+            builder.AppendLine(requirementBrief);
+            builder.AppendLine();
+            builder.AppendLine("MainAgent draft:");
+            builder.AppendLine(mainDraft);
+            return builder.ToString();
+        }
+
         builder.AppendLine($"任务类型：{GetTaskDisplayName(taskType)}");
         builder.AppendLine("请基于需求简报与 MainAgent 草稿，输出最终纯净定稿。");
         builder.AppendLine(GetTaskFormatInstruction(taskType));
@@ -530,8 +657,27 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
         return builder.ToString();
     }
 
+    /// <summary>英文模式（界面语言为 en-US 时生成链路输出英文内容）。</summary>
+    private static bool GenEn => Localization.LocalizationManager.IsEnglish;
+
+    /// <summary>英文模式下的 MainAgent 角色描述（取自词条表英文列）。</summary>
+    private static string EnMainRoleText =>
+        Localization.LocalizationManager.T("AICfg.MainAgentRoleText", "Write final prose from SubAgent's requirement briefs, focused on content creation.");
+
     private static string GetTaskFormatInstruction(string taskType)
     {
+        if (GenEn)
+        {
+            return taskType switch
+            {
+                "GenerateChapterContent" => "Format: output only the chapter prose (narrative story content starting from scene and character action, with dialogue and plot progression, at least 400 words), no explanations, no title prefix, no extra notes; never write it as a manual, technical document, or bullet list. All content must be in English.",
+                "ContinueChapter" => "Format: output only the continued prose, no explanations, no labels such as \"Continued\".",
+                "PolishText" => "Format: output only the polished full text, no reviews, no diff notes.",
+                "GenerateOutline" => "Format: output only the story outline (core conflict, volume/stage-based plot progression, main character arcs) in narrative form; no explanations, no self-description; never write it as a project plan or technical document. All content must be in English.",
+                _ => "Format: output only clean, publication-ready content."
+            };
+        }
+
         return taskType switch
         {
             "GenerateChapterContent" => "格式要求：只输出书籍章节正文（叙事性故事内容，从场景与人物动作切入，含对话与情节推进，篇幅不少于500字），不要解释，不要标题前缀，不要额外备注；严禁写成说明书、技术文档或要点罗列。",
@@ -550,6 +696,26 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
     /// <summary>
     /// 判断内容是否仍是“需求简报/结构化说明”而非正文（用于小模型回显守卫）。
     /// </summary>
+    /// <summary>计算文本中 CJK 字符占比（按全部字符）。</summary>
+    private static double ComputeCjkRatio(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return 0;
+        }
+
+        var cjk = 0;
+        foreach (var ch in text)
+        {
+            if (ch >= 0x4E00 && ch <= 0x9FFF)
+            {
+                cjk++;
+            }
+        }
+
+        return (double)cjk / text.Length;
+    }
+
     private static bool LooksLikeRequirementBrief(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -557,13 +723,88 @@ public class AIAgentRoleWorkflowService : IAIAgentRoleWorkflowService
             return false;
         }
 
+        // 中文简报特征（>=2 即判定）
         var markers = new[] { "核心目标", "必须保留的信息", "输出格式要求", "需求简报", "写作简报", "禁止项" };
         var hitCount = markers.Count(marker => content.Contains(marker, StringComparison.Ordinal));
-        return hitCount >= 2;
+        if (hitCount >= 2)
+        {
+            return true;
+        }
+
+        // 英文简报特征：回显必然携带双代理结构标签（实测英文模式踩坑）
+        var enMarkers = new[]
+        {
+            "SubAgent requirement brief", "Requirement brief:", "Requirement Brief:",
+            "MainAgent draft", "MainAgent Draft", "MainAgent's draft", "tasktype:chapterwriting",
+            "Tasktype:chapterwriting", "chapterwriting"
+        };
+        return enMarkers.Any(marker => content.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// 从简报回显中提取 MainAgent draft 之后的正文（大小写/空格丢失均兼容）。
+    /// </summary>
+    private static bool TryExtractMainAgentDraft(string content, out string draft)
+    {
+        draft = string.Empty;
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return false;
+        }
+
+        // 回显可能丢失空格（流式分词缺陷），用无空格形式匹配标记
+        var compact = content.Replace(" ", string.Empty).Replace("\n", string.Empty).Replace("\r", string.Empty);
+        var markers = new[] { "MainAgentdraft:", "MainAgent'sdraft:", "MainAgentDraft:" };
+        var idx = -1;
+        var markerLen = 0;
+        foreach (var marker in markers)
+        {
+            var pos = compact.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (pos >= 0 && (idx < 0 || pos < idx))
+            {
+                idx = pos;
+                markerLen = marker.Length;
+            }
+        }
+
+        if (idx < 0)
+        {
+            return false;
+        }
+
+        // 在原文中按压缩后偏移的字符比例定位（压缩仅删除空格/换行，比例近似安全）
+        var ratio = (double)idx / Math.Max(1, compact.Length);
+        var rawIdx = (int)(content.Length * ratio);
+        // 从 rawIdx 向后找到真正的 draft 起点附近（跳过最多 markerLen+80 个字符）
+        var windowEnd = Math.Min(content.Length, rawIdx + markerLen + 120);
+        var slice = content.Substring(rawIdx, windowEnd - rawIdx);
+        var m = System.Text.RegularExpressions.Regex.Match(
+            slice,
+            @"MainAgent('s)?\s*[Dd]raft\s*:\s*",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        if (!m.Success)
+        {
+            return false;
+        }
+
+        draft = content[(rawIdx + m.Index + m.Length)..].Trim();
+        return draft.Length > 0;
     }
 
     private static string GetTaskDisplayName(string taskType)
     {
+        if (GenEn)
+        {
+            return taskType switch
+            {
+                "GenerateChapterContent" => "chapter writing",
+                "ContinueChapter" => "chapter continuation",
+                "PolishText" => "text polishing",
+                "GenerateOutline" => "book outline generation",
+                _ => taskType
+            };
+        }
+
         return taskType switch
         {
             "GenerateChapterContent" => "章节生成",

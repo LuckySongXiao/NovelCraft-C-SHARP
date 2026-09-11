@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="编辑项目" Height="500" Width="500"
+        Title="{DynamicResource Loc.PM.EditProject}" Height="500" Width="500"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -35,9 +35,9 @@
                                        Width="24" Height="24"
                                        VerticalAlignment="Center"
                                        Margin="0,0,16,0"/>
-                <TextBlock Text="编辑项目" 
-                         FontSize="20" 
-                         FontWeight="Medium" 
+                <TextBlock Text="{DynamicResource Loc.PM.EditProject}"
+                         FontSize="20"
+                         FontWeight="Medium"
                          VerticalAlignment="Center"/>
             </DockPanel>
         </materialDesign:ColorZone>
@@ -48,20 +48,20 @@
                 <!-- 项目基本信息 -->
                 <materialDesign:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="项目基本信息" 
-                                 FontSize="18" 
-                                 FontWeight="Medium" 
+                        <TextBlock Text="{DynamicResource Loc.NPD.BasicInfo}"
+                                 FontSize="18"
+                                 FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <!-- 项目名称 -->
                         <TextBox x:Name="ProjectNameTextBox"
-                               materialDesign:HintAssist.Hint="项目名称 *"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.NameHint}"
                                materialDesign:HintAssist.IsFloating="True"
                                Margin="0,0,0,16"/>
 
                         <!-- 项目描述 -->
                         <TextBox x:Name="ProjectDescriptionTextBox"
-                               materialDesign:HintAssist.Hint="项目描述"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.DescriptionHint}"
                                materialDesign:HintAssist.IsFloating="True"
                                AcceptsReturn="True"
                                TextWrapping="Wrap"
@@ -71,29 +71,29 @@
 
                         <!-- 项目类型 -->
                         <ComboBox x:Name="ProjectTypeComboBox"
-                                materialDesign:HintAssist.Hint="项目类型 *"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.NPD.TypeHint}"
                                 materialDesign:HintAssist.IsFloating="True"
                                 Margin="0,0,0,16">
-                            <ComboBoxItem Content="修仙书籍"/>
-                            <ComboBoxItem Content="都市书籍"/>
-                            <ComboBoxItem Content="科幻书籍"/>
-                            <ComboBoxItem Content="奇幻书籍"/>
-                            <ComboBoxItem Content="历史书籍"/>
-                            <ComboBoxItem Content="军事书籍"/>
-                            <ComboBoxItem Content="悬疑书籍"/>
-                            <ComboBoxItem Content="言情书籍"/>
-                            <ComboBoxItem Content="其他"/>
+                            <ComboBoxItem Tag="修仙书籍" Content="{DynamicResource Loc.OG.TypeXianxia}"/>
+                            <ComboBoxItem Tag="都市书籍" Content="{DynamicResource Loc.OG.TypeUrban}"/>
+                            <ComboBoxItem Tag="科幻书籍" Content="{DynamicResource Loc.OG.TypeScifi}"/>
+                            <ComboBoxItem Tag="奇幻书籍" Content="{DynamicResource Loc.NPD.TypeFantasy}"/>
+                            <ComboBoxItem Tag="历史书籍" Content="{DynamicResource Loc.OG.TypeHistory}"/>
+                            <ComboBoxItem Tag="军事书籍" Content="{DynamicResource Loc.NPD.TypeMilitary}"/>
+                            <ComboBoxItem Tag="悬疑书籍" Content="{DynamicResource Loc.OG.TypeMystery}"/>
+                            <ComboBoxItem Tag="言情书籍" Content="{DynamicResource Loc.OG.TypeRomance}"/>
+                            <ComboBoxItem Tag="其他" Content="{DynamicResource Loc.PG.GenreOther}"/>
                         </ComboBox>
 
                         <!-- 项目状态 -->
                         <ComboBox x:Name="ProjectStatusComboBox"
-                                materialDesign:HintAssist.Hint="项目状态"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.EPD.StatusHint}"
                                 materialDesign:HintAssist.IsFloating="True"
                                 Margin="0,0,0,0">
-                            <ComboBoxItem Content="进行中"/>
-                            <ComboBoxItem Content="暂停"/>
-                            <ComboBoxItem Content="已完成"/>
-                            <ComboBoxItem Content="已取消"/>
+                            <ComboBoxItem Tag="进行中" Content="{DynamicResource Loc.PLM.StatusInProgress}"/>
+                            <ComboBoxItem Tag="暂停" Content="{DynamicResource Loc.PLM.StatusPaused}"/>
+                            <ComboBoxItem Tag="已完成" Content="{DynamicResource Loc.PLM.StatusCompleted}"/>
+                            <ComboBoxItem Tag="已取消" Content="{DynamicResource Loc.TL.Data.已取消}"/>
                         </ComboBox>
                     </StackPanel>
                 </materialDesign:Card>
@@ -101,15 +101,15 @@
         </ScrollViewer>
 
         <!-- 按钮栏 -->
-        <Border Grid.Row="2" 
-              Background="{DynamicResource MaterialDesignDivider}" 
+        <Border Grid.Row="2"
+              Background="{DynamicResource MaterialDesignDivider}"
               Padding="24,16">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="取消" 
+                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                       Style="{StaticResource MaterialDesignFlatButton}"
                       Margin="0,0,8,0"
                       Click="Cancel_Click"/>
-                <Button Content="保存更改" 
+                <Button Content="{DynamicResource Loc.EPD.SaveChanges}"
                       Style="{StaticResource MaterialDesignRaisedButton}"
                       Click="SaveProject_Click"/>
             </StackPanel>

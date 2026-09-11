@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -118,7 +119,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "时间线管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("TL.Title", "时间线管理"), out _);
                     TimelineEvents.Clear();
                     TimelineListControl.ItemsSource = TimelineEvents;
                     UpdateStatistics();
@@ -148,7 +149,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载时间线事件数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.LoadFailed", "加载时间线事件数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -241,7 +242,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var noDataText = new TextBlock
                     {
-                        Text = "暂无事件数据",
+                        Text = T("TL.NoData", "暂无事件数据"),
                         FontSize = 14,
                         Foreground = (Brush)FindResource("MaterialDesignBodyLight"),
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -311,15 +312,15 @@ namespace NovelManagement.WPF.Views
             var timeSpan = DateTime.Now - dateTime;
 
             if (timeSpan.TotalMinutes < 1)
-                return "刚刚";
+                return T("TL.JustNow", "刚刚");
             else if (timeSpan.TotalHours < 1)
-                return $"{(int)timeSpan.TotalMinutes}分钟前";
+                return TF("TL.MinutesAgo", "{0}分钟前", (int)timeSpan.TotalMinutes);
             else if (timeSpan.TotalDays < 1)
-                return $"{(int)timeSpan.TotalHours}小时前";
+                return TF("TL.HoursAgo", "{0}小时前", (int)timeSpan.TotalHours);
             else if (timeSpan.TotalDays < 7)
-                return $"{(int)timeSpan.TotalDays}天前";
+                return TF("TL.DaysAgo", "{0}天前", (int)timeSpan.TotalDays);
             else
-                return dateTime.ToString("MM月dd日");
+                return TF("TL.MonthDayFmt", "{0}月{1}日", dateTime.Month, dateTime.Day);
         }
 
         #endregion
@@ -348,7 +349,8 @@ namespace NovelManagement.WPF.Views
         private void FilterTimelineEvents()
         {
             var searchText = SearchTextBox?.Text?.ToLower() ?? "";
-            var selectedCategory = (CategoryFilterComboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            var selectedCategory = (CategoryFilterComboBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                  ?? (CategoryFilterComboBox?.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             var filteredEvents = TimelineEvents.Where(e =>
                 (string.IsNullOrEmpty(searchText) || 
@@ -406,7 +408,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"TimelineEvent_Click异常: {ex.Message}");
-                MessageBox.Show($"选择时间线事件失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.SelectFailed", "选择时间线事件失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -466,7 +468,7 @@ namespace NovelManagement.WPF.Views
                 if (TimelineEvents == null || TimelineEvents.Count == 0)
                 {
                     System.Diagnostics.Debug.WriteLine("没有时间线事件数据");
-                    MessageBox.Show("没有时间线事件数据", "测试", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("TL.NoData", "没有时间线事件数据"), T("TL.TestTitle", "测试"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -478,12 +480,12 @@ namespace NovelManagement.WPF.Views
                 SelectTimelineEvent(firstEvent);
 
                 System.Diagnostics.Debug.WriteLine("=== 测试选择事件完成 ===");
-                MessageBox.Show($"已选择事件: {firstEvent.Title}", "测试", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("TL.SelectedEventFmt", "已选择事件: {0}", firstEvent.Title), T("TL.TestTitle", "测试"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"测试选择事件失败: {ex.Message}");
-                MessageBox.Show($"测试失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.TestFailed", "测试失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -552,7 +554,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"TimelineList_SelectionChanged异常: {ex.Message}");
-                MessageBox.Show($"选择事件失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.SelectFailed2", "选择事件失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -579,7 +581,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"EventCard_MouseLeftButtonUp异常: {ex.Message}");
-                MessageBox.Show($"选择事件失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.SelectFailed2", "选择事件失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -619,7 +621,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建时间线事件失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.CreateFailed", "创建时间线事件失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -650,13 +652,13 @@ namespace NovelManagement.WPF.Views
                 var contextInfo = GetCurrentContextInfo();
 
                 // 打开AI助手对话框
-                var aiDialog = new AIAssistantDialog("时间线管理", contextInfo);
+                var aiDialog = new AIAssistantDialog(T("TL.Title", "时间线管理"), contextInfo);
                 aiDialog.Owner = Window.GetWindow(this);
                 aiDialog.ShowDialog();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.AIHelperFailed", "打开AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -742,7 +744,7 @@ namespace NovelManagement.WPF.Views
                 {
                     foreach (ComboBoxItem item in EventCategoryComboBox.Items)
                     {
-                        if (item.Content?.ToString() == timelineEvent.Category)
+                        if ((item.Tag?.ToString() ?? item.Content?.ToString()) == timelineEvent.Category)
                         {
                             EventCategoryComboBox.SelectedItem = item;
                             break;
@@ -755,7 +757,7 @@ namespace NovelManagement.WPF.Views
                 {
                     foreach (ComboBoxItem item in EventImportanceComboBox.Items)
                     {
-                        if (item.Content?.ToString() == timelineEvent.Importance)
+                        if ((item.Tag?.ToString() ?? item.Content?.ToString()) == timelineEvent.Importance)
                         {
                             EventImportanceComboBox.SelectedItem = item;
                             break;
@@ -768,7 +770,7 @@ namespace NovelManagement.WPF.Views
                 {
                     foreach (ComboBoxItem item in EventStatusComboBox.Items)
                     {
-                        if (item.Content?.ToString() == timelineEvent.Status)
+                        if ((item.Tag?.ToString() ?? item.Content?.ToString()) == timelineEvent.Status)
                         {
                             EventStatusComboBox.SelectedItem = item;
                             break;
@@ -784,7 +786,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"LoadTimelineEventDetails: 加载失败 - {ex.Message}");
-                MessageBox.Show($"加载事件详情失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.LoadDetailFailed", "加载事件详情失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -827,7 +829,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加参与者失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.AddParticipantFailed", "添加参与者失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -845,7 +847,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除参与者失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.DeleteParticipantFailed", "删除参与者失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -863,7 +865,7 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(EventTitleTextBox.Text))
                 {
-                    MessageBox.Show("请输入事件标题", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("TL.TitleRequired", "请输入事件标题"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -873,9 +875,12 @@ namespace NovelManagement.WPF.Views
                 SelectedEvent.Location = EventLocationTextBox.Text.Trim();
                 SelectedEvent.Impact = EventImpactTextBox.Text.Trim();
                 SelectedEvent.EventDate = EventDatePicker.SelectedDate ?? DateTime.Now;
-                SelectedEvent.Category = (EventCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "历史事件";
-                SelectedEvent.Importance = (EventImportanceComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "中";
-                SelectedEvent.Status = (EventStatusComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "计划中";
+                SelectedEvent.Category = (EventCategoryComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                       ?? (EventCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "历史事件";
+                SelectedEvent.Importance = (EventImportanceComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                        ?? (EventImportanceComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "中";
+                SelectedEvent.Status = (EventStatusComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                     ?? (EventStatusComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "计划中";
                 SelectedEvent.ParticipantCount = EventParticipants.Count;
                 SelectedEvent.Participants = EventParticipants.ToList();
 
@@ -889,7 +894,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistTimelineEventsAsync();
-                MessageBox.Show("时间线事件保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("TL.SaveSuccess", "时间线事件保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterTimelineEvents();
@@ -897,7 +902,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存时间线事件失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.SaveFailed", "保存时间线事件失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -926,7 +931,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"取消编辑失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.CancelEditFailed", "取消编辑失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -966,7 +971,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"ShowEditPanel: 显示面板失败 - {ex.Message}");
-                MessageBox.Show($"显示编辑面板失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.ShowPanelFailed", "显示编辑面板失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1050,21 +1055,21 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入时间线"))
+                if (!EnsureCurrentProject(T("TL.ImportTitle", "导入时间线")))
                 {
                     return;
                 }
 
                 if (_timelineDataService == null)
                 {
-                    MessageBox.Show("时间线数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("TL.ServiceNotInit", "时间线数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 var openDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入时间线数据",
-                    Filter = "时间线文件 (*.json)|*.json|所有文件 (*.*)|*.*"
+                    Title = T("TL.ImportTooltip", "导入时间线数据"),
+                    Filter = TF("TL.FileFilterAll", "时间线文件 (*.json)|*.json|所有文件 (*.*)|*.*")
                 };
 
                 if (openDialog.ShowDialog() == true)
@@ -1080,12 +1085,12 @@ namespace NovelManagement.WPF.Views
                     await PersistTimelineEventsAsync();
                     TimelineListControl.ItemsSource = TimelineEvents;
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {TimelineEvents.Count} 条时间线事件。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("TL.ImportSuccess", "已成功导入 {0} 条时间线事件。", TimelineEvents.Count), T("Dlg.Import") + T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入时间线数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.ImportFailed", "导入时间线数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1093,33 +1098,33 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导出时间线"))
+                if (!EnsureCurrentProject(T("TL.ExportTitle", "导出时间线")))
                 {
                     return;
                 }
 
                 if (_timelineDataService == null)
                 {
-                    MessageBox.Show("时间线数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("TL.ServiceNotInit", "时间线数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 var saveDialog = new Microsoft.Win32.SaveFileDialog
                 {
-                    Title = "导出时间线数据",
-                    Filter = "时间线文件 (*.json)|*.json",
-                    FileName = $"时间线_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                    Title = T("TL.ExportTooltip", "导出时间线数据"),
+                    Filter = TF("TL.FileFilter", "时间线文件 (*.json)|*.json"),
+                    FileName = TF("TL.ExportFileName", "时间线_{0}.json", DateTime.Now.ToString("yyyyMMdd_HHmmss"))
                 };
 
                 if (saveDialog.ShowDialog() == true)
                 {
                     await _timelineDataService.ExportTimelineEventsAsync(_currentProjectId, TimelineEvents, saveDialog.FileName);
-                    MessageBox.Show($"时间线数据已导出到：{saveDialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("TL.ExportSuccess", "时间线数据已导出到：{0}", saveDialog.FileName), T("Dlg.Export") + T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出时间线数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.ExportFailed", "导出时间线数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

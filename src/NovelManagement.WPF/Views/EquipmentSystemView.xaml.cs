@@ -11,6 +11,7 @@ using NovelManagement.WPF.Commands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -150,7 +151,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "装备体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Equipment.Title", "装备体系管理"), out _);
                     EquipmentSystems.Clear();
                     EquipmentListControl.ItemsSource = EquipmentSystems;
                     UpdateStatistics();
@@ -180,7 +181,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载装备体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Equ.LoadFailed", "加载装备体系数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -262,7 +263,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建装备体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Equ.CreateFailed", "创建装备体系失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -275,21 +276,21 @@ namespace NovelManagement.WPF.Views
             {
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入装备体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Equ.ImportTitle", "导入装备体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    if (!EnsureCurrentProject("导入装备体系"))
+                    if (!EnsureCurrentProject(T("WS.Equ.ImportTitle", "导入装备体系")))
                     {
                         return;
                     }
 
                     if (_equipmentDataService == null)
                     {
-                        MessageBox.Show("装备数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Equ.ServiceNotInit", "装备数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -307,12 +308,12 @@ namespace NovelManagement.WPF.Views
                     await PersistEquipmentSystemsAsync();
                     FilterEquipmentSystems();
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {EquipmentSystems.Count} 个装备体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Equ.ImportDone", "已成功导入 {0} 个装备体系。", EquipmentSystems.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -326,31 +327,31 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出装备体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"装备体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
 
                 if (dialog.ShowDialog() == true)
                 {
-                    if (!EnsureCurrentProject("导出装备体系"))
+                    if (!EnsureCurrentProject(T("WS.Equ.ExportTitle", "导出装备体系")))
                     {
                         return;
                     }
 
                     if (_equipmentDataService == null)
                     {
-                        MessageBox.Show("装备数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Equ.ServiceNotInit", "装备数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
                     await _equipmentDataService.ExportEquipmentSystemsAsync(_currentProjectId, EquipmentSystems, dialog.FileName);
-                    MessageBox.Show($"装备体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Equ.ExportDone", "装备体系数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -378,7 +379,7 @@ namespace NovelManagement.WPF.Views
             // 设置装备类别选择
             foreach (ComboBoxItem item in EquipmentCategoryComboBox.Items)
             {
-                if (item.Content.ToString() == equipment.Category)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == equipment.Category)
                 {
                     EquipmentCategoryComboBox.SelectedItem = item;
                     break;
@@ -442,7 +443,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加等级失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AddLevelFailed", "添加等级失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -460,7 +461,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除等级失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.DeleteLevelFailed", "删除等级失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -486,7 +487,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加属性失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AddAttrFailed", "添加属性失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -504,7 +505,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除属性失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.DeleteAttrFailed", "删除属性失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -522,14 +523,14 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(EquipmentNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入装备体系名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Equ.NameRequired", "请输入装备体系名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 // 更新装备体系信息
                 SelectedEquipment.Name = EquipmentNameTextBox.Text.Trim();
                 SelectedEquipment.Description = EquipmentDescriptionTextBox.Text.Trim();
-                SelectedEquipment.Category = (EquipmentCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "武器";
+                SelectedEquipment.Category = (EquipmentCategoryComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (EquipmentCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "武器";
                 SelectedEquipment.LevelCount = EquipmentLevels.Count;
                 SelectedEquipment.AttributeCount = EquipmentAttributes.Count;
                 SelectedEquipment.Levels = EquipmentLevels.OrderBy(l => l.Level).ToList();
@@ -543,7 +544,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistEquipmentSystemsAsync();
-                MessageBox.Show("装备体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Equ.SaveSuccess", "装备体系保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterEquipmentSystems();
@@ -551,7 +552,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存装备体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Equ.SaveFailed", "保存装备体系失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -576,7 +577,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"取消编辑失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.CancelEditFailed", "取消编辑失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -660,7 +661,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -775,7 +776,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -793,7 +794,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI装备体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI装备体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

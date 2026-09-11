@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="章节一致性检查" Height="700" Width="900"
+        Title="{DynamicResource Loc.CC.Title}" Height="700" Width="900"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -25,11 +25,11 @@
 
         <!-- 标题区域 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="章节一致性检查" 
+            <TextBlock Text="{DynamicResource Loc.CC.Title}" 
                      FontSize="24" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="AI将检查章节内容是否符合大纲、剧情设定、人物设定等，并提供改进建议" 
+            <TextBlock Text="{DynamicResource Loc.CC.Desc}" 
                      FontSize="14" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -37,7 +37,7 @@
         <!-- 检查设置 -->
         <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock Text="检查设置" 
+                <TextBlock Text="{DynamicResource Loc.CC.Settings}" 
                          FontSize="16" 
                          FontWeight="Medium" 
                          Margin="0,0,0,16"/>
@@ -53,19 +53,19 @@
 
                     <!-- 检查范围 -->
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="检查范围" FontWeight="Medium" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="CheckPlotConsistencyCheckBox" Content="剧情一致性" IsChecked="True" Margin="0,0,0,4"/>
-                        <CheckBox x:Name="CheckCharacterConsistencyCheckBox" Content="人物一致性" IsChecked="True" Margin="0,0,0,4"/>
-                        <CheckBox x:Name="CheckWorldSettingCheckBox" Content="世界设定" IsChecked="True" Margin="0,0,0,4"/>
-                        <CheckBox x:Name="CheckTimelineCheckBox" Content="时间线逻辑" IsChecked="True"/>
+                        <TextBlock Text="{DynamicResource Loc.CC.CheckScope}" FontWeight="Medium" Margin="0,0,0,8"/>
+                        <CheckBox x:Name="CheckPlotConsistencyCheckBox" Content="{DynamicResource Loc.CC.PlotConsistency}" IsChecked="True" Margin="0,0,0,4"/>
+                        <CheckBox x:Name="CheckCharacterConsistencyCheckBox" Content="{DynamicResource Loc.CC.CharacterConsistency}" IsChecked="True" Margin="0,0,0,4"/>
+                        <CheckBox x:Name="CheckWorldSettingCheckBox" Content="{DynamicResource Loc.CC.WorldSetting}" IsChecked="True" Margin="0,0,0,4"/>
+                        <CheckBox x:Name="CheckTimelineCheckBox" Content="{DynamicResource Loc.CC.TimelineLogic}" IsChecked="True"/>
                     </StackPanel>
 
                     <!-- 检查严格度 -->
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="检查严格度" FontWeight="Medium" Margin="0,0,0,8"/>
-                        <RadioButton x:Name="StrictModeRadio" Content="严格模式" GroupName="StrictMode" Margin="0,0,0,4"/>
-                        <RadioButton x:Name="NormalModeRadio" Content="标准模式" GroupName="StrictMode" IsChecked="True" Margin="0,0,0,4"/>
-                        <RadioButton x:Name="LooseModeRadio" Content="宽松模式" GroupName="StrictMode"/>
+                        <TextBlock Text="{DynamicResource Loc.CC.Strictness}" FontWeight="Medium" Margin="0,0,0,8"/>
+                        <RadioButton x:Name="StrictModeRadio" Content="{DynamicResource Loc.CC.StrictMode}" GroupName="StrictMode" Margin="0,0,0,4"/>
+                        <RadioButton x:Name="NormalModeRadio" Content="{DynamicResource Loc.CC.NormalMode}" GroupName="StrictMode" IsChecked="True" Margin="0,0,0,4"/>
+                        <RadioButton x:Name="LooseModeRadio" Content="{DynamicResource Loc.CC.LooseMode}" GroupName="StrictMode"/>
                     </StackPanel>
 
                     <!-- 开始检查按钮 -->
@@ -76,7 +76,7 @@
                           Click="StartCheck_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="CheckCircle" Margin="0,0,8,0"/>
-                            <TextBlock Text="开始检查"/>
+                            <TextBlock Text="{DynamicResource Loc.CC.StartCheck}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -100,12 +100,12 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="发现的问题" 
+                        <TextBlock Text="{DynamicResource Loc.CC.Issues}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  DockPanel.Dock="Left"/>
                         <TextBlock x:Name="IssueCountLabel"
-                                 Text="(0个问题)"
+                                 Text="{DynamicResource Loc.CC.Issues0}"
                                  FontSize="14"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  DockPanel.Dock="Right"/>
@@ -158,14 +158,14 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" 
-                             Text="问题详情与建议" 
+                             Text="{DynamicResource Loc.CC.Details}" 
                              FontSize="16" 
                              FontWeight="Medium" 
                              Margin="0,0,0,16"/>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="IssueDetailPanel">
-                            <TextBlock Text="请选择左侧的问题查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.CC.SelectIssueHint}" 
                                      FontStyle="Italic"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
@@ -183,7 +183,7 @@
                               Click="ExportReport_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExport" Margin="0,0,4,0"/>
-                                <TextBlock Text="导出报告"/>
+                                <TextBlock Text="{DynamicResource Loc.CC.ExportReport}"/>
                             </StackPanel>
                         </Button>
                         
@@ -193,7 +193,7 @@
                               Click="AutoFix_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,4,0"/>
-                                <TextBlock Text="自动修复"/>
+                                <TextBlock Text="{DynamicResource Loc.CC.AutoFix}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -211,13 +211,13 @@
                   Click="ReCheck_Click">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                    <TextBlock Text="重新检查"/>
+                    <TextBlock Text="{DynamicResource Loc.CC.ReCheck}"/>
                 </StackPanel>
             </Button>
             
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
                   Click="Close_Click">
-                <TextBlock Text="关闭"/>
+                <TextBlock Text="{DynamicResource Loc.Dlg.Close}"/>
             </Button>
         </StackPanel>
     </Grid>

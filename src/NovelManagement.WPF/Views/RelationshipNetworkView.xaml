@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:localization="clr-namespace:NovelManagement.WPF.Localization"
              mc:Ignorable="d"
              d:DesignHeight="800" d:DesignWidth="1200"
              TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -14,6 +15,9 @@
              Background="{DynamicResource MaterialDesignPaper}"
              FontFamily="{DynamicResource MaterialDesignFont}">
 
+    <UserControl.Resources>
+        <localization:StoredValueConverter x:Key="StoredValueConverter"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -33,7 +37,7 @@
                                            Width="24" Height="24" 
                                            VerticalAlignment="Center"
                                            Margin="0,0,12,0"/>
-                    <TextBlock Text="关系网络" 
+                    <TextBlock Text="{DynamicResource Loc.RN.Title}" 
                              FontSize="20" 
                              FontWeight="Medium" 
                              VerticalAlignment="Center"/>
@@ -41,19 +45,19 @@
                 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            ToolTip="网络分析"
+                            ToolTip="{DynamicResource Loc.RN.AnalysisTooltip}"
                             Click="NetworkAnalysis_Click"
                             Margin="0,0,8,0">
                         <materialDesign:PackIcon Kind="ChartLine"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            ToolTip="导出网络图"
+                            ToolTip="{DynamicResource Loc.RN.ExportTooltip}"
                             Click="ExportNetwork_Click"
                             Margin="0,0,8,0">
                         <materialDesign:PackIcon Kind="Export"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            ToolTip="设置"
+                            ToolTip="{DynamicResource Loc.RN.SettingsTooltip}"
                             Click="Settings_Click">
                         <materialDesign:PackIcon Kind="Settings"/>
                     </Button>
@@ -68,29 +72,29 @@
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                     <!-- 关系类型筛选 -->
                     <ComboBox x:Name="RelationshipTypeFilter"
-                            materialDesign:HintAssist.Hint="关系类型"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.RN.TypeHint}"
                             Style="{StaticResource MaterialDesignOutlinedComboBox}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectedIndex="0"
                             SelectionChanged="RelationshipTypeFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部关系"/>
+                        <ComboBoxItem Tag="全部关系" Content="{DynamicResource Loc.RN.TypeAll}"/>
                     </ComboBox>
 
                     <!-- 势力筛选 -->
                     <ComboBox x:Name="FactionFilter"
-                            materialDesign:HintAssist.Hint="势力筛选"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.RN.FactionHint}"
                             Style="{StaticResource MaterialDesignOutlinedComboBox}"
                             Width="120"
                             Margin="0,0,12,0"
                             SelectedIndex="0"
                             SelectionChanged="FactionFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部势力"/>
+                        <ComboBoxItem Tag="全部势力" Content="{DynamicResource Loc.RN.FactionAll}"/>
                     </ComboBox>
 
                     <!-- 搜索框 -->
                     <TextBox x:Name="SearchTextBox"
-                           materialDesign:HintAssist.Hint="搜索角色或关系"
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.RN.SearchHint}"
                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
                            Width="200"
                            Margin="0,0,12,0"
@@ -104,7 +108,7 @@
                             Click="AddRelationship_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Margin="0,0,4,0"/>
-                            <TextBlock Text="添加关系"/>
+                            <TextBlock Text="{DynamicResource Loc.RN.Add}"/>
                         </StackPanel>
                     </Button>
                     
@@ -113,7 +117,7 @@
                             Click="AutoDetectRelationships_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,4,0"/>
-                            <TextBlock Text="智能检测"/>
+                            <TextBlock Text="{DynamicResource Loc.RN.SmartDetect}"/>
                         </StackPanel>
                     </Button>
 
@@ -122,13 +126,13 @@
                             Click="ShowAllCharacters_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="AccountGroup" Margin="0,0,4,0"/>
-                            <TextBlock Text="显示全部"/>
+                            <TextBlock Text="{DynamicResource Loc.RN.ShowAll}"/>
                         </StackPanel>
                     </Button>
 
                     <ToggleButton x:Name="LayoutModeToggle"
                                 Style="{StaticResource MaterialDesignActionToggleButton}"
-                                ToolTip="切换布局模式"
+                                ToolTip="{DynamicResource Loc.RN.LayoutModeTooltip}"
                                 IsChecked="False"
                                 Checked="LayoutMode_Changed"
                                 Unchecked="LayoutMode_Changed">
@@ -161,9 +165,9 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,12">
                         <DockPanel>
-                            <TextBlock Text="角色列表" FontWeight="Medium" DockPanel.Dock="Left"/>
+                            <TextBlock Text="{DynamicResource Loc.CM.List}" FontWeight="Medium" DockPanel.Dock="Left"/>
                             <TextBlock x:Name="CharacterCountLabel" 
-                                     Text="(0个角色)"
+                                     Text="{DynamicResource Loc.RN.ZeroChars}"
                                      FontSize="12"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      DockPanel.Dock="Right"/>
@@ -212,7 +216,7 @@
                                                          FontWeight="Medium" 
                                                          FontSize="14"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                    <materialDesign:Chip Content="{Binding Type}" 
+                                                    <materialDesign:Chip Content="{Binding Type, Converter={StaticResource StoredValueConverter}}" 
                                                                        FontSize="10"
                                                                        Height="20"
                                                                        Margin="0,0,4,0"/>
@@ -221,7 +225,7 @@
                                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                              VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding RelationshipCount, StringFormat=\{0\}个关系}"
+                                                <TextBlock Text="{Binding RelationshipCountDisplay}"
                                                          FontSize="11"
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="0,2,0,0"/>
@@ -260,25 +264,25 @@
 
                     <!-- 网络图标题 -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="关系网络图" 
+                        <TextBlock Text="{DynamicResource Loc.RN.GraphTitle}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  DockPanel.Dock="Left"/>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button Style="{StaticResource MaterialDesignToolButton}"
-                                  ToolTip="重新布局"
+                                  ToolTip="{DynamicResource Loc.RN.RelayoutTooltip}"
                                   Click="RelayoutNetwork_Click"
                                   Margin="0,0,4,0">
                                 <materialDesign:PackIcon Kind="Refresh"/>
                             </Button>
                             <Button Style="{StaticResource MaterialDesignToolButton}"
-                                  ToolTip="适应窗口"
+                                  ToolTip="{DynamicResource Loc.RN.FitTooltip}"
                                   Click="FitToWindow_Click"
                                   Margin="0,0,4,0">
                                 <materialDesign:PackIcon Kind="FitToPage"/>
                             </Button>
                             <Button Style="{StaticResource MaterialDesignToolButton}"
-                                  ToolTip="全屏显示"
+                                  ToolTip="{DynamicResource Loc.RN.FullscreenTooltip}"
                                   Click="FullScreen_Click">
                                 <materialDesign:PackIcon Kind="Fullscreen"/>
                             </Button>
@@ -322,7 +326,7 @@
 
                     <!-- 详情标题 -->
                     <TextBlock Grid.Row="0" 
-                             Text="关系详情" 
+                             Text="{DynamicResource Loc.RN.DetailTitle}" 
                              FontSize="16" 
                              FontWeight="Medium" 
                              Margin="0,0,0,16"/>
@@ -330,7 +334,7 @@
                     <!-- 详情内容 -->
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="RelationshipDetailPanel">
-                            <TextBlock Text="请选择角色或关系查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.RN.NoSelection}" 
                                      FontStyle="Italic"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
@@ -350,7 +354,7 @@
                               x:Name="EditRelationshipButton">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Edit" Margin="0,0,4,0"/>
-                                <TextBlock Text="编辑关系"/>
+                                <TextBlock Text="{DynamicResource Loc.RN.Edit}"/>
                             </StackPanel>
                         </Button>
                         
@@ -361,7 +365,7 @@
                               x:Name="DeleteRelationshipButton">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Delete" Margin="0,0,4,0"/>
-                                <TextBlock Text="删除关系"/>
+                                <TextBlock Text="{DynamicResource Loc.RN.Delete}"/>
                             </StackPanel>
                         </Button>
 
@@ -371,7 +375,7 @@
                               x:Name="ViewCharacterButton">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Account" Margin="0,0,4,0"/>
-                                <TextBlock Text="查看角色"/>
+                                <TextBlock Text="{DynamicResource Loc.RN.ViewCharacter}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

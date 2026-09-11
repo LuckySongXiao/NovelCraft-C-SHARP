@@ -74,7 +74,7 @@ public class ChapterUpdateWorkflowService
             events.Add(existingEvent);
         }
 
-        existingEvent.Title = chapter.Title ?? "未命名章节";
+        existingEvent.Title = chapter.Title ?? Localization.LocalizationManager.T("CW.UntitledChapter", "未命名章节");
         existingEvent.Category = "剧情事件";
         existingEvent.EventDate = chapter.UpdatedAt == default ? DateTime.Now : chapter.UpdatedAt.ToLocalTime();
         existingEvent.Location = marker;
@@ -130,7 +130,7 @@ public class ChapterUpdateWorkflowService
 
     private static string BuildChapterMarker(Chapter chapter)
     {
-        return $"第{chapter.Order}章《{chapter.Title}》";
+        return Localization.LocalizationManager.TF("CW.ChapterLocationFmt", "第{0}章（{1}）", chapter.Order, chapter.Title);
     }
 
     private static string BuildSummaryText(Chapter chapter)

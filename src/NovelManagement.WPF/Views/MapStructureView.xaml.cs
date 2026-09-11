@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -102,7 +103,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "地图结构管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Map.Title", "地图结构管理"), out _);
                     Maps.Clear();
                     Resources.Clear();
                     MapListControl.ItemsSource = Maps;
@@ -128,7 +129,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载地图数据失败");
-                MessageBox.Show($"加载地图数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Map.LoadFailed", "加载地图数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -222,7 +223,7 @@ namespace NovelManagement.WPF.Views
         {
             foreach (ComboBoxItem item in comboBox.Items)
             {
-                if (item.Content?.ToString() == value)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == value)
                 {
                     comboBox.SelectedItem = item;
                     return;
@@ -278,8 +279,8 @@ namespace NovelManagement.WPF.Views
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入地图结构数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Map.ImportTitle", "导入地图结构数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -290,7 +291,7 @@ namespace NovelManagement.WPF.Views
 
                 if (_mapDataService == null)
                 {
-                    MessageBox.Show("地图数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("WS.Map.ServiceNotInit", "地图数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -305,12 +306,12 @@ namespace NovelManagement.WPF.Views
                 await PersistMapsAsync();
                 FilterMaps();
                 UpdateStatistics();
-                MessageBox.Show($"已成功导入 {Maps.Count} 个地图。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("Map.ImportDone", "已成功导入 {0} 个地图。", Maps.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导入地图数据失败");
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -326,7 +327,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出地图结构数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"地图结构数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -338,17 +339,17 @@ namespace NovelManagement.WPF.Views
 
                 if (_mapDataService == null)
                 {
-                    MessageBox.Show("地图数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("WS.Map.ServiceNotInit", "地图数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 await _mapDataService.ExportMapsAsync(_currentProjectId, Maps, dialog.FileName);
-                MessageBox.Show($"地图结构数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("Map.ExportDone", "地图结构数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "导出地图数据失败");
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -385,21 +386,21 @@ namespace NovelManagement.WPF.Views
 
                 if (string.IsNullOrWhiteSpace(MapNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入地图名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Map.NameRequired", "请输入地图名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 SelectedMap.Name = MapNameTextBox.Text.Trim();
                 SelectedMap.Description = MapDescriptionTextBox.Text.Trim();
-                SelectedMap.Level = (MapLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "区域地图";
-                SelectedMap.TerrainType = (TerrainTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "平原";
-                SelectedMap.ClimateType = (ClimateTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "温带";
+                SelectedMap.Level = (MapLevelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (MapLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "区域地图";
+                SelectedMap.TerrainType = (TerrainTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (TerrainTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "平原";
+                SelectedMap.ClimateType = (ClimateTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (ClimateTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "温带";
                 SelectedMap.DimensionId = DimensionIdTextBox.Text.Trim();
                 SelectedMap.ParentMap = ParentMapTextBox.Text.Trim();
                 SelectedMap.AreaSize = AreaSizeTextBox.Text.Trim();
                 SelectedMap.Coordinates = CoordinatesTextBox.Text.Trim();
                 SelectedMap.Elevation = ElevationTextBox.Text.Trim();
-                SelectedMap.DangerLevel = (DangerLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "安全";
+                SelectedMap.DangerLevel = (DangerLevelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (DangerLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "安全";
                 SelectedMap.Resources = Resources
                     .Where(resource => !string.IsNullOrWhiteSpace(resource.Name))
                     .Select(resource => new ResourceViewModel
@@ -417,14 +418,14 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistMapsAsync();
-                MessageBox.Show("地图保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Map.SaveSuccess", "地图保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                 FilterMaps();
                 UpdateStatistics();
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "保存地图失败");
-                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.SaveFailedFmt", "保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -484,7 +485,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -592,7 +593,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -610,7 +611,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI地图结构", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI地图结构", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

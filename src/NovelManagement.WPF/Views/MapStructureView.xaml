@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="地图结构管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Map.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddMap_Click"
-                            ToolTip="新建地图">
+                            ToolTip="{DynamicResource Loc.WS.Map.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportMap_Click"
-                            ToolTip="导入地图数据">
+                            ToolTip="{DynamicResource Loc.WS.Map.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportMap_Click"
-                            ToolTip="导出地图数据">
+                            ToolTip="{DynamicResource Loc.WS.Map.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索地图..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,30 +100,30 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="MapLevelFilterComboBox"
-                                     materialDesign:HintAssist.Hint="地图层级"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.LevelHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="MapLevelFilter_SelectionChanged"
                                      Margin="0,0,0,8">
-                                <ComboBoxItem Content="全部层级"/>
-                                <ComboBoxItem Content="世界地图"/>
-                                <ComboBoxItem Content="大陆地图"/>
-                                <ComboBoxItem Content="区域地图"/>
-                                <ComboBoxItem Content="城市地图"/>
-                                <ComboBoxItem Content="建筑地图"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllLevels}"/>
+                                <ComboBoxItem Tag="世界地图" Content="{DynamicResource Loc.WS.Map.Data.世界地图}"/>
+                                <ComboBoxItem Tag="大陆地图" Content="{DynamicResource Loc.WS.Map.Data.大陆地图}"/>
+                                <ComboBoxItem Tag="区域地图" Content="{DynamicResource Loc.WS.Map.Data.区域地图}"/>
+                                <ComboBoxItem Tag="城市地图" Content="{DynamicResource Loc.WS.Map.Data.城市地图}"/>
+                                <ComboBoxItem Tag="建筑地图" Content="{DynamicResource Loc.WS.Map.Data.建筑地图}"/>
                             </ComboBox>
                             <ComboBox x:Name="TerrainFilterComboBox"
-                                     materialDesign:HintAssist.Hint="地形类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.TerrainHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="TerrainFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部地形"/>
-                                <ComboBoxItem Content="平原"/>
-                                <ComboBoxItem Content="山脉"/>
-                                <ComboBoxItem Content="森林"/>
-                                <ComboBoxItem Content="沙漠"/>
-                                <ComboBoxItem Content="海洋"/>
-                                <ComboBoxItem Content="湖泊"/>
-                                <ComboBoxItem Content="冰原"/>
-                                <ComboBoxItem Content="火山"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllTerrains}"/>
+                                <ComboBoxItem Tag="平原" Content="{DynamicResource Loc.WS.Map.Data.平原}"/>
+                                <ComboBoxItem Tag="山脉" Content="{DynamicResource Loc.WS.Map.Data.山脉}"/>
+                                <ComboBoxItem Tag="森林" Content="{DynamicResource Loc.WS.Map.Data.森林}"/>
+                                <ComboBoxItem Tag="沙漠" Content="{DynamicResource Loc.WS.Map.Data.沙漠}"/>
+                                <ComboBoxItem Tag="海洋" Content="{DynamicResource Loc.WS.Map.Data.海洋}"/>
+                                <ComboBoxItem Tag="湖泊" Content="{DynamicResource Loc.WS.Map.Data.湖泊}"/>
+                                <ComboBoxItem Tag="冰原" Content="{DynamicResource Loc.WS.Map.Data.冰原}"/>
+                                <ComboBoxItem Tag="火山" Content="{DynamicResource Loc.WS.Map.Data.火山}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -192,14 +192,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="地形: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Map.TerrainLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding TerrainType}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 气候: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Map.ClimateLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -220,7 +220,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="地图统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Map.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -231,21 +231,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="世界地图: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.世界地图}"/>
                                         <Run Text="{Binding WorldMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="区域地图: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.区域地图}"/>
                                         <Run Text="{Binding RegionMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="城市地图: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.城市地图}"/>
                                         <Run Text="{Binding CityMapCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -269,12 +269,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个地图查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Map.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的地图" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Map.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -284,7 +284,7 @@
                         <!-- 地图详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -298,20 +298,20 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="MapNameTextBox"
-                                        materialDesign:HintAssist.Hint="地图名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="MapLevelComboBox"
-                                         materialDesign:HintAssist.Hint="地图层级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.LevelHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="世界地图"/>
-                                    <ComboBoxItem Content="大陆地图"/>
-                                    <ComboBoxItem Content="区域地图"/>
-                                    <ComboBoxItem Content="城市地图"/>
-                                    <ComboBoxItem Content="建筑地图"/>
+                                    <ComboBoxItem Tag="世界地图" Content="{DynamicResource Loc.WS.Map.Data.世界地图}"/>
+                                    <ComboBoxItem Tag="大陆地图" Content="{DynamicResource Loc.WS.Map.Data.大陆地图}"/>
+                                    <ComboBoxItem Tag="区域地图" Content="{DynamicResource Loc.WS.Map.Data.区域地图}"/>
+                                    <ComboBoxItem Tag="城市地图" Content="{DynamicResource Loc.WS.Map.Data.城市地图}"/>
+                                    <ComboBoxItem Tag="建筑地图" Content="{DynamicResource Loc.WS.Map.Data.建筑地图}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -324,34 +324,34 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="TerrainTypeComboBox"
-                                         materialDesign:HintAssist.Hint="主要地形"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.MainTerrainHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="平原"/>
-                                    <ComboBoxItem Content="山脉"/>
-                                    <ComboBoxItem Content="森林"/>
-                                    <ComboBoxItem Content="沙漠"/>
-                                    <ComboBoxItem Content="海洋"/>
-                                    <ComboBoxItem Content="湖泊"/>
-                                    <ComboBoxItem Content="冰原"/>
-                                    <ComboBoxItem Content="火山"/>
-                                    <ComboBoxItem Content="混合地形"/>
+                                    <ComboBoxItem Tag="平原" Content="{DynamicResource Loc.WS.Map.Data.平原}"/>
+                                    <ComboBoxItem Tag="山脉" Content="{DynamicResource Loc.WS.Map.Data.山脉}"/>
+                                    <ComboBoxItem Tag="森林" Content="{DynamicResource Loc.WS.Map.Data.森林}"/>
+                                    <ComboBoxItem Tag="沙漠" Content="{DynamicResource Loc.WS.Map.Data.沙漠}"/>
+                                    <ComboBoxItem Tag="海洋" Content="{DynamicResource Loc.WS.Map.Data.海洋}"/>
+                                    <ComboBoxItem Tag="湖泊" Content="{DynamicResource Loc.WS.Map.Data.湖泊}"/>
+                                    <ComboBoxItem Tag="冰原" Content="{DynamicResource Loc.WS.Map.Data.冰原}"/>
+                                    <ComboBoxItem Tag="火山" Content="{DynamicResource Loc.WS.Map.Data.火山}"/>
+                                    <ComboBoxItem Tag="混合地形" Content="{DynamicResource Loc.WS.Map.Data.混合地形}"/>
                                 </ComboBox>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="ClimateTypeComboBox"
-                                         materialDesign:HintAssist.Hint="气候类型"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.ClimateTypeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="温带"/>
-                                    <ComboBoxItem Content="热带"/>
-                                    <ComboBoxItem Content="寒带"/>
-                                    <ComboBoxItem Content="亚热带"/>
-                                    <ComboBoxItem Content="干旱"/>
-                                    <ComboBoxItem Content="湿润"/>
-                                    <ComboBoxItem Content="高原"/>
-                                    <ComboBoxItem Content="海洋性"/>
-                                    <ComboBoxItem Content="大陆性"/>
+                                    <ComboBoxItem Tag="温带" Content="{DynamicResource Loc.WS.Map.Data.温带}"/>
+                                    <ComboBoxItem Tag="热带" Content="{DynamicResource Loc.WS.Map.Data.热带}"/>
+                                    <ComboBoxItem Tag="寒带" Content="{DynamicResource Loc.WS.Map.Data.寒带}"/>
+                                    <ComboBoxItem Tag="亚热带" Content="{DynamicResource Loc.WS.Map.Data.亚热带}"/>
+                                    <ComboBoxItem Tag="干旱" Content="{DynamicResource Loc.WS.Map.Data.干旱}"/>
+                                    <ComboBoxItem Tag="湿润" Content="{DynamicResource Loc.WS.Map.Data.湿润}"/>
+                                    <ComboBoxItem Tag="高原" Content="{DynamicResource Loc.WS.Map.Data.高原}"/>
+                                    <ComboBoxItem Tag="海洋性" Content="{DynamicResource Loc.WS.Map.Data.海洋性}"/>
+                                    <ComboBoxItem Tag="大陆性" Content="{DynamicResource Loc.WS.Map.Data.大陆性}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -364,19 +364,19 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="DimensionIdTextBox"
-                                        materialDesign:HintAssist.Hint="所属维度"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.DimensionHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="ParentMapTextBox"
-                                        materialDesign:HintAssist.Hint="父级地图"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.ParentMapHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
 
                             <TextBox x:Name="MapDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="地图描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -385,7 +385,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 地理信息 -->
-                            <TextBlock Text="地理信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Map.GeoTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -399,12 +399,12 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="AreaSizeTextBox"
-                                        materialDesign:HintAssist.Hint="面积大小"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.AreaHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="CoordinatesTextBox"
-                                        materialDesign:HintAssist.Hint="坐标位置"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.CoordinatesHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
@@ -417,24 +417,24 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="ElevationTextBox"
-                                        materialDesign:HintAssist.Hint="海拔高度"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.AltitudeHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="DangerLevelComboBox"
-                                         materialDesign:HintAssist.Hint="危险等级"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Dim.DangerLevelHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                                    <ComboBoxItem Content="安全"/>
-                                    <ComboBoxItem Content="低危"/>
-                                    <ComboBoxItem Content="中危"/>
-                                    <ComboBoxItem Content="高危"/>
-                                    <ComboBoxItem Content="极危"/>
-                                    <ComboBoxItem Content="禁区"/>
+                                    <ComboBoxItem Tag="安全" Content="{DynamicResource Loc.WS.Map.Data.安全}"/>
+                                    <ComboBoxItem Tag="低危" Content="{DynamicResource Loc.WS.Map.Data.低危}"/>
+                                    <ComboBoxItem Tag="中危" Content="{DynamicResource Loc.WS.Map.Data.中危}"/>
+                                    <ComboBoxItem Tag="高危" Content="{DynamicResource Loc.WS.Map.Data.高危}"/>
+                                    <ComboBoxItem Tag="极危" Content="{DynamicResource Loc.WS.Map.Data.极危}"/>
+                                    <ComboBoxItem Tag="禁区" Content="{DynamicResource Loc.WS.Map.Data.禁区}"/>
                                 </ComboBox>
                             </Grid>
 
                             <!-- 资源分布 -->
-                            <TextBlock Text="资源分布" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Map.ResourcesTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -452,13 +452,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="资源列表" 
+                                                 Text="{DynamicResource Loc.WS.Map.ResourceList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddResource_Click"
-                                              ToolTip="添加资源">
+                                              ToolTip="{DynamicResource Loc.WS.Map.AddResourceTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -479,42 +479,42 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="资源名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.ResourceNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="1" 
                                                                 SelectedValuePath="Content"
                                                                 SelectedValue="{Binding Type, UpdateSourceTrigger=PropertyChanged}" 
-                                                                materialDesign:HintAssist.Hint="资源类型"
+                                                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.ResourceTypeHint}"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="矿物"/>
-                                                            <ComboBoxItem Content="植物"/>
-                                                            <ComboBoxItem Content="动物"/>
-                                                            <ComboBoxItem Content="水源"/>
-                                                            <ComboBoxItem Content="能量"/>
-                                                            <ComboBoxItem Content="特殊"/>
+                                                            <ComboBoxItem Tag="矿物" Content="{DynamicResource Loc.WS.Map.Data.矿物}"/>
+                                                            <ComboBoxItem Tag="植物" Content="{DynamicResource Loc.WS.Map.Data.植物}"/>
+                                                            <ComboBoxItem Tag="动物" Content="{DynamicResource Loc.WS.Map.Data.动物}"/>
+                                                            <ComboBoxItem Tag="水源" Content="{DynamicResource Loc.WS.Map.Data.水源}"/>
+                                                            <ComboBoxItem Tag="能量" Content="{DynamicResource Loc.WS.Map.Data.能量}"/>
+                                                            <ComboBoxItem Tag="特殊" Content="{DynamicResource Loc.WS.Common.Data.特殊}"/>
                                                         </ComboBox>
                                                         
                                                         <ComboBox Grid.Column="2" 
                                                                 SelectedValuePath="Content"
                                                                 SelectedValue="{Binding Abundance, UpdateSourceTrigger=PropertyChanged}" 
-                                                                materialDesign:HintAssist.Hint="丰富度"
+                                                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Map.AbundanceHint}"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="稀有"/>
-                                                            <ComboBoxItem Content="少量"/>
-                                                            <ComboBoxItem Content="普通"/>
-                                                            <ComboBoxItem Content="丰富"/>
-                                                            <ComboBoxItem Content="极丰"/>
+                                                            <ComboBoxItem Tag="稀有" Content="{DynamicResource Loc.WS.Map.Data.稀有}"/>
+                                                            <ComboBoxItem Tag="少量" Content="{DynamicResource Loc.WS.Map.Data.少量}"/>
+                                                            <ComboBoxItem Tag="普通" Content="{DynamicResource Loc.WS.Common.Data.普通}"/>
+                                                            <ComboBoxItem Tag="丰富" Content="{DynamicResource Loc.WS.Map.Data.丰富}"/>
+                                                            <ComboBoxItem Tag="极丰" Content="{DynamicResource Loc.WS.Map.Data.极丰}"/>
                                                         </ComboBox>
 
                                                         <Button Grid.Column="3" 
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveResource_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除资源">
+                                                              ToolTip="{DynamicResource Loc.WS.Map.DeleteResourceTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -530,11 +530,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveMap_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

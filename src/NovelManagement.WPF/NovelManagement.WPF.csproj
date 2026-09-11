@@ -9,7 +9,8 @@
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
-  </PropertyGroup>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+</PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="NovelManagement.Tests" />
@@ -21,8 +22,8 @@
     <AssemblyCompany>NovelManagement</AssemblyCompany>
     <AssemblyProduct>书籍管理系统</AssemblyProduct>
     <AssemblyCopyright>Copyright © 2024</AssemblyCopyright>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -72,6 +73,14 @@
     <None Update="appsettings.user.example.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Localization\language-table.csv" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="PromptTemplates\**\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

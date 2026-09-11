@@ -11,6 +11,7 @@ using NovelManagement.WPF.Commands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -142,7 +143,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "灵宝体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Treasure.Title", "灵宝体系管理"), out _);
                     Treasures.Clear();
                     TreasureListControl.ItemsSource = Treasures;
                     UpdateStatistics();
@@ -168,7 +169,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载灵宝数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Trea.LoadFailed", "加载灵宝数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -255,7 +256,7 @@ namespace NovelManagement.WPF.Views
             // 设置类型选择
             foreach (ComboBoxItem item in TreasureTypeComboBox.Items)
             {
-                if (item.Content.ToString() == treasure.Type)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == treasure.Type)
                 {
                     TreasureTypeComboBox.SelectedItem = item;
                     break;
@@ -265,7 +266,7 @@ namespace NovelManagement.WPF.Views
             // 设置品级选择
             foreach (ComboBoxItem item in GradeComboBox.Items)
             {
-                if (item.Content.ToString() == treasure.Grade)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == treasure.Grade)
                 {
                     GradeComboBox.SelectedItem = item;
                     break;
@@ -275,7 +276,7 @@ namespace NovelManagement.WPF.Views
             // 设置灵性等级选择
             foreach (ComboBoxItem item in SpiritLevelComboBox.Items)
             {
-                if (item.Content.ToString() == treasure.SpiritLevel)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == treasure.SpiritLevel)
                 {
                     SpiritLevelComboBox.SelectedItem = item;
                     break;
@@ -295,7 +296,7 @@ namespace NovelManagement.WPF.Views
             // 设置炼制难度选择
             foreach (ComboBoxItem item in CraftingDifficultyComboBox.Items)
             {
-                if (item.Content.ToString() == treasure.CraftingDifficulty)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == treasure.CraftingDifficulty)
                 {
                     CraftingDifficultyComboBox.SelectedItem = item;
                     break;
@@ -371,8 +372,8 @@ namespace NovelManagement.WPF.Views
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入灵宝体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Trea.ImportTitle", "导入灵宝体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -380,7 +381,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_treasureDataService == null)
                     {
-                        MessageBox.Show("灵宝数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Trea.ServiceNotInit", "灵宝数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -394,12 +395,12 @@ namespace NovelManagement.WPF.Views
                     await PersistTreasuresAsync();
                     FilterTreasures();
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {Treasures.Count} 个灵宝。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Trea.ImportDone", "已成功导入 {0} 个灵宝。", Treasures.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -418,7 +419,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出灵宝体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"灵宝体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -427,17 +428,17 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_treasureDataService == null)
                     {
-                        MessageBox.Show("灵宝数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Trea.ServiceNotInit", "灵宝数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
                     await _treasureDataService.ExportTreasuresAsync(_currentProjectId, Treasures, dialog.FileName);
-                    MessageBox.Show($"灵宝体系数据已导出到：{dialog.FileName}", "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Trea.ExportDone", "灵宝体系数据已导出到：{0}", dialog.FileName), T("WS.Common.ExportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -453,23 +454,23 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(TreasureNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入灵宝名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Trea.NameRequired", "请输入灵宝名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 // 更新灵宝信息
                 SelectedTreasure.Name = TreasureNameTextBox.Text.Trim();
                 SelectedTreasure.Description = TreasureDescriptionTextBox.Text.Trim();
-                SelectedTreasure.Type = (TreasureTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "法器类";
-                SelectedTreasure.Grade = (GradeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "凡品";
-                SelectedTreasure.SpiritLevel = (SpiritLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "无灵性";
+                SelectedTreasure.Type = (TreasureTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (TreasureTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "法器类";
+                SelectedTreasure.Grade = (GradeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (GradeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "凡品";
+                SelectedTreasure.SpiritLevel = (SpiritLevelComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (SpiritLevelComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "无灵性";
                 SelectedTreasure.SpiritPower = SpiritPowerTextBox.Text.Trim();
                 SelectedTreasure.ElementAffinity = ElementAffinityTextBox.Text.Trim();
                 SelectedTreasure.SpecialAbility = SpecialAbilityTextBox.Text.Trim();
                 SelectedTreasure.UsageLimit = UsageLimitTextBox.Text.Trim();
                 SelectedTreasure.CraftingMaterials = CraftingMaterialsTextBox.Text.Trim();
                 SelectedTreasure.CraftingMethod = CraftingMethodTextBox.Text.Trim();
-                SelectedTreasure.CraftingDifficulty = (CraftingDifficultyComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "简单";
+                SelectedTreasure.CraftingDifficulty = (CraftingDifficultyComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (CraftingDifficultyComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "简单";
 
                 // 如果是新建灵宝，添加到列表
                 if (SelectedTreasure.Id == 0)
@@ -479,7 +480,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistTreasuresAsync();
-                MessageBox.Show("灵宝保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Trea.SaveSuccess", "灵宝保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterTreasures();
@@ -487,7 +488,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.SaveFailedFmt", "保存失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -557,7 +558,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "启动AI助手失败");
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -639,7 +640,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -657,7 +658,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI灵宝体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI灵宝体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

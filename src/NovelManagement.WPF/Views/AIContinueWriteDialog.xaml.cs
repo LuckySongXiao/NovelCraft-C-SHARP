@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.WPF.Models;
 using NovelManagement.Application.Services;
 using NovelManagement.Application.Interfaces;
@@ -75,13 +76,13 @@ namespace NovelManagement.WPF.Views
                 _aiAssistantService = App.ServiceProvider?.GetService<AIAssistantService>();
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化，请检查配置", "警告",
+                    MessageBox.Show(T("CW.ServiceNotInit", "AI服务未初始化，请检查配置"), T("Msg.Warning", "警告"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化AI服务失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("CW.InitFailedFmt", "初始化AI服务失败：{0}", ex.Message), T("Msg.Warning", "警告"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -125,13 +126,13 @@ namespace NovelManagement.WPF.Views
                 if (!string.IsNullOrEmpty(ContinuedContentTextBox.Text))
                 {
                     Clipboard.SetText(ContinuedContentTextBox.Text);
-                    MessageBox.Show("续写内容已复制到剪贴板", "提示", 
+                    MessageBox.Show(T("CW.Copied", "续写内容已复制到剪贴板"), T("Msg.Tip", "提示"), 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"复制失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CW.CopyFailedFmt", "复制失败：{0}", ex.Message), T("Msg.Error", "错误"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -146,7 +147,7 @@ namespace NovelManagement.WPF.Views
                 var mergedContent = _existingContent + "\n\n" + ContinuedContentTextBox.Text;
                 var previewDialog = new ChapterPreviewDialog(new ChapterEditData
                 {
-                    Title = _chapterData.Title + " (预览合并)",
+                    Title = _chapterData.Title + T("CW.PreviewMergeSuffix", " (预览合并)"),
                     Content = mergedContent,
                     Summary = _chapterData.Summary,
                     Status = _chapterData.Status,
@@ -161,7 +162,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"预览失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CW.PreviewFailFmt", "预览失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -209,11 +210,11 @@ namespace NovelManagement.WPF.Views
             {
                 _isGenerating = true;
                 ContinueButton.IsEnabled = false;
-                ContinueButton.Content = "续写中...";
+                ContinueButton.Content = T("CW.Continuing", "续写中...");
 
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CW.ServiceNotInitShort", "AI服务未初始化"), T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -232,7 +233,8 @@ namespace NovelManagement.WPF.Views
                 {
                     ["ExistingContent"] = _existingContent,
                     ["ChapterData"] = _chapterData,
-                    ["ContinueLength"] = ((ComboBoxItem)ContinueLengthComboBox.SelectedItem)?.Content?.ToString() ?? "中续写",
+                    ["ContinueLength"] = ((ComboBoxItem)ContinueLengthComboBox.SelectedItem)?.Tag?.ToString()
+                                  ?? ((ComboBoxItem)ContinueLengthComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)ContinueLengthComboBox.SelectedItem)?.Content?.ToString() ?? "中续写",
                     ["CustomWordCount"] = CustomWordCountTextBox.Text,
                     ["ContinueDirection"] = ContinueDirectionTextBox.Text,
                     // 添加项目上下文数据
@@ -257,19 +259,19 @@ namespace NovelManagement.WPF.Views
                     ContinuedContentTextBox.Text = continuedContent;
                     UpdateContinuedWordCount();
 
-                    MessageBox.Show("章节续写完成！", "成功",
+                    MessageBox.Show(T("CW.Done", "章节续写完成！"), T("CW.SuccessTitle", "成功"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     // AI服务失败，显示友好错误信息
-                    MessageBox.Show($"AI续写失败：{BuildFriendlyAiError(result.Message)}", "错误",
+                    MessageBox.Show(TF("CW.AIFailFmt", "AI续写失败：{0}", BuildFriendlyAiError(result.Message)), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"续写章节内容失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("CW.ContinueFailedFmt", "续写章节内容失败：{0}", ex.Message), T("Msg.Error", "错误"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -282,7 +284,7 @@ namespace NovelManagement.WPF.Views
                     Children =
                     {
                         new MaterialDesignThemes.Wpf.PackIcon { Kind = MaterialDesignThemes.Wpf.PackIconKind.RobotLove, Margin = new Thickness(0,0,8,0) },
-                        new TextBlock { Text = "开始续写" }
+                        new TextBlock { Text = T("CW.StartContinue", "开始续写") }
                     }
                 };
             }
@@ -300,7 +302,7 @@ namespace NovelManagement.WPF.Views
                 var rwkvService = App.ServiceProvider?.GetService<IRwkvLightningService>();
                 if (rwkvService == null)
                 {
-                    MessageBox.Show("RWKV 推理服务未注册，请检查应用配置。", "AI服务不可用",
+                    MessageBox.Show(T("CW.RwkvNotRegistered", "RWKV 推理服务未注册，请检查应用配置。"), T("CW.AiUnavailable", "AI服务不可用"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
@@ -310,8 +312,8 @@ namespace NovelManagement.WPF.Views
                 if (status is not { Ready: true })
                 {
                     MessageBox.Show(
-                        $"RWKV 推理服务不在线或无响应（{rwkvService.Configuration.BaseUrl}）。\n\n请到「AI模型配置」页启动 RWKV 服务后再试。",
-                        "AI服务不可用",
+                        TF("CW.RwkvOfflineFmt", "RWKV 推理服务不在线或无响应（{0}）。\n\n请到「AI模型配置」页启动 RWKV 服务后再试。", rwkvService.Configuration.BaseUrl),
+                        T("CW.AiUnavailable", "AI服务不可用"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
@@ -320,7 +322,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"检查 RWKV 推理服务状态失败：{ex.Message}", "AI服务不可用",
+                MessageBox.Show(TF("CW.CheckRwkvFailedFmt", "检查 RWKV 推理服务状态失败：{0}", ex.Message), T("CW.AiUnavailable", "AI服务不可用"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
@@ -333,7 +335,7 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(message))
             {
-                return "未知错误，请重试。";
+                return T("CW.UnknownError", "未知错误，请重试。");
             }
 
             if (message.Contains("An error occurred while sending", StringComparison.OrdinalIgnoreCase) ||
@@ -341,7 +343,7 @@ namespace NovelManagement.WPF.Views
                 message.Contains("socket", StringComparison.OrdinalIgnoreCase) ||
                 message.Contains("connection", StringComparison.OrdinalIgnoreCase))
             {
-                return "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。";
+                return T("CW.ConnectionError", "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。");
             }
 
             return message;
@@ -354,7 +356,7 @@ namespace NovelManagement.WPF.Views
         {
             var content = ExistingContentTextBox.Text ?? "";
             var wordCount = CountChineseCharacters(content);
-            ExistingWordCountLabel.Text = $"({wordCount:N0}字)";
+            ExistingWordCountLabel.Text = TF("CW.WordCountFmt", "({0:N0}字)", wordCount);
         }
 
         /// <summary>
@@ -364,7 +366,7 @@ namespace NovelManagement.WPF.Views
         {
             var content = ContinuedContentTextBox.Text ?? "";
             var wordCount = CountChineseCharacters(content);
-            ContinuedWordCountLabel.Text = $"({wordCount:N0}字)";
+            ContinuedWordCountLabel.Text = TF("CW.WordCountFmt", "({0:N0}字)", wordCount);
         }
 
         /// <summary>
@@ -461,7 +463,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "提取续写文本失败");
-                return "提取续写内容时发生错误，请重试。";
+                return T("CW.ExtractErrorRetry", "提取续写内容时发生错误，请重试。");
             }
         }
 

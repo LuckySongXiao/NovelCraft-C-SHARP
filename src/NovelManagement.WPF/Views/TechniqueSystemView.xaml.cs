@@ -11,6 +11,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -128,7 +129,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "功法体系管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("World.Technique.Title", "功法体系管理"), out _);
                     TechniqueSystems.Clear();
                     TechniqueListControl.ItemsSource = TechniqueSystems;
                     UpdateStatistics();
@@ -156,7 +157,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载功法体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Tec.LoadFailed", "加载功法体系数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -240,7 +241,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建功法体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Tec.CreateFailed", "创建功法体系失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -251,15 +252,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入功法体系"))
+                if (!EnsureCurrentProject(T("WS.Tec.ImportTitle", "导入功法体系")))
                 {
                     return;
                 }
 
                 var dialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "导入功法体系数据",
-                    Filter = "JSON文件|*.json|所有文件|*.*",
+                    Title = T("WS.Tec.ImportTitle", "导入功法体系数据"),
+                    Filter = T("AMC.FilterJsonAll", "JSON文件|*.json|所有文件|*.*"),
                     DefaultExt = "json"
                 };
 
@@ -267,7 +268,7 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_techniqueDataService == null)
                     {
-                        MessageBox.Show("功法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Tec.ServiceNotInit", "功法数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -283,12 +284,12 @@ namespace NovelManagement.WPF.Views
                     await PersistTechniqueSystemsAsync();
                     FilterTechniqueSystems();
                     UpdateStatistics();
-                    MessageBox.Show($"已成功导入 {TechniqueSystems.Count} 个功法体系。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(TF("Tec.ImportDone", "已成功导入 {0} 个功法体系。", TechniqueSystems.Count), T("WS.Common.ImportSuccessTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ImportFailed", "导入失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -299,7 +300,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导出功法体系"))
+                if (!EnsureCurrentProject(T("WS.Tec.ExportTitle", "导出功法体系")))
                 {
                     return;
                 }
@@ -307,7 +308,7 @@ namespace NovelManagement.WPF.Views
                 var dialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Title = "导出功法体系数据",
-                    Filter = "JSON文件|*.json",
+                    Filter = T("AMC.FilterJson", "JSON文件|*.json"),
                     DefaultExt = "json",
                     FileName = $"功法体系数据_{DateTime.Now:yyyyMMdd_HHmmss}"
                 };
@@ -316,18 +317,18 @@ namespace NovelManagement.WPF.Views
                 {
                     if (_techniqueDataService == null)
                     {
-                        MessageBox.Show("功法数据服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("WS.Tec.ServiceNotInit", "功法数据服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
                     await _techniqueDataService.ExportTechniqueSystemsAsync(_currentProjectId, TechniqueSystems, dialog.FileName);
-                    MessageBox.Show($"功法体系数据已导出到：{dialog.FileName}",
+                    MessageBox.Show(TF("Tec.ExportDone", "功法体系数据已导出到：{0}", dialog.FileName),
                         "导出成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.ExportFailed", "导出失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -384,7 +385,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AIStartFailed", "启动AI助手失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -441,7 +442,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -459,7 +460,7 @@ namespace NovelManagement.WPF.Views
             var result = await _aiAssistantService.GenerateOutlineAsync(parameters);
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI生成失败。", "AI功法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("WS.AIGenerateFailed", "AI生成失败。"), "AI功法体系", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -662,7 +663,7 @@ namespace NovelManagement.WPF.Views
             // 设置功法类别选择
             foreach (ComboBoxItem item in TechniqueCategoryComboBox.Items)
             {
-                if (item.Content.ToString() == technique.Category)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == technique.Category)
                 {
                     TechniqueCategoryComboBox.SelectedItem = item;
                     break;
@@ -672,7 +673,7 @@ namespace NovelManagement.WPF.Views
             // 设置功法品级选择
             foreach (ComboBoxItem item in TechniqueGradeComboBox.Items)
             {
-                if (item.Content.ToString() == technique.Grade)
+                if ((item.Tag?.ToString() ?? item.Content?.ToString()) == technique.Grade)
                 {
                     TechniqueGradeComboBox.SelectedItem = item;
                     break;
@@ -736,7 +737,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加等级失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AddLevelFailed", "添加等级失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -754,7 +755,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除等级失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.DeleteLevelFailed", "删除等级失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -780,7 +781,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"添加招式失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.AddMoveFailed", "添加招式失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -798,7 +799,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除招式失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Common.DeleteMoveFailed", "删除招式失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -816,7 +817,7 @@ namespace NovelManagement.WPF.Views
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(TechniqueNameTextBox.Text))
                 {
-                    MessageBox.Show("请输入功法名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(T("Tec.NameRequired", "请输入功法名称"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -824,8 +825,8 @@ namespace NovelManagement.WPF.Views
                 SelectedTechnique.Name = TechniqueNameTextBox.Text.Trim();
                 SelectedTechnique.Description = TechniqueDescriptionTextBox.Text.Trim();
                 SelectedTechnique.Origin = TechniqueOriginTextBox.Text.Trim();
-                SelectedTechnique.Category = (TechniqueCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "修炼功法";
-                SelectedTechnique.Grade = (TechniqueGradeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "凡级";
+                SelectedTechnique.Category = (TechniqueCategoryComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (TechniqueCategoryComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "修炼功法";
+                SelectedTechnique.Grade = (TechniqueGradeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (TechniqueGradeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "凡级";
                 SelectedTechnique.LevelCount = TechniqueLevels.Count;
                 SelectedTechnique.MoveCount = TechniqueMoves.Count;
                 SelectedTechnique.Levels = TechniqueLevels.OrderBy(l => l.Level).ToList();
@@ -839,7 +840,7 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await PersistTechniqueSystemsAsync();
-                MessageBox.Show("功法体系保存成功！", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("WS.Tec.SaveSuccess", "功法体系保存成功！"), T("Msg.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // 刷新列表
                 FilterTechniqueSystems();
@@ -847,7 +848,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存功法体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Tec.SaveFailed", "保存功法体系失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -874,7 +875,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"取消编辑失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("TL.CancelEditFailed", "取消编辑失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

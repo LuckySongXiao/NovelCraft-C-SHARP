@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -42,12 +43,12 @@ namespace NovelManagement.WPF.Views
                     ? "未命名角色"
                     : CharacterNameText.Text;
                 CharacterTypeChip.Content = Character.Type;
-                CharacterFactionChip.Content = Character.Faction?.Name ?? "无";
-                CharacterCultivationText.Text = Character.CultivationLevel ?? "未知";
+                CharacterFactionChip.Content = Character.Faction?.Name ?? T("CM.None", "无");
+                CharacterCultivationText.Text = Character.CultivationLevel ?? T("AICfg.Unknown", "未知");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载角色信息失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CDD.LoadFailed", "加载角色信息失败: {0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -97,7 +98,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"删除操作失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CDD.DeleteOpFailed", "删除操作失败: {0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

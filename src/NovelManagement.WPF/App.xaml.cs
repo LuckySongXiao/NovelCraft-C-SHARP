@@ -52,6 +52,10 @@ public partial class App : System.Windows.Application
     private static readonly string LogsDirectory = Path.Combine(AppDataRoot, "logs");
     private static readonly string BackupsDirectory = Path.Combine(AppDataRoot, "backups");
     private static readonly string UserConfigurationPath = Path.Combine(ConfigDirectory, "appsettings.user.json");
+
+    /// <summary>用户配置文件路径（appsettings.user.json），供语言切换等运行时持久化使用。</summary>
+    public static string UserConfigurationFilePath => UserConfigurationPath;
+
     private static readonly string DefaultDatabasePath = Path.Combine(DataDirectory, "NovelManagement.db");
 
     private IHost? _host;
@@ -84,6 +88,9 @@ public partial class App : System.Windows.Application
                 .CreateLogger();
 
             Log.Information("应用程序启动中...");
+
+            // 初始化本地化（必须在密码门之前：密码门窗口文案需要本地化词条）
+            Localization.LocalizationManager.Initialize(UserConfigurationPath, Log.Logger);
 
             // 密码验证窗口是启动期间唯一的窗口：默认 OnLastWindowClose 会在其关闭时
             // 触发应用关闭，导致主窗口永远无法显示。改用显式关机，主窗口显示后再恢复。
@@ -533,8 +540,8 @@ public partial class App : System.Windows.Application
     {
         Log.Error(e.Exception, "捕获到未处理的UI线程异常");
         MessageBox.Show(
-            "程序遇到未处理错误，详细信息已写入日志目录，请重试或联系技术支持。",
-            "应用程序错误",
+            Localization.LocalizationManager.T("App.UnhandledError"),
+            Localization.LocalizationManager.T("App.UnhandledErrorTitle"),
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;

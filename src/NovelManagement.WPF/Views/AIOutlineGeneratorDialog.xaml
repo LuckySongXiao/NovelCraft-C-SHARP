@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AI大纲生成器" 
+        Title="{DynamicResource Loc.OG.Title}" 
         Height="700" 
         Width="900"
         WindowStartupLocation="CenterOwner"
@@ -21,11 +21,11 @@
         <!-- 标题栏 -->
         <materialDesign:Card Grid.Row="0" Margin="16,16,16,8" Padding="24">
             <StackPanel>
-                <TextBlock Text="AI大纲生成器" 
+                <TextBlock Text="{DynamicResource Loc.OG.Title}" 
                          FontSize="24" 
                          FontWeight="Bold" 
                          Margin="0,0,0,8"/>
-                <TextBlock Text="通过AI智能生成书籍大纲，让创作更轻松" 
+                <TextBlock Text="{DynamicResource Loc.OG.Subtitle}" 
                          FontSize="14" 
                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
             </StackPanel>
@@ -43,46 +43,46 @@
                 <!-- 左侧：输入参数 -->
                 <materialDesign:Card Grid.Column="0" Padding="24">
                     <StackPanel>
-                        <TextBlock Text="生成参数" 
+                        <TextBlock Text="{DynamicResource Loc.OG.Params}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
 
                         <!-- 书籍主题 -->
                         <TextBox x:Name="ThemeTextBox"
-                               materialDesign:HintAssist.Hint="书籍主题（如：修仙、都市、玄幻等）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintTheme}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,16"/>
 
                         <!-- 书籍类型 -->
                         <ComboBox x:Name="NovelTypeComboBox"
-                                materialDesign:HintAssist.Hint="书籍类型"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintNovelType}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,16">
-                            <ComboBoxItem Content="修仙书籍"/>
-                            <ComboBoxItem Content="都市书籍"/>
-                            <ComboBoxItem Content="玄幻书籍"/>
-                            <ComboBoxItem Content="科幻书籍"/>
-                            <ComboBoxItem Content="历史书籍"/>
-                            <ComboBoxItem Content="武侠书籍"/>
-                            <ComboBoxItem Content="言情书籍"/>
-                            <ComboBoxItem Content="悬疑书籍"/>
+                            <ComboBoxItem Tag="修仙书籍" Content="{DynamicResource Loc.OG.TypeXianxia}"/>
+                            <ComboBoxItem Tag="都市书籍" Content="{DynamicResource Loc.OG.TypeUrban}"/>
+                            <ComboBoxItem Tag="玄幻书籍" Content="{DynamicResource Loc.OG.TypeFantasy}"/>
+                            <ComboBoxItem Tag="科幻书籍" Content="{DynamicResource Loc.OG.TypeScifi}"/>
+                            <ComboBoxItem Tag="历史书籍" Content="{DynamicResource Loc.OG.TypeHistory}"/>
+                            <ComboBoxItem Tag="武侠书籍" Content="{DynamicResource Loc.OG.TypeWuxia}"/>
+                            <ComboBoxItem Tag="言情书籍" Content="{DynamicResource Loc.OG.TypeRomance}"/>
+                            <ComboBoxItem Tag="悬疑书籍" Content="{DynamicResource Loc.OG.TypeMystery}"/>
                         </ComboBox>
 
                         <!-- 目标长度 -->
                         <ComboBox x:Name="TargetLengthComboBox"
-                                materialDesign:HintAssist.Hint="目标长度"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintTargetLength}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,16">
-                            <ComboBoxItem Content="短篇（5-10万字）"/>
-                            <ComboBoxItem Content="中篇（10-30万字）"/>
-                            <ComboBoxItem Content="长篇（30-100万字）"/>
-                            <ComboBoxItem Content="超长篇（100万字以上）"/>
+                            <ComboBoxItem Tag="短篇（5-10万字）" Content="{DynamicResource Loc.OG.LenShort}"/>
+                            <ComboBoxItem Tag="中篇（10-30万字）" Content="{DynamicResource Loc.OG.LenMedium}"/>
+                            <ComboBoxItem Tag="长篇（30-100万字）" Content="{DynamicResource Loc.OG.LenLong}"/>
+                            <ComboBoxItem Tag="超长篇（100万字以上）" Content="{DynamicResource Loc.OG.LenEpic}"/>
                         </ComboBox>
 
                         <!-- 主角设定 -->
                         <TextBox x:Name="MainCharacterTextBox"
-                               materialDesign:HintAssist.Hint="主角设定（姓名、性格、背景等）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintMainCharacter}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="80"
                                TextWrapping="Wrap"
@@ -92,7 +92,7 @@
 
                         <!-- 背景设定 -->
                         <TextBox x:Name="SettingTextBox"
-                               materialDesign:HintAssist.Hint="背景设定（世界观、时代背景等）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintSetting}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="80"
                                TextWrapping="Wrap"
@@ -102,7 +102,7 @@
 
                         <!-- 特殊要求 -->
                         <TextBox x:Name="RequirementsTextBox"
-                               materialDesign:HintAssist.Hint="特殊要求（情节偏好、风格要求等）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintRequirements}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Height="100"
                                TextWrapping="Wrap"
@@ -112,7 +112,7 @@
 
                         <!-- 生成按钮 -->
                         <Button x:Name="GenerateButton"
-                              Content="开始生成"
+                              Content="{DynamicResource Loc.OG.StartGenerate}"
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Background="{DynamicResource PrimaryHueMidBrush}"
                               Foreground="White"
@@ -130,7 +130,7 @@
                 <!-- 右侧：生成结果 -->
                 <materialDesign:Card Grid.Column="2" Padding="24">
                     <StackPanel>
-                        <TextBlock Text="生成结果" 
+                        <TextBlock Text="{DynamicResource Loc.OG.Result}" 
                                  FontSize="18" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
@@ -143,18 +143,18 @@
                                    AcceptsReturn="True"
                                    IsReadOnly="True"
                                    Background="{DynamicResource MaterialDesignTextFieldBoxBackground}"
-                                   materialDesign:HintAssist.Hint="AI生成的大纲将显示在这里"/>
+                                   materialDesign:HintAssist.Hint="{DynamicResource Loc.OG.HintResultPlaceholder}"/>
                         </ScrollViewer>
 
                         <!-- 操作按钮 -->
                         <StackPanel Orientation="Horizontal" 
                                   HorizontalAlignment="Right" 
                                   Margin="0,16,0,0">
-                            <Button Content="重新生成"
+                            <Button Content="{DynamicResource Loc.OG.Regenerate}"
                                   Style="{StaticResource MaterialDesignOutlinedButton}"
                                   Margin="0,0,8,0"
                                   Click="RegenerateButton_Click"/>
-                            <Button Content="保存大纲"
+                            <Button Content="{DynamicResource Loc.OG.SaveOutline}"
                                   Style="{StaticResource MaterialDesignRaisedButton}"
                                   Background="{DynamicResource SecondaryHueMidBrush}"
                                   Foreground="White"
@@ -170,11 +170,11 @@
                   Orientation="Horizontal" 
                   HorizontalAlignment="Right" 
                   Margin="16">
-            <Button Content="取消" 
+            <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                   Style="{StaticResource MaterialDesignFlatButton}"
                   Margin="0,0,8,0"
                   Click="CancelButton_Click"/>
-            <Button Content="确定" 
+            <Button Content="{DynamicResource Loc.Dlg.OK}" 
                   Style="{StaticResource MaterialDesignRaisedButton}"
                   Background="{DynamicResource PrimaryHueMidBrush}"
                   Foreground="White"

@@ -16,7 +16,9 @@ using MaterialDesignThemes.Wpf;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.Core.Interfaces;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -72,7 +74,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("修炼体系管理", out var projectId))
+                if (!EnsureCurrentProject(LocalizationManager.T("WS.Cult.Title", "修炼体系管理"), out var projectId))
                 {
                     _allCultivationSystems.Clear();
                     CultivationSystems.Clear();
@@ -111,7 +113,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "加载修炼体系失败");
-                MessageBox.Show($"加载修炼体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.LoadFailed", "加载修炼体系数据失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -149,7 +151,7 @@ namespace NovelManagement.WPF.Views
                 Origin = metadata.Origin,
                 Description = system.Description ?? string.Empty,
                 LevelCount = levels.Count,
-                MaxLevel = levels.LastOrDefault()?.Name ?? $"第{system.MaxLevel}层",
+                MaxLevel = levels.LastOrDefault()?.Name ?? LocalizationManager.TF("WS.Cult.LevelOrdinal", "第{0}层", system.MaxLevel),
                 CreatedAt = system.CreatedAt.ToLocalTime(),
                 Difficulty = system.Difficulty,
                 MaxLevelValue = system.MaxLevel,
@@ -195,7 +197,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("新建修炼体系", out var projectId))
+                if (!EnsureCurrentProject(LocalizationManager.T("WS.Cult.NewTitle", "新建修炼体系"), out var projectId))
                 {
                     return;
                 }
@@ -220,7 +222,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "创建修炼体系失败");
-                MessageBox.Show($"创建修炼体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.CreateFailed", "创建修炼体系失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -228,15 +230,15 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入修炼体系", out var projectId))
+                if (!EnsureCurrentProject(LocalizationManager.T("WS.Cult.ImportTitle", "导入修炼体系"), out var projectId))
                 {
                     return;
                 }
 
                 var dialog = new OpenFileDialog
                 {
-                    Title = "导入修炼体系",
-                    Filter = "JSON 文件|*.json",
+                    Title = LocalizationManager.T("WS.Cult.ImportTitle", "导入修炼体系"),
+                    Filter = LocalizationManager.T("WS.Cult.FilterJson", "JSON 文件") + "|*.json",
                     CheckFileExists = true
                 };
 
@@ -249,7 +251,7 @@ namespace NovelManagement.WPF.Views
                     ?? new List<CultivationSystemImportModel>();
                 if (items.Count == 0)
                 {
-                    MessageBox.Show("未读取到可导入的修炼体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.ImportEmpty", "未读取到可导入的修炼体系。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -272,12 +274,12 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await LoadCultivationSystemsAsync();
-                MessageBox.Show($"已完成导入，共处理 {items.Count} 个修炼体系。", "导入完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.ImportDone", "已完成导入，共处理 {0} 个修炼体系。", items.Count), LocalizationManager.T("WS.Cult.ImportDoneTitle", "导入完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "导入修炼体系失败");
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.ImportFailed", "导入失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -287,15 +289,15 @@ namespace NovelManagement.WPF.Views
             {
                 if (CultivationSystems.Count == 0)
                 {
-                    MessageBox.Show("当前没有可导出的修炼体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.ExportEmpty", "当前没有可导出的修炼体系。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 var dialog = new SaveFileDialog
                 {
-                    Title = "导出修炼体系",
-                    Filter = "JSON 文件|*.json",
-                    FileName = $"修炼体系_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                    Title = LocalizationManager.T("WS.Cult.ExportTitle", "导出修炼体系"),
+                    Filter = LocalizationManager.T("WS.Cult.FilterJson", "JSON 文件") + "|*.json",
+                    FileName = string.Format(LocalizationManager.T("WS.Cult.ExportFileName", "修炼体系_{0:yyyyMMdd_HHmmss}"), DateTime.Now),
                     AddExtension = true
                 };
 
@@ -307,12 +309,12 @@ namespace NovelManagement.WPF.Views
                 var data = CultivationSystems.Select(CultivationSystemImportModel.FromViewModel).ToList();
                 Directory.CreateDirectory(Path.GetDirectoryName(dialog.FileName)!);
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
-                MessageBox.Show($"已导出 {data.Count} 个修炼体系到：{dialog.FileName}", "导出完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.ExportDone", "已导出 {0} 个修炼体系到：{1}", data.Count, dialog.FileName), LocalizationManager.T("WS.Cult.ExportDoneTitle", "导出完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "导出修炼体系失败");
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.ExportFailed", "导出失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -322,13 +324,13 @@ namespace NovelManagement.WPF.Views
             {
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.AIServiceNotInit", "AI助手服务未初始化。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (SelectedCultivation == null)
                 {
-                    MessageBox.Show("请先选择一个修炼体系，再进行 AI 分析。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.SelectForAI", "请先选择一个修炼体系，再进行 AI 分析。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -341,23 +343,23 @@ namespace NovelManagement.WPF.Views
 
                 if (!result.IsSuccess || result.Data == null)
                 {
-                    MessageBox.Show(result.Message ?? "AI分析失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(result.Message ?? LocalizationManager.T("WS.Cult.AIAnalysisFailed", "AI分析失败。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                ShowAnalysisResultDialog($"AI分析 - {SelectedCultivation.Name}", result.Data.ToString() ?? string.Empty);
+                ShowAnalysisResultDialog(LocalizationManager.TF("WS.Cult.AIAnalysisTitle", "AI分析 - {0}", SelectedCultivation.Name), result.Data.ToString() ?? string.Empty);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AI分析修炼体系失败");
-                MessageBox.Show($"AI分析失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.Cult.AIAnalysisError", "AI分析失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void ApplyFilters()
         {
             var searchText = SearchTextBox.Text?.Trim().ToLowerInvariant() ?? string.Empty;
-            var selectedCategory = (CategoryFilterComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "全部类型";
+            var selectedCategory = (CategoryFilterComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "全部类型";
 
             var result = _allCultivationSystems.Where(item =>
             {
@@ -397,7 +399,7 @@ namespace NovelManagement.WPF.Views
             DetailsPanel.Children.Clear();
             DetailsPanel.Children.Add(new TextBlock
             {
-                Text = "请选择一个修炼体系查看详情",
+                Text = LocalizationManager.T("WS.Cult.SelectHint", "请选择一个修炼体系查看详情"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = Brushes.Gray,
@@ -418,7 +420,7 @@ namespace NovelManagement.WPF.Views
             });
             root.Children.Add(new TextBlock
             {
-                Text = $"{cultivation.Category} | {cultivation.Grade} | 难度 {cultivation.Difficulty}",
+                Text = LocalizationManager.TF("WS.Cult.DifficultyLine", "{0} | {1} | 难度 {2}", cultivation.Category, cultivation.Grade, cultivation.Difficulty),
                 Foreground = Brushes.Gray,
                 Margin = new Thickness(0, 8, 0, 20)
             });
@@ -428,24 +430,24 @@ namespace NovelManagement.WPF.Views
                 Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 0, 0, 20)
             };
-            actions.Children.Add(CreateActionButton("编辑", async (_, _) => await EditSelectedAsync(), true));
-            actions.Children.Add(CreateActionButton("删除", async (_, _) => await DeleteSelectedAsync(), false));
-            actions.Children.Add(CreateActionButton("AI分析", async (_, _) => await AnalyzeSelectedAsync(), false));
+            actions.Children.Add(CreateActionButton(LocalizationManager.T("Dlg.Edit", "编辑"), async (_, _) => await EditSelectedAsync(), true));
+            actions.Children.Add(CreateActionButton(LocalizationManager.T("Dlg.Delete", "删除"), async (_, _) => await DeleteSelectedAsync(), false));
+            actions.Children.Add(CreateActionButton(LocalizationManager.T("WS.Cult.AIAnalysis", "AI分析"), async (_, _) => await AnalyzeSelectedAsync(), false));
             root.Children.Add(actions);
 
-            root.Children.Add(CreateInfoCard("基础信息", new[]
+            root.Children.Add(CreateInfoCard(LocalizationManager.T("WS.Cult.BasicInfo", "基础信息"), new[]
             {
-                ("描述", cultivation.Description),
-                ("来源", cultivation.Origin),
-                ("最高等级", cultivation.MaxLevel),
-                ("修炼方法", cultivation.CultivationMethod),
-                ("境界划分", cultivation.RealmDivision),
-                ("突破条件", cultivation.BreakthroughConditions),
-                ("修炼资源", cultivation.CultivationResources),
-                ("体系特点", cultivation.Characteristics),
-                ("修炼风险", cultivation.Risks),
-                ("标签", cultivation.Tags),
-                ("备注", cultivation.Notes)
+                (LocalizationManager.T("Dlg.Description", "描述"), cultivation.Description),
+                (LocalizationManager.T("WS.Cult.Origin", "来源"), cultivation.Origin),
+                (LocalizationManager.T("WS.Cult.MaxLevel", "最高等级"), cultivation.MaxLevel),
+                (LocalizationManager.T("WS.Cult.Method", "修炼方法"), cultivation.CultivationMethod),
+                (LocalizationManager.T("WS.Cult.RealmDivision", "境界划分"), cultivation.RealmDivision),
+                (LocalizationManager.T("WS.Cult.Breakthrough", "突破条件"), cultivation.BreakthroughConditions),
+                (LocalizationManager.T("WS.Cult.Resources", "修炼资源"), cultivation.CultivationResources),
+                (LocalizationManager.T("WS.Cult.Characteristics", "体系特点"), cultivation.Characteristics),
+                (LocalizationManager.T("WS.Cult.Risks", "修炼风险"), cultivation.Risks),
+                (LocalizationManager.T("WS.Cult.Tags", "标签"), cultivation.Tags),
+                (LocalizationManager.T("Dlg.Remarks", "备注"), cultivation.Notes)
             }));
 
             root.Children.Add(CreateLevelsCard(cultivation.Levels));
@@ -469,7 +471,7 @@ namespace NovelManagement.WPF.Views
                 panel.Children.Add(new TextBlock { Text = item.Label, FontWeight = FontWeights.Medium });
                 panel.Children.Add(new TextBlock
                 {
-                    Text = string.IsNullOrWhiteSpace(item.Value) ? "未设置" : item.Value,
+                    Text = string.IsNullOrWhiteSpace(item.Value) ? LocalizationManager.T("WS.Cult.NotSet", "未设置") : item.Value,
                     TextWrapping = TextWrapping.Wrap,
                     Foreground = Brushes.Gray,
                     Margin = new Thickness(0, 2, 0, 10)
@@ -486,7 +488,7 @@ namespace NovelManagement.WPF.Views
             var panel = new StackPanel();
             panel.Children.Add(new TextBlock
             {
-                Text = "修炼等级",
+                Text = LocalizationManager.T("WS.Cult.LevelsTitle", "修炼等级"),
                 FontSize = 18,
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 12)
@@ -495,7 +497,7 @@ namespace NovelManagement.WPF.Views
             var list = levels.ToList();
             if (list.Count == 0)
             {
-                panel.Children.Add(new TextBlock { Text = "未配置等级", Foreground = Brushes.Gray });
+                panel.Children.Add(new TextBlock { Text = LocalizationManager.T("WS.Cult.NoLevels", "未配置等级"), Foreground = Brushes.Gray });
             }
             else
             {
@@ -508,7 +510,7 @@ namespace NovelManagement.WPF.Views
                     });
                     panel.Children.Add(new TextBlock
                     {
-                        Text = string.IsNullOrWhiteSpace(level.Description) ? "未填写描述" : level.Description,
+                        Text = string.IsNullOrWhiteSpace(level.Description) ? LocalizationManager.T("WS.Cult.NoLevelDesc", "未填写描述") : level.Description,
                         TextWrapping = TextWrapping.Wrap,
                         Foreground = Brushes.Gray,
                         Margin = new Thickness(0, 2, 0, 8)
@@ -540,7 +542,7 @@ namespace NovelManagement.WPF.Views
 
         private async Task EditSelectedAsync()
         {
-            if (SelectedCultivation == null || !EnsureCurrentProject("编辑修炼体系", out _))
+            if (SelectedCultivation == null || !EnsureCurrentProject(LocalizationManager.T("WS.Cult.EditFeature", "编辑修炼体系"), out _))
             {
                 return;
             }
@@ -554,7 +556,7 @@ namespace NovelManagement.WPF.Views
             var entity = await _cultivationSystemService.GetCultivationSystemByIdAsync(SelectedCultivation.CultivationSystemId);
             if (entity == null)
             {
-                MessageBox.Show("未找到要编辑的修炼体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.T("WS.Cult.NotFoundForEdit", "未找到要编辑的修炼体系。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -576,7 +578,7 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
-            var result = MessageBox.Show($"确定要删除修炼体系“{SelectedCultivation.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show(LocalizationManager.TF("WS.Cult.DeleteConfirm", "确定要删除修炼体系“{0}”吗？", SelectedCultivation.Name), LocalizationManager.T("Msg.DeleteConfirmTitle", "确认删除"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes)
             {
                 return;
@@ -661,13 +663,13 @@ namespace NovelManagement.WPF.Views
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 12, 0, 0)
             };
-            var copyButton = new Button { Content = "复制结果", Width = 88, Margin = new Thickness(0, 0, 12, 0) };
+            var copyButton = new Button { Content = LocalizationManager.T("WS.Cult.CopyResult", "复制结果"), Width = 88, Margin = new Thickness(0, 0, 12, 0) };
             copyButton.Click += (_, _) =>
             {
                 Clipboard.SetText(content);
-                MessageBox.Show("结果已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.T("WS.Cult.CopiedToClipboard", "结果已复制到剪贴板。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             };
-            var closeButton = new Button { Content = "关闭", Width = 88, IsDefault = true };
+            var closeButton = new Button { Content = LocalizationManager.T("Dlg.Close", "关闭"), Width = 88, IsDefault = true };
             closeButton.Click += (_, _) => window.Close();
             buttons.Children.Add(copyButton);
             buttons.Children.Add(closeButton);
@@ -688,6 +690,9 @@ namespace NovelManagement.WPF.Views
         public string Origin { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int LevelCount { get; set; }
+
+        /// <summary>等级数量的本地化展示文本（如「共3层」）。</summary>
+        public string LevelCountDisplay => LocalizationManager.TF("WS.Cult.LevelCountFormat", "共{0}层", LevelCount);
         public string MaxLevel { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public int Difficulty { get; set; }
@@ -871,7 +876,7 @@ namespace NovelManagement.WPF.Views
             _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             _originalModel = model;
 
-            Title = model == null ? "新建修炼体系" : $"编辑修炼体系 - {model.Name}";
+            Title = model == null ? LocalizationManager.T("WS.Cult.NewTitle", "新建修炼体系") : LocalizationManager.TF("WS.Cult.EditTitle", "编辑修炼体系 - {0}", model.Name);
             Width = 720;
             Height = 900;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -974,36 +979,36 @@ namespace NovelManagement.WPF.Views
         private FrameworkElement BuildContent()
         {
             var panel = new StackPanel { Margin = new Thickness(20) };
-            panel.Children.Add(DialogUiHelpers.CreateLabel("体系名称"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.FieldName", "体系名称")));
             panel.Children.Add(_nameTextBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("体系类别"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.FieldCategory", "体系类别")));
             panel.Children.Add(_categoryComboBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("功法品级"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.FieldGrade", "功法品级")));
             panel.Children.Add(_gradeComboBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("来源"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Origin", "来源")));
             panel.Children.Add(_originTextBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼难度"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.FieldDifficulty", "修炼难度")));
             panel.Children.Add(_difficultySlider);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("体系描述"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.FieldDescription", "体系描述")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_descriptionTextBox, 90));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼方法"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Method", "修炼方法")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_cultivationMethodTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("境界划分"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.RealmDivision", "境界划分")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_realmDivisionTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("突破条件"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Breakthrough", "突破条件")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_breakthroughConditionsTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼资源"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Resources", "修炼资源")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_cultivationResourcesTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("体系特点"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Characteristics", "体系特点")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_characteristicsTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼风险"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Risks", "修炼风险")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_risksTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("标签"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Tags", "标签")));
             panel.Children.Add(_tagsTextBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("备注"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("Dlg.Remarks", "备注")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_notesTextBox, 70));
 
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼等级"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.LevelsTitle", "修炼等级")));
             var levelsList = new ListBox
             {
                 Height = 180,
@@ -1017,7 +1022,7 @@ namespace NovelManagement.WPF.Views
                 Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 8, 0, 0)
             };
-            var addLevelButton = new Button { Content = "添加等级", Margin = new Thickness(0, 0, 12, 0) };
+            var addLevelButton = new Button { Content = LocalizationManager.T("WS.Cult.AddLevel", "添加等级"), Margin = new Thickness(0, 0, 12, 0) };
             addLevelButton.Click += (_, _) =>
             {
                 var dialog = new CultivationLevelEditDialog { Owner = this };
@@ -1026,12 +1031,12 @@ namespace NovelManagement.WPF.Views
                     _levels.Add(dialog.BuildViewModel());
                 }
             };
-            var editLevelButton = new Button { Content = "编辑等级", Margin = new Thickness(0, 0, 12, 0) };
+            var editLevelButton = new Button { Content = LocalizationManager.T("WS.Cult.EditLevel", "编辑等级"), Margin = new Thickness(0, 0, 12, 0) };
             editLevelButton.Click += (_, _) =>
             {
                 if (levelsList.SelectedItem is not CultivationLevelViewModel selected)
                 {
-                    MessageBox.Show("请先选择一个等级。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.SelectLevelFirst", "请先选择一个等级。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1042,7 +1047,7 @@ namespace NovelManagement.WPF.Views
                     _levels[index] = dialog.BuildViewModel();
                 }
             };
-            var removeLevelButton = new Button { Content = "删除等级" };
+            var removeLevelButton = new Button { Content = LocalizationManager.T("WS.Cult.RemoveLevel", "删除等级") };
             removeLevelButton.Click += (_, _) =>
             {
                 if (levelsList.SelectedItem is CultivationLevelViewModel selected)
@@ -1061,22 +1066,22 @@ namespace NovelManagement.WPF.Views
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 16, 0, 0)
             };
-            var aiButton = new Button { Content = "AI自动补全", Width = 100, Margin = new Thickness(0, 0, 12, 0) };
+            var aiButton = new Button { Content = LocalizationManager.T("WS.Cult.AIAutoFill", "AI自动补全"), Width = 100, Margin = new Thickness(0, 0, 12, 0) };
             aiButton.Click += async (_, _) => await AutoFillWithAiAsync();
-            var resetButton = new Button { Content = "重置内容", Width = 100, Margin = new Thickness(0, 0, 12, 0) };
+            var resetButton = new Button { Content = LocalizationManager.T("WS.Cult.ResetContent", "重置内容"), Width = 100, Margin = new Thickness(0, 0, 12, 0) };
             resetButton.Click += (_, _) => ResetForm();
-            var okButton = new Button { Content = "保存", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var okButton = new Button { Content = LocalizationManager.T("Dlg.Save", "保存"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             okButton.Click += (_, _) =>
             {
                 if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
                 {
-                    MessageBox.Show("请输入修炼体系名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.NameRequired", "请输入修炼体系名称。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 DialogResult = true;
             };
-            var cancelButton = new Button { Content = "返回", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = LocalizationManager.T("WS.Cult.Back", "返回"), Width = 84, IsCancel = true };
             buttons.Children.Add(aiButton);
             buttons.Children.Add(resetButton);
             buttons.Children.Add(okButton);
@@ -1094,7 +1099,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.T("WS.Cult.AIServiceNotInit", "AI助手服务未初始化。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1110,7 +1115,7 @@ namespace NovelManagement.WPF.Views
 
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? LocalizationManager.T("WS.Cult.AIAutoFillFailed", "AI自动补全失败。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1135,7 +1140,7 @@ namespace NovelManagement.WPF.Views
                 _nameTextBox.Text = string.IsNullOrWhiteSpace(generatedName) ? "AI修炼体系" : generatedName;
             }
 
-            MessageBox.Show("已完成修炼体系自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(LocalizationManager.T("WS.Cult.AIAutoFillDone", "已完成修炼体系自动补全。"), LocalizationManager.T("WS.Cult.AIAutoFill", "AI自动补全"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async Task<string> BuildAiPromptAsync()
@@ -1227,7 +1232,7 @@ namespace NovelManagement.WPF.Views
 
         public CultivationLevelEditDialog(CultivationLevelViewModel? model = null)
         {
-            Title = model == null ? "添加修炼等级" : $"编辑等级 - {model.Name}";
+            Title = model == null ? LocalizationManager.T("WS.Cult.AddLevelTitle", "添加修炼等级") : LocalizationManager.TF("WS.Cult.EditLevelTitle", "编辑等级 - {0}", model.Name);
             Width = 520;
             Height = 500;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1258,17 +1263,17 @@ namespace NovelManagement.WPF.Views
         private FrameworkElement BuildContent()
         {
             var panel = new StackPanel { Margin = new Thickness(20) };
-            panel.Children.Add(DialogUiHelpers.CreateLabel("等级名称"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.LevelName", "等级名称")));
             panel.Children.Add(_nameTextBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("等级序号"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.LevelOrder", "等级序号")));
             panel.Children.Add(_levelTextBox);
-            panel.Children.Add(DialogUiHelpers.CreateLabel("等级描述"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.LevelDescription", "等级描述")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_descriptionTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("突破条件"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.Breakthrough", "突破条件")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_requirementsTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("能力收益"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.LevelBenefits", "能力收益")));
             panel.Children.Add(DialogUiHelpers.CreateMultiLine(_benefitsTextBox, 70));
-            panel.Children.Add(DialogUiHelpers.CreateLabel("修炼时间"));
+            panel.Children.Add(DialogUiHelpers.CreateLabel(LocalizationManager.T("WS.Cult.CultTime", "修炼时间")));
             panel.Children.Add(_cultivationTimeTextBox);
 
             var buttons = new StackPanel
@@ -1277,18 +1282,18 @@ namespace NovelManagement.WPF.Views
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 16, 0, 0)
             };
-            var okButton = new Button { Content = "确定", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var okButton = new Button { Content = LocalizationManager.T("Dlg.OK", "确定"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             okButton.Click += (_, _) =>
             {
                 if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
                 {
-                    MessageBox.Show("请输入等级名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LocalizationManager.T("WS.Cult.LevelNameRequired", "请输入等级名称。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 DialogResult = true;
             };
-            var cancelButton = new Button { Content = "取消", Width = 84, IsCancel = true };
+            var cancelButton = new Button { Content = LocalizationManager.T("Dlg.Cancel", "取消"), Width = 84, IsCancel = true };
             buttons.Children.Add(okButton);
             buttons.Children.Add(cancelButton);
             panel.Children.Add(buttons);
@@ -1325,6 +1330,42 @@ namespace NovelManagement.WPF.Views
             return value.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim(' ', '-', '*', '•'))
                 .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        /// <summary>人际关系类型规范存储值。</summary>
+        public static readonly string[] RelationshipTypeValues =
+            { "朋友关系", "爱情关系", "师徒关系", "敌对关系", "同门关系", "亲属关系" };
+
+        /// <summary>关系状态规范存储值。</summary>
+        public static readonly string[] RelationshipStatusValues =
+            { "稳定", "友好", "紧张", "敌对", "复杂" };
+
+        /// <summary>构建本地化下拉项（Tag 保存中文规范值，Content 为当前语言显示文本）。</summary>
+        public static List<ComboBoxItem> BuildLocalizedItems(IEnumerable<string> storedValues) =>
+            storedValues
+                .Select(v => new ComboBoxItem { Tag = v, Content = LocalizationManager.LocalizeStoredValue(v) })
+                .ToList();
+
+        /// <summary>按存储值选中下拉项（Tag 匹配）。</summary>
+        public static void SelectStoredValue(ComboBox? comboBox, string? storedValue)
+        {
+            if (comboBox == null) return;
+            foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Tag?.ToString(), storedValue, StringComparison.Ordinal))
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+            if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
+        }
+
+        /// <summary>读取下拉项的中文规范值（优先 Tag）。</summary>
+        public static string? GetSelectedStoredValue(ComboBox? comboBox)
+        {
+            var item = comboBox?.SelectedItem as ComboBoxItem;
+            return item?.Tag?.ToString() ?? item?.Content?.ToString();
         }
     }
 

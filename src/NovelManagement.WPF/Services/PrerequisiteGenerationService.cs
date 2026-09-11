@@ -25,6 +25,16 @@ namespace NovelManagement.WPF.Services
         private readonly ILogger<PrerequisiteGenerationService> _logger;
         private readonly IAIAssistantService? _aiAssistantService;
 
+        /// <summary>英文模式（界面语言为 en-US 时生成的书名/角色/势力/设定等内容为英文）。</summary>
+        private static bool En => Localization.LocalizationManager.IsEnglish;
+
+        /// <summary>英文模式附加指令：字段标签保持中文原样（供解析器提取），但所有内容值必须为英文。</summary>
+        private const string EnglishContentInstruction =
+            "CRITICAL OUTPUT LANGUAGE RULE: Write EVERY content value in ENGLISH — book/plot titles, character names, faction names, " +
+            "system and level names, descriptions, histories, cultivation method, realm division, breakthrough conditions, resources. " +
+            "Do NOT output any Chinese prose in the values (Chinese is allowed only for the field labels such as 标题：/类型：/描述：/名称：/等级名：). " +
+            "If you write values in Chinese, the output will be rejected.";
+
         public PrerequisiteGenerationService(
             IServiceProvider serviceProvider,
             ILogger<PrerequisiteGenerationService> logger)
@@ -295,6 +305,7 @@ namespace NovelManagement.WPF.Services
 - 修炼/力量等级体系必须贴合本书题材与世界观原创设计（命名、进阶逻辑均可自定义），除非题材就是传统修仙，否则禁止照搬「练气/筑基/金丹/元婴」等常见模板；每个等级的突破条件与能力特点要递进自洽
 - 若项目已有世界设定或大纲，必须延续其约束，不能推翻现有基础
 - 必须遵守生成顺序：项目基本信息 -> 世界观 -> 大纲 -> 角色/势力/配套设定
+" + (En ? "\n" + EnglishContentInstruction : "") + @"
 ";
 
                 // 调用AI服务生成内容
@@ -338,7 +349,7 @@ namespace NovelManagement.WPF.Services
             // 修炼体系最先生成（角色的修为等级将从体系中取值）
             if (result.NeedsCultivationSystem && cultivationSystemService != null)
             {
-                var cultivationSection = AiAutoFillFormatter.ExtractSection(normalized, "修炼体系", "力量体系", "等级体系");
+                var cultivationSection = AiAutoFillFormatter.ExtractSection(normalized, "修炼体系", "力量体系", "等级体系", "Cultivation System");
                 if (!string.IsNullOrWhiteSpace(cultivationSection))
                 {
                     await ParseCultivationSystemSectionAsync(projectId, cultivationSection, result, cultivationSystemService);
@@ -370,7 +381,7 @@ namespace NovelManagement.WPF.Services
                             AiAutoFillFormatter.ExtractSingleLineValue(block, "类型"),
                             "主线"), 50),
                         Description = NullIfEmpty(AiAutoFillFormatter.ExtractSummary(block, "描述", "简介")),
-                        Outline = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "描述", "简介")),
+                        Outline = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "描述", "简介", "Description")),
                         ConflictElements = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "冲突", "核心冲突")),
                         ThemeElements = NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "主题", "核心主题")),
                         Status = "规划中",
@@ -725,8 +736,38 @@ namespace NovelManagement.WPF.Services
                 {
                     try
                     {
-                        var systemPrompt = "你是资深网文世界观架构师，擅长自上而下原创设计力量/修炼等级体系，严格按要求的纯文本结构输出。";
-                        var userPrompt = @"请为书籍项目设计一套修炼/力量等级体系，要求自上而下原创设计：
+                        var systemPrompt = NovelManagement.AI.Utilities.PromptTemplate.Get("Prerequisite/Cultivation.System")
+                            ?? (En
+                                ? "You are a senior fiction worldbuilding architect. Design original power/progression systems top-down and output plain text strictly in the required structure."
+                                : "你是资深网文世界观架构师，擅长自上而下原创设计力量/修炼等级体系，严格按要求的纯文本结构输出。");
+                        // 语种模板注册表优先（PromptTemplates/Prerequisite/Cultivation.User）
+                        var cultivationUserTemplate = NovelManagement.AI.Utilities.PromptTemplate.Get("Prerequisite/Cultivation.User");
+                        var userPrompt = cultivationUserTemplate ?? (En
+                            ? @"Design a cultivation / power progression system for this novel project. Requirements:
+1. Define the system name, type and core cultivation method first (must fit the project genre and worldview; names are fully custom).
+2. Then define 8-12 ranks from lowest to highest; each rank needs a description, a breakthrough condition and ability features. The advancement logic must be progressive and self-consistent.
+3. Do NOT copy common templates such as Qi Refining / Foundation Building / Golden Core.
+
+Output ONLY the plain-text structure below. No markdown code blocks, no explanations, no preamble. Write every value in ENGLISH and keep the field labels EXACTLY as shown:
+
+【Cultivation System】
+System Name:
+System Type:
+Cultivation Method:
+1.
+Rank Name:
+Description:
+Breakthrough Condition:
+Ability Features:
+
+2.
+Rank Name:
+Description:
+Breakthrough Condition:
+Ability Features:
+
+(list all ranks from lowest to highest)"
+                            : @"请为书籍项目设计一套修炼/力量等级体系，要求自上而下原创设计：
 1. 先确定体系名称、类型与核心修炼方法（须贴合项目题材与世界观，命名可完全自定义）
 2. 再从低到高划分 8-12 个等级，每级给出描述、突破条件、能力特点，进阶逻辑要递进自洽
 3. 除传统修仙题材外，禁止照搬「练气/筑基/金丹/元婴」等常见模板
@@ -748,7 +789,7 @@ namespace NovelManagement.WPF.Services
 突破条件：
 能力特点：
 
-（按从低到高顺序列出全部等级）";
+（按从低到高顺序列出全部等级）");
                         var rwkvPrompt = "User: " + systemPrompt + "\n" + userPrompt + "\n\nAssistant: <think></think\n";
                         var response = await rwkv.CompleteAsync(rwkvPrompt, 2048);
                         if (response.Success && !string.IsNullOrWhiteSpace(response.Text))
@@ -773,13 +814,30 @@ namespace NovelManagement.WPF.Services
                     }
                 }
 
-                // AI 不可用或解析失败：回退通用九阶模板（中性命名，不预设修仙体系）
-                var genericLevels = new List<string> { "初窥门径", "登堂入室", "驾轻就熟", "融会贯通", "炉火纯青", "出神入化", "登峰造极", "返璞归真", "超凡入圣" };
+                // AI 不可用或解析失败：回退通用九阶模板（中性命名，不预设修仙体系；英文模式输出英文模板）
+                List<string> genericLevels;
+                string genericName, genericType, genericDesc, genericMethod;
+                if (En)
+                {
+                    genericLevels = new List<string> { "First Steps", "Steady Hands", "Practiced", "Integration", "Mastery", "Refinement", "Pinnacle", "Simplicity Returned", "Beyond Mortal" };
+                    genericName = "General Progression System";
+                    genericType = "General";
+                    genericDesc = "A path of progress forged by craft and state of mind; every rank is a leap from quantitative to qualitative change.";
+                    genericMethod = "Refine one's inner source through insight and discipline; each advancement transforms both mind and body.";
+                }
+                else
+                {
+                    genericLevels = new List<string> { "初窥门径", "登堂入室", "驾轻就熟", "融会贯通", "炉火纯青", "出神入化", "登峰造极", "返璞归真", "超凡入圣" };
+                    genericName = "通用进阶体系";
+                    genericType = "通用";
+                    genericDesc = "以技艺与心境共同打磨的进阶之路，每一阶都是从量变到质变的跃迁。";
+                    genericMethod = "以自身领悟淬炼本源之力，境界提升伴随神魂与体魄的双重蜕变。";
+                }
                 var fallback = await CreateCultivationSystemAsync(
-                    projectId, "通用进阶体系", "通用",
-                    "以技艺与心境共同打磨的进阶之路，每一阶都是从量变到质变的跃迁。",
-                    "以自身领悟淬炼本源之力，境界提升伴随神魂与体魄的双重蜕变。",
-                    genericLevels.Select(n => (n, (string?)$"进阶至{n}的关键在于打牢前一级根基，完成一次本源蜕变。", (string?)null, (string?)null)),
+                    projectId, genericName, genericType, genericDesc, genericMethod,
+                    genericLevels.Select(n => (n, (string?)(En
+                        ? $"The key to advancing to {n} is solidifying the foundation of the previous rank and completing a transformation of one's inner source."
+                        : $"进阶至{n}的关键在于打牢前一级根基，完成一次本源蜕变。"), (string?)null, (string?)null)),
                     cultivationSystemService);
                 if (fallback != null)
                 {
@@ -842,26 +900,26 @@ namespace NovelManagement.WPF.Services
 
                 // ExtractSection 逐行匹配字段名，可跳过「【修炼体系】」标题行取到真实字段值；
                 // ExtractSingleLineValue 兜底必须校验字段前缀，否则缺失字段时会拿整段首行当值
-                var fallbackName = AiAutoFillFormatter.ExtractSingleLineValue(header, "体系名称", "名称");
+                var fallbackName = AiAutoFillFormatter.ExtractSingleLineValue(header, "体系名称", "名称", "System Name", "Name");
                 var systemName = LimitLength(FirstNonEmpty(
-                    AiAutoFillFormatter.ExtractSection(header, "体系名称", "体系名", "名称"),
-                    AiAutoFillFormatter.HasFieldPrefix(fallbackName, "体系名称", "名称") ? fallbackName : null), 100);
+                    AiAutoFillFormatter.ExtractSection(header, "体系名称", "体系名", "名称", "System Name", "System", "Name"),
+                    AiAutoFillFormatter.HasFieldPrefix(fallbackName, "体系名称", "名称", "System Name", "Name") ? fallbackName : null), 100);
                 var systemType = LimitLength(FirstNonEmpty(
-                    AiAutoFillFormatter.ExtractSection(header, "体系类型", "类型"), "通用"), 50);
-                var method = NullIfEmpty(AiAutoFillFormatter.ExtractSection(header, "修炼方法", "修炼方式", "核心理念"));
+                    AiAutoFillFormatter.ExtractSection(header, "体系类型", "类型", "System Type", "Type"), En ? "General" : "通用"), 50);
+                var method = NullIfEmpty(AiAutoFillFormatter.ExtractSection(header, "修炼方法", "修炼方式", "核心理念", "Cultivation Method", "Method", "Core Concept"));
 
                 var levels = new List<(string Name, string? Description, string? Breakthrough, string? Abilities)>();
                 foreach (var block in SplitNumberedLevelBlocks(levelsPart))
                 {
                     // ExtractSection 逐行匹配「等级名：」字段行，可跳过块内混入的「【修炼体系】」等标题行
                     var levelName = LimitLength(FirstNonEmpty(
-                        AiAutoFillFormatter.ExtractSection(block, "等级名", "等级", "境界", "名称")), 100);
+                        AiAutoFillFormatter.ExtractSection(block, "等级名", "等级", "境界", "名称", "Rank Name", "Rank", "Level", "Realm", "Name")), 100);
                     if (string.IsNullOrWhiteSpace(levelName)) continue;
                     levels.Add((
                         levelName,
                         NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "描述", "简介")),
-                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "突破条件", "突破")),
-                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "能力特点", "能力"))));
+                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "突破条件", "突破", "Breakthrough Condition", "Breakthrough")),
+                        NullIfEmpty(AiAutoFillFormatter.ExtractSection(block, "能力特点", "能力", "Ability Features", "Abilities"))));
                 }
 
                 if (string.IsNullOrWhiteSpace(systemName) || levels.Count < 2)
@@ -957,10 +1015,14 @@ namespace NovelManagement.WPF.Services
             var levelNames = await GetProjectCultivationLevelNamesAsync(projectId);
             if (levelNames.Count > 0)
             {
-                return $"修炼等级：{string.Join("→", levelNames)}。等级由低到高递进，每次突破均需满足对应条件并获得质的飞跃。";
+                return En
+                    ? $"Progression ranks: {string.Join(" → ", levelNames)}. Ranks ascend step by step; each breakthrough requires meeting its condition and yields a qualitative leap."
+                    : $"修炼等级：{string.Join("→", levelNames)}。等级由低到高递进，每次突破均需满足对应条件并获得质的飞跃。";
             }
 
-            return "修炼等级：练气→筑基→金丹→元婴→化神→炼虚→合体→大乘→渡劫→仙人。每个大境界分为初期、中期、后期、巅峰四个小境界。";
+            return En
+                ? "Progression ranks: Novice → Adept → Adept Master → Core Formation → Spirit Refinement → Union → Ascendant → Sovereign → Tribulation → Immortal. Each great realm divides into early, middle, late, and peak stages."
+                : "修炼等级：练气→筑基→金丹→元婴→化神→炼虚→合体→大乘→渡劫→仙人。每个大境界分为初期、中期、后期、巅峰四个小境界。";
         }
 
         /// <summary>
@@ -1007,8 +1069,45 @@ namespace NovelManagement.WPF.Services
                 var plotService = _serviceProvider.GetService<PlotService>();
                 if (plotService == null) return;
 
-                var defaultPlots = new List<Plot>
-                {
+                var defaultPlots = En
+                    ? new List<Plot>
+                    {
+                        new Plot
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Title = "Main plot: the road of growth",
+                            Description = "The protagonist starts from obscurity and grows into someone formidable through effort, opportunity, and hard choices",
+                            Type = "主线",
+                            Status = "计划中",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        },
+                        new Plot
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Title = "Emotional line: bonds that matter",
+                            Description = "The protagonist's evolving relationships — friendship, love, mentorship, and rivalry",
+                            Type = "情感线",
+                            Status = "计划中",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        },
+                        new Plot
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Title = "Subplot: a web of powers",
+                            Description = "Shifting alliances and conflicting interests between factions reveal a diverse world",
+                            Type = "支线",
+                            Status = "计划中",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        }
+                    }
+                    : new List<Plot>
+                    {
                     new Plot
                     {
                         Id = Guid.NewGuid(),
@@ -1042,7 +1141,7 @@ namespace NovelManagement.WPF.Services
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     }
-                };
+                    };
 
                 foreach (var plot in defaultPlots)
                 {
@@ -1069,8 +1168,54 @@ namespace NovelManagement.WPF.Services
                 var characterService = _serviceProvider.GetService<CharacterService>();
                 if (characterService == null) return;
 
-                var defaultCharacters = new List<Character>
-                {
+                var defaultCharacters = En
+                    ? new List<Character>
+                    {
+                        new Character
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Name = "Ethan Cross",
+                            Type = "主角",
+                            Gender = "男",
+                            Age = 18,
+                            Appearance = "Tall and lean, with steady eyes and an unbroken will",
+                            Personality = "Resilient, principled, fiercely loyal to those he trusts",
+                            Background = "Of humble birth, he stumbles upon a legacy that changes his fate",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        },
+                        new Character
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Name = "Iris Vale",
+                            Type = "女主角",
+                            Gender = "女",
+                            Age = 17,
+                            Appearance = "Striking and otherworldly, with an air of quiet grace",
+                            Personality = "Brilliant and kind, gentle on the surface yet unyielding at the core",
+                            Background = "Born into a renowned family, a prodigy of rare talent",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        },
+                        new Character
+                        {
+                            Id = Guid.NewGuid(),
+                            ProjectId = projectId,
+                            Name = "Alden the Elder",
+                            Type = "师父",
+                            Gender = "男",
+                            Age = 800,
+                            Appearance = "White-haired and serene, his depth impossible to fathom",
+                            Personality = "Wise and reserved, kind yet exacting, perceptive of the world",
+                            Background = "A recluse of legend, once the most celebrated figure of his era",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        }
+                    }
+                    : new List<Character>
+                    {
                     new Character
                     {
                         Id = Guid.NewGuid(),
@@ -1113,7 +1258,7 @@ namespace NovelManagement.WPF.Services
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     }
-                };
+                    };
 
                 // 修为等级从项目自定义修炼体系中按角色定位取值（主角低阶、师父高阶）
                 var levelNames = await GetProjectCultivationLevelNamesAsync(projectId);
@@ -1156,8 +1301,47 @@ namespace NovelManagement.WPF.Services
                 var worldSettingService = _serviceProvider.GetService<IWorldSettingService>();
                 if (worldSettingService == null) return;
 
-                var defaultSettings = new List<WorldSetting>
-                {
+                var defaultSettings = En
+                    ? new List<WorldSetting>
+                    {
+                        new WorldSetting
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Progression System", Type = "System Setting",
+                            Content = await BuildCultivationSummaryAsync(projectId),
+                            Importance = 10, Order = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new WorldSetting
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "World Geography", Type = "Geography Setting",
+                            Content = "The known world spans four great regions, each with distinct terrain, cultures, and resources that shape their people's ways of life.",
+                            Importance = 9, Order = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new WorldSetting
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Energy System", Type = "Energy Setting",
+                            Content = "The world's energy flows in five elemental currents (metal, wood, water, fire, earth) plus rare variants such as lightning, ice, and wind. Practitioners attune to affinities matching their nature.",
+                            Importance = 8, Order = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new WorldSetting
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Artifact Ranks", Type = "Item Setting",
+                            Content = "Artifacts are ranked: Mortal → Spirit → Treasure → Law → Immortal → Divine. Each rank divides into lower, middle, upper, and peak quality.",
+                            Importance = 7, Order = 4, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new WorldSetting
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Time & Lifespan", Type = "Time Setting",
+                            Content = "Time flows as it does in the mortal world, yet practitioners live far longer — roughly two centuries at the early ranks, five at the middle, a thousand at the high, and beyond.",
+                            Importance = 7, Order = 5, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        }
+                    }
+                    : new List<WorldSetting>
+                    {
                     new WorldSetting
                     {
                         Id = Guid.NewGuid(),
@@ -1218,7 +1402,7 @@ namespace NovelManagement.WPF.Services
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     }
-                };
+                    };
 
                 foreach (var setting in defaultSettings)
                 {
@@ -1266,8 +1450,39 @@ namespace NovelManagement.WPF.Services
                 var factionService = _serviceProvider.GetService<FactionService>();
                 if (factionService == null) return;
 
-                var defaultFactions = new List<Faction>
-                {
+                var defaultFactions = En
+                    ? new List<Faction>
+                    {
+                        new Faction
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Skyhaven Order", Type = "修仙宗门", PowerLevel = 95,
+                            Description = "An ancient and powerful order with deep foundations, strict rules, and a proud tradition of inheritance",
+                            Territory = "Skyhaven Mountains", MemberCount = 50000, Status = "Active",
+                            PowerRating = 95, Influence = 90, Importance = 95,
+                            Tags = "order,tradition,discipline,formidable", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new Faction
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Crimson Moon Sect", Type = "修仙宗门", PowerLevel = 85,
+                            Description = "A sect known for its blood-attribute arts and unorthodox methods, holding a singular place in the world",
+                            Territory = "Crimson Moon Gorge", MemberCount = 30000, Status = "Active",
+                            PowerRating = 85, Influence = 70, Importance = 80,
+                            Tags = "sect,blood arts,unorthodox,mysterious", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        },
+                        new Faction
+                        {
+                            Id = Guid.NewGuid(), ProjectId = projectId,
+                            Name = "Myriad Treasures Guild", Type = "商业组织", PowerLevel = 70,
+                            Description = "The world's largest merchant guild, controlling the flow of most cultivation resources while staying strictly neutral",
+                            Territory = "Major trade cities", MemberCount = 20000, Status = "Active",
+                            PowerRating = 70, Influence = 80, Importance = 65,
+                            Tags = "commerce,wealth,trade,neutral", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+                        }
+                    }
+                    : new List<Faction>
+                    {
                     new Faction
                     {
                         Id = Guid.NewGuid(),
@@ -1322,7 +1537,7 @@ namespace NovelManagement.WPF.Services
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     }
-                };
+                    };
 
                 foreach (var faction in defaultFactions)
                 {

@@ -13,6 +13,7 @@ using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Commands;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -174,7 +175,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"服务初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.ServiceInitFailed", "服务初始化失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -198,7 +199,7 @@ namespace NovelManagement.WPF.Views
                 _currentProjectId = _projectContextService?.CurrentProjectId ?? Guid.Empty;
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "剧情管理", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("PLM.Title", "剧情管理"), out _);
                     _allPlots = new List<PlotViewModel>();
                     _filteredPlots = new List<PlotViewModel>();
                     UpdatePlotList();
@@ -208,7 +209,7 @@ namespace NovelManagement.WPF.Views
 
                 if (_plotService == null)
                 {
-                    throw new InvalidOperationException("剧情服务未初始化");
+                    throw new InvalidOperationException(T("PLM.ServiceNotInit", "剧情服务未初始化"));
                 }
 
                 var plots = await _plotService.GetPlotsByProjectIdAsync(_currentProjectId);
@@ -222,7 +223,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "加载剧情数据失败");
-                MessageBox.Show($"加载剧情数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.LoadFailed", "加载剧情数据失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -268,8 +269,10 @@ namespace NovelManagement.WPF.Views
         private void ApplyFilters()
         {
             var searchText = SearchTextBox.Text?.Trim().ToLower() ?? string.Empty;
-            var selectedType = ((ComboBoxItem)PlotTypeFilter.SelectedItem)?.Content?.ToString();
-            var selectedStatus = ((ComboBoxItem)PlotStatusFilter.SelectedItem)?.Content?.ToString();
+            var selectedType = ((ComboBoxItem)PlotTypeFilter.SelectedItem)?.Tag?.ToString()
+                              ?? ((ComboBoxItem)PlotTypeFilter.SelectedItem)?.Content?.ToString();
+            var selectedStatus = ((ComboBoxItem)PlotStatusFilter.SelectedItem)?.Tag?.ToString()
+                                ?? ((ComboBoxItem)PlotStatusFilter.SelectedItem)?.Content?.ToString();
 
             _filteredPlots = _allPlots.Where(p =>
             {
@@ -324,7 +327,7 @@ namespace NovelManagement.WPF.Views
 
                 var editButton = new Button
                 {
-                    Content = "编辑剧情",
+                    Content = T("PLM.EditPlot", "编辑剧情"),
                     Margin = new Thickness(0, 0, 12, 12),
                     MinWidth = 96
                 };
@@ -332,7 +335,7 @@ namespace NovelManagement.WPF.Views
 
                 var deleteButton = new Button
                 {
-                    Content = "删除剧情",
+                    Content = T("PLM.DeletePlot", "删除剧情"),
                     Margin = new Thickness(0, 0, 12, 12),
                     MinWidth = 96
                 };
@@ -355,8 +358,8 @@ namespace NovelManagement.WPF.Views
                                 new TextBlock { Text = plot.Title, FontSize = 24, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 12) },
                                 new TextBlock { Text = $"类型：{plot.Type}    状态：{plot.Status}    优先级：{plot.Priority}", FontSize = 14, Margin = new Thickness(0, 0, 0, 12) },
                                 actionsPanel,
-                                new TextBlock { Text = "剧情描述", FontSize = 18, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 8) },
-                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Description) ? "暂无描述" : plot.Description, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) },
+                                new TextBlock { Text = T("PLM.Description", "剧情描述"), FontSize = 18, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 8) },
+                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Description) ? T("CM.NoDescription", "暂无描述") : plot.Description, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) },
                                 new TextBlock { Text = $"进度：{plot.Progress}%", Margin = new Thickness(0, 0, 0, 8) },
                                 new ProgressBar { Value = plot.Progress, Maximum = 100, Height = 8, Margin = new Thickness(0, 0, 0, 16) },
                                 new TextBlock { Text = $"起始章节：{plot.StartChapter}", Margin = new Thickness(0, 0, 0, 6) },
@@ -365,7 +368,7 @@ namespace NovelManagement.WPF.Views
                                 new TextBlock { Text = $"创建时间：{plot.CreatedDate:yyyy-MM-dd HH:mm}", Margin = new Thickness(0, 0, 0, 6) },
                                 new TextBlock { Text = $"最近更新：{plot.LastUpdated:yyyy-MM-dd HH:mm}", Margin = new Thickness(0, 0, 0, 12) },
                                 new TextBlock { Text = "备注", FontSize = 18, FontWeight = FontWeights.Medium, Margin = new Thickness(0, 12, 0, 8) },
-                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Notes) ? "暂无备注" : plot.Notes, TextWrapping = TextWrapping.Wrap }
+                                new TextBlock { Text = string.IsNullOrWhiteSpace(plot.Notes) ? T("PLM.NoNotes", "暂无备注") : plot.Notes, TextWrapping = TextWrapping.Wrap }
                             }
                         }
                     }
@@ -376,7 +379,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"显示剧情详情失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PLM.ShowDetailFailed", "显示剧情详情失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -395,7 +398,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"切换分组模式失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PLM.GroupModeFailed", "切换分组模式失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -409,13 +412,13 @@ namespace NovelManagement.WPF.Views
             {
                 if (_currentProjectId == Guid.Empty)
                 {
-                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), "新建剧情", out _);
+                    _currentProjectGuard?.TryGetCurrentProjectId(Window.GetWindow(this), T("PLM.New", "新建剧情"), out _);
                     return;
                 }
 
                 if (_plotService == null)
                 {
-                    MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("PLM.ServiceNotInit", "剧情服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -436,7 +439,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"新建剧情操作失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("PLM.NewFailed", "新建剧情操作失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -447,7 +450,7 @@ namespace NovelManagement.WPF.Views
         private void ViewTimeline_Click(object sender, RoutedEventArgs e)
         {
             var timelineText = _allPlots.Count == 0
-                ? "当前项目暂无剧情。"
+                ? T("PLM.NoPlots", "当前项目暂无剧情。")
                 : string.Join(
                     Environment.NewLine + Environment.NewLine,
                     _allPlots
@@ -455,7 +458,7 @@ namespace NovelManagement.WPF.Views
                         .ThenBy(p => p.Title)
                         .Select(p => $"• {p.Title}{Environment.NewLine}  {p.StartChapter} -> {p.EndChapter}  [{p.Status}]"));
 
-            ShowTextReportWindow("剧情时间线", timelineText);
+            ShowTextReportWindow(T("PLM.TimelineReportTitle", "剧情时间线"), timelineText);
         }
 
         /// <summary>
@@ -470,15 +473,15 @@ namespace NovelManagement.WPF.Views
             var inProgress = _allPlots.Count(p => p.Status == "进行中");
             var avgProgress = total > 0 ? _allPlots.Average(p => p.Progress) : 0;
 
-            var report = "剧情分析概览" + Environment.NewLine + Environment.NewLine +
-                         $"• 总剧情数：{total}" + Environment.NewLine +
-                         $"• 主线剧情：{mainline}" + Environment.NewLine +
-                         $"• 支线剧情：{branch}" + Environment.NewLine +
-                         $"• 已完成：{completed}" + Environment.NewLine +
-                         $"• 进行中：{inProgress}" + Environment.NewLine +
-                         $"• 平均进度：{avgProgress:F0}%";
+            var report = T("PLM.AnalysisOverview", "剧情分析概览") + Environment.NewLine + Environment.NewLine +
+                         "• " + T("PLM.StatTotalPlots", "总剧情数") + $"：{total}" + Environment.NewLine +
+                         "• " + T("PLM.StatMainline", "主线剧情") + $"：{mainline}" + Environment.NewLine +
+                         "• " + T("PLM.StatBranch", "支线剧情") + $"：{branch}" + Environment.NewLine +
+                         "• " + T("PLM.StatCompleted", "已完成") + $"：{completed}" + Environment.NewLine +
+                         "• " + T("PLM.StatInProgress", "进行中") + $"：{inProgress}" + Environment.NewLine +
+                         "• " + T("PLM.StatAvgProgress", "平均进度") + $"：{avgProgress:F0}%";
 
-            ShowTextReportWindow("剧情分析", report);
+            ShowTextReportWindow(T("PLM.Analysis", "剧情分析"), report);
         }
 
         /// <summary>
@@ -489,7 +492,7 @@ namespace NovelManagement.WPF.Views
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.NoMainWindow", "无法获取主窗口，无法打开导入导出页面。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -544,7 +547,7 @@ namespace NovelManagement.WPF.Views
                             {
                                 if (_plotService == null || _currentProjectId == Guid.Empty)
                                 {
-                                    MessageBox.Show("当前项目或剧情服务不可用，无法保存 AI 生成结果。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show(T("PLM.CannotSaveAI", "当前项目或剧情服务不可用，无法保存 AI 生成结果。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
                                 }
 
@@ -579,29 +582,29 @@ namespace NovelManagement.WPF.Views
                                     ShowPlotDetails(_selectedPlot);
                                 }
 
-                                _aiAssistantService.ShowSuccess($"成功生成剧情: {generatedPlot.Title}");
+                                _aiAssistantService.ShowSuccess(TF("PLM.AIGenerateSuccess", "成功生成剧情: {0}", generatedPlot.Title));
                                 _logger?.LogInformation($"AI生成剧情成功: {generatedPlot.Title}");
                             }
                             else
                             {
-                                _aiAssistantService.ShowError("生成的剧情数据格式不正确");
+                                _aiAssistantService.ShowError(T("PLM.AIBadFormat", "生成的剧情数据格式不正确"));
                             }
                         }
                         else
                         {
-                            _aiAssistantService.ShowError(result.Message ?? "AI生成剧情失败");
+                            _aiAssistantService.ShowError(result.Message ?? T("PLM.AIGenerateFailed", "AI生成剧情失败"));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI生成剧情异常");
-                MessageBox.Show($"AI生成剧情失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.AIGenerateFailedEx", "AI生成剧情失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -614,7 +617,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_selectedPlot == null)
                 {
-                    MessageBox.Show("请先选择要优化的剧情", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("PLM.SelectToOptimize", "请先选择要优化的剧情"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -642,14 +645,14 @@ namespace NovelManagement.WPF.Views
                             {
                                 if (_plotService == null)
                                 {
-                                    MessageBox.Show("剧情服务未初始化，无法保存优化结果。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show(T("PLM.ServiceNotInitSaveOpt", "剧情服务未初始化，无法保存优化结果。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
                                 }
 
                                 var plotEntity = await _plotService.GetPlotByIdAsync(_selectedPlot.PlotId);
                                 if (plotEntity == null)
                                 {
-                                    MessageBox.Show("未找到要优化的剧情。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    MessageBox.Show(T("PLM.OptimizeNotFound", "未找到要优化的剧情。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                                     return;
                                 }
 
@@ -674,29 +677,29 @@ namespace NovelManagement.WPF.Views
                                     ShowPlotDetails(_selectedPlot);
                                 }
 
-                                _aiAssistantService.ShowSuccess($"成功优化剧情: {optimizedPlot.Title}");
+                                _aiAssistantService.ShowSuccess(TF("PLM.AIOptimizeSuccess", "成功优化剧情: {0}", optimizedPlot.Title));
                                 _logger?.LogInformation($"AI优化剧情成功: {optimizedPlot.Title}");
                             }
                             else
                             {
-                                _aiAssistantService.ShowError("优化后的剧情数据格式不正确");
+                                _aiAssistantService.ShowError(T("PLM.AIOptimizeBadFormat", "优化后的剧情数据格式不正确"));
                             }
                         }
                         else
                         {
-                            _aiAssistantService.ShowError(result.Message ?? "AI优化剧情失败");
+                            _aiAssistantService.ShowError(result.Message ?? T("PLM.AIOptimizeFailed", "AI优化剧情失败"));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI优化剧情异常");
-                MessageBox.Show($"AI优化剧情失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.AIOptimizeFailedEx", "AI优化剧情失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -709,7 +712,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_allPlots.Count < 2)
                 {
-                    MessageBox.Show("至少需要2个剧情才能进行连贯性检查", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("PLM.NeedTwoPlots", "至少需要2个剧情才能进行连贯性检查"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -729,23 +732,23 @@ namespace NovelManagement.WPF.Views
                         continuityDialog.Owner = Window.GetWindow(this);
                         continuityDialog.ShowDialog();
 
-                        _aiAssistantService.ShowSuccess("剧情连贯性检查完成");
+                        _aiAssistantService.ShowSuccess(T("PLM.ConsistencyDone", "剧情连贯性检查完成"));
                         _logger?.LogInformation("AI检查剧情连贯性成功");
                     }
                     else
                     {
-                        _aiAssistantService.ShowError(result.Message ?? "AI检查剧情连贯性失败");
+                        _aiAssistantService.ShowError(result.Message ?? T("PLM.ConsistencyFailed", "AI检查剧情连贯性失败"));
                     }
                 }
                 else
                 {
-                    MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI检查剧情连贯性异常");
-                MessageBox.Show($"AI检查剧情连贯性失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.ConsistencyFailedEx", "AI检查剧情连贯性失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -796,23 +799,23 @@ namespace NovelManagement.WPF.Views
                             }
                         }
 
-                        _aiAssistantService.ShowSuccess("剧情建议获取完成");
+                        _aiAssistantService.ShowSuccess(T("PLM.SuggestionDone", "剧情建议获取完成"));
                         _logger?.LogInformation("AI获取剧情建议成功");
                     }
                     else
                     {
-                        _aiAssistantService.ShowError(result.Message ?? "AI获取剧情建议失败");
+                        _aiAssistantService.ShowError(result.Message ?? T("PLM.SuggestionFailed", "AI获取剧情建议失败"));
                     }
                 }
                 else
                 {
-                    MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "AI获取剧情建议异常");
-                MessageBox.Show($"AI获取剧情建议失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("PLM.SuggestionFailedEx", "AI获取剧情建议失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -829,7 +832,7 @@ namespace NovelManagement.WPF.Views
                 {
                     return new PlotViewModel
                     {
-                        Title = "AI生成剧情",
+                        Title = T("PLM.AIGenerate", "AI生成剧情"),
                         Type = "支线",
                         Status = "规划中",
                         Description = text.Trim(),
@@ -845,7 +848,7 @@ namespace NovelManagement.WPF.Views
 
                 return new PlotViewModel
                 {
-                    Title = "AI生成剧情",
+                    Title = T("PLM.AIGenerate", "AI生成剧情"),
                     Type = "支线",
                     Status = "规划中",
                     Description = "由AI生成的剧情，具有独特的故事线和发展脉络",
@@ -976,7 +979,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_plotService == null)
             {
-                throw new InvalidOperationException("剧情服务未初始化");
+                throw new InvalidOperationException(T("PLM.ServiceNotInit", "剧情服务未初始化"));
             }
 
             var plot = new Plot
@@ -1050,14 +1053,14 @@ namespace NovelManagement.WPF.Views
         {
             if (_plotService == null)
             {
-                MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("PLM.ServiceNotInit", "剧情服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             var entity = await _plotService.GetPlotByIdAsync(plot.PlotId);
             if (entity == null)
             {
-                MessageBox.Show("未找到要编辑的剧情。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("PLM.EditNotFound", "未找到要编辑的剧情。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1132,11 +1135,11 @@ namespace NovelManagement.WPF.Views
         {
             if (_plotService == null)
             {
-                MessageBox.Show("剧情服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("PLM.ServiceNotInit", "剧情服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            var result = MessageBox.Show($"确定删除剧情“{plot.Title}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show(TF("PLM.DeleteConfirm", "确定删除剧情“{0}”吗？", plot.Title), T("PLM.DeleteConfirmTitle", "确认删除"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes)
             {
                 return;
@@ -1145,7 +1148,7 @@ namespace NovelManagement.WPF.Views
             var deleted = await _plotService.DeletePlotAsync(plot.PlotId);
             if (!deleted)
             {
-                MessageBox.Show("剧情删除失败或剧情不存在。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("PLM.DeleteFailedOrMissing", "剧情删除失败或剧情不存在。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1215,14 +1218,14 @@ namespace NovelManagement.WPF.Views
                 .Select(p => $"• {p.Title}（{p.LastUpdated:MM-dd HH:mm}）")
                 .ToList();
 
-            var report = "剧情统计" + Environment.NewLine + Environment.NewLine +
-                         $"• 总剧情数：{total}" + Environment.NewLine +
-                         $"• 主线剧情：{mainline}" + Environment.NewLine +
-                         $"• 支线剧情：{branch}" + Environment.NewLine +
-                         $"• 平均完成度：{completionRate:F0}%" + Environment.NewLine +
-                         $"• 已完成：{completed} / 进行中：{inProgress} / 规划中：{planning}" + Environment.NewLine + Environment.NewLine +
-                         "最近更新：" + Environment.NewLine +
-                         (recentUpdates.Count == 0 ? "• 暂无剧情更新" : string.Join(Environment.NewLine, recentUpdates));
+            var report = T("PLM.Stats", "剧情统计") + Environment.NewLine + Environment.NewLine +
+                         "• " + T("PLM.StatTotalPlots", "总剧情数") + $"：{total}" + Environment.NewLine +
+                         "• " + T("PLM.StatMainline", "主线剧情") + $"：{mainline}" + Environment.NewLine +
+                         "• " + T("PLM.StatBranch", "支线剧情") + $"：{branch}" + Environment.NewLine +
+                         "• " + T("PLM.StatAvgCompletion", "平均完成度") + $"：{completionRate:F0}%" + Environment.NewLine +
+                         "• " + T("PLM.StatCompleted", "已完成") + $"：{completed} / " + T("PLM.StatInProgress", "进行中") + $"：{inProgress} / " + T("PLM.StatPlanning", "规划中") + $"：{planning}" + Environment.NewLine + Environment.NewLine +
+                         T("PLM.RecentUpdatesColon", "最近更新：") + Environment.NewLine +
+                         (recentUpdates.Count == 0 ? T("PLM.NoRecentUpdates", "• 暂无剧情更新") : string.Join(Environment.NewLine, recentUpdates));
 
             var card = new MaterialDesignThemes.Wpf.Card
             {
@@ -1234,7 +1237,7 @@ namespace NovelManagement.WPF.Views
                     {
                         Children =
                         {
-                            new TextBlock { Text = "剧情统计", FontSize = 24, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 20) },
+                            new TextBlock { Text = T("PLM.Stats", "剧情统计"), FontSize = 24, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 20) },
                             new TextBlock { Text = report, TextWrapping = TextWrapping.Wrap, LineHeight = 20 }
                         }
                     }
@@ -1315,7 +1318,7 @@ namespace NovelManagement.WPF.Views
         /// <param name="existingPlots">当前项目已有剧情列表。</param>
         public PlotGenerationDialog(List<PlotManagementView.PlotViewModel> existingPlots)
         {
-            Title = "AI剧情生成参数";
+            Title = T("PLM.AIGenParamsTitle", "AI剧情生成参数");
             Width = 500;
             Height = 620;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1353,7 +1356,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(themeTextBox.Text))
                 {
-                    MessageBox.Show("请输入剧情主题。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("PLM.ThemeRequired", "请输入剧情主题。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1424,7 +1427,7 @@ namespace NovelManagement.WPF.Views
             _projectId = projectId;
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
             _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
-            Title = plot == null ? "新建剧情" : $"编辑剧情 - {plot.Title}";
+            Title = plot == null ? T("PLM.New", "新建剧情") : TF("PLM.EditTitleFmt", "编辑剧情 - {0}", plot.Title);
             Width = 760;
             Height = 720;
             MinWidth = 680;
@@ -1503,7 +1506,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化。"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -1522,7 +1525,7 @@ namespace NovelManagement.WPF.Views
 
                 if (!result.IsSuccess || result.Data == null)
                 {
-                    MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(result.Message ?? T("PLM.AIFillFailed", "AI自动补全失败。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1535,12 +1538,12 @@ namespace NovelManagement.WPF.Views
                         generatedTitle = AiAutoFillFormatter.ExtractFirstMeaningfulLine(content);
                     }
 
-                    titleTextBox.Text = string.IsNullOrWhiteSpace(generatedTitle) ? "AI剧情" : generatedTitle;
+                    titleTextBox.Text = string.IsNullOrWhiteSpace(generatedTitle) ? T("PLM.AIDefaultTitle", "AI剧情") : generatedTitle;
                 }
 
                 if (string.IsNullOrWhiteSpace(descriptionTextBox.Text))
                 {
-                    descriptionTextBox.Text = AiAutoFillFormatter.ExtractSummary(content, "剧情描述", "描述", "简介");
+                    descriptionTextBox.Text = AiAutoFillFormatter.ExtractSummary(content, T("PLM.Description", "剧情描述"), T("Dlg.Description", "描述"), "简介");
                 }
                 else
                 {
@@ -1570,7 +1573,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(titleTextBox.Text))
                 {
-                    MessageBox.Show("请输入剧情标题。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("PLM.TitleRequired", "请输入剧情标题。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1673,7 +1676,7 @@ namespace NovelManagement.WPF.Views
         /// <param name="plot">待优化的剧情。</param>
         public PlotOptimizationDialog(PlotManagementView.PlotViewModel plot)
         {
-            Title = $"优化剧情: {plot.Title}";
+            Title = TF("PLM.OptimizeTitleFmt", "优化剧情: {0}", plot.Title);
             Width = 420;
             Height = 360;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1713,7 +1716,7 @@ namespace NovelManagement.WPF.Views
 
                 if (SelectedOptimizationGoals.Count == 0)
                 {
-                    MessageBox.Show("请至少选择一个优化目标。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("PLM.GoalRequired", "请至少选择一个优化目标。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1740,11 +1743,11 @@ namespace NovelManagement.WPF.Views
         /// <param name="continuityData">连贯性检查结果数据。</param>
         public PlotContinuityDialog(object continuityData)
         {
-            Title = "剧情连贯性检查结果";
+            Title = T("PLM.ConsistencyResultTitle", "剧情连贯性检查结果");
             Width = 700;
             Height = 500;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            var text = continuityData?.ToString() ?? "未返回检查结果。";
+            var text = continuityData?.ToString() ?? T("PLM.NoCheckResult", "未返回检查结果。");
             Content = PlotDialogHelpers.BuildResultLayout(text, allowSave: false, out _);
         }
     }
@@ -1770,11 +1773,11 @@ namespace NovelManagement.WPF.Views
         /// <param name="suggestionsData">AI生成的剧情建议数据。</param>
         public PlotSuggestionsDialog(object suggestionsData)
         {
-            Title = "AI剧情建议";
+            Title = T("PLM.SuggestionTitle", "AI剧情建议");
             Width = 600;
             Height = 450;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            SuggestionsText = suggestionsData?.ToString() ?? "未返回剧情建议。";
+            SuggestionsText = suggestionsData?.ToString() ?? T("PLM.NoSuggestions", "未返回剧情建议。");
             Content = PlotDialogHelpers.BuildResultLayout(SuggestionsText, allowSave: true, out var saveCheckBox);
 
             Closed += (_, _) => SaveToSelectedPlotNotes = saveCheckBox?.IsChecked == true;
@@ -1813,7 +1816,7 @@ internal static class PlotDialogHelpers
         copyButton.Click += (_, _) =>
         {
             Clipboard.SetText(text);
-            MessageBox.Show("结果已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(T("PLM.Copied", "结果已复制到剪贴板。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
         };
 
         var closeButton = new Button { Content = "关闭", Width = 88, IsDefault = true };

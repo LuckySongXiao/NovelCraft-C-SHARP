@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.Configuration;
+using NovelManagement.WPF.Localization;
 
 namespace NovelManagement.WPF.Views
 {
@@ -11,7 +12,9 @@ namespace NovelManagement.WPF.Views
     public partial class NewProjectDialog : Window
     {
         private const string DefaultTemplateName = "标准模板";
-        private const string DefaultAuthor = "精神抖擞";
+        /// <summary>默认作者：中文界面「精神抖擞」，英文界面「LuckySongXiao」。</summary>
+        private static string DefaultAuthor =>
+            Localization.LocalizationManager.IsEnglish ? "LuckySongXiao" : "精神抖擞";
 
         /// <summary>
         /// 新建项目的数据模型
@@ -113,7 +116,7 @@ namespace NovelManagement.WPF.Views
             // 验证项目名称
             if (string.IsNullOrWhiteSpace(ProjectNameTextBox.Text))
             {
-                MessageBox.Show("请输入项目名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("NPD.NameRequired", "请输入项目名称"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 ProjectNameTextBox.Focus();
                 return false;
             }
@@ -121,7 +124,7 @@ namespace NovelManagement.WPF.Views
             // 验证项目类型
             if (ProjectTypeComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择项目类型", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("NPD.TypeRequired", "请选择项目类型"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 ProjectTypeComboBox.Focus();
                 return false;
             }
@@ -131,7 +134,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (!int.TryParse(TargetWordCountTextBox.Text, out int wordCount) || wordCount <= 0)
                 {
-                    MessageBox.Show("目标字数必须是正整数", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(LocalizationManager.T("NPD.TargetWordsInvalid", "目标字数必须是正整数"), LocalizationManager.T("NPD.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     TargetWordCountTextBox.Focus();
                     return false;
                 }
@@ -151,11 +154,13 @@ namespace NovelManagement.WPF.Views
                 Name = ProjectNameTextBox.Text.Trim(),
                 Author = string.IsNullOrWhiteSpace(AuthorTextBox.Text) ? DefaultAuthor : AuthorTextBox.Text.Trim(),
                 Description = ProjectDescriptionTextBox.Text.Trim(),
-                Type = ((ComboBoxItem)ProjectTypeComboBox.SelectedItem).Content.ToString() ?? string.Empty,
+                Type = ((ComboBoxItem)ProjectTypeComboBox.SelectedItem)?.Tag?.ToString()
+                     ?? ((ComboBoxItem)ProjectTypeComboBox.SelectedItem)?.Content?.ToString() ?? string.Empty,
                 EnableAI = EnableAICheckBox.IsChecked ?? false,
                 AutoSave = AutoSaveCheckBox.IsChecked ?? false,
                 VersionControl = VersionControlCheckBox.IsChecked ?? false,
-                Template = ((ComboBoxItem?)ProjectTemplateComboBox.SelectedItem)?.Content?.ToString() ?? DefaultTemplateName
+                Template = ((ComboBoxItem?)ProjectTemplateComboBox.SelectedItem)?.Tag?.ToString()
+                          ?? ((ComboBoxItem?)ProjectTemplateComboBox.SelectedItem)?.Content?.ToString() ?? DefaultTemplateName
             };
 
             // 解析目标字数
@@ -193,7 +198,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"创建项目时发生错误：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("NPD.CreateFailed", "创建项目时发生错误：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

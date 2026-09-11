@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.Core.Entities;
 using NovelManagement.Application.Services;
 using NovelManagement.WPF.Models;
@@ -36,15 +37,15 @@ namespace NovelManagement.WPF.Views
             
             // 从依赖注入容器获取服务
             _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>()
-                ?? throw new InvalidOperationException("AI助手服务未注册");
+                ?? throw new InvalidOperationException(T("OG.AIServiceNotReg", "AI助手服务未注册"));
             _plotService = App.ServiceProvider?.GetService<PlotService>()
-                ?? throw new InvalidOperationException("剧情服务未注册");
+                ?? throw new InvalidOperationException(T("OG.PlotServiceNotReg", "剧情服务未注册"));
             _volumeService = App.ServiceProvider?.GetService<VolumeService>()
-                ?? throw new InvalidOperationException("卷宗服务未注册");
+                ?? throw new InvalidOperationException(T("OG.VolumeServiceNotReg", "卷宗服务未注册"));
             _projectService = App.ServiceProvider?.GetService<ProjectService>()
-                ?? throw new InvalidOperationException("项目服务未注册");
+                ?? throw new InvalidOperationException(T("OG.ProjectServiceNotReg", "项目服务未注册"));
             _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>()
-                ?? throw new InvalidOperationException("项目上下文服务未注册");
+                ?? throw new InvalidOperationException(T("OG.ContextServiceNotReg", "项目上下文服务未注册"));
 
             // 设置默认值
             InitializeDefaults();
@@ -88,7 +89,7 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(_generatedOutline))
             {
-                MessageBox.Show("请先生成大纲", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("OG.GenerateFirst", "请先生成大纲"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -126,21 +127,21 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(ThemeTextBox.Text))
             {
-                MessageBox.Show("请输入书籍主题", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("OG.EnterTheme", "请输入书籍主题"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 ThemeTextBox.Focus();
                 return false;
             }
 
             if (NovelTypeComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择书籍类型", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("OG.SelectType", "请选择书籍类型"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 NovelTypeComboBox.Focus();
                 return false;
             }
 
             if (TargetLengthComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择目标长度", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("OG.SelectLength", "请选择目标长度"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 TargetLengthComboBox.Focus();
                 return false;
             }
@@ -157,7 +158,7 @@ namespace NovelManagement.WPF.Views
             {
                 // 禁用生成按钮并显示进度条
                 GenerateButton.IsEnabled = false;
-                GenerateButton.Content = "生成中...";
+                GenerateButton.Content = T("OG.Generating", "生成中...");
                 ProgressBar.Visibility = Visibility.Visible;
                 ProgressBar.IsIndeterminate = true;
 
@@ -184,25 +185,25 @@ namespace NovelManagement.WPF.Views
                     _generatedOutline = result.Data.ToString() ?? "";
                     ResultTextBox.Text = _generatedOutline;
 
-                    MessageBox.Show("大纲生成完成！", "成功", 
+                    MessageBox.Show(T("OG.GenerateDone", "大纲生成完成！"), T("Msg.Success"), 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show($"大纲生成失败：{result.Message}", "错误", 
+                    MessageBox.Show(TF("OG.GenerateFailFmt", "大纲生成失败：{0}", result.Message), T("Msg.Error"), 
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"生成大纲时发生错误：{ex.Message}", "错误", 
+                MessageBox.Show(TF("OG.GenerateErrorFmt", "生成大纲时发生错误：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
                 // 恢复生成按钮状态
                 GenerateButton.IsEnabled = true;
-                GenerateButton.Content = "开始生成";
+                GenerateButton.Content = T("OG.StartGenerate", "开始生成");
                 ProgressBar.Visibility = Visibility.Collapsed;
             }
         }
@@ -231,12 +232,12 @@ namespace NovelManagement.WPF.Views
 
                 await _plotService.CreatePlotAsync(plot);
 
-                MessageBox.Show("大纲已保存到剧情管理中", "成功", 
+                MessageBox.Show(T("OG.SavedToPlot", "大纲已保存到剧情管理中"), T("Msg.Success"), 
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存大纲失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("OG.SaveFailFmt", "保存大纲失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

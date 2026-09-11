@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using NovelManagement.AI.Interfaces;
 using NovelManagement.AI.Services;
 using NovelManagement.AI.Services.RWKV;
@@ -77,23 +78,23 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
     public async Task<OneClickNovelGenerationResult> GenerateAsync(IProgress<string>? progress, CancellationToken cancellationToken = default)
     {
         // 0. 刷新 RWKV 可用性（启动后后端可能才就绪，TestConnection 会更新 IsAvailable）
-        progress?.Report("正在检查 RWKV 推理服务...");
+        progress?.Report(T("OCG.CheckingRwkv", "正在检查 RWKV 推理服务..."));
         var rwkvOnline = await _rwkvService.TestConnectionAsync();
         if (!rwkvOnline)
         {
             return new OneClickNovelGenerationResult
             {
-                Message = "RWKV 推理服务不可达。请先在「AI模型配置」页启动 RWKV 服务（经 rwkv_launcher 拉起）。"
+                Message = T("OCG.RwkvUnreachable", "RWKV 推理服务不可达。请先在「AI模型配置」页启动 RWKV 服务（经 rwkv_launcher 拉起）。")
             };
         }
 
         // 1. RWKV 自命名：构思书名 / 类型 / 一句话简介
-        progress?.Report("RWKV 正在构思新书...");
+        progress?.Report(T("OCG.Concepting", "RWKV 正在构思新书..."));
         var concept = await GenerateBookConceptAsync(cancellationToken);
 
         // 2. 创建项目（重名时追加时间戳）
         var projectName = await EnsureUniqueProjectNameAsync(concept.Title);
-        progress?.Report($"正在创建新书《{projectName}》...");
+        progress?.Report(TF("OCG.CreatingBook", "正在创建新书《{0}》...", projectName));
         var catalogItem = await _projectCatalogService.CreateProjectAsync(new NewProjectDialog.NewProjectModel
         {
             Name = projectName,
@@ -110,7 +111,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
         _projectContextService.SetCurrentProject(catalogItem.ProjectId, catalogItem.Name);
 
         // 4. 双 Agent 生成大纲
-        progress?.Report($"MainAgent/SubAgent 正在为《{catalogItem.Name}》生成大纲...");
+        progress?.Report(TF("OCG.GeneratingOutlineFor", "MainAgent/SubAgent 正在为《{0}》生成大纲...", catalogItem.Name));
         var outlineResult = await _agentRoleWorkflowService.TryExecuteAsync(
             "GenerateOutline",
             new System.Collections.Generic.Dictionary<string, object>
@@ -135,7 +136,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
             {
                 await _plotService.CreatePlotAsync(new Plot
                 {
-                    Title = $"{catalogItem.Name}·主线大纲",
+                    Title = IsEnglish ? $"{catalogItem.Name} - Main Outline" : $"{catalogItem.Name}·主线大纲",
                     Type = "主线",
                     Status = "进行中",
                     Priority = "高",
@@ -158,7 +159,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
             var prerequisiteService = _serviceProvider.GetService<PrerequisiteGenerationService>();
             if (prerequisiteService != null)
             {
-                progress?.Report("正在生成主要角色 / 世界设定 / 势力组织...");
+                progress?.Report(T("OCG.GeneratingSupport", "正在生成主要角色 / 世界设定 / 势力组织..."));
                 var prerequisite = await prerequisiteService.GeneratePrerequisitesAsync(
                     catalogItem.ProjectId,
                     new PrerequisiteGenerationOptions
@@ -181,13 +182,13 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
         }
 
         // 5. 双 Agent 生成第一章
-        progress?.Report("MainAgent/SubAgent 正在生成第一章...");
+        progress?.Report(T("OCG.GeneratingChapter", "MainAgent/SubAgent 正在生成第一章..."));
         var chapterResult = await _agentRoleWorkflowService.TryExecuteAsync(
             "GenerateChapterContent",
             new System.Collections.Generic.Dictionary<string, object>
             {
                 ["ProjectId"] = catalogItem.ProjectId,
-                ["ChapterTitle"] = "第一章",
+                ["ChapterTitle"] = IsEnglish ? "Chapter 1" : "第一章",
                 ["Outline"] = string.IsNullOrWhiteSpace(outlineContent) ? concept.Premise : outlineContent
             },
             cancellationToken);
@@ -211,8 +212,8 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
                 {
                     volume = await _volumeService.CreateVolumeAsync(new Volume
                     {
-                        Title = "第一卷",
-                        Description = $"{catalogItem.Name} 第一卷",
+                        Title = IsEnglish ? "Volume 1" : "第一卷",
+                        Description = IsEnglish ? $"{catalogItem.Name} - Volume 1" : $"{catalogItem.Name} 第一卷",
                         Order = 1,
                         Status = "Writing",
                         ProjectId = catalogItem.ProjectId
@@ -222,7 +223,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
                 var existingChapters = await _chapterService.GetChapterListAsync(volume.Id, cancellationToken);
                 var newChapter = await _chapterService.CreateChapterAsync(new Chapter
                 {
-                    Title = "第一章",
+                    Title = IsEnglish ? "Chapter 1" : "第一章",
                     Content = chapterContent,
                     Summary = concept.Premise,
                     Order = existingChapters.Count() + 1,
@@ -239,7 +240,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
                     var workflow = _serviceProvider.GetService<ChapterUpdateWorkflowService>();
                     if (workflow != null)
                     {
-                        progress?.Report("正在联动更新角色 / 剧情 / 世界观 / 时间线...");
+                        progress?.Report(T("OCG.LinkingUpdate", "正在联动更新角色 / 剧情 / 世界观 / 时间线..."));
                         var workflowResult = await workflow.RunAsync(newChapter, null, cancellationToken);
                         var sync = workflowResult.SyncResult;
                         _logger.LogInformation(
@@ -265,18 +266,18 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
         }
 
         var messageParts = new StringBuilder();
-        messageParts.AppendLine($"新书《{catalogItem.Name}》已创建并出现在左侧导航。");
-        messageParts.AppendLine($"类型：{concept.Genre}");
-        messageParts.AppendLine($"简介：{concept.Premise}");
-        messageParts.AppendLine(outlineSaved ? "大纲：已由双 Agent 生成，并写入剧情库（主线）。"
-            : outlineGenerated ? "大纲：已生成并归档，但写入剧情库失败（见日志）。"
-            : "大纲：生成失败（见日志）。");
-        messageParts.AppendLine(chapterSaved ? "第一章：已由双 Agent 生成，并写入章节库（第一卷）。"
-            : chapterGenerated ? "第一章：已生成并归档，但写入章节库失败（见日志）。"
-            : "第一章：生成失败（见日志）。");
-        messageParts.AppendLine(prerequisitesGenerated ? "角色 / 世界设定 / 势力：已自动生成并写入对应模块。"
-            : "角色 / 世界设定 / 势力：生成失败（见日志），可在「前置条件生成」中重试。");
-        messageParts.AppendLine("联动更新：角色出场与历史、剧情进度、世界设定、时间线已随第一章自动同步。");
+        messageParts.AppendLine(TF("OCG.ResultCreatedFmt", "新书《{0}》已创建并出现在左侧导航。", catalogItem.Name));
+        messageParts.AppendLine(TF("OCG.ResultGenreFmt", "类型：{0}", concept.Genre));
+        messageParts.AppendLine(TF("OCG.ResultPremiseFmt", "简介：{0}", concept.Premise));
+        messageParts.AppendLine(outlineSaved ? T("OCG.ResultOutlineSaved", "大纲：已由双 Agent 生成，并写入剧情库（主线）。")
+            : outlineGenerated ? T("OCG.ResultOutlineArchiveFail", "大纲：已生成并归档，但写入剧情库失败（见日志）。")
+            : T("OCG.ResultOutlineFail", "大纲：生成失败（见日志）。"));
+        messageParts.AppendLine(chapterSaved ? T("OCG.ResultChapterSaved", "第一章：已由双 Agent 生成，并写入章节库（第一卷）。")
+            : chapterGenerated ? T("OCG.ResultChapterArchiveFail", "第一章：已生成并归档，但写入章节库失败（见日志）。")
+            : T("OCG.ResultChapterFail", "第一章：生成失败（见日志）。"));
+        messageParts.AppendLine(prerequisitesGenerated ? T("OCG.ResultPrereqSaved", "角色 / 世界设定 / 势力：已自动生成并写入对应模块。")
+            : T("OCG.ResultPrereqFail", "角色 / 世界设定 / 势力：生成失败（见日志），可在「前置条件生成」中重试。"));
+        messageParts.AppendLine(T("OCG.ResultLinkDone", "联动更新：角色出场与历史、剧情进度、世界设定、时间线已随第一章自动同步。"));
 
         return new OneClickNovelGenerationResult
         {
@@ -291,33 +292,51 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
 
     /// <summary>
     /// 让 RWKV 构思新书概念（书名/类型/简介），解析失败时使用兜底方案。
+    /// 英文模式下提示词要求全英文内容（字段标签保持中文原样以复用解析器）。
     /// </summary>
     private async Task<(string Title, string Genre, string Premise)> GenerateBookConceptAsync(CancellationToken cancellationToken)
     {
+        var en = IsEnglish;
         var request = new ChatRequest
         {
-            SystemPrompt = "你是一名资深网文编辑，负责为新书做封面级策划。",
+            SystemPrompt = en
+                ? "You are a senior fiction editor responsible for cover-level planning of brand-new books."
+                : "你是一名资深网文编辑，负责为新书做封面级策划。",
             Messages =
             {
                 new ChatMessage
                 {
                     Role = "user",
-                    Content = "请为一部全新的网络书籍做策划。严格按照以下三行格式输出，每行一项，不要输出其他任何内容：\n书名：（不超过12个字的中文书名，不要书名号）\n类型：（如：东方玄幻 / 都市异能 / 科幻末日 等）\n简介：（一句话核心创意，不超过60字）"
+                    Content = en
+                        ? "Plan a brand-new novel. Output EXACTLY three lines in the following format, one item per line, nothing else:\n书名：(an evocative ENGLISH book title, 2-6 words, no quotes, keep the label 书名： as-is)\n类型：(ENGLISH genre, e.g. Fantasy / Urban / Sci-Fi / Romance / Mystery / Thriller, keep the label 类型： as-is)\n简介：(the core premise in one ENGLISH sentence, max 25 words, keep the label 简介： as-is)\n\nCRITICAL: every value after each Chinese label MUST be in English."
+                        : "请为一部全新的网络书籍做策划。严格按照以下三行格式输出，每行一项，不要输出其他任何内容：\n书名：（不超过12个字的中文书名，不要书名号）\n类型：（如：东方玄幻 / 都市异能 / 科幻末日 等）\n简介：（一句话核心创意，不超过60字）"
                 }
             },
             Temperature = 0.85,
-            MaxTokens = 800
+            // world 模型输出常带思维链规划前缀，≥1200 tokens 保证正文（书名/类型/简介）完整输出
+            MaxTokens = 1200
         };
 
         var response = await _modelManager.ChatAsync("RWKV", request, cancellationToken);
         var (title, genre, premise) = ParseConcept(response.Content ?? string.Empty);
+        if (en)
+        {
+            title = FirstNonEmptyEn(title, "Untitled Book");
+            genre = FirstNonEmptyEn(genre, "Fantasy");
+            premise = FirstNonEmptyEn(premise, "A brand-new adventure waiting to be written.");
+        }
         _logger.LogInformation("RWKV 新书概念生成完成: 书名={Title}, 类型={Genre}", title, genre);
         return (title, genre, premise);
     }
 
+    private static string FirstNonEmptyEn(string? value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) || ContainsConceptInstructionMarker(value) || value.StartsWith("AI新书")
+            ? fallback
+            : value.Trim();
+
     private static (string Title, string Genre, string Premise) ParseConcept(string content)
     {
-        string title = string.Empty, genre = "长篇书籍", premise = string.Empty;
+        string title = string.Empty, genre = IsEnglish ? "Fiction" : "长篇书籍", premise = string.Empty;
 
         foreach (var rawLine in content.Replace("\r\n", "\n").Split('\n'))
         {
@@ -331,7 +350,7 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
                 genre = CleanConceptValue(line[(line.IndexOf('：') + 1)..]);
                 if (string.IsNullOrWhiteSpace(genre))
                 {
-                    genre = "长篇书籍";
+                    genre = IsEnglish ? "Fiction" : "长篇书籍";
                 }
             }
             else if ((line.StartsWith("简介", StringComparison.Ordinal) || line.StartsWith("梗概", StringComparison.Ordinal)) && line.Contains('：'))
@@ -342,22 +361,34 @@ public class OneClickNovelGenerationService : IOneClickNovelGenerationService
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            // 兜底：取第一行非空短文本作为书名
+            // 兜底：取第一行非空短文本作为书名（排除提示词回显/指令行，防止「（不超过12个字的中文书名…）」这类残留入库）
             var fallback = content
                 .Replace("\r\n", "\n")
                 .Split('\n')
                 .Select(l => CleanConceptValue(l))
-                .FirstOrDefault(l => !string.IsNullOrWhiteSpace(l) && l.Length <= 24);
-            title = string.IsNullOrWhiteSpace(fallback) ? $"AI新书{DateTime.Now:MMddHHmm}" : fallback!;
+                .FirstOrDefault(l => !string.IsNullOrWhiteSpace(l) && l.Length <= 24
+                    && !ContainsConceptInstructionMarker(l));
+            title = string.IsNullOrWhiteSpace(fallback) ? (IsEnglish ? $"New Book {DateTime.Now:MMddHHmm}" : $"AI新书{DateTime.Now:MMddHHmm}") : fallback!;
         }
 
         if (string.IsNullOrWhiteSpace(premise))
         {
-            premise = "由 RWKV 双 Agent 一键生成的全新书籍项目。";
+            premise = IsEnglish
+                ? "A brand-new book project generated end-to-end by the RWKV dual agents."
+                : "由 RWKV 双 Agent 一键生成的全新书籍项目。";
         }
 
         return (title, genre, premise);
     }
+
+    /// <summary>识别提示词回显/格式指令行（不得作为书名兜底）。</summary>
+    private static bool ContainsConceptInstructionMarker(string value) =>
+        value.Contains("书名") || value.Contains("不要") || value.Contains("输出") ||
+        value.Contains("类型") || value.Contains("简介") || value.Contains("格式") ||
+        value.Contains("EXACTLY") || value.Contains("label") ||
+        value.StartsWith("Assistant", StringComparison.OrdinalIgnoreCase) ||
+        value.StartsWith("User", StringComparison.OrdinalIgnoreCase) ||
+        value.Contains("thinking") || value.Contains("We need");
 
     private static string CleanConceptValue(string value)
     {

@@ -13,7 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NovelManagement.Application.DTOs;
 using NovelManagement.Application.Interfaces;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views;
 
@@ -59,7 +61,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             _projectReadModelService = null;
             _aiAssistantService = null;
             _analysisService = new WorldSettingAnalysisService();
-            MessageBox.Show($"AI分析服务初始化失败，使用默认服务: {ex.Message}", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(LocalizationManager.TF("WS.AIInitFailed", "AI分析服务初始化失败，使用默认服务: {0}", ex.Message), LocalizationManager.T("Msg.Warning", "警告"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         _ = RefreshOnProjectChangedAsync(_projectContextService?.CurrentProjectId, null);
@@ -188,7 +190,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             WorldSettingsTreeView.ItemsSource = _worldSettings;
             LoadFilterData();
             DetailsPanel.Children.Clear();
-            MessageBox.Show($"加载世界设定失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("WS.LoadFailed", "加载世界设定失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -198,7 +200,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
     private void LoadFilterData()
     {
         var types = _worldSettings.Select(ws => ws.Type).Distinct().ToList();
-        types.Insert(0, "全部类型");
+        types.Insert(0, LocalizationManager.T("WS.AllTypes", "全部类型"));
         TypeFilterComboBox.ItemsSource = types;
         TypeFilterComboBox.SelectedIndex = 0;
 
@@ -206,7 +208,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             .Select(ws => ws.Category!)
             .Distinct()
             .ToList();
-        categories.Insert(0, "全部分类");
+        categories.Insert(0, LocalizationManager.T("WS.AllCategories", "全部分类"));
         CategoryFilterComboBox.ItemsSource = categories;
         CategoryFilterComboBox.SelectedIndex = 0;
     }
@@ -218,13 +220,13 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
     {
         if (_currentProjectId == Guid.Empty)
         {
-            MessageBox.Show("请先选择项目后再创建世界设定。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(LocalizationManager.T("WS.SelectProjectFirst", "请先选择项目后再创建世界设定。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         if (_worldSettingService == null)
         {
-            MessageBox.Show("世界设定服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.T("WS.ServiceNotInit", "世界设定服务未初始化。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
@@ -247,7 +249,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.T("WS.MainWindowUnavailable", "无法获取主窗口，无法打开导入导出页面。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -264,7 +266,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         catch (Exception ex)
         {
             _logger?.LogError(ex, "打开设定导入页面失败");
-            MessageBox.Show($"打开设定导入页面失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("WS.OpenImportFailed", "打开设定导入页面失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -278,11 +280,11 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             var selectedSetting = WorldSettingsTreeView.SelectedItem as WorldSettingDto;
             if (selectedSetting == null)
             {
-                MessageBox.Show("请先选择一个世界设定进行分析", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.T("WS.SelectForAnalysis", "请先选择一个世界设定进行分析"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var loadingDialog = new ProgressDialog("AI分析中", "正在分析世界设定的一致性和完整性...");
+            var loadingDialog = new ProgressDialog(LocalizationManager.T("WS.AIAnalyzing", "AI分析中"), LocalizationManager.T("WS.AnalyzingProgress", "正在分析世界设定的一致性和完整性..."));
             loadingDialog.Show();
 
             try
@@ -294,13 +296,13 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             catch (Exception ex)
             {
                 loadingDialog.Close();
-                MessageBox.Show($"AI分析失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("WS.AIAnalysisFailed", "AI分析失败: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "AI分析过程中发生错误");
-            MessageBox.Show($"分析过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("WS.AnalysisError", "分析过程中发生错误: {0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -310,7 +312,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
     private async void RefreshWorldSettings_Click(object sender, RoutedEventArgs e)
     {
         await LoadWorldSettingsAsync();
-        MessageBox.Show("数据已刷新", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(LocalizationManager.T("WS.DataRefreshed", "数据已刷新"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -323,7 +325,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口，无法打开导入导出页面。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.T("WS.MainWindowUnavailable", "无法获取主窗口，无法打开导入导出页面。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -343,7 +345,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         catch (Exception ex)
         {
             _logger?.LogError(ex, "打开设定导出页面失败");
-            MessageBox.Show($"打开设定导出页面失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("WS.OpenExportFailed", "打开设定导出页面失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -356,7 +358,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         {
             if (_currentProjectId == Guid.Empty)
             {
-                MessageBox.Show("请先选择项目后再使用AI助手。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.T("WS.SelectProjectForAI", "请先选择项目后再使用AI助手。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -370,8 +372,8 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             if (selectedSetting != null)
             {
                 var choice = MessageBox.Show(
-                    "是：AI优化当前设定并保存\n否：基于当前设定生成新的子设定并保存\n取消：打开原始AI助手",
-                    "AI世界设定",
+                    LocalizationManager.T("WS.AIChoiceWithSetting", "是：AI优化当前设定并保存\n否：基于当前设定生成新的子设定并保存\n取消：打开原始AI助手"),
+                    LocalizationManager.T("WS.AIDialogTitle", "AI世界设定"),
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
@@ -386,8 +388,8 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             }
 
             var generateChoice = MessageBox.Show(
-                "是：AI生成新的设定并保存\n否：打开原始AI助手",
-                "AI世界设定",
+                LocalizationManager.T("WS.AIChoiceNoSetting", "是：AI生成新的设定并保存\n否：打开原始AI助手"),
+                LocalizationManager.T("WS.AIDialogTitle", "AI世界设定"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -403,7 +405,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         catch (Exception ex)
         {
             _logger?.LogError(ex, "启动AI助手失败");
-            MessageBox.Show($"启动AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.TF("WS.StartAIFailed", "启动AI助手失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -412,7 +414,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
     /// </summary>
     private void ShowAIAssistantDialog()
     {
-        var dialog = new AIAssistantDialog("世界设定管理", GetCurrentContext());
+        var dialog = new AIAssistantDialog(LocalizationManager.T("World.Title", "世界设定管理"), GetCurrentContext());
         dialog.Owner = Window.GetWindow(this);
         dialog.ShowDialog();
     }
@@ -492,8 +494,8 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
                 ws.Name.ToLower().Contains(searchText) ||
                 (ws.Description?.ToLower().Contains(searchText) ?? false);
 
-            var matchesType = selectedType == "全部类型" || ws.Type == selectedType;
-            var matchesCategory = selectedCategory == "全部分类" || ws.Category == selectedCategory;
+            var matchesType = selectedType == LocalizationManager.T("WS.AllTypes", "全部类型") || ws.Type == selectedType;
+            var matchesCategory = selectedCategory == LocalizationManager.T("WS.AllCategories", "全部分类") || ws.Category == selectedCategory;
 
             return matchesSearch && matchesType && matchesCategory;
         }).ToList();
@@ -527,30 +529,30 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         };
         DetailsPanel.Children.Add(titleBlock);
 
-        AddDetailItem("类型", setting.Type);
-        AddDetailItem("分类", setting.Category ?? "无");
-        AddDetailItem("重要性", $"{setting.Importance}/10");
-        AddDetailItem("创建时间", setting.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
-        AddDetailItem("更新时间", setting.UpdatedAt.ToString("yyyy-MM-dd HH:mm"));
+        AddDetailItem(LocalizationManager.T("Dlg.Type", "类型"), setting.Type);
+        AddDetailItem(LocalizationManager.T("Dlg.Category", "分类"), setting.Category ?? LocalizationManager.T("WS.None", "无"));
+        AddDetailItem(LocalizationManager.T("WS.Importance", "重要性"), $"{setting.Importance}/10");
+        AddDetailItem(LocalizationManager.T("WS.CreatedAt", "创建时间"), setting.CreatedAt.ToString("yyyy-MM-dd HH:mm"));
+        AddDetailItem(LocalizationManager.T("WS.UpdatedAt", "更新时间"), setting.UpdatedAt.ToString("yyyy-MM-dd HH:mm"));
 
         if (!string.IsNullOrEmpty(setting.Description))
         {
-            AddDetailSection("描述", setting.Description);
+            AddDetailSection(LocalizationManager.T("Dlg.Description", "描述"), setting.Description);
         }
 
         if (!string.IsNullOrEmpty(setting.Content))
         {
-            AddDetailSection("详细内容", setting.Content);
+            AddDetailSection(LocalizationManager.T("WS.Content", "详细内容"), setting.Content);
         }
 
         if (!string.IsNullOrEmpty(setting.Rules))
         {
-            AddDetailSection("相关规则", setting.Rules);
+            AddDetailSection(LocalizationManager.T("WS.Rules", "相关规则"), setting.Rules);
         }
 
         if (!string.IsNullOrEmpty(setting.History))
         {
-            AddDetailSection("历史背景", setting.History);
+            AddDetailSection(LocalizationManager.T("WS.History", "历史背景"), setting.History);
         }
     }
 
@@ -715,7 +717,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         var result = await _aiAssistantService!.GenerateOutlineAsync(parameters);
         if (!result.IsSuccess || result.Data == null)
         {
-            MessageBox.Show(result.Message ?? "AI生成失败。", "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(result.Message ?? LocalizationManager.T("WS.AIGenerateFailed", "AI生成失败。"), LocalizationManager.T("WS.AIDialogTitle", "AI世界设定"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -725,7 +727,7 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
             var updatedSetting = await _worldSettingService.UpdateAsync(updateDto);
             await LoadWorldSettingsAsync();
             FocusSetting(updatedSetting.Id);
-            MessageBox.Show($"已使用 AI 优化并保存设定：{updatedSetting.Name}", "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(LocalizationManager.TF("WS.AIOptimizedSaved", "已使用 AI 优化并保存设定：{0}", updatedSetting.Name), LocalizationManager.T("WS.AIDialogTitle", "AI世界设定"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -735,9 +737,9 @@ public partial class WorldSettingManagementView : UserControl, INavigationRefres
         await LoadWorldSettingsAsync();
         FocusSetting(created.Id);
         var successText = targetParentId == null
-            ? $"已使用 AI 生成并保存设定：{created.Name}"
-            : $"已使用 AI 生成并保存子设定：{created.Name}";
-        MessageBox.Show(successText, "AI世界设定", MessageBoxButton.OK, MessageBoxImage.Information);
+            ? LocalizationManager.TF("WS.AIGeneratedSaved", "已使用 AI 生成并保存设定：{0}", created.Name)
+            : LocalizationManager.TF("WS.AIGeneratedChildSaved", "已使用 AI 生成并保存子设定：{0}", created.Name);
+        MessageBox.Show(successText, LocalizationManager.T("WS.AIDialogTitle", "AI世界设定"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private async Task<string> BuildWorldSettingPromptContextAsync(WorldSettingDto? baseSetting, bool optimizeCurrent)
@@ -1082,7 +1084,7 @@ public class WorldSettingEditDialog : Window
         _aiAssistantService = App.ServiceProvider?.GetService<IAIAssistantService>();
         _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
 
-        Title = parentSetting == null ? "新建世界设定" : $"新建子设定 - {parentSetting.Name}";
+        Title = parentSetting == null ? LocalizationManager.T("WS.NewSettingTitle", "新建世界设定") : LocalizationManager.TF("WS.NewChildTitle", "新建子设定 - {0}", parentSetting.Name);
         Width = 760;
         Height = 860;
         MinWidth = 700;
@@ -1139,29 +1141,29 @@ public class WorldSettingEditDialog : Window
     private FrameworkElement BuildContent()
     {
         var panel = new StackPanel { Margin = new Thickness(20) };
-        panel.Children.Add(CreateLabel("设定名称"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.FieldName", "设定名称")));
         panel.Children.Add(_nameTextBox);
-        panel.Children.Add(CreateLabel("设定类型"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.FieldType", "设定类型")));
         panel.Children.Add(_typeComboBox);
-        panel.Children.Add(CreateLabel("设定分类"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.FieldCategory", "设定分类")));
         panel.Children.Add(_categoryTextBox);
-        panel.Children.Add(CreateLabel("重要性"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.Importance", "重要性")));
         panel.Children.Add(_importanceSlider);
-        panel.Children.Add(CreateLabel("状态"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("Dlg.Status", "状态")));
         panel.Children.Add(_statusComboBox);
-        panel.Children.Add(CreateLabel("简要描述"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.BriefDesc", "简要描述")));
         panel.Children.Add(CreateMultilineTextBox(_descriptionTextBox, 84));
-        panel.Children.Add(CreateLabel("详细内容"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.Content", "详细内容")));
         panel.Children.Add(CreateMultilineTextBox(_contentTextBox, 220));
-        panel.Children.Add(CreateLabel("相关规则"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.Rules", "相关规则")));
         panel.Children.Add(CreateMultilineTextBox(_rulesTextBox, 120));
-        panel.Children.Add(CreateLabel("历史背景"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.History", "历史背景")));
         panel.Children.Add(CreateMultilineTextBox(_historyTextBox, 120));
-        panel.Children.Add(CreateLabel("相关设定"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.RelatedSettings", "相关设定")));
         panel.Children.Add(CreateMultilineTextBox(_relatedSettingsTextBox, 84));
-        panel.Children.Add(CreateLabel("标签"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("WS.Tags", "标签")));
         panel.Children.Add(_tagsTextBox);
-        panel.Children.Add(CreateLabel("备注"));
+        panel.Children.Add(CreateLabel(LocalizationManager.T("Dlg.Remarks", "备注")));
         panel.Children.Add(CreateMultilineTextBox(_notesTextBox, 84));
 
         var buttons = new WrapPanel
@@ -1170,25 +1172,25 @@ public class WorldSettingEditDialog : Window
             Margin = new Thickness(0, 16, 0, 0)
         };
 
-        var aiButton = new Button { Content = "AI自动补全", MinWidth = 100, Margin = new Thickness(0, 0, 12, 8) };
+        var aiButton = new Button { Content = LocalizationManager.T("WS.AIAutoFill", "AI自动补全"), MinWidth = 100, Margin = new Thickness(0, 0, 12, 8) };
         aiButton.Click += async (_, _) => await AutoFillWithAiAsync();
 
-        var resetButton = new Button { Content = "重置内容", MinWidth = 100, Margin = new Thickness(0, 0, 12, 8) };
+        var resetButton = new Button { Content = LocalizationManager.T("WS.ResetContent", "重置内容"), MinWidth = 100, Margin = new Thickness(0, 0, 12, 8) };
         resetButton.Click += (_, _) => ResetForm();
 
-        var okButton = new Button { Content = "创建", MinWidth = 84, Margin = new Thickness(0, 0, 12, 8), IsDefault = true };
+        var okButton = new Button { Content = LocalizationManager.T("Dlg.Create", "创建"), MinWidth = 84, Margin = new Thickness(0, 0, 12, 8), IsDefault = true };
         okButton.Click += (_, _) =>
         {
             if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
             {
-                MessageBox.Show("设定名称不能为空。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(LocalizationManager.T("WS.NameRequired", "设定名称不能为空。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             DialogResult = true;
         };
 
-        var backButton = new Button { Content = "返回", MinWidth = 84, Margin = new Thickness(0, 0, 0, 8), IsCancel = true };
+        var backButton = new Button { Content = LocalizationManager.T("WS.Back", "返回"), MinWidth = 84, Margin = new Thickness(0, 0, 0, 8), IsCancel = true };
         buttons.Children.Add(aiButton);
         buttons.Children.Add(resetButton);
         buttons.Children.Add(okButton);
@@ -1207,7 +1209,7 @@ public class WorldSettingEditDialog : Window
     {
         if (_aiAssistantService == null)
         {
-            MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(LocalizationManager.T("WS.AIServiceNotInit", "AI助手服务未初始化。"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
@@ -1221,12 +1223,12 @@ public class WorldSettingEditDialog : Window
 
         if (!result.IsSuccess || result.Data == null)
         {
-            MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(result.Message ?? LocalizationManager.T("WS.AIAutoFillFailed", "AI自动补全失败。"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         ApplyAiResult(result.Data.ToString());
-        MessageBox.Show("已按字段完成世界设定自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(LocalizationManager.T("WS.AIAutoFillDone", "已按字段完成世界设定自动补全。"), LocalizationManager.T("WS.AIAutoFill", "AI自动补全"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private async Task<string> BuildAiPromptAsync()

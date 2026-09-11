@@ -311,22 +311,22 @@ public class ProjectCatalogService
         var delta = DateTime.Now - time;
         if (delta.TotalMinutes < 1)
         {
-            return "刚刚";
+            return Localization.LocalizationManager.T("PM.JustNow", "刚刚");
         }
 
         if (delta.TotalHours < 1)
         {
-            return $"{Math.Max(1, (int)delta.TotalMinutes)} 分钟前";
+            return Localization.LocalizationManager.TF("VM.MinutesAgo", "{0}分钟前", Math.Max(1, (int)delta.TotalMinutes));
         }
 
         if (delta.TotalDays < 1)
         {
-            return $"{Math.Max(1, (int)delta.TotalHours)} 小时前";
+            return Localization.LocalizationManager.TF("VM.HoursAgo", "{0}小时前", Math.Max(1, (int)delta.TotalHours));
         }
 
         if (delta.TotalDays < 7)
         {
-            return $"{Math.Max(1, (int)delta.TotalDays)} 天前";
+            return Localization.LocalizationManager.TF("VM.DaysAgo", "{0}天前", Math.Max(1, (int)delta.TotalDays));
         }
 
         return time.ToString("yyyy-MM-dd HH:mm");

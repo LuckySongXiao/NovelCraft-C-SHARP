@@ -18,12 +18,12 @@
 
         <!-- 页面标题 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="导入导出管理" 
-                     FontSize="32" 
-                     FontWeight="Bold" 
+            <TextBlock Text="{DynamicResource Loc.IE.PageTitle}"
+                     FontSize="32"
+                     FontWeight="Bold"
                      Margin="0,0,0,8"/>
-            <TextBlock Text="管理项目数据的导入导出，支持多种格式和批量操作" 
-                     FontSize="16" 
+            <TextBlock Text="{DynamicResource Loc.IE.PageSubtitle}"
+                     FontSize="16"
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
 
@@ -31,14 +31,14 @@
         <TabControl x:Name="MainTabControl" Grid.Row="1" Style="{StaticResource MaterialDesignTabControl}">
             
             <!-- 导出标签页 -->
-            <TabItem Header="导出管理">
+            <TabItem Header="{DynamicResource Loc.IE.ExportTab}">
                 <TabItem.HeaderTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Export" 
                                                    VerticalAlignment="Center" 
                                                    Margin="0,0,8,0"/>
-                            <TextBlock Text="导出管理" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Loc.IE.ExportTab}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
@@ -61,29 +61,29 @@
                         <!-- 导出配置面板 -->
                         <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,16">
                             <StackPanel>
-                                <TextBlock Text="导出配置" 
+                                <TextBlock Text="{DynamicResource Loc.IE.ExportConfig}" 
                                          FontSize="18" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,16"/>
 
                                 <!-- 导出格式选择 -->
-                                <TextBlock Text="导出格式" 
+                                <TextBlock Text="{DynamicResource Loc.IE.ExportFormat}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <ComboBox x:Name="ExportFormatComboBox"
                                         Style="{StaticResource MaterialDesignComboBox}"
                                         Margin="0,0,0,16"
                                         SelectedIndex="0">
-                                    <ComboBoxItem Content="TXT - 纯文本格式" Tag="TXT"/>
-                                    <ComboBoxItem Content="EXCEL - Excel表格格式" Tag="EXCEL"/>
-                                    <ComboBoxItem Content="DOCX - Word文档格式" Tag="DOCX"/>
-                                    <ComboBoxItem Content="HTML - 网页格式" Tag="HTML"/>
-                                    <ComboBoxItem Content="MARKDOWN - Markdown格式" Tag="MARKDOWN"/>
-                                    <ComboBoxItem Content="JSON - JSON数据格式" Tag="JSON"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtTxt}" Tag="TXT"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtExcel}" Tag="EXCEL"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtDocx}" Tag="DOCX"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtHtml}" Tag="HTML"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtMarkdown}" Tag="MARKDOWN"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtJson}" Tag="JSON"/>
                                 </ComboBox>
 
                                 <!-- 导出范围选择 -->
-                                <TextBlock Text="导出范围" 
+                                <TextBlock Text="{DynamicResource Loc.IE.ExportScope}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <ComboBox x:Name="ExportScopeComboBox"
@@ -91,52 +91,52 @@
                                         Margin="0,0,0,16"
                                         SelectedIndex="0"
                                         SelectionChanged="ExportScope_SelectionChanged">
-                                    <ComboBoxItem Content="整个项目" Tag="EntireProject"/>
-                                    <ComboBoxItem Content="选定卷宗" Tag="SelectedVolumes"/>
-                                    <ComboBoxItem Content="选定章节" Tag="SelectedChapters"/>
-                                    <ComboBoxItem Content="自定义范围" Tag="CustomRange"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.ScopeEntireProject}" Tag="EntireProject"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.ScopeSelectedVolumes}" Tag="SelectedVolumes"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.ScopeSelectedChapters}" Tag="SelectedChapters"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.ScopeCustomRange}" Tag="CustomRange"/>
                                 </ComboBox>
 
                                 <!-- 选择项目列表 -->
                                 <StackPanel x:Name="SelectionPanel" Visibility="Collapsed">
-                                    <TextBlock Text="选择项目" 
+                                    <TextBlock Text="{DynamicResource Loc.IE.SelectItems}" 
                                              FontWeight="Medium" 
                                              Margin="0,0,0,8"/>
                                     <ListBox x:Name="SelectionListBox" 
                                            Height="120" 
                                            SelectionMode="Multiple"
                                            Margin="0,0,0,16">
-                                        <ListBoxItem Content="第一卷 - 初入仙途"/>
-                                        <ListBoxItem Content="第二卷 - 风云际会"/>
-                                        <ListBoxItem Content="第三卷 - 天地争锋"/>
+                                        <ListBoxItem Content="{DynamicResource Loc.IE.SampleVolume1}"/>
+                                        <ListBoxItem Content="{DynamicResource Loc.IE.SampleVolume2}"/>
+                                        <ListBoxItem Content="{DynamicResource Loc.IE.SampleVolume3}"/>
                                     </ListBox>
                                 </StackPanel>
 
                                 <!-- 包含内容选项 -->
-                                <TextBlock Text="包含内容" 
+                                <TextBlock Text="{DynamicResource Loc.IE.IncludeContent}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <StackPanel>
                                     <CheckBox x:Name="IncludeSettingsCheckBox" 
-                                            Content="设定信息" 
+                                            Content="{DynamicResource Loc.IE.IncludeSettings}" 
                                             IsChecked="True" 
                                             Margin="0,4"/>
                                     <CheckBox x:Name="IncludeCharactersCheckBox" 
-                                            Content="角色信息" 
+                                            Content="{DynamicResource Loc.IE.IncludeCharacters}" 
                                             IsChecked="True" 
                                             Margin="0,4"/>
                                     <CheckBox x:Name="IncludeFactionsCheckBox" 
-                                            Content="势力信息" 
+                                            Content="{DynamicResource Loc.IE.IncludeFactions}" 
                                             IsChecked="True" 
                                             Margin="0,4"/>
                                     <CheckBox x:Name="IncludePlotsCheckBox" 
-                                            Content="剧情信息" 
+                                            Content="{DynamicResource Loc.IE.IncludePlots}" 
                                             IsChecked="True" 
                                             Margin="0,4"/>
                                 </StackPanel>
 
                                 <!-- 输出路径 -->
-                                <TextBlock Text="输出路径" 
+                                <TextBlock Text="{DynamicResource Loc.IE.OutputPath}" 
                                          FontWeight="Medium" 
                                          Margin="0,16,0,8"/>
                                 <Grid>
@@ -147,10 +147,10 @@
                                     <TextBox x:Name="OutputPathTextBox" 
                                            Grid.Column="0"
                                            Style="{StaticResource MaterialDesignTextBox}"
-                                           materialDesign:HintAssist.Hint="选择输出文件路径"/>
+                                           materialDesign:HintAssist.Hint="{DynamicResource Loc.IE.OutputPathHint}"/>
                                     <Button Grid.Column="1" 
                                           Style="{StaticResource MaterialDesignIconButton}"
-                                          ToolTip="浏览文件夹"
+                                          ToolTip="{DynamicResource Loc.IE.BrowseFolder}"
                                           Click="BrowseOutputPath_Click"
                                           Margin="8,0,0,0">
                                         <materialDesign:PackIcon Kind="FolderOpen"/>
@@ -161,7 +161,7 @@
 
                         <!-- 导出按钮 -->
                         <Button Grid.Row="2" 
-                              Content="开始导出" 
+                              Content="{DynamicResource Loc.IE.StartExport}" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Height="40"
                               Click="StartExport_Click"/>
@@ -191,12 +191,12 @@
                                     <materialDesign:PackIcon Kind="Export" 
                                                            VerticalAlignment="Center" 
                                                            Margin="0,0,8,0"/>
-                                    <TextBlock Text="导出进度" 
+                                    <TextBlock Text="{DynamicResource Loc.IE.ExportProgress}" 
                                              FontSize="16" 
                                              FontWeight="Medium" 
                                              VerticalAlignment="Center"/>
                                     <Button Style="{StaticResource MaterialDesignIconButton}"
-                                          ToolTip="取消导出"
+                                          ToolTip="{DynamicResource Loc.IE.CancelExport}"
                                           Margin="8,0,0,0"
                                           Click="CancelExport_Click">
                                         <materialDesign:PackIcon Kind="Cancel"/>
@@ -204,7 +204,7 @@
                                 </StackPanel>
 
                                 <TextBlock x:Name="ExportStatusText" 
-                                         Text="准备中..." 
+                                         Text="{DynamicResource Loc.IE.Preparing}" 
                                          Margin="0,0,0,8"/>
                                 
                                 <ProgressBar x:Name="ExportProgressBar" 
@@ -214,7 +214,7 @@
                                            Margin="0,0,0,8"/>
                                 
                                 <TextBlock x:Name="ExportProgressText" 
-                                         Text="0 / 0 项目已处理" 
+                                         Text="{DynamicResource Loc.IE.ItemsProcessed0}" 
                                          FontSize="12" 
                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                             </StackPanel>
@@ -236,12 +236,12 @@
                                         <materialDesign:PackIcon Kind="History" 
                                                                VerticalAlignment="Center" 
                                                                Margin="0,0,8,0"/>
-                                        <TextBlock Text="导出历史" 
+                                        <TextBlock Text="{DynamicResource Loc.IE.ExportHistory}" 
                                                  FontSize="16" 
                                                  FontWeight="Medium" 
                                                  VerticalAlignment="Center"/>
                                         <Button Style="{StaticResource MaterialDesignIconButton}"
-                                              ToolTip="刷新历史记录"
+                                              ToolTip="{DynamicResource Loc.IE.RefreshHistory}"
                                               Margin="8,0,0,0"
                                               Click="RefreshExportHistory_Click">
                                             <materialDesign:PackIcon Kind="Refresh"/>
@@ -274,16 +274,16 @@
 
                                                     <!-- 导出信息 -->
                                                     <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                                        <TextBlock Text="{Binding Format, StringFormat='格式: {0}'}" 
+                                                        <TextBlock Text="{Binding FormatDisplay}" 
                                                                  FontWeight="Medium" 
                                                                  FontSize="14"/>
                                                         <TextBlock Text="{Binding FilePath}" 
                                                                  FontSize="12" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                                        <TextBlock Text="{Binding StartTime, StringFormat='时间: {0:yyyy-MM-dd HH:mm}'}" 
+                                                        <TextBlock Text="{Binding StartTimeDisplay}" 
                                                                  FontSize="11" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                                        <TextBlock Text="{Binding FileSize, StringFormat='大小: {0:N0} 字节'}" 
+                                                        <TextBlock Text="{Binding FileSizeDisplay}" 
                                                                  FontSize="11" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                     </StackPanel>
@@ -291,13 +291,13 @@
                                                     <!-- 操作按钮 -->
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                                                         <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                              ToolTip="打开文件"
+                                                              ToolTip="{DynamicResource Loc.IE.OpenFile}"
                                                               Click="OpenExportFile_Click"
                                                               Tag="{Binding}">
                                                             <materialDesign:PackIcon Kind="FileOpen"/>
                                                         </Button>
                                                         <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                              ToolTip="打开文件夹"
+                                                              ToolTip="{DynamicResource Loc.IE.OpenFolder}"
                                                               Click="OpenExportFolder_Click"
                                                               Tag="{Binding}">
                                                             <materialDesign:PackIcon Kind="FolderOpen"/>
@@ -315,14 +315,14 @@
             </TabItem>
 
             <!-- 导入标签页 -->
-            <TabItem Header="导入管理">
+            <TabItem Header="{DynamicResource Loc.IE.ImportTab}">
                 <TabItem.HeaderTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Import" 
                                                    VerticalAlignment="Center" 
                                                    Margin="0,0,8,0"/>
-                            <TextBlock Text="导入管理" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Loc.IE.ImportTab}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
@@ -345,13 +345,13 @@
                         <!-- 导入配置面板 -->
                         <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,16">
                             <StackPanel>
-                                <TextBlock Text="导入配置" 
+                                <TextBlock Text="{DynamicResource Loc.IE.ImportConfig}" 
                                          FontSize="18" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,16"/>
 
                                 <!-- 选择文件 -->
-                                <TextBlock Text="选择文件" 
+                                <TextBlock Text="{DynamicResource Loc.IE.SelectFile}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <Grid Margin="0,0,0,16">
@@ -362,10 +362,10 @@
                                     <TextBox x:Name="ImportFilePathTextBox" 
                                            Grid.Column="0"
                                            Style="{StaticResource MaterialDesignTextBox}"
-                                           materialDesign:HintAssist.Hint="选择要导入的文件"/>
+                                           materialDesign:HintAssist.Hint="{DynamicResource Loc.IE.ImportFileHint}"/>
                                     <Button Grid.Column="1" 
                                           Style="{StaticResource MaterialDesignIconButton}"
-                                          ToolTip="浏览文件"
+                                          ToolTip="{DynamicResource Loc.IE.BrowseFile}"
                                           Click="BrowseImportFile_Click"
                                           Margin="8,0,0,0">
                                         <materialDesign:PackIcon Kind="FileSearch"/>
@@ -373,37 +373,37 @@
                                 </Grid>
 
                                 <!-- 文件格式 -->
-                                <TextBlock Text="文件格式" 
+                                <TextBlock Text="{DynamicResource Loc.IE.FileFormat}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <ComboBox x:Name="ImportFormatComboBox"
                                         Style="{StaticResource MaterialDesignComboBox}"
                                         Margin="0,0,0,16"
                                         SelectedIndex="0">
-                                    <ComboBoxItem Content="EXCEL - Excel表格文件" Tag="EXCEL"/>
-                                    <ComboBoxItem Content="DOCX - Word文档文件" Tag="DOCX"/>
-                                    <ComboBoxItem Content="CSV - 逗号分隔值文件" Tag="CSV"/>
-                                    <ComboBoxItem Content="TXT - 纯文本文件" Tag="TXT"/>
-                                    <ComboBoxItem Content="JSON - JSON数据文件" Tag="JSON"/>
-                                    <ComboBoxItem Content="XML - XML数据文件" Tag="XML"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtExcelFile}" Tag="EXCEL"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtDocxFile}" Tag="DOCX"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtCsvFile}" Tag="CSV"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtTxtFile}" Tag="TXT"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtJsonFile}" Tag="JSON"/>
+                                    <ComboBoxItem Content="{DynamicResource Loc.IE.FmtXmlFile}" Tag="XML"/>
                                 </ComboBox>
 
                                 <!-- 导入选项 -->
-                                <TextBlock Text="导入选项" 
+                                <TextBlock Text="{DynamicResource Loc.IE.ImportOptions}" 
                                          FontWeight="Medium" 
                                          Margin="0,0,0,8"/>
                                 <StackPanel>
                                     <CheckBox x:Name="OverwriteExistingCheckBox" 
-                                            Content="覆盖现有数据" 
+                                            Content="{DynamicResource Loc.IE.OverwriteExisting}" 
                                             Margin="0,4"/>
                                     <CheckBox x:Name="CreateBackupCheckBox" 
-                                            Content="创建备份" 
+                                            Content="{DynamicResource Loc.IE.CreateBackup}" 
                                             IsChecked="True" 
                                             Margin="0,4"/>
                                 </StackPanel>
 
                                 <!-- 预览按钮 -->
-                                <Button Content="预览文件" 
+                                <Button Content="{DynamicResource Loc.IE.PreviewFile}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Margin="0,16,0,0"
                                       Click="PreviewImportFile_Click"/>
@@ -412,7 +412,7 @@
 
                         <!-- 导入按钮 -->
                         <Button Grid.Row="2" 
-                              Content="开始导入" 
+                              Content="{DynamicResource Loc.IE.StartImport}" 
                               Style="{StaticResource MaterialDesignRaisedButton}"
                               Height="40"
                               Click="StartImport_Click"/>
@@ -442,12 +442,12 @@
                                     <materialDesign:PackIcon Kind="Import" 
                                                            VerticalAlignment="Center" 
                                                            Margin="0,0,8,0"/>
-                                    <TextBlock Text="导入进度" 
+                                    <TextBlock Text="{DynamicResource Loc.IE.ImportProgress}" 
                                              FontSize="16" 
                                              FontWeight="Medium" 
                                              VerticalAlignment="Center"/>
                                     <Button Style="{StaticResource MaterialDesignIconButton}"
-                                          ToolTip="取消导入"
+                                          ToolTip="{DynamicResource Loc.IE.CancelImport}"
                                           Margin="8,0,0,0"
                                           Click="CancelImport_Click">
                                         <materialDesign:PackIcon Kind="Cancel"/>
@@ -455,7 +455,7 @@
                                 </StackPanel>
 
                                 <TextBlock x:Name="ImportStatusText" 
-                                         Text="准备中..." 
+                                         Text="{DynamicResource Loc.IE.Preparing}" 
                                          Margin="0,0,0,8"/>
                                 
                                 <ProgressBar x:Name="ImportProgressBar" 
@@ -465,7 +465,7 @@
                                            Margin="0,0,0,8"/>
                                 
                                 <TextBlock x:Name="ImportProgressText" 
-                                         Text="0 / 0 项目已处理" 
+                                         Text="{DynamicResource Loc.IE.ItemsProcessed0}" 
                                          FontSize="12" 
                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                             </StackPanel>
@@ -487,12 +487,12 @@
                                         <materialDesign:PackIcon Kind="History" 
                                                                VerticalAlignment="Center" 
                                                                Margin="0,0,8,0"/>
-                                        <TextBlock Text="导入历史" 
+                                        <TextBlock Text="{DynamicResource Loc.IE.ImportHistory}" 
                                                  FontSize="16" 
                                                  FontWeight="Medium" 
                                                  VerticalAlignment="Center"/>
                                         <Button Style="{StaticResource MaterialDesignIconButton}"
-                                              ToolTip="刷新历史记录"
+                                              ToolTip="{DynamicResource Loc.IE.RefreshHistory}"
                                               Margin="8,0,0,0"
                                               Click="RefreshImportHistory_Click">
                                             <materialDesign:PackIcon Kind="Refresh"/>
@@ -525,16 +525,16 @@
 
                                                     <!-- 导入信息 -->
                                                     <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                                        <TextBlock Text="{Binding Format, StringFormat='格式: {0}'}" 
+                                                        <TextBlock Text="{Binding FormatDisplay}" 
                                                                  FontWeight="Medium" 
                                                                  FontSize="14"/>
                                                         <TextBlock Text="{Binding FilePath}" 
                                                                  FontSize="12" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                                        <TextBlock Text="{Binding StartTime, StringFormat='时间: {0:yyyy-MM-dd HH:mm}'}" 
+                                                        <TextBlock Text="{Binding StartTimeDisplay}" 
                                                                  FontSize="11" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                                        <TextBlock Text="{Binding FileSize, StringFormat='大小: {0:N0} 字节'}" 
+                                                        <TextBlock Text="{Binding FileSizeDisplay}" 
                                                                  FontSize="11" 
                                                                  Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                     </StackPanel>
@@ -542,7 +542,7 @@
                                                     <!-- 操作按钮 -->
                                                     <Button Grid.Column="2" 
                                                           Style="{StaticResource MaterialDesignIconButton}"
-                                                          ToolTip="查看详情"
+                                                          ToolTip="{DynamicResource Loc.IE.ViewDetails}"
                                                           Click="ViewImportDetails_Click"
                                                           Tag="{Binding}">
                                                         <materialDesign:PackIcon Kind="Information"/>

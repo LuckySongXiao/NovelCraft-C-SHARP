@@ -12,6 +12,8 @@ using NovelManagement.AI.Services.RWKV;
 using NovelManagement.AI.Utilities;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
+using NovelManagement.WPF.Localization;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Services.Copilot;
 
@@ -124,7 +126,7 @@ public class CreationPipelineService
             };
         }
 
-        PostMessage($"收到！我将根据你的想法为《{(string.IsNullOrWhiteSpace(projectName) ? "未命名作品" : projectName)}》规划全书。先从总纲开始。");
+        PostMessage(TF("CPS.StartPlanning", $"收到！我将根据你的想法为《{(string.IsNullOrWhiteSpace(projectName) ? "未命名作品" : projectName)}》规划全书。先从总纲开始。", (string.IsNullOrWhiteSpace(projectName) ? "未命名作品" : projectName)));
         return RunStageAsync();
     }
 
@@ -154,7 +156,7 @@ public class CreationPipelineService
             _state = loaded;
         }
 
-        PostMessage($"已恢复《{loaded.ProjectName}》的创作流水线（当前阶段：{DescribeStage(loaded.Stage)}），正在重建确认卡…");
+        PostMessage(TF("CPS.Resumed", $"已恢复《{loaded.ProjectName}》的创作流水线（当前阶段：{DescribeStage(loaded.Stage)}），正在重建确认卡…", loaded.ProjectName, DescribeStage(loaded.Stage)));
         await RunStageAsync();
         return true;
     }
@@ -198,7 +200,7 @@ public class CreationPipelineService
             _state.LastFeedback = string.IsNullOrWhiteSpace(feedback) ? null : feedback.Trim();
         }
 
-        PostMessage("收到整改意见，正在按你的要求重新生成当前阶段…");
+        PostMessage(T("CPS.Regenerating", "收到整改意见，正在按你的要求重新生成当前阶段…"));
         return RunStageAsync();
     }
 
@@ -219,7 +221,7 @@ public class CreationPipelineService
             _state.Stage = PipelineStage.VolumesPending;
         }
 
-        PostMessage("好的，我们继续规划后续分卷。基于总纲与已有剧情，我会给出接下来几卷的安排。");
+        PostMessage(T("CPS.AppendVolumeIntro", "好的，我们继续规划后续分卷。基于总纲与已有剧情，我会给出接下来几卷的安排。"));
         return RunStageAsync();
     }
 
@@ -302,10 +304,10 @@ public class CreationPipelineService
 
         await SaveStateAsync();
         RaiseProgressChanged();
-        PostStageReport("全部已规划卷章创作完成", new[]
+        PostStageReport(T("CPS.StageReportAllDone", "全部已规划卷章创作完成"), new[]
         {
-            $"已完成 {_state.ConfirmedVolumeCount} 卷创作",
-            "如需追加后续大纲，请回复「继续创作」，我会规划下一卷；也可以随时告诉我想调整的地方。"
+            TF("CPS.DoneVolumes", $"已完成 {_state.ConfirmedVolumeCount} 卷创作", _state.ConfirmedVolumeCount),
+            T("CPS.AppendNextHint", "如需追加后续大纲，请回复「继续创作」，我会规划下一卷；也可以随时告诉我想调整的地方。")
         });
     }
 
@@ -356,7 +358,7 @@ public class CreationPipelineService
         catch (Exception ex)
         {
             _logger.LogError(ex, "流水线阶段生成失败：{Stage}", _state.Stage);
-            PostMessage($"生成失败：{ex.Message}。请回复「重新生成」重试，或告诉我新的想法。");
+            PostMessage(TF("CPS.GenerateFailed", $"生成失败：{ex.Message}。请回复「重新生成」重试，或告诉我新的想法。", ex.Message));
         }
         finally
         {
@@ -397,8 +399,8 @@ public class CreationPipelineService
         var proposal = new PendingProposal
         {
             Kind = ProposalKind.Outline,
-            Title = $"全书总纲（{title}）",
-            Summary = "以下是为你规划的全书总纲，可采纳、修改或放弃后让我重新生成。"
+            Title = TF("CPS.CardBlueprintTitle", $"全书总纲（{title}）", title),
+            Summary = T("CPS.CardBlueprintSummary", "以下是为你规划的全书总纲，可采纳、修改或放弃后让我重新生成。")
         };
         proposal.Items.Add(new ProposalItem
         {
@@ -411,7 +413,7 @@ public class CreationPipelineService
             }
         });
 
-        PostStageReport("总纲规划完成", new[] { position, conflict });
+        PostStageReport(T("CPS.StageReportBlueprint", "总纲规划完成"), new[] { position, conflict });
         PostProposal(proposal);
         await SaveStateAsync();
     }
@@ -424,7 +426,7 @@ public class CreationPipelineService
         var blueprint = await LoadBlueprintAsync(_state.ProjectId);
         if (string.IsNullOrWhiteSpace(blueprint))
         {
-            PostMessage("未找到已采纳的总纲，无法规划剧情线。请先采纳总纲确认卡。");
+            PostMessage(T("CPS.ErrNoBlueprintPlots", "未找到已采纳的总纲，无法规划剧情线。请先采纳总纲确认卡。"));
             return;
         }
 
@@ -442,14 +444,14 @@ public class CreationPipelineService
         var lines = ParseNumberedLines(raw, 1, 6);
         if (lines.Count == 0)
         {
-            throw new InvalidOperationException("剧情线输出解析失败（未找到编号行），请回复「重新生成」重试。");
+            throw new InvalidOperationException(T("CPS.ErrParsePlotLines", "剧情线输出解析失败（未找到编号行），请回复「重新生成」重试。"));
         }
 
         var proposal = new PendingProposal
         {
             Kind = ProposalKind.PlotLine,
-            Title = "剧情线规划",
-            Summary = $"共 {lines.Count} 条剧情线，采纳后将写入剧情管理。"
+            Title = T("CPS.CardPlotLinesTitle", "剧情线规划"),
+            Summary = TF("CPS.CardPlotLinesSummary", $"共 {lines.Count} 条剧情线，采纳后将写入剧情管理。", lines.Count)
         };
         foreach (var (content, _) in lines)
         {
@@ -471,7 +473,7 @@ public class CreationPipelineService
             });
         }
 
-        PostStageReport("剧情线规划完成", lines.Select(l => l.Content).Take(3).Select(c => SplitSegments(c).FirstOrDefault() ?? c));
+        PostStageReport(T("CPS.StageReportPlotLines", "剧情线规划完成"), lines.Select(l => l.Content).Take(3).Select(c => SplitSegments(c).FirstOrDefault() ?? c));
         PostProposal(proposal);
     }
 
@@ -483,7 +485,7 @@ public class CreationPipelineService
         var blueprint = await LoadBlueprintAsync(_state.ProjectId);
         if (string.IsNullOrWhiteSpace(blueprint))
         {
-            PostMessage("未找到已采纳的总纲，无法规划分卷。请先采纳总纲确认卡。");
+            PostMessage(T("CPS.ErrNoBlueprintVolumes", "未找到已采纳的总纲，无法规划分卷。请先采纳总纲确认卡。"));
             return;
         }
 
@@ -513,14 +515,14 @@ public class CreationPipelineService
         var lines = ParseNumberedLines(raw, 1, 8);
         if (lines.Count == 0)
         {
-            throw new InvalidOperationException("分卷输出解析失败（未找到编号行），请回复「重新生成」重试。");
+            throw new InvalidOperationException(T("CPS.ErrParseVolumes", "分卷输出解析失败（未找到编号行），请回复「重新生成」重试。"));
         }
 
         var proposal = new PendingProposal
         {
             Kind = ProposalKind.Volume,
-            Title = "分卷规划",
-            Summary = $"共 {lines.Count} 卷，采纳后将创建卷宗。"
+            Title = T("CPS.CardVolumesTitle", "分卷规划"),
+            Summary = TF("CPS.CardVolumesSummary", $"共 {lines.Count} 卷，采纳后将创建卷宗。", lines.Count)
         };
         foreach (var (content, _) in lines)
         {
@@ -541,7 +543,7 @@ public class CreationPipelineService
             });
         }
 
-        PostStageReport("分卷规划完成", lines.Select(l => l.Content).Select(c => SplitSegments(c).FirstOrDefault() ?? c));
+        PostStageReport(T("CPS.StageReportVolumes", "分卷规划完成"), lines.Select(l => l.Content).Select(c => SplitSegments(c).FirstOrDefault() ?? c));
         PostProposal(proposal);
     }
 
@@ -554,7 +556,7 @@ public class CreationPipelineService
         var volume = await ResolveCurrentVolumeAsync(_state.ProjectId);
         if (volume == null)
         {
-            PostMessage("未找到当前卷宗，请先采纳分卷确认卡。");
+            PostMessage(T("CPS.ErrNoVolumeDrafts", "未找到当前卷宗，请先采纳分卷确认卡。"));
             return;
         }
 
@@ -573,14 +575,14 @@ public class CreationPipelineService
         var lines = ParseNumberedLines(raw, 1, 20);
         if (lines.Count == 0)
         {
-            throw new InvalidOperationException("章节梗概输出解析失败（未找到编号行），请回复「重新生成」重试。");
+            throw new InvalidOperationException(T("CPS.ErrParseChapterDrafts", "章节梗概输出解析失败（未找到编号行），请回复「重新生成」重试。"));
         }
 
         var proposal = new PendingProposal
         {
             Kind = ProposalKind.ChapterDraft,
-            Title = $"第{volume.Order}卷章节剧情草稿",
-            Summary = $"共 {lines.Count} 章梗概，采纳后将创建章节（状态：草稿）。"
+            Title = TF("CPS.CardChapterDraftsTitle", $"第{volume.Order}卷章节剧情草稿", volume.Order),
+            Summary = TF("CPS.CardChapterDraftsSummary", $"共 {lines.Count} 章梗概，采纳后将创建章节（状态：草稿）。", lines.Count)
         };
         foreach (var (content, index) in lines)
         {
@@ -599,7 +601,7 @@ public class CreationPipelineService
             });
         }
 
-        PostStageReport($"第{volume.Order}卷章节剧情草稿完成", new[] { $"覆盖 {lines.Count} 章梗概" });
+        PostStageReport(TF("CPS.StageReportChapterDrafts", $"第{volume.Order}卷章节剧情草稿完成", volume.Order), new[] { TF("CPS.CoverChapterBriefs", $"覆盖 {lines.Count} 章梗概", lines.Count) });
         PostProposal(proposal);
     }
 
@@ -611,21 +613,21 @@ public class CreationPipelineService
         var chapter = await ResolveCurrentChapterAsync(_state.ProjectId);
         if (chapter == null)
         {
-            PostMessage("未找到待写章节，请先采纳章节草稿确认卡。");
+            PostMessage(T("CPS.ErrNoChapterDrafts", "未找到待写章节，请先采纳章节草稿确认卡。"));
             return;
         }
 
         var volume = await ResolveCurrentVolumeAsync(_state.ProjectId);
         if (volume == null)
         {
-            PostMessage("未找到当前卷宗，请先采纳分卷确认卡。");
+            PostMessage(T("CPS.ErrNoVolumeDrafts", "未找到当前卷宗，请先采纳分卷确认卡。"));
             return;
         }
 
         var blueprint = await LoadBlueprintAsync(_state.ProjectId);
         var prevTail = await GetPreviousChapterTailAsync(volume.Id, chapter.Order);
 
-        PostMessage($"正在为第{volume.Order}卷第{chapter.Order}章《{chapter.Title}》创作正文（切片拼接，目标 {ChapterMinChars} 字以上）…");
+        PostMessage(TF("CPS.CreatingChapterContent", $"正在为第{volume.Order}卷第{chapter.Order}章《{chapter.Title}》创作正文（切片拼接，目标 {ChapterMinChars} 字以上）…", volume.Order, chapter.Order, chapter.Title, ChapterMinChars));
 
         var content = await GenerateChapterContentCoreAsync(
             volume.Order, chapter.Order, chapter.Title,
@@ -635,8 +637,8 @@ public class CreationPipelineService
         var proposal = new PendingProposal
         {
             Kind = ProposalKind.ChapterContent,
-            Title = $"第{chapter.Order}章正文（{content.Length}字）",
-            Summary = $"《{chapter.Title}》正文已完成，共 {content.Length} 字。可采纳落库、逐项修改后采纳，或放弃整卡重写。"
+            Title = TF("CPS.CardChapterContentTitle", $"第{chapter.Order}章正文（{content.Length}字）", chapter.Order, content.Length),
+            Summary = TF("CPS.CardChapterContentSummary", $"《{chapter.Title}》正文已完成，共 {content.Length} 字。可采纳落库、逐项修改后采纳，或放弃整卡重写。", chapter.Title, content.Length)
         };
         proposal.Items.Add(new ProposalItem
         {
@@ -649,7 +651,7 @@ public class CreationPipelineService
             }
         });
 
-        PostStageReport($"第{chapter.Order}章正文完成", new[] { $"《{chapter.Title}》共 {content.Length} 字" });
+        PostStageReport(TF("CPS.StageReportChapterContent", $"第{chapter.Order}章正文完成", chapter.Order), new[] { TF("CPS.ChapterWordCount", $"《{chapter.Title}》共 {content.Length} 字", chapter.Title, content.Length) });
         PostProposal(proposal);
     }
 
@@ -827,15 +829,15 @@ public class CreationPipelineService
         var chapter = await _chapterService.GetChapterByIdAsync(referral.ChapterId);
         if (chapter == null)
         {
-            throw new InvalidOperationException("目标章节不存在或已被删除，请重新关联。");
+            throw new InvalidOperationException(T("CPS.ErrChapterMissing", "目标章节不存在或已被删除，请重新关联。"));
         }
 
         var original = chapter.Content ?? string.Empty;
         var hasContent = !string.IsNullOrWhiteSpace(original);
 
         PostMessage(hasContent
-            ? $"正在按你的要求处理《{referral.ProjectName}》第{referral.VolumeOrder}卷第{referral.ChapterOrder}章《{chapter.Title}》（原文 {original.Length} 字）…"
-            : $"《{chapter.Title}》还没有正文，我将按梗概与你的要求创作本章正文…");
+            ? TF("CPS.ProcessingChapter", $"正在按你的要求处理《{referral.ProjectName}》第{referral.VolumeOrder}卷第{referral.ChapterOrder}章《{chapter.Title}》（原文 {original.Length} 字）…", referral.ProjectName, referral.VolumeOrder, referral.ChapterOrder, chapter.Title, original.Length)
+            : TF("CPS.CreatingFromBrief", $"《{chapter.Title}》还没有正文，我将按梗概与你的要求创作本章正文…", chapter.Title));
 
         var processed = hasContent
             ? await RewriteChapterCoreAsync(referral, chapter.Title, instruction, original)
@@ -845,8 +847,8 @@ public class CreationPipelineService
         {
             Kind = ProposalKind.ChapterContent,
             TargetChapterId = referral.ChapterId,
-            Title = $"章节处理：{chapter.Title}（{(hasContent ? $"原文 {original.Length} 字" : "草稿成文")} → {processed.Length} 字）",
-            Summary = "已按你的要求处理该章，采纳后直接更新本章正文；也可逐项修改后采纳，或放弃整卡重新提要求。"
+            Title = TF("CPS.CardChapterProcessTitle", $"章节处理：{chapter.Title}（{(hasContent ? $"原文 {original.Length} 字" : "草稿成文")} → {processed.Length} 字）", chapter.Title, hasContent ? TF("CPS.OriginalWords", $"原文 {original.Length} 字", original.Length) : T("CPS.DraftToText", "草稿成文"), processed.Length),
+            Summary = T("CPS.CardChapterProcessSummary", "已按你的要求处理该章，采纳后直接更新本章正文；也可逐项修改后采纳，或放弃整卡重新提要求。")
         };
         proposal.Items.Add(new ProposalItem
         {
@@ -860,10 +862,10 @@ public class CreationPipelineService
             }
         });
 
-        PostStageReport($"《{chapter.Title}》处理完成", new[]
+        PostStageReport(TF("CPS.StageReportChapterProcessed", $"《{chapter.Title}》处理完成", chapter.Title), new[]
         {
-            hasContent ? $"原文 {original.Length} 字 → 处理后 {processed.Length} 字" : $"根据梗概生成 {processed.Length} 字",
-            "采纳后将直接更新该章正文（不推进流水线）"
+            hasContent ? TF("CPS.OriginalToProcessed", $"原文 {original.Length} 字 → 处理后 {processed.Length} 字", original.Length, processed.Length) : TF("CPS.GeneratedFromBrief", $"根据梗概生成 {processed.Length} 字", processed.Length),
+            T("CPS.WillUpdateChapter", "采纳后将直接更新该章正文（不推进流水线）")
         });
         PostProposal(proposal);
         return proposal;

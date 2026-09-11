@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.Application.Services;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -47,7 +48,7 @@ namespace NovelManagement.WPF.Views
             var mainWindow = GetMainWindow();
             if (mainWindow == null)
             {
-                MessageBox.Show("无法获取主窗口", "错误",
+                MessageBox.Show(LocalizationManager.T("PO.CannotGetMainWindow", "无法获取主窗口"), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -68,7 +69,7 @@ namespace NovelManagement.WPF.Views
             var guard = App.ServiceProvider?.GetService<CurrentProjectGuard>();
             if (guard == null)
             {
-                MessageBox.Show("项目校验服务未初始化", "错误",
+                MessageBox.Show(LocalizationManager.T("PO.GuardServiceNotInitialized", "项目校验服务未初始化"), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 projectId = Guid.Empty;
                 return false;
@@ -117,7 +118,7 @@ namespace NovelManagement.WPF.Views
         private async void ProjectOverviewView_Loaded(object sender, RoutedEventArgs e)
         {
             var projectId = _navigationContext?.ProjectId;
-            if (projectId == null && TryGetCurrentProjectId("项目概览", out var currentProjectId))
+            if (projectId == null && TryGetCurrentProjectId(LocalizationManager.T("Nav.ProjectOverview", "项目概览"), out var currentProjectId))
             {
                 projectId = currentProjectId;
             }
@@ -169,40 +170,40 @@ namespace NovelManagement.WPF.Views
             var hasWriting = statistics.VolumeCount + statistics.ChapterCount > 0;
 
             ProjectBaseStageTextBlock.Text = hasProjectBase
-                ? $"已就绪\n类型：{workspace.ProjectType}"
-                : "待补充\n请先完善项目名称与类型";
+                ? LocalizationManager.TF("PO.StageReadyType", "已就绪\n类型：{0}", workspace.ProjectType)
+                : LocalizationManager.T("PO.StagePendingProject", "待补充\n请先完善项目名称与类型");
 
             WorldStageTextBlock.Text = hasWorldSettings
-                ? $"进行中/已完成\n当前 {statistics.WorldSettingCount} 条设定"
-                : "待开始\n建议先补齐世界观";
+                ? LocalizationManager.TF("PO.StageWorldDone", "进行中/已完成\n当前 {0} 条设定", statistics.WorldSettingCount)
+                : LocalizationManager.T("PO.StageWorldPending", "待开始\n建议先补齐世界观");
 
             OutlineStageTextBlock.Text = hasOutline
-                ? $"进行中/已完成\n当前 {statistics.PlotCount} 条剧情"
-                : "待开始\n应基于世界观生成";
+                ? LocalizationManager.TF("PO.StageOutlineDone", "进行中/已完成\n当前 {0} 条剧情", statistics.PlotCount)
+                : LocalizationManager.T("PO.StageOutlinePending", "待开始\n应基于世界观生成");
 
             SupportStageTextBlock.Text = hasSupport
-                ? $"可并行推进\n角色 {statistics.CharacterCount} / 势力 {statistics.FactionCount}"
-                : "待开始\n建议在大纲后补齐";
+                ? LocalizationManager.TF("PO.StageSupportDone", "可并行推进\n角色 {0} / 势力 {1}", statistics.CharacterCount, statistics.FactionCount)
+                : LocalizationManager.T("PO.StageSupportPending", "待开始\n建议在大纲后补齐");
 
             WritingStageTextBlock.Text = hasWriting
-                ? $"进行中/已完成\n卷 {statistics.VolumeCount} / 章 {statistics.ChapterCount}"
-                : "未开始\n请在基础设定后写作";
+                ? LocalizationManager.TF("PO.StageWritingDone", "进行中/已完成\n卷 {0} / 章 {1}", statistics.VolumeCount, statistics.ChapterCount)
+                : LocalizationManager.T("PO.StageWritingPending", "未开始\n请在基础设定后写作");
 
             ParallelStageHintTextBlock.Text = hasOutline
-                ? "并行提示：当前已进入配套设定阶段，角色、势力、修炼体系、政治体系等可以同步补齐，但都应遵循项目基础信息、世界观与大纲。"
-                : "并行提示：先完成项目基础信息、世界观和大纲，再并行补齐角色、势力与其他配套设定。";
+                ? LocalizationManager.T("PO.ParallelHintWithOutline", "并行提示：当前已进入配套设定阶段，角色、势力、修炼体系、政治体系等可以同步补齐，但都应遵循项目基础信息、世界观与大纲。")
+                : LocalizationManager.T("PO.ParallelHintNoOutline", "并行提示：先完成项目基础信息、世界观和大纲，再并行补齐角色、势力与其他配套设定。");
 
             ClosedLoopHintTextBlock.Text = hasWriting
-                ? "闭环提示：写作推进后，应回到剧情、人物、势力、世界设定和一致性检查入口做校正，再进入下一轮卷章写作。"
-                : "闭环提示：当卷章开始推进后，系统应进入“写作 → 同步上下文 → 检查一致性 → 回补设定/大纲”的闭环。";
+                ? LocalizationManager.T("PO.ClosedLoopHintWriting", "闭环提示：写作推进后，应回到剧情、人物、势力、世界设定和一致性检查入口做校正，再进入下一轮卷章写作。")
+                : LocalizationManager.T("PO.ClosedLoopHintNoWriting", "闭环提示：当卷章开始推进后，系统应进入“写作 → 同步上下文 → 检查一致性 → 回补设定/大纲”的闭环。");
 
             AutoUpdateFlowTextBlock.Text = hasWriting
-                ? "更新工艺：章节保存后，系统会先自动同步剧情、设定、角色履历、势力履历、人物关系、势力关系与时间线。"
-                : "更新工艺：进入卷章写作后，每次章节保存都应触发剧情、设定、履历、关系和时间线的自动更新。";
+                ? LocalizationManager.T("PO.AutoUpdateHintWriting", "更新工艺：章节保存后，系统会先自动同步剧情、设定、角色履历、势力履历、人物关系、势力关系与时间线。")
+                : LocalizationManager.T("PO.AutoUpdateHintNoWriting", "更新工艺：进入卷章写作后，每次章节保存都应触发剧情、设定、履历、关系和时间线的自动更新。");
 
             WorkflowReviewHintTextBlock.Text = hasWriting
-                ? "复核工艺：自动更新完成后，建议依次检查时间线管理、关系网络、角色管理、势力管理、一致性检查和质量检查页面，确认自动更新结果。"
-                : "复核工艺：当前还未进入写作阶段。待章节开始推进后，再进入“自动更新 → 人工复核 → 回补设定/剧情”的闭环。";
+                ? LocalizationManager.T("PO.ReviewHintWriting", "复核工艺：自动更新完成后，建议依次检查时间线管理、关系网络、角色管理、势力管理、一致性检查和质量检查页面，确认自动更新结果。")
+                : LocalizationManager.T("PO.ReviewHintNoWriting", "复核工艺：当前还未进入写作阶段。待章节开始推进后，再进入“自动更新 → 人工复核 → 回补设定/剧情”的闭环。");
 
             NextActionTextBlock.Text = ResolveNextActionText(hasProjectBase, hasWorldSettings, hasOutline, hasSupport, hasWriting);
         }
@@ -211,30 +212,30 @@ namespace NovelManagement.WPF.Views
         {
             if (!hasProjectBase)
             {
-                return "下一步建议：先完善项目基础信息，再进入世界设定与 AI 生成。";
+                return LocalizationManager.T("PO.Next.ProjectBase", "下一步建议：先完善项目基础信息，再进入世界设定与 AI 生成。");
             }
 
             if (!hasWorldSettings)
             {
-                return "下一步建议：优先补齐世界观。可以进入“世界设定”或“流程工作台”生成前置设定。";
+                return LocalizationManager.T("PO.Next.WorldSettings", "下一步建议：优先补齐世界观。可以进入“世界设定”或“流程工作台”生成前置设定。");
             }
 
             if (!hasOutline)
             {
-                return "下一步建议：基于当前世界观生成剧情大纲，再继续补齐角色和势力。";
+                return LocalizationManager.T("PO.Next.Outline", "下一步建议：基于当前世界观生成剧情大纲，再继续补齐角色和势力。");
             }
 
             if (!hasSupport)
             {
-                return "下一步建议：当前已具备基础世界观和大纲，可以并行补齐角色、势力及其他细分设定。";
+                return LocalizationManager.T("PO.Next.Support", "下一步建议：当前已具备基础世界观和大纲，可以并行补齐角色、势力及其他细分设定。");
             }
 
             if (!hasWriting)
             {
-                return "下一步建议：进入卷章管理开始写作，并在写作后持续回补剧情和设定。";
+                return LocalizationManager.T("PO.Next.Writing", "下一步建议：进入卷章管理开始写作，并在写作后持续回补剧情和设定。");
             }
 
-            return "下一步建议：项目已进入创作闭环，建议按“写作 → 自动更新时间线/关系/履历 → 复核时间线与关系网络 → 一致性检查 → 回补设定/大纲”的节奏持续推进。";
+            return LocalizationManager.T("PO.Next.ClosedLoop", "下一步建议：项目已进入创作闭环，建议按“写作 → 自动更新时间线/关系/履历 → 复核时间线与关系网络 → 一致性检查 → 回补设定/大纲”的节奏持续推进。");
         }
 
         #region 事件处理
@@ -246,13 +247,13 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("新建章节", NavigationTarget.VolumeManagement,
+                TryNavigateToMainWindow(LocalizationManager.T("PO.FeatureNewChapter", "新建章节"), NavigationTarget.VolumeManagement,
                     payload: new VolumeNavigationPayload { Action = "CreateChapter" },
                     source: "ProjectOverview.WriteChapter");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开卷章管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenVolumeChapterFailed", "打开卷章管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -264,11 +265,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("角色管理", NavigationTarget.CharacterManagement);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.CharacterManagement", "角色管理"), NavigationTarget.CharacterManagement);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开角色管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenCharacterFailed", "打开角色管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -277,11 +278,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("势力管理", NavigationTarget.FactionManagement);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.FactionManagement", "势力管理"), NavigationTarget.FactionManagement);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开势力管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenFactionFailed", "打开势力管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -295,11 +296,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("时间线管理", NavigationTarget.Timeline);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.Timeline", "时间线管理"), NavigationTarget.Timeline);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开时间线管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenTimelineFailed", "打开时间线管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -308,11 +309,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("关系网络", NavigationTarget.RelationshipNetwork);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.RelationshipNetwork", "关系网络"), NavigationTarget.RelationshipNetwork);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开关系网络失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenRelationshipFailed", "打开关系网络失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -324,12 +325,12 @@ namespace NovelManagement.WPF.Views
                 var mainWindow = GetMainWindow();
                 if (mainWindow == null)
                 {
-                    MessageBox.Show("无法获取主窗口", "错误",
+                    MessageBox.Show(LocalizationManager.T("PO.CannotGetMainWindow", "无法获取主窗口"), LocalizationManager.T("Msg.Error", "错误"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                if (!TryGetCurrentProjectId("一致性检查", out _))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("PO.ConsistencyCheck", "一致性检查"), out _))
                 {
                     return;
                 }
@@ -338,7 +339,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开一致性检查失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenConsistencyFailed", "打开一致性检查失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -350,12 +351,12 @@ namespace NovelManagement.WPF.Views
                 var mainWindow = GetMainWindow();
                 if (mainWindow == null)
                 {
-                    MessageBox.Show("无法获取主窗口", "错误",
+                    MessageBox.Show(LocalizationManager.T("PO.CannotGetMainWindow", "无法获取主窗口"), LocalizationManager.T("Msg.Error", "错误"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                if (!TryGetCurrentProjectId("质量检查", out _))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("Side.Btn.QualityCheck", "质量检查"), out _))
                 {
                     return;
                 }
@@ -364,7 +365,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开质量检查失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenQualityFailed", "打开质量检查失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -376,11 +377,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("剧情管理", NavigationTarget.PlotManagement);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.PlotManagement", "剧情管理"), NavigationTarget.PlotManagement);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开剧情管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenPlotFailed", "打开剧情管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -392,11 +393,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("AI协作", NavigationTarget.AICollaboration);
+                TryNavigateToMainWindow(LocalizationManager.T("Common.AICollab", "AI协作"), NavigationTarget.AICollaboration);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开AI助手失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LocalizationManager.TF("PO.OpenAIAssistantFailed", "打开AI助手失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -404,7 +405,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryGetCurrentProjectId("前置条件生成", out var currentProjectId))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("Side.Btn.Prerequisite", "前置条件生成"), out var currentProjectId))
                 {
                     return;
                 }
@@ -416,7 +417,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开流程工作台失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenWorkbenchFailed", "打开流程工作台失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -428,13 +429,13 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("项目主页", NavigationTarget.VolumeManagement,
+                TryNavigateToMainWindow(LocalizationManager.T("PO.FeatureProjectHome", "项目主页"), NavigationTarget.VolumeManagement,
                     payload: new VolumeNavigationPayload { Action = "ProjectHome" },
                     source: "ProjectOverview.ProjectStatus");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"进入项目主页失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenProjectHomeFailed", "进入项目主页失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -446,13 +447,13 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("世界设定", NavigationTarget.WorldSettingManagement,
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.WorldSettingManagement", "世界设定"), NavigationTarget.WorldSettingManagement,
                     payload: new WorldSettingNavigationPayload { Action = "WorldSettingsHome" },
                     source: "ProjectOverview.WorldSettings");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开世界设定管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenWorldSettingsFailed", "打开世界设定管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -464,11 +465,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("角色管理", NavigationTarget.CharacterManagement);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.CharacterManagement", "角色管理"), NavigationTarget.CharacterManagement);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开角色管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenCharacterFailed", "打开角色管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -480,7 +481,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryGetCurrentProjectId("AI大纲生成", out var currentProjectId))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("PO.AIOutlineGeneration", "AI大纲生成"), out var currentProjectId))
                 {
                     return;
                 }
@@ -493,13 +494,13 @@ namespace NovelManagement.WPF.Views
                 var result = dialog.ShowDialog();
                 if (result == true)
                 {
-                    MessageBox.Show("大纲生成完成并已保存", "成功",
+                    MessageBox.Show(LocalizationManager.T("PO.OutlineGenerated", "大纲生成完成并已保存"), LocalizationManager.T("Msg.Success", "成功"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开AI大纲生成器失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenAIOutlineFailed", "打开AI大纲生成器失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -511,11 +512,11 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                TryNavigateToMainWindow("剧情管理", NavigationTarget.PlotManagement);
+                TryNavigateToMainWindow(LocalizationManager.T("Nav.PlotManagement", "剧情管理"), NavigationTarget.PlotManagement);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开剧情管理失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenPlotFailed", "打开剧情管理失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -527,7 +528,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryNavigateToMainWindow("导入导出", NavigationTarget.ImportExport,
+                if (!TryNavigateToMainWindow(LocalizationManager.T("Nav.ImportExport", "导入导出"), NavigationTarget.ImportExport,
                     payload: new ImportExportNavigationPayload { Action = "EntireProjectExport" },
                     source: "ProjectOverview.ImportExport"))
                 {
@@ -536,7 +537,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开导入导出界面失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenImportExportFailed", "打开导入导出界面失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -548,7 +549,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryGetCurrentProjectId("项目设置", out var currentProjectId))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("PO.ProjectSettings", "项目设置"), out var currentProjectId))
                 {
                     return;
                 }
@@ -556,7 +557,7 @@ namespace NovelManagement.WPF.Views
                 var readModelService = _projectReadModelService;
                 if (readModelService == null)
                 {
-                    MessageBox.Show("项目读模型服务未初始化", "错误",
+                    MessageBox.Show(LocalizationManager.T("PO.ReadModelServiceNotInitialized", "项目读模型服务未初始化"), LocalizationManager.T("Msg.Error", "错误"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -564,7 +565,7 @@ namespace NovelManagement.WPF.Views
                 var workspace = await readModelService.GetWorkspaceAsync(currentProjectId);
                 if (workspace == null)
                 {
-                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                    MessageBox.Show(LocalizationManager.T("PO.ProjectNotFound", "未找到当前项目，请重新选择项目。"), LocalizationManager.T("Msg.Tip", "提示"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -587,13 +588,13 @@ namespace NovelManagement.WPF.Views
                 var result = settingsDialog.ShowDialog();
                 if (result == true)
                 {
-                    MessageBox.Show("项目设置已更新", "提示",
+                    MessageBox.Show(LocalizationManager.T("PO.SettingsUpdated", "项目设置已更新"), LocalizationManager.T("Msg.Tip", "提示"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开项目设置失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenSettingsFailed", "打开项目设置失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -605,7 +606,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryGetCurrentProjectId("统计分析", out var currentProjectId))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("PO.Statistics", "统计分析"), out var currentProjectId))
                 {
                     return;
                 }
@@ -613,7 +614,7 @@ namespace NovelManagement.WPF.Views
                 var statisticsService = App.ServiceProvider?.GetService<ProjectStatisticsService>();
                 if (statisticsService == null)
                 {
-                    MessageBox.Show("项目统计服务未初始化", "错误",
+                    MessageBox.Show(LocalizationManager.T("PO.StatisticsServiceNotInitialized", "项目统计服务未初始化"), LocalizationManager.T("Msg.Error", "错误"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -621,7 +622,7 @@ namespace NovelManagement.WPF.Views
                 var summary = await statisticsService.GetProjectStatisticsAsync(currentProjectId);
                 if (summary == null)
                 {
-                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                    MessageBox.Show(LocalizationManager.T("PO.ProjectNotFound", "未找到当前项目，请重新选择项目。"), LocalizationManager.T("Msg.Tip", "提示"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -632,7 +633,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打开统计分析失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.OpenStatisticsFailed", "打开统计分析失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -644,7 +645,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!TryGetCurrentProjectId("项目备份", out var currentProjectId))
+                if (!TryGetCurrentProjectId(LocalizationManager.T("PO.ProjectBackup", "项目备份"), out var currentProjectId))
                 {
                     return;
                 }
@@ -652,7 +653,7 @@ namespace NovelManagement.WPF.Views
                 var projectService = App.ServiceProvider?.GetService<ProjectService>();
                 if (projectService == null)
                 {
-                    MessageBox.Show("项目服务未初始化", "错误",
+                    MessageBox.Show(LocalizationManager.T("PO.ProjectServiceNotInitialized", "项目服务未初始化"), LocalizationManager.T("Msg.Error", "错误"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -660,29 +661,29 @@ namespace NovelManagement.WPF.Views
                 var project = projectService.GetProjectByIdAsync(currentProjectId).GetAwaiter().GetResult();
                 if (project == null)
                 {
-                    MessageBox.Show("未找到当前项目，请重新选择项目。", "提示",
+                    MessageBox.Show(LocalizationManager.T("PO.ProjectNotFound", "未找到当前项目，请重新选择项目。"), LocalizationManager.T("Msg.Tip", "提示"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 var result = MessageBox.Show(
-                    $"确定要备份当前项目“{project.Name}”吗？\n\n备份将包含：\n• 所有文本内容\n• 角色设定\n• 剧情大纲\n• 世界设定\n• 项目配置",
-                    "备份确认",
+                    LocalizationManager.TF("PO.BackupConfirm", "确定要备份当前项目“{0}”吗？\n\n备份将包含：\n• 所有文本内容\n• 角色设定\n• 剧情大纲\n• 世界设定\n• 项目配置", project.Name),
+                    LocalizationManager.T("PO.BackupConfirmTitle", "备份确认"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
                     MessageBox.Show(
-                        $"当前项目：{project.Name}\n\n真实备份链路尚未接入，本入口已完成项目上下文收口。\n后续将统一接入导出/备份服务，避免继续使用演示数据。",
-                        "功能待完善",
+                        LocalizationManager.TF("PO.BackupNotImplemented", "当前项目：{0}\n\n真实备份链路尚未接入，本入口已完成项目上下文收口。\n后续将统一接入导出/备份服务，避免继续使用演示数据。", project.Name),
+                        LocalizationManager.T("PO.FeaturePending", "功能待完善"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"备份项目失败：{ex.Message}", "错误",
+                MessageBox.Show(LocalizationManager.TF("PO.BackupFailed", "备份项目失败：{0}", ex.Message), LocalizationManager.T("Msg.Error", "错误"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

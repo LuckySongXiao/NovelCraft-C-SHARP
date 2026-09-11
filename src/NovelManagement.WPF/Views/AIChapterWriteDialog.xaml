@@ -1,11 +1,11 @@
-<Window x:Class="NovelManagement.WPF.Views.AIChapterWriteDialog"
+<Window x:Class="NovelManagement.WPF.Views.AIChapterWriteDialog" Icon="pack://application:,,,/Assets/icon.ico"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AI章节编写" Height="600" Width="800"
+        Title="{DynamicResource Loc.CWR.Title}" Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -26,14 +26,14 @@
         <materialDesign:Card Grid.Row="0" Margin="0,0,0,16" Padding="16">
             <StackPanel>
                 <DockPanel>
-                    <TextBlock Text="AI章节编写"
+                    <TextBlock Text="{DynamicResource Loc.CWR.Title}"
                              FontSize="24"
                              FontWeight="Bold"
                              DockPanel.Dock="Left"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                         <!-- AI模型选择 -->
                         <ComboBox x:Name="AIModelComboBox"
-                                materialDesign:HintAssist.Hint="AI模型"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintModel}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Width="120"
                                 Margin="0,0,8,0">
@@ -45,13 +45,13 @@
                         <!-- 模板管理 -->
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Click="ManageTemplates_Click"
-                              ToolTip="管理生成模板">
+                              ToolTip="{DynamicResource Loc.CWR.ManageTemplatesTip}">
                             <materialDesign:PackIcon Kind="FileDocument"/>
                         </Button>
                     </StackPanel>
                 </DockPanel>
 
-                <TextBlock Text="AI将根据章节信息、大纲、剧情设定等自动生成章节内容"
+                <TextBlock Text="{DynamicResource Loc.CWR.Desc}"
                          FontSize="14"
                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                          Margin="0,8,0,0"/>
@@ -84,52 +84,52 @@
             <materialDesign:Card Grid.Column="0" Padding="16">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="生成设置" 
+                        <TextBlock Text="{DynamicResource Loc.CWR.GenSettings}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  Margin="0,0,0,16"/>
 
                         <!-- 章节标题 -->
                         <TextBox x:Name="ChapterTitleTextBox"
-                               materialDesign:HintAssist.Hint="章节标题"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintChapterTitle}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,12"/>
 
                         <!-- 写作风格 -->
                         <ComboBox x:Name="WritingStyleComboBox"
-                                materialDesign:HintAssist.Hint="写作风格"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintWritingStyle}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,12">
-                            <ComboBoxItem Content="现代都市"/>
-                            <ComboBoxItem Content="古风仙侠" IsSelected="True"/>
-                            <ComboBoxItem Content="科幻未来"/>
-                            <ComboBoxItem Content="奇幻魔法"/>
-                            <ComboBoxItem Content="历史军事"/>
-                            <ComboBoxItem Content="悬疑推理"/>
+                            <ComboBoxItem Tag="现代都市" Content="{DynamicResource Loc.CWR.StyleUrban}"/>
+                            <ComboBoxItem Tag="古风仙侠" Content="{DynamicResource Loc.CWR.StyleXianxia}" IsSelected="True"/>
+                            <ComboBoxItem Tag="科幻未来" Content="{DynamicResource Loc.CWR.StyleScifi}"/>
+                            <ComboBoxItem Tag="奇幻魔法" Content="{DynamicResource Loc.CWR.StyleFantasy}"/>
+                            <ComboBoxItem Tag="历史军事" Content="{DynamicResource Loc.CWR.StyleMilitary}"/>
+                            <ComboBoxItem Tag="悬疑推理" Content="{DynamicResource Loc.CWR.StyleMystery}"/>
                         </ComboBox>
 
                         <!-- 章节类型 -->
                         <ComboBox x:Name="ChapterTypeComboBox"
-                                materialDesign:HintAssist.Hint="章节类型"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintChapterType}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,12">
-                            <ComboBoxItem Content="正文章节" IsSelected="True"/>
-                            <ComboBoxItem Content="过渡章节"/>
-                            <ComboBoxItem Content="高潮章节"/>
-                            <ComboBoxItem Content="回忆章节"/>
-                            <ComboBoxItem Content="番外章节"/>
+                            <ComboBoxItem Tag="正文章节" Content="{DynamicResource Loc.CWR.TypeNormal}" IsSelected="True"/>
+                            <ComboBoxItem Tag="过渡章节" Content="{DynamicResource Loc.CWR.TypeTransition}"/>
+                            <ComboBoxItem Tag="高潮章节" Content="{DynamicResource Loc.CWR.TypeClimax}"/>
+                            <ComboBoxItem Tag="回忆章节" Content="{DynamicResource Loc.CWR.TypeFlashback}"/>
+                            <ComboBoxItem Tag="番外章节" Content="{DynamicResource Loc.CWR.TypeExtra}"/>
                         </ComboBox>
 
                         <!-- 目标字数 -->
                         <TextBox x:Name="TargetWordCountTextBox"
-                               materialDesign:HintAssist.Hint="目标字数"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintTargetWordCount}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Text="2800"
                                Margin="0,0,0,12"/>
 
                         <!-- 章节大纲 -->
                         <TextBox x:Name="ChapterOutlineTextBox"
-                               materialDesign:HintAssist.Hint="章节大纲（简要描述章节要点）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintOutline}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -140,7 +140,7 @@
 
                         <!-- 关键情节 -->
                         <TextBox x:Name="KeyPlotsTextBox"
-                               materialDesign:HintAssist.Hint="关键情节（必须包含的重要情节点）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintKeyPlots}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -151,15 +151,15 @@
 
                         <!-- 出场角色 -->
                         <TextBox x:Name="CharactersTextBox"
-                               materialDesign:HintAssist.Hint="出场角色（用逗号分隔）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintCharacters}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Margin="0,0,0,12"/>
 
                         <!-- 高级设置 -->
-                        <Expander Header="高级设置" Margin="0,0,0,12">
+                        <Expander Header="{DynamicResource Loc.CWR.AdvancedSettings}" Margin="0,0,0,12">
                             <StackPanel Margin="0,8,0,0">
                                 <!-- 创意程度 -->
-                                <TextBlock Text="创意程度" FontWeight="Medium" Margin="0,0,0,4"/>
+                                <TextBlock Text="{DynamicResource Loc.CWR.Creativity}" FontWeight="Medium" Margin="0,0,0,4"/>
                                 <Slider x:Name="CreativitySlider"
                                       Minimum="0" Maximum="100" Value="70"
                                       TickFrequency="10" TickPlacement="BottomRight"
@@ -171,29 +171,29 @@
 
                                 <!-- 分段生成 -->
                                 <CheckBox x:Name="SegmentedGenerationCheckBox"
-                                        Content="分段生成（适合长章节）"
+                                        Content="{DynamicResource Loc.CWR.SegmentedGen}"
                                         Margin="0,0,0,8"/>
 
                                 <!-- 实时预览 -->
                                 <CheckBox x:Name="RealTimePreviewCheckBox"
-                                        Content="实时预览生成过程"
+                                        Content="{DynamicResource Loc.CWR.RealTimePreview}"
                                         Margin="0,0,0,8"/>
 
                                 <!-- 语言风格强度 -->
-                                <TextBlock Text="语言风格强度" FontWeight="Medium" Margin="0,8,0,4"/>
+                                <TextBlock Text="{DynamicResource Loc.CWR.StyleIntensity}" FontWeight="Medium" Margin="0,8,0,4"/>
                                 <ComboBox x:Name="StyleIntensityComboBox"
                                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                         Margin="0,0,0,8">
-                                    <ComboBoxItem Content="轻度"/>
-                                    <ComboBoxItem Content="中度" IsSelected="True"/>
-                                    <ComboBoxItem Content="强烈"/>
+                                    <ComboBoxItem Tag="轻度" Content="{DynamicResource Loc.CWR.IntensityLight}"/>
+                                    <ComboBoxItem Tag="中度" Content="{DynamicResource Loc.CWR.IntensityMedium}" IsSelected="True"/>
+                                    <ComboBoxItem Tag="强烈" Content="{DynamicResource Loc.CWR.IntensityStrong}"/>
                                 </ComboBox>
                             </StackPanel>
                         </Expander>
 
                         <!-- 特殊要求 -->
                         <TextBox x:Name="SpecialRequirementsTextBox"
-                               materialDesign:HintAssist.Hint="特殊要求（如特定描写重点、情感基调等）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintSpecialReq}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -217,7 +217,7 @@
                                   IsEnabled="True">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="RobotExcited" Margin="0,0,8,0"/>
-                                    <TextBlock Text="开始生成"/>
+                                    <TextBlock Text="{DynamicResource Loc.CWR.StartGenerate}"/>
                                 </StackPanel>
                             </Button>
 
@@ -225,7 +225,7 @@
                                   Grid.Column="2"
                                   Style="{StaticResource MaterialDesignOutlinedButton}"
                                   Click="QuickGenerate_Click"
-                                  ToolTip="快速生成（使用默认设置）">
+                                  ToolTip="{DynamicResource Loc.CWR.QuickGenTip}">
                                 <materialDesign:PackIcon Kind="Flash"/>
                             </Button>
                         </Grid>
@@ -246,13 +246,13 @@
 
                     <!-- 结果标题 -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="生成结果"
+                        <TextBlock Text="{DynamicResource Loc.CWR.Result}"
                                  FontSize="16"
                                  FontWeight="Medium"
                                  DockPanel.Dock="Left"/>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                             <TextBlock x:Name="WordCountLabel"
-                                     Text="(0字)"
+                                     Text="{DynamicResource Loc.CWR.ZeroWords}"
                                      FontSize="14"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      Margin="0,0,8,0"/>
@@ -265,7 +265,7 @@
 
                     <Expander x:Name="RwkvDebugExpander"
                               Grid.Row="1"
-                              Header="RWKV调试信息"
+                              Header="{DynamicResource Loc.CWR.RwkvDebug}"
                               Margin="0,0,0,8"
                               IsExpanded="False">
                         <Border Padding="12"
@@ -284,16 +284,16 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="引擎：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Loc.CWR.EngineLabel}" FontWeight="Medium" Margin="0,0,8,4"/>
                                 <TextBlock x:Name="RwkvEngineInfoTextBlock" Grid.Row="0" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="会话：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Loc.CWR.SessionLabel}" FontWeight="Medium" Margin="0,0,8,4"/>
                                 <TextBlock x:Name="RwkvSessionInfoTextBlock" Grid.Row="1" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="批量候选：" FontWeight="Medium" Margin="0,0,8,4"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Loc.CWR.BatchLabel}" FontWeight="Medium" Margin="0,0,8,4"/>
                                 <TextBlock x:Name="RwkvBigBatchInfoTextBlock" Grid.Row="2" Grid.Column="1" Text="-" Margin="0,0,0,4" TextWrapping="Wrap"/>
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="最后选择：" FontWeight="Medium" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource Loc.CWR.LastSelectionLabel}" FontWeight="Medium" Margin="0,0,8,0"/>
                                 <TextBlock x:Name="RwkvBigBatchSelectionTextBlock" Grid.Row="3" Grid.Column="1" Text="-" TextWrapping="Wrap"/>
                             </Grid>
                         </Border>
@@ -313,14 +313,14 @@
                                AcceptsReturn="True"
                                VerticalScrollBarVisibility="Auto"
                                IsReadOnly="False"
-                               materialDesign:HintAssist.Hint="AI生成的章节内容将显示在这里..."
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CWR.HintGeneratedPlaceholder}"
                                TextChanged="GeneratedContentTextBox_TextChanged"/>
 
                         <!-- 实时统计 -->
                         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
-                            <TextBlock x:Name="CharacterCountLabel" Text="字符: 0" FontSize="12" Margin="0,0,16,0"/>
-                            <TextBlock x:Name="ParagraphCountLabel" Text="段落: 0" FontSize="12" Margin="0,0,16,0"/>
-                            <TextBlock x:Name="ReadingTimeLabel" Text="阅读时间: 0分钟" FontSize="12"/>
+                            <TextBlock x:Name="CharacterCountLabel" Text="{DynamicResource Loc.CWR.CharCount0}" FontSize="12" Margin="0,0,16,0"/>
+                            <TextBlock x:Name="ParagraphCountLabel" Text="{DynamicResource Loc.CWR.ParaCount0}" FontSize="12" Margin="0,0,16,0"/>
+                            <TextBlock x:Name="ReadingTimeLabel" Text="{DynamicResource Loc.CWR.ReadingTime0}" FontSize="12"/>
                         </StackPanel>
                     </Grid>
 
@@ -332,7 +332,7 @@
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Margin="0,0,8,0"
                               Click="SaveTemplate_Click"
-                              ToolTip="保存为模板">
+                              ToolTip="{DynamicResource Loc.CWR.SaveAsTemplateTip}">
                             <materialDesign:PackIcon Kind="ContentSave"/>
                         </Button>
 
@@ -341,7 +341,7 @@
                               Click="Regenerate_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                                <TextBlock Text="重新生成"/>
+                                <TextBlock Text="{DynamicResource Loc.CWR.Regenerate}"/>
                             </StackPanel>
                         </Button>
 
@@ -350,14 +350,14 @@
                               Click="CopyToClipboard_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,4,0"/>
-                                <TextBlock Text="复制"/>
+                                <TextBlock Text="{DynamicResource Loc.Dlg.Copy}"/>
                             </StackPanel>
                         </Button>
 
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Margin="0,0,8,0"
                               Click="PolishContent_Click"
-                              ToolTip="润色内容">
+                              ToolTip="{DynamicResource Loc.CWR.PolishContentTip}">
                             <materialDesign:PackIcon Kind="AutoFix"/>
                         </Button>
                     </StackPanel>
@@ -373,7 +373,7 @@
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                   Margin="0,0,8,0"
                   Click="Cancel_Click">
-                <TextBlock Text="取消"/>
+                <TextBlock Text="{DynamicResource Loc.Dlg.Cancel}"/>
             </Button>
             
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
@@ -381,7 +381,7 @@
                   x:Name="ApplyButton">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
-                    <TextBlock Text="应用内容"/>
+                    <TextBlock Text="{DynamicResource Loc.CWR.ApplyContent}"/>
                 </StackPanel>
             </Button>
         </StackPanel>

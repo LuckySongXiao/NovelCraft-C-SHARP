@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="新建章节" Height="650" Width="500"
+        Title="{DynamicResource Loc.NCD.Title}" Height="650" Width="500"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -29,13 +29,13 @@
                                    Width="48" Height="48" 
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-            <TextBlock Text="新建章节" 
-                     FontSize="24" 
-                     FontWeight="Bold" 
+            <TextBlock Text="{DynamicResource Loc.NCD.Title}"
+                     FontSize="24"
+                     FontWeight="Bold"
                      HorizontalAlignment="Center"
                      Margin="0,8,0,0"/>
-            <TextBlock Text="为选定的卷宗创建新章节" 
-                     FontSize="14" 
+            <TextBlock Text="{DynamicResource Loc.NCD.Subtitle}"
+                     FontSize="14"
                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                      HorizontalAlignment="Center"
                      Margin="0,4,0,0"/>
@@ -46,43 +46,43 @@
             <StackPanel>
                 <!-- 所属卷宗 -->
                 <ComboBox x:Name="VolumeComboBox"
-                        materialDesign:HintAssist.Hint="所属卷宗"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.VolumeHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="第一卷：面具觉醒"/>
-                    <ComboBoxItem Content="第二卷：力量觉醒"/>
-                    <ComboBoxItem Content="第三卷：天劫降临" IsSelected="True"/>
+                    <ComboBoxItem Tag="第一卷：面具觉醒" Content="{DynamicResource Loc.NCD.SampleVol1}"/>
+                    <ComboBoxItem Tag="第二卷：力量觉醒" Content="{DynamicResource Loc.NCD.SampleVol2}"/>
+                    <ComboBoxItem Tag="第三卷：天劫降临" Content="{DynamicResource Loc.NCD.SampleVol3}" IsSelected="True"/>
                 </ComboBox>
 
                 <!-- 章节标题 -->
                 <TextBox x:Name="ChapterTitleTextBox"
-                       materialDesign:HintAssist.Hint="章节标题"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.TitleHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="100"/>
 
                 <!-- 章节编号 -->
                 <TextBox x:Name="ChapterNumberTextBox"
-                       materialDesign:HintAssist.Hint="章节编号"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.NumberHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
 
                 <!-- 章节类型 -->
                 <ComboBox x:Name="ChapterTypeComboBox"
-                        materialDesign:HintAssist.Hint="章节类型"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.TypeHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="正文章节" IsSelected="True"/>
-                    <ComboBoxItem Content="过渡章节"/>
-                    <ComboBoxItem Content="高潮章节"/>
-                    <ComboBoxItem Content="回忆章节"/>
-                    <ComboBoxItem Content="番外章节"/>
+                    <ComboBoxItem Tag="正文章节" Content="{DynamicResource Loc.CWR.TypeNormal}" IsSelected="True"/>
+                    <ComboBoxItem Tag="过渡章节" Content="{DynamicResource Loc.CWR.TypeTransition}"/>
+                    <ComboBoxItem Tag="高潮章节" Content="{DynamicResource Loc.CWR.TypeClimax}"/>
+                    <ComboBoxItem Tag="回忆章节" Content="{DynamicResource Loc.CWR.TypeFlashback}"/>
+                    <ComboBoxItem Tag="番外章节" Content="{DynamicResource Loc.CWR.TypeExtra}"/>
                 </ComboBox>
 
                 <!-- 章节摘要 -->
                 <TextBox x:Name="ChapterSummaryTextBox"
-                       materialDesign:HintAssist.Hint="章节摘要"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.SummaryHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -94,45 +94,45 @@
 
                 <!-- 目标字数 -->
                 <TextBox x:Name="TargetWordCountTextBox"
-                       materialDesign:HintAssist.Hint="目标字数"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.TargetWordsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        PreviewTextInput="NumberOnly_PreviewTextInput"/>
 
                 <!-- 重要性等级 -->
                 <ComboBox x:Name="ImportanceLevelComboBox"
-                        materialDesign:HintAssist.Hint="重要性等级"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.ImportanceHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="1 - 普通"/>
-                    <ComboBoxItem Content="2 - 重要" IsSelected="True"/>
-                    <ComboBoxItem Content="3 - 关键"/>
-                    <ComboBoxItem Content="4 - 核心"/>
-                    <ComboBoxItem Content="5 - 转折点"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Importance1}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Importance2}" IsSelected="True"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Importance3}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Importance4}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Importance5}"/>
                 </ComboBox>
 
                 <!-- 难度等级 -->
                 <ComboBox x:Name="DifficultyLevelComboBox"
-                        materialDesign:HintAssist.Hint="写作难度"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.DifficultyHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="1 - 简单"/>
-                    <ComboBoxItem Content="2 - 普通" IsSelected="True"/>
-                    <ComboBoxItem Content="3 - 中等"/>
-                    <ComboBoxItem Content="4 - 困难"/>
-                    <ComboBoxItem Content="5 - 极难"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Difficulty1}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Difficulty2}" IsSelected="True"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Difficulty3}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Difficulty4}"/>
+                    <ComboBoxItem Content="{DynamicResource Loc.NCD.Difficulty5}"/>
                 </ComboBox>
 
                 <!-- 相关角色 -->
                 <TextBox x:Name="RelatedCharactersTextBox"
-                       materialDesign:HintAssist.Hint="相关角色（用逗号分隔）"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.RelatedCharactersHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="300"/>
 
                 <!-- 关键事件 -->
                 <TextBox x:Name="KeyEventsTextBox"
-                       materialDesign:HintAssist.Hint="关键事件"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.KeyEventsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -144,27 +144,27 @@
 
                 <!-- 章节状态 -->
                 <ComboBox x:Name="ChapterStatusComboBox"
-                        materialDesign:HintAssist.Hint="章节状态"
+                        materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.StatusHint}"
                         Style="{StaticResource MaterialDesignOutlinedComboBox}"
                         Margin="0,0,0,16">
-                    <ComboBoxItem Content="计划中" IsSelected="True"/>
-                    <ComboBoxItem Content="大纲中"/>
-                    <ComboBoxItem Content="写作中"/>
-                    <ComboBoxItem Content="初稿完成"/>
-                    <ComboBoxItem Content="修改中"/>
-                    <ComboBoxItem Content="已完成"/>
+                    <ComboBoxItem Tag="计划中" Content="{DynamicResource Loc.TL.Data.计划中}" IsSelected="True"/>
+                    <ComboBoxItem Tag="大纲中" Content="{DynamicResource Loc.CE.Data.大纲中}"/>
+                    <ComboBoxItem Tag="写作中" Content="{DynamicResource Loc.CE.Data.写作中}"/>
+                    <ComboBoxItem Tag="初稿完成" Content="{DynamicResource Loc.CE.Data.初稿完成}"/>
+                    <ComboBoxItem Tag="修改中" Content="{DynamicResource Loc.CE.Data.修改中}"/>
+                    <ComboBoxItem Tag="已完成" Content="{DynamicResource Loc.PLM.StatusCompleted}"/>
                 </ComboBox>
 
                 <!-- 标签 -->
                 <TextBox x:Name="ChapterTagsTextBox"
-                       materialDesign:HintAssist.Hint="标签（用逗号分隔）"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.TagsHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,0,0,16"
                        MaxLength="200"/>
 
                 <!-- 备注 -->
                 <TextBox x:Name="ChapterNotesTextBox"
-                       materialDesign:HintAssist.Hint="备注"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.NCD.NotesHint}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        TextWrapping="Wrap"
                        AcceptsReturn="True"
@@ -181,12 +181,12 @@
                   Orientation="Horizontal" 
                   HorizontalAlignment="Right" 
                   Margin="0,24,0,0">
-            <Button Content="取消" 
+            <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                   Style="{StaticResource MaterialDesignOutlinedButton}"
                   Margin="0,0,12,0"
                   Width="80"
                   Click="Cancel_Click"/>
-            <Button Content="创建" 
+            <Button Content="{DynamicResource Loc.Dlg.Create}"
                   Style="{StaticResource MaterialDesignRaisedButton}"
                   Width="80"
                   Click="Create_Click"/>

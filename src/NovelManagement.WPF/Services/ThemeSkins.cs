@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
+using NovelManagement.WPF.Localization;
+
 namespace NovelManagement.WPF.Services
 {
     /// <summary>
@@ -39,6 +41,13 @@ namespace NovelManagement.WPF.Services
             ("DataGridRowBackgroundBrush", "表格行背景"),
             ("DataGridAltRowBackgroundBrush", "表格交替行背景"),
         };
+
+        /// <summary>画刷标签按当前语言显示（词条键 TS.C.&lt;BrushKey&gt;，未登记时回退中文标签）。</summary>
+        public static string LocalizeBrushLabel(string brushKey)
+        {
+            var zh = All.FirstOrDefault(item => string.Equals(item.Key, brushKey, StringComparison.OrdinalIgnoreCase)).Label;
+            return LocalizationManager.T("TS.C." + brushKey, string.IsNullOrEmpty(zh) ? brushKey : zh);
+        }
 
         /// <summary>按 All 顺序填充颜色字典（缺失处用 fallback 补齐）。</summary>
         public static Dictionary<string, string> BuildColorSet(Func<string, string?> lookup, Dictionary<string, string>? fallback)
@@ -78,8 +87,15 @@ namespace NovelManagement.WPF.Services
 
         public Dictionary<string, string> Colors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-        public string SkinKind => IsBuiltin ? "内置" : "自定义";
-        public string ToneText => IsDark ? "深色基调" : "浅色基调";
+        /// <summary>皮肤来源（内置/自定义）—— 展示层按语言映射。</summary>
+        public string SkinKind => IsBuiltin
+            ? LocalizationManager.T("TS.KindBuiltin", "内置")
+            : LocalizationManager.T("TS.KindCustom", "自定义");
+
+        /// <summary>明暗基调 —— 展示层按语言映射。</summary>
+        public string ToneText => IsDark
+            ? LocalizationManager.T("TS.ToneDark", "深色基调")
+            : LocalizationManager.T("TS.ToneLight", "浅色基调");
 
         public ThemeSkin Clone()
         {
@@ -108,7 +124,7 @@ namespace NovelManagement.WPF.Services
         public static ThemeSkin CreateLightSkin() => new()
         {
             Id = LightSkinId,
-            Name = "白昼（浅色）",
+            Name = LocalizationManager.T("TS.SkinLight", "白昼（浅色）"),
             IsDark = false,
             IsBuiltin = true,
             Colors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -143,7 +159,7 @@ namespace NovelManagement.WPF.Services
         public static ThemeSkin CreateDarkSkin() => new()
         {
             Id = DarkSkinId,
-            Name = "黑夜（深色）",
+            Name = LocalizationManager.T("TS.SkinDark", "黑夜（深色）"),
             IsDark = true,
             IsBuiltin = true,
             Colors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -179,7 +195,7 @@ namespace NovelManagement.WPF.Services
         public static ThemeSkin CreatePinkSkin() => new()
         {
             Id = PinkSkinId,
-            Name = "红粉花漾少女风",
+            Name = LocalizationManager.T("TS.SkinPink", "红粉花漾少女风"),
             IsDark = false,
             IsBuiltin = true,
             Colors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

@@ -276,7 +276,12 @@ namespace NovelManagement.AI.Services.RWKV
 
             try
             {
-                await _requestSemaphore.WaitAsync();
+                // 注意：本方法可能从 UI 线程调用。所有 await 必须 ConfigureAwait(false)，
+                // 否则 SSE 每行续体都会被调度回 UI 线程；而 while (!reader.EndOfStream) 的
+                // 同步 EndOfStream 属性会在无数据时同步阻塞 socket 读——两者叠加就是
+                // 「生成期间窗口未响应」的直接原因（线程栈实锤：CompleteStreamAsync 状态机
+                // 跑在 UI 线程的 DispatcherOperation 里，卡在 SslStream.Read）。
+                await _requestSemaphore.WaitAsync().ConfigureAwait(false);
 
                 maxTokens = Math.Clamp(maxTokens, 1, RwkvMaxTokensCeiling);
                 var fullPrompt = BuildCompletionPrompt(prompt, direction);
@@ -293,7 +298,7 @@ namespace NovelManagement.AI.Services.RWKV
                     Stop = new List<string> { "\n\n\n", "===" }
                 };
 
-                var flavor = await EnsureApiFlavorAsync();
+                var flavor = await EnsureApiFlavorAsync().ConfigureAwait(false);
                 var json = JsonSerializer.Serialize(BuildChatRequest(request, flavor, stream: true));
                 var httpRequest = new HttpRequestMessage(HttpMethod.Post, BuildChatCompletionsEndpoint(flavor))
                 {
@@ -301,12 +306,13 @@ namespace NovelManagement.AI.Services.RWKV
                 };
                 ApplyAuthHeader(httpRequest);
 
-                using var stream = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-                using var reader = new StreamReader(await stream.Content.ReadAsStreamAsync());
+                using var stream = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                using var reader = new StreamReader(await stream.Content.ReadAsStreamAsync().ConfigureAwait(false));
 
-                while (!reader.EndOfStream)
+                // 用异步 ReadLine 循环（绝不在 UI 线程做同步 EndOfStream 轮询）
+                string? line;
+                while ((line = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
                 {
-                    var line = await reader.ReadLineAsync();
                     if (string.IsNullOrEmpty(line)) continue;
 
                     if (line.StartsWith("data: "))
@@ -328,9 +334,34 @@ namespace NovelManagement.AI.Services.RWKV
                     }
                 }
 
+                var rawText = fullText.ToString();
+
+                // 空格健全性检查：部分 RWKV 服务端的流式分词会丢失词间空格
+                // （非流式输出正常，流式全粘连）。检测到则用非流式重试一次。
+                if (LooksLikeMissingSpaces(rawText))
+                {
+                    _logger.LogWarning("RWKV 流式输出疑似丢失空格（长度 {Len}），回退非流式重试一次", rawText.Length);
+                    var retry = await CompleteAsync(
+                        prompt,
+                        maxTokens,
+                        direction,
+                        temperature,
+                        topP,
+                        presencePenalty,
+                        frequencyPenalty,
+                        topK).ConfigureAwait(false);
+                    if (retry.Success && !LooksLikeMissingSpaces(retry.Text))
+                    {
+                        var retryElapsed = DateTime.Now - startTime;
+                        _logger.LogInformation("RWKV 非流式回退成功，耗时 {ElapsedMs}ms", retryElapsed.TotalMilliseconds);
+                        return retry;
+                    }
+                    // 回退仍异常（或 524 失败）：保留流式结果，交由上层处理
+                }
+
                 var result = new RwkvCompletionResponse
                 {
-                    Text = PostProcessCompletion(fullText.ToString(), prompt),
+                    Text = PostProcessCompletion(rawText, prompt),
                     Success = true,
                     TokensGenerated = fullText.Length // 近似值
                 };
@@ -722,6 +753,10 @@ namespace NovelManagement.AI.Services.RWKV
         {
             if (string.IsNullOrEmpty(completion)) return completion;
 
+            // 剥离 world 模型正文前的固定思维链规划前缀（"Let me craft..." 等）与 </think> 思考块
+            completion = RwkvThinkingStripper.Strip(completion);
+            if (string.IsNullOrEmpty(completion)) return completion;
+
             // 移除可能的 HTML 注释标记（续写方向引导）
             var start = completion.IndexOf("-->");
             if (start >= 0)
@@ -742,7 +777,72 @@ namespace NovelManagement.AI.Services.RWKV
                 }
             }
 
+            // 折叠完全重复的句子（RWKV7 长文复读倾向：惩罚参数只能降低概率，无法根除；
+            // 保留首次出现，删除后续完全相同的句子。仅处理长度 > 20 字符的句子，避免破坏短句节奏）
+            completion = CollapseDuplicateSentences(completion);
+
             return completion;
+        }
+
+        /// <summary>
+        /// 折叠正文中完全重复的句子（保留首次出现）。
+        /// </summary>
+        private static string CollapseDuplicateSentences(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+
+            var parts = Regex.Split(text, @"(?<=[.!?][""”']?)\s+");
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var kept = new List<string>();
+
+            foreach (var raw in parts)
+            {
+                var sentence = raw.Trim();
+                if (sentence.Length > 20)
+                {
+                    if (!seen.Add(sentence))
+                    {
+                        continue; // 完全重复的长句：丢弃后续出现
+                    }
+                }
+                kept.Add(raw);
+            }
+
+            var rebuilt = string.Join(" ", kept.Select(k => k.TrimEnd()));
+            rebuilt = Regex.Replace(rebuilt, @"(\r?\n){3,}", "\n\n"); // 收敛多余空行
+            return rebuilt.Trim();
+        }
+
+        /// <summary>
+        /// 检测文本是否疑似丢失词间空格（仅对拉丁字母文本判定；中文天然无空格）。
+        /// </summary>
+        private static bool LooksLikeMissingSpaces(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length < 200)
+            {
+                return false;
+            }
+
+            var letters = 0;
+            var spaces = 0;
+            var cjk = 0;
+            foreach (var ch in text)
+            {
+                if (char.IsWhiteSpace(ch)) { spaces++; }
+                else if (char.IsLetter(ch))
+                {
+                    letters++;
+                    if (ch >= 0x4E00 && ch <= 0x9FFF) { cjk++; }
+                }
+            }
+
+            if (letters == 0 || cjk > letters / 4)
+            {
+                return false; // 以中文为主的文本不判定
+            }
+
+            var spaceRatio = (double)spaces / (letters + spaces);
+            return spaceRatio < 0.06; // 正常英文约 15-18%
         }
 
         /// <summary>

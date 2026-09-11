@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="装备体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Equ.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddEquipment_Click"
-                            ToolTip="新建装备类型">
+                            ToolTip="{DynamicResource Loc.WS.Equ.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportEquipment_Click"
-                            ToolTip="导入装备数据">
+                            ToolTip="{DynamicResource Loc.WS.Equ.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportEquipment_Click"
-                            ToolTip="导出装备数据">
+                            ToolTip="{DynamicResource Loc.WS.Equ.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索装备类型..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,16 +100,16 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="CategoryFilterComboBox"
-                                     materialDesign:HintAssist.Hint="装备类别"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.CategoryHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="CategoryFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部类别"/>
-                                <ComboBoxItem Content="武器"/>
-                                <ComboBoxItem Content="防具"/>
-                                <ComboBoxItem Content="饰品"/>
-                                <ComboBoxItem Content="法宝"/>
-                                <ComboBoxItem Content="丹药"/>
-                                <ComboBoxItem Content="符箓"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllCategories}"/>
+                                <ComboBoxItem Tag="武器" Content="{DynamicResource Loc.WS.Equ.Data.武器}"/>
+                                <ComboBoxItem Tag="防具" Content="{DynamicResource Loc.WS.Equ.Data.防具}"/>
+                                <ComboBoxItem Tag="饰品" Content="{DynamicResource Loc.WS.Equ.Data.饰品}"/>
+                                <ComboBoxItem Tag="法宝" Content="{DynamicResource Loc.WS.Equ.Data.法宝}"/>
+                                <ComboBoxItem Tag="丹药" Content="{DynamicResource Loc.WS.Equ.Data.丹药}"/>
+                                <ComboBoxItem Tag="符箓" Content="{DynamicResource Loc.WS.Equ.Data.符箓}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -178,14 +178,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="等级数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Prof.LevelCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding LevelCount}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 属性数量: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Equ.AttrCountLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -206,7 +206,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="装备体系统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Equ.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -217,21 +217,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="武器: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.武器}"/>
                                         <Run Text="{Binding WeaponCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="防具: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.防具}"/>
                                         <Run Text="{Binding ArmorCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="法宝: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.法宝}"/>
                                         <Run Text="{Binding TreasureCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -255,12 +255,12 @@
                                                    Height="64"
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个装备类型查看详情"
+                            <TextBlock Text="{DynamicResource Loc.WS.Equ.NoSelection}"
                                      FontSize="16"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的装备类型"
+                            <TextBlock Text="{DynamicResource Loc.WS.Equ.NoSelectionHint}"
                                      FontSize="14"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center"
@@ -270,7 +270,7 @@
                         <!-- 装备详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息"
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -284,26 +284,26 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="EquipmentNameTextBox"
-                                        materialDesign:HintAssist.Hint="装备类型名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="EquipmentCategoryComboBox"
-                                         materialDesign:HintAssist.Hint="装备类别"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.CategoryHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="武器"/>
-                                    <ComboBoxItem Content="防具"/>
-                                    <ComboBoxItem Content="饰品"/>
-                                    <ComboBoxItem Content="法宝"/>
-                                    <ComboBoxItem Content="丹药"/>
-                                    <ComboBoxItem Content="符箓"/>
+                                    <ComboBoxItem Tag="武器" Content="{DynamicResource Loc.WS.Equ.Data.武器}"/>
+                                    <ComboBoxItem Tag="防具" Content="{DynamicResource Loc.WS.Equ.Data.防具}"/>
+                                    <ComboBoxItem Tag="饰品" Content="{DynamicResource Loc.WS.Equ.Data.饰品}"/>
+                                    <ComboBoxItem Tag="法宝" Content="{DynamicResource Loc.WS.Equ.Data.法宝}"/>
+                                    <ComboBoxItem Tag="丹药" Content="{DynamicResource Loc.WS.Equ.Data.丹药}"/>
+                                    <ComboBoxItem Tag="符箓" Content="{DynamicResource Loc.WS.Equ.Data.符箓}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="EquipmentDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="装备类型描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -312,7 +312,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 装备等级 -->
-                            <TextBlock Text="装备等级"
+                            <TextBlock Text="{DynamicResource Loc.WS.Equ.LevelsTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -330,13 +330,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="等级列表"
+                                                 Text="{DynamicResource Loc.WS.Common.LevelList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddLevel_Click"
-                                              ToolTip="添加等级">
+                                              ToolTip="{DynamicResource Loc.WS.Common.AddLevelTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -357,19 +357,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Level}"
-                                                               materialDesign:HintAssist.Hint="等级"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.LevelHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="等级名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.LevelNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Requirements}"
-                                                               materialDesign:HintAssist.Hint="制作要求"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.ReqHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -377,7 +377,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveLevel_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除等级">
+                                                              ToolTip="{DynamicResource Loc.WS.Common.DeleteLevelTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -390,7 +390,7 @@
                             </Border>
 
                             <!-- 装备属性 -->
-                            <TextBlock Text="装备属性"
+                            <TextBlock Text="{DynamicResource Loc.WS.Equ.AttrsTitle}"
                                      FontSize="18"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -408,13 +408,13 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0"
-                                                 Text="属性列表"
+                                                 Text="{DynamicResource Loc.WS.Equ.AttrList}"
                                                  FontWeight="Medium"/>
 
                                         <Button Grid.Column="1"
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddAttribute_Click"
-                                              ToolTip="添加属性">
+                                              ToolTip="{DynamicResource Loc.WS.Equ.AddAttrTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -435,19 +435,19 @@
 
                                                         <TextBox Grid.Column="0"
                                                                Text="{Binding Name}"
-                                                               materialDesign:HintAssist.Hint="属性名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.AttrNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="1"
                                                                Text="{Binding Value}"
-                                                               materialDesign:HintAssist.Hint="属性值"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.AttrValueHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
                                                         <TextBox Grid.Column="2"
                                                                Text="{Binding Description}"
-                                                               materialDesign:HintAssist.Hint="属性描述"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Equ.AttrDescHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -455,7 +455,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveAttribute_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除属性">
+                                                              ToolTip="{DynamicResource Loc.WS.Equ.DeleteAttrTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete"
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -471,11 +471,11 @@
                             <StackPanel Orientation="Horizontal"
                                       HorizontalAlignment="Right"
                                       Margin="0,16,0,0">
-                                <Button Content="保存"
+                                <Button Content="{DynamicResource Loc.Dlg.Save}"
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SaveEquipment_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消"
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}"
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

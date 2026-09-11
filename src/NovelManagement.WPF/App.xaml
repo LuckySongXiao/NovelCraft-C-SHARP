@@ -17,7 +17,7 @@
                 <!-- 自定义样式 -->
                 <ResourceDictionary Source="Styles/CommonStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <FontFamily x:Key="MaterialDesignFont">SimSun</FontFamily>
+            <!-- MaterialDesignFont 由 LocalizationManager 按界面语言注入（中文 SimSun / 英文 Segoe UI） -->
         </ResourceDictionary>
     </Application.Resources>
 </Application>

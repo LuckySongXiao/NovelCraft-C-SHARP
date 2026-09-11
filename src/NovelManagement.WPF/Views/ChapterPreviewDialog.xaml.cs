@@ -6,6 +6,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using System.IO;
 
+using static NovelManagement.WPF.Localization.LocalizationManager;
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
@@ -45,22 +46,22 @@ namespace NovelManagement.WPF.Views
             {
                 // 设置标题信息
                 ChapterTitleText.Text = _chapterData.Title;
-                Title = $"章节预览 - {_chapterData.Title}";
+                Title = TF("CPV.TitleFmt", "章节预览 - {0}", _chapterData.Title);
 
                 // 设置内容
                 ContentPreviewText.Text = _chapterData.Content;
 
                 // 设置摘要
-                SummaryText.Text = string.IsNullOrEmpty(_chapterData.Summary) ? "暂无摘要" : _chapterData.Summary;
+                SummaryText.Text = string.IsNullOrEmpty(_chapterData.Summary) ? T("CPV.NoSummary", "暂无摘要") : _chapterData.Summary;
 
                 // 设置相关角色
-                CharactersText.Text = string.IsNullOrEmpty(_chapterData.Characters) ? "暂无相关角色" : _chapterData.Characters;
+                CharactersText.Text = string.IsNullOrEmpty(_chapterData.Characters) ? T("CPV.NoChars", "暂无相关角色") : _chapterData.Characters;
 
                 // 设置备注
-                NotesText.Text = string.IsNullOrEmpty(_chapterData.Notes) ? "暂无备注" : _chapterData.Notes;
+                NotesText.Text = string.IsNullOrEmpty(_chapterData.Notes) ? T("PLM.NoNotes", "暂无备注") : _chapterData.Notes;
 
                 // 设置状态信息
-                StatusText.Text = $"状态: {_chapterData.Status}";
+                StatusText.Text = TF("CPV.StatusFmt", "状态: {0}", _chapterData.Status);
                 ImportanceText.Text = $"重要性: {GetImportanceStars(_chapterData.ImportanceLevel)}";
 
                 // 加载标签
@@ -70,11 +71,11 @@ namespace NovelManagement.WPF.Views
                 UpdateStatistics();
 
                 // 设置最后修改时间
-                LastModifiedText.Text = $"最后修改: {DateTime.Now:yyyy-MM-dd HH:mm}";
+                LastModifiedText.Text = TF("CPV.LastModifiedFmt", "最后修改: {0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载章节数据失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.LoadFailed", "加载章节数据失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -116,7 +117,7 @@ namespace NovelManagement.WPF.Views
                 {
                     var noTagsText = new TextBlock
                     {
-                        Text = "暂无标签",
+                        Text = T("CPV.NoTags", "暂无标签"),
                         FontSize = 12,
                         Foreground = (Brush)FindResource("MaterialDesignBodyLight")
                     };
@@ -125,7 +126,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载标签失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.LoadTagsFailed", "加载标签失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -145,16 +146,16 @@ namespace NovelManagement.WPF.Views
                 var progress = _chapterData.TargetWordCount > 0 ? 
                     Math.Min(100, (wordCount * 100) / _chapterData.TargetWordCount) : 100;
 
-                WordCountText.Text = $"字数: {wordCount:N0}";
+                WordCountText.Text = TF("CPV.WordsFmt", "字数: {0:N0}", wordCount);
                 StatsWordCount.Text = wordCount.ToString("N0");
                 StatsParagraphs.Text = paragraphs.ToString();
                 StatsLines.Text = lines.ToString();
-                StatsReadTime.Text = $"{readTime}分钟";
+                StatsReadTime.Text = TF("CPV.ReadTimeFmt", "{0}分钟", readTime);
                 StatsProgress.Text = $"{progress}%";
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更新统计信息失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.UpdateStatsFailed", "更新统计信息失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -200,7 +201,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更改字体大小失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.FontSizeFailed", "更改字体大小失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -214,8 +215,8 @@ namespace NovelManagement.WPF.Views
             {
                 var saveDialog = new SaveFileDialog
                 {
-                    Title = "导出章节",
-                    Filter = "文本文件 (*.txt)|*.txt|Word文档 (*.docx)|*.docx|所有文件 (*.*)|*.*",
+                    Title = T("CPV.ExportTitle", "导出章节"),
+                    Filter = T("CPV.ExportFilter", "文本文件 (*.txt)|*.txt|Word文档 (*.docx)|*.docx|所有文件 (*.*)|*.*"),
                     FileName = $"{_chapterData.Title}.txt"
                 };
 
@@ -224,13 +225,13 @@ namespace NovelManagement.WPF.Views
                     var content = $"{_chapterData.Title}\r\n\r\n{_chapterData.Content}";
                     File.WriteAllText(saveDialog.FileName, content, System.Text.Encoding.UTF8);
                     
-                    MessageBox.Show($"章节已导出到：{saveDialog.FileName}", "导出成功",
+                    MessageBox.Show(TF("CPV.ExportSuccess", "章节已导出到：{0}", saveDialog.FileName), T("CPV.ExportDoneTitle", "导出成功"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导出章节失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.ExportFailed", "导出章节失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -274,15 +275,15 @@ namespace NovelManagement.WPF.Views
                     
                     // 打印
                     printDialog.PrintDocument(((System.Windows.Documents.IDocumentPaginatorSource)flowDoc).DocumentPaginator, 
-                        $"章节打印 - {_chapterData.Title}");
+                        TF("CPV.PrintTitleFmt", "章节打印 - {0}", _chapterData.Title));
                     
-                    MessageBox.Show("章节已发送到打印机", "打印成功",
+                    MessageBox.Show(T("CPV.PrintSent", "章节已发送到打印机"), T("CPV.PrintDoneTitle", "打印成功"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"打印章节失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("CPV.PrintFailed", "打印章节失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

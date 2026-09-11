@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using NovelManagement.WPF.Models;
 
+using static NovelManagement.WPF.Localization.LocalizationManager;
 namespace NovelManagement.WPF.Views
 {
     /// <summary>
@@ -23,13 +24,13 @@ namespace NovelManagement.WPF.Views
         {
             if (!int.TryParse(TxtChaptersPerVolume.Text.Trim(), out var chaptersPerVolume))
             {
-                MessageBox.Show("每卷章节数必须是数字。", "输入有误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("BGO.ChaptersNotNumber", "每卷章节数必须是数字。"), T("BGO.InvalidInputTitle", "输入有误"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (!int.TryParse(TxtChapterTargetWords.Text.Trim(), out var targetWords))
             {
-                MessageBox.Show("每章目标字数必须是数字。", "输入有误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("BGO.WordsNotNumber", "每章目标字数必须是数字。"), T("BGO.InvalidInputTitle", "输入有误"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

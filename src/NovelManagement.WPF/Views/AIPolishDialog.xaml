@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AI文本润色" Height="700" Width="1000"
+        Title="{DynamicResource Loc.POL.Title}" Height="700" Width="1000"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -27,34 +27,34 @@
         <materialDesign:Card Grid.Row="0" Margin="0,0,0,16" Padding="16">
             <StackPanel>
                 <DockPanel>
-                    <TextBlock Text="AI文本润色"
+                    <TextBlock Text="{DynamicResource Loc.POL.Title}"
                              FontSize="24"
                              FontWeight="Bold"
                              DockPanel.Dock="Left"/>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                         <!-- AI模型选择（运行时加载真实可用模型） -->
                         <ComboBox x:Name="AIModelComboBox"
-                                materialDesign:HintAssist.Hint="AI模型"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintModel}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Width="220"
                                 Margin="0,0,8,0"/>
                         <!-- 润色历史 -->
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Click="ShowHistory_Click"
-                              ToolTip="润色历史记录">
+                              ToolTip="{DynamicResource Loc.POL.HistoryTip}">
                             <materialDesign:PackIcon Kind="History"/>
                         </Button>
                         <!-- 批量润色 -->
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                               Click="BatchPolish_Click"
-                              ToolTip="批量润色"
+                              ToolTip="{DynamicResource Loc.POL.BatchTip}"
                               Margin="4,0,0,0">
                             <materialDesign:PackIcon Kind="FormatListBulleted"/>
                         </Button>
                     </StackPanel>
                 </DockPanel>
 
-                <TextBlock Text="AI将优化文笔、措辞和表达，提升文本质量和可读性"
+                <TextBlock Text="{DynamicResource Loc.POL.Desc}"
                          FontSize="14"
                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                          Margin="0,8,0,0"/>
@@ -78,7 +78,7 @@
         <!-- 润色设置 -->
         <materialDesign:Card Grid.Row="1" Padding="16" Margin="0,0,0,16">
             <StackPanel>
-                <TextBlock Text="润色设置" 
+                <TextBlock Text="{DynamicResource Loc.POL.Settings}" 
                          FontSize="16" 
                          FontWeight="Medium" 
                          Margin="0,0,0,16"/>
@@ -97,35 +97,35 @@
                     <!-- 目标风格 -->
                     <ComboBox x:Name="TargetStyleComboBox"
                             Grid.Column="0"
-                            materialDesign:HintAssist.Hint="目标风格"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintTargetStyle}"
                             Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                        <ComboBoxItem Content="古典雅致" IsSelected="True"/>
-                        <ComboBoxItem Content="现代简洁"/>
-                        <ComboBoxItem Content="诗意优美"/>
-                        <ComboBoxItem Content="生动活泼"/>
-                        <ComboBoxItem Content="庄重严肃"/>
-                        <ComboBoxItem Content="幽默风趣"/>
+                        <ComboBoxItem Tag="古典雅致" Content="{DynamicResource Loc.POL.StyleElegant}" IsSelected="True"/>
+                        <ComboBoxItem Tag="现代简洁" Content="{DynamicResource Loc.POL.StyleConcise}"/>
+                        <ComboBoxItem Tag="诗意优美" Content="{DynamicResource Loc.POL.StylePoetic}"/>
+                        <ComboBoxItem Tag="生动活泼" Content="{DynamicResource Loc.POL.StyleLively}"/>
+                        <ComboBoxItem Tag="庄重严肃" Content="{DynamicResource Loc.POL.StyleSolemn}"/>
+                        <ComboBoxItem Tag="幽默风趣" Content="{DynamicResource Loc.POL.StyleHumorous}"/>
                     </ComboBox>
 
                     <!-- 润色强度 -->
                     <ComboBox x:Name="PolishIntensityComboBox"
                             Grid.Column="2"
-                            materialDesign:HintAssist.Hint="润色强度"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintIntensity}"
                             Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                        <ComboBoxItem Content="轻度润色"/>
-                        <ComboBoxItem Content="中度润色" IsSelected="True"/>
-                        <ComboBoxItem Content="深度润色"/>
+                        <ComboBoxItem Tag="轻度润色" Content="{DynamicResource Loc.POL.IntensityLight}"/>
+                        <ComboBoxItem Tag="中度润色" Content="{DynamicResource Loc.POL.IntensityMedium}" IsSelected="True"/>
+                        <ComboBoxItem Tag="深度润色" Content="{DynamicResource Loc.POL.IntensityDeep}"/>
                     </ComboBox>
 
                     <!-- 保持要素 -->
                     <ComboBox x:Name="PreserveElementsComboBox"
                             Grid.Column="4"
-                            materialDesign:HintAssist.Hint="保持要素"
+                            materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintPreserve}"
                             Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                        <ComboBoxItem Content="保持原意" IsSelected="True"/>
-                        <ComboBoxItem Content="保持结构"/>
-                        <ComboBoxItem Content="保持风格"/>
-                        <ComboBoxItem Content="全面优化"/>
+                        <ComboBoxItem Tag="保持原意" Content="{DynamicResource Loc.POL.PreserveMeaning}" IsSelected="True"/>
+                        <ComboBoxItem Tag="保持结构" Content="{DynamicResource Loc.POL.PreserveStructure}"/>
+                        <ComboBoxItem Tag="保持风格" Content="{DynamicResource Loc.POL.PreserveStyle}"/>
+                        <ComboBoxItem Tag="全面优化" Content="{DynamicResource Loc.POL.PreserveAll}"/>
                     </ComboBox>
 
                     <!-- 润色按钮 -->
@@ -135,13 +135,13 @@
                           Click="Polish_Click">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0"/>
-                            <TextBlock Text="开始润色"/>
+                            <TextBlock Text="{DynamicResource Loc.POL.StartPolish}"/>
                         </StackPanel>
                     </Button>
                 </Grid>
 
                 <!-- 高级润色选项 -->
-                <Expander Header="高级润色选项" Margin="0,16,0,0">
+                <Expander Header="{DynamicResource Loc.POL.AdvancedOptions}" Margin="0,16,0,0">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -159,51 +159,51 @@
                         <!-- 润色重点 -->
                         <ComboBox x:Name="PolishFocusComboBox"
                                 Grid.Row="0" Grid.Column="0"
-                                materialDesign:HintAssist.Hint="润色重点"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintFocus}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                            <ComboBoxItem Content="词汇优化"/>
-                            <ComboBoxItem Content="句式调整"/>
-                            <ComboBoxItem Content="语法修正"/>
-                            <ComboBoxItem Content="风格统一" IsSelected="True"/>
-                            <ComboBoxItem Content="全面润色"/>
+                            <ComboBoxItem Tag="词汇优化" Content="{DynamicResource Loc.POL.FocusVocab}"/>
+                            <ComboBoxItem Tag="句式调整" Content="{DynamicResource Loc.POL.FocusSentence}"/>
+                            <ComboBoxItem Tag="语法修正" Content="{DynamicResource Loc.POL.FocusGrammar}"/>
+                            <ComboBoxItem Tag="风格统一" Content="{DynamicResource Loc.POL.FocusStyle}" IsSelected="True"/>
+                            <ComboBoxItem Tag="全面润色" Content="{DynamicResource Loc.POL.FocusAll}"/>
                         </ComboBox>
 
                         <!-- 情感基调 -->
                         <ComboBox x:Name="EmotionalToneComboBox"
                                 Grid.Row="0" Grid.Column="2"
-                                materialDesign:HintAssist.Hint="情感基调"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintEmotionalTone}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                            <ComboBoxItem Content="保持原有"/>
-                            <ComboBoxItem Content="温和平静"/>
-                            <ComboBoxItem Content="激昂热烈"/>
-                            <ComboBoxItem Content="深沉内敛"/>
-                            <ComboBoxItem Content="轻松愉快"/>
+                            <ComboBoxItem Tag="保持原有" Content="{DynamicResource Loc.POL.ToneKeep}"/>
+                            <ComboBoxItem Tag="温和平静" Content="{DynamicResource Loc.POL.ToneCalm}"/>
+                            <ComboBoxItem Tag="激昂热烈" Content="{DynamicResource Loc.POL.TonePassionate}"/>
+                            <ComboBoxItem Tag="深沉内敛" Content="{DynamicResource Loc.POL.ToneIntroverted}"/>
+                            <ComboBoxItem Tag="轻松愉快" Content="{DynamicResource Loc.POL.ToneRelaxed}"/>
                         </ComboBox>
 
                         <!-- 目标读者 -->
                         <ComboBox x:Name="TargetAudienceComboBox"
                                 Grid.Row="0" Grid.Column="4"
-                                materialDesign:HintAssist.Hint="目标读者"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintAudience}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                            <ComboBoxItem Content="通用读者" IsSelected="True"/>
-                            <ComboBoxItem Content="青少年"/>
-                            <ComboBoxItem Content="成年读者"/>
-                            <ComboBoxItem Content="专业读者"/>
+                            <ComboBoxItem Tag="通用读者" Content="{DynamicResource Loc.POL.AudienceGeneral}" IsSelected="True"/>
+                            <ComboBoxItem Tag="青少年" Content="{DynamicResource Loc.POL.AudienceTeen}"/>
+                            <ComboBoxItem Tag="成年读者" Content="{DynamicResource Loc.POL.AudienceAdult}"/>
+                            <ComboBoxItem Tag="专业读者" Content="{DynamicResource Loc.POL.AudiencePro}"/>
                         </ComboBox>
 
                         <!-- 智能选项 -->
                         <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,12,0,0">
-                            <CheckBox x:Name="AutoCorrectCheckBox" Content="自动纠错" Margin="0,0,16,0"/>
-                            <CheckBox x:Name="EnhanceDescriptionCheckBox" Content="增强描写" Margin="0,0,16,0"/>
-                            <CheckBox x:Name="OptimizeDialogueCheckBox" Content="优化对话" Margin="0,0,16,0"/>
-                            <CheckBox x:Name="PreserveStyleCheckBox" Content="保持原风格" IsChecked="True"/>
+                            <CheckBox x:Name="AutoCorrectCheckBox" Content="{DynamicResource Loc.POL.AutoCorrect}" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="EnhanceDescriptionCheckBox" Content="{DynamicResource Loc.POL.EnhanceDescription}" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="OptimizeDialogueCheckBox" Content="{DynamicResource Loc.POL.OptimizeDialogue}" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="PreserveStyleCheckBox" Content="{DynamicResource Loc.POL.KeepOriginalStyle}" IsChecked="True"/>
                         </StackPanel>
                     </Grid>
                 </Expander>
 
                 <!-- 特殊要求 -->
                 <TextBox x:Name="SpecialRequirementsTextBox"
-                       materialDesign:HintAssist.Hint="特殊要求（如特定词汇偏好、避免的表达等）"
+                       materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintSpecialReq}"
                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
                        Margin="0,12,0,0"/>
             </StackPanel>
@@ -226,12 +226,12 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="原文"
+                        <TextBlock Text="{DynamicResource Loc.POL.Original}"
                                  FontSize="16"
                                  FontWeight="Medium"
                                  DockPanel.Dock="Left"/>
                         <TextBlock x:Name="OriginalWordCountLabel"
-                                 Text="(0字)"
+                                 Text="{DynamicResource Loc.POL.ZeroWords}"
                                  FontSize="14"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  DockPanel.Dock="Right"/>
@@ -252,7 +252,7 @@
             <materialDesign:Card Grid.Column="2" Padding="16">
                 <TabControl Style="{StaticResource MaterialDesignTabControl}">
                     <!-- 润色预览 -->
-                    <TabItem Header="润色预览">
+                    <TabItem Header="{DynamicResource Loc.POL.TabPreview}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -261,13 +261,13 @@
                             </Grid.RowDefinitions>
 
                             <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                                <TextBlock Text="润色结果"
+                                <TextBlock Text="{DynamicResource Loc.POL.Result}"
                                          FontSize="16"
                                          FontWeight="Medium"
                                          DockPanel.Dock="Left"/>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                     <TextBlock x:Name="PolishedWordCountLabel"
-                                             Text="(0字)"
+                                             Text="{DynamicResource Loc.POL.ZeroWords}"
                                              FontSize="14"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                              Margin="0,0,8,0"/>
@@ -285,7 +285,7 @@
                                    AcceptsReturn="True"
                                    VerticalScrollBarVisibility="Auto"
                                    IsReadOnly="False"
-                                   materialDesign:HintAssist.Hint="润色后的内容将显示在这里..."
+                                   materialDesign:HintAssist.Hint="{DynamicResource Loc.POL.HintPolishedPlaceholder}"
                                    TextChanged="PolishedContentTextBox_TextChanged"/>
 
                             <!-- 操作按钮 -->
@@ -298,7 +298,7 @@
                                       Click="RePolish_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                                        <TextBlock Text="重新润色"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.RePolish}"/>
                                     </StackPanel>
                                 </Button>
 
@@ -307,7 +307,7 @@
                                       Click="CopyToClipboard_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,4,0"/>
-                                        <TextBlock Text="复制"/>
+                                        <TextBlock Text="{DynamicResource Loc.Dlg.Copy}"/>
                                     </StackPanel>
                                 </Button>
 
@@ -316,7 +316,7 @@
                                       Click="ShowDifferences_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Compare" Margin="0,0,4,0"/>
-                                        <TextBlock Text="对比差异"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.ShowDiff}"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -324,7 +324,7 @@
                     </TabItem>
 
                     <!-- 替换项列表 -->
-                    <TabItem Header="替换项">
+                    <TabItem Header="{DynamicResource Loc.POL.TabReplacements}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -334,13 +334,13 @@
 
                             <!-- 替换项统计 -->
                             <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                                <TextBlock Text="替换项列表"
+                                <TextBlock Text="{DynamicResource Loc.POL.ReplacementList}"
                                          FontSize="16"
                                          FontWeight="Medium"
                                          DockPanel.Dock="Left"/>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                     <TextBlock x:Name="ReplacementStatsLabel"
-                                             Text="共0项替换建议"
+                                             Text="{DynamicResource Loc.POL.Replacements0}"
                                              FontSize="12"
                                              Foreground="{DynamicResource MaterialDesignBodyLight}"
                                              VerticalAlignment="Center"
@@ -348,11 +348,11 @@
                                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                           Margin="0,0,8,0"
                                           Click="SelectAll_Click">
-                                        <TextBlock Text="全选"/>
+                                        <TextBlock Text="{DynamicResource Loc.Dlg.SelectAll}"/>
                                     </Button>
                                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                           Click="DeselectAll_Click">
-                                        <TextBlock Text="全不选"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.DeselectAll}"/>
                                     </Button>
                                 </StackPanel>
                             </DockPanel>
@@ -374,7 +374,7 @@
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
 
-                                        <GridViewColumn Header="原文" Width="120">
+                                        <GridViewColumn Header="{DynamicResource Loc.POL.Original}" Width="120">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding OriginalText}"
@@ -384,7 +384,7 @@
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
 
-                                        <GridViewColumn Header="替换为" Width="120">
+                                        <GridViewColumn Header="{DynamicResource Loc.POL.ColReplaceWith}" Width="120">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding ReplacementText}"
@@ -395,7 +395,7 @@
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
 
-                                        <GridViewColumn Header="类型" Width="80">
+                                        <GridViewColumn Header="{DynamicResource Loc.POL.ColType}" Width="80">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding ReplacementType}"
@@ -404,7 +404,7 @@
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
 
-                                        <GridViewColumn Header="上下文" Width="200">
+                                        <GridViewColumn Header="{DynamicResource Loc.POL.ColContext}" Width="200">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding Context}"
@@ -428,7 +428,7 @@
                                       Click="ApplySelectedReplacements_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
-                                        <TextBlock Text="应用选中项"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.ApplySelected}"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -436,7 +436,7 @@
                     </TabItem>
 
                     <!-- 智能建议 -->
-                    <TabItem Header="智能建议">
+                    <TabItem Header="{DynamicResource Loc.POL.TabSuggestions}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -446,7 +446,7 @@
 
                             <!-- 建议标题 -->
                             <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                                <TextBlock Text="AI智能建议"
+                                <TextBlock Text="{DynamicResource Loc.POL.SuggestionsTitle}"
                                          FontSize="16"
                                          FontWeight="Medium"
                                          DockPanel.Dock="Left"/>
@@ -455,7 +455,7 @@
                                       Click="RefreshSuggestions_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                                        <TextBlock Text="刷新建议"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.RefreshSuggestions}"/>
                                     </StackPanel>
                                 </Button>
                             </DockPanel>
@@ -476,7 +476,7 @@
                                       Click="ApplyAllSuggestions_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="CheckAll" Margin="0,0,4,0"/>
-                                        <TextBlock Text="应用所有建议"/>
+                                        <TextBlock Text="{DynamicResource Loc.POL.ApplyAllSuggestions}"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -484,7 +484,7 @@
                     </TabItem>
 
                     <!-- 质量分析 -->
-                    <TabItem Header="质量分析">
+                    <TabItem Header="{DynamicResource Loc.POL.TabQuality}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -493,7 +493,7 @@
 
                             <!-- 分析标题 -->
                             <TextBlock Grid.Row="0"
-                                     Text="文本质量分析"
+                                     Text="{DynamicResource Loc.POL.QualityTitle}"
                                      FontSize="16"
                                      FontWeight="Medium"
                                      Margin="0,0,0,16"/>
@@ -518,7 +518,7 @@
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                   Margin="0,0,8,0"
                   Click="Cancel_Click">
-                <TextBlock Text="取消"/>
+                <TextBlock Text="{DynamicResource Loc.Dlg.Cancel}"/>
             </Button>
             
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
@@ -526,7 +526,7 @@
                   x:Name="ApplyButton">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
-                    <TextBlock Text="应用润色"/>
+                    <TextBlock Text="{DynamicResource Loc.POL.ApplyPolish}"/>
                 </StackPanel>
             </Button>
         </StackPanel>

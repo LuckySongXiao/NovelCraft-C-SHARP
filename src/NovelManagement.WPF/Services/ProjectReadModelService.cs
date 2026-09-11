@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NovelManagement.Application.Interfaces;
 using NovelManagement.Application.Services;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Models;
 
 namespace NovelManagement.WPF.Services
@@ -14,6 +15,7 @@ namespace NovelManagement.WPF.Services
     /// </summary>
     public class ProjectReadModelService
     {
+
         private readonly ProjectService _projectService;
         private readonly CharacterService _characterService;
         private readonly FactionService _factionService;
@@ -104,30 +106,30 @@ namespace NovelManagement.WPF.Services
                     ProjectId = project.Id,
                     ProjectName = project.Name,
                     ProjectDescription = project.Description ?? string.Empty,
-                    ProjectType = string.IsNullOrWhiteSpace(project.Type) ? "未设置" : project.Type,
-                    ProjectStatus = string.IsNullOrWhiteSpace(project.Status) ? "未设置" : project.Status,
+                    ProjectType = LocalizationManager.LocalizeStoredValue(project.Type),
+                    ProjectStatus = LocalizationManager.LocalizeStoredValue(project.Status),
                     HasProjectBaseInfo = !string.IsNullOrWhiteSpace(project.Name) && !string.IsNullOrWhiteSpace(project.Type),
                     ProjectCreatedAtText = project.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
                     ProjectUpdatedAtText = project.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
-                    ProjectAuthorText = "未设置",
-                    ProjectTargetWordsText = targetWordCount > 0 ? $"{targetWordCount:N0} 字" : "未设置",
+                    ProjectAuthorText = LocalizationManager.T("PO.NotSet", "未设置"),
+                    ProjectTargetWordsText = targetWordCount > 0 ? string.Format(LocalizationManager.T("PO.WordsSuffixFmt", "{0} 字"), targetWordCount.ToString("N0")) : LocalizationManager.T("PO.NotSet", "未设置"),
                     WordCountProgressText = $"{statistics.TotalWordCount:N0} / {targetWordCount:N0}",
                     WordCountProgressPercent = wordProgressPercent,
-                    WordCountPercentText = $"{wordProgressPercent}% 完成",
+                    WordCountPercentText = string.Format(LocalizationManager.T("PO.PercentDoneFmt", "{0}% 完成"), wordProgressPercent),
                     ChapterCountProgressText = $"{statistics.CompletedChapterCount} / {targetChapterCount}",
                     ChapterCountProgressPercent = chapterProgressPercent,
-                    ChapterCountPercentText = $"{chapterProgressPercent}% 完成",
-                    CharacterCountText = $"{statistics.CharacterCount}个",
-                    FactionCountText = $"{statistics.FactionCount}个",
+                    ChapterCountPercentText = string.Format(LocalizationManager.T("PO.PercentDoneFmt", "{0}% 完成"), chapterProgressPercent),
+                    CharacterCountText = string.Format(LocalizationManager.T("PO.CountSuffixFmt", "{0}个"), statistics.CharacterCount),
+                    FactionCountText = string.Format(LocalizationManager.T("PO.CountSuffixFmt", "{0}个"), statistics.FactionCount),
                     SettingCompletionText = $"{settingCompletionPercent}%",
                     CharacterOverviewText = characters.Count == 0
-                        ? "暂无角色信息，请前往角色管理界面创建角色。"
+                        ? LocalizationManager.T("PO.NoCharacters", "暂无角色信息，请前往角色管理界面创建角色。")
                         : string.Join(Environment.NewLine, characters.Select(c => $"• {c.Name}（{c.Type}）")),
                     FactionOverviewText = factions.Count == 0
-                        ? "暂无势力信息，请在剧情稳定后补齐配套势力。"
+                        ? LocalizationManager.T("PO.NoFactions", "暂无势力信息，请在剧情稳定后补齐配套势力。")
                         : string.Join(Environment.NewLine, factions.Select(f => $"• {f.Name}（{f.Type}）")),
                     OutlineOverviewText = plots.Count == 0
-                        ? "暂无大纲内容，请点击AI生成大纲按钮创建大纲，或点击编辑大纲手动编辑。"
+                        ? LocalizationManager.T("PO.NoOutline", "暂无大纲内容，请点击AI生成大纲按钮创建大纲，或点击编辑大纲手动编辑。")
                         : string.Join(
                             Environment.NewLine + Environment.NewLine,
                             plots.Select(p =>

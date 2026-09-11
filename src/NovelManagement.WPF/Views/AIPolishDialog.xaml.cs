@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -93,13 +94,13 @@ namespace NovelManagement.WPF.Views
                 _aiAssistantService = App.ServiceProvider?.GetService<AIAssistantService>();
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化，请检查配置", "警告",
+                    MessageBox.Show(T("POL.ServiceNotInit", "AI服务未初始化，请检查配置"), T("Msg.Warning"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"初始化AI服务失败：{ex.Message}", "警告",
+                MessageBox.Show(TF("POL.InitFailedFmt", "初始化AI服务失败：{0}", ex.Message), T("Msg.Warning"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -196,7 +197,7 @@ namespace NovelManagement.WPF.Views
                 for (var i = 0; i < AIModelComboBox.Items.Count; i++)
                 {
                     var item = (ComboBoxItem)AIModelComboBox.Items[i];
-                    if (item.Content?.ToString()?.Contains("当前在线", StringComparison.Ordinal) == true)
+                    if ((item.Tag?.ToString() ?? item.Content?.ToString())?.Contains("当前在线", StringComparison.Ordinal) == true)
                     {
                         selectedIndex = i;
                         break;
@@ -288,7 +289,7 @@ namespace NovelManagement.WPF.Views
                 var rwkvService = App.ServiceProvider?.GetService<IRwkvLightningService>();
                 if (rwkvService == null)
                 {
-                    MessageBox.Show("RWKV 推理服务未注册，请检查应用配置。", "AI服务不可用",
+                    MessageBox.Show(T("POL.RwkvNotRegistered", "RWKV 推理服务未注册，请检查应用配置。"), T("POL.AiUnavailable"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
@@ -307,7 +308,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"检查 RWKV 推理服务状态失败：{ex.Message}", "AI服务不可用",
+                MessageBox.Show(TF("POL.CheckRwkvFailedFmt", "检查 RWKV 推理服务状态失败：{0}", ex.Message), T("POL.AiUnavailable"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
@@ -363,7 +364,7 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(message))
             {
-                return "未知错误，请重试。";
+                return T("POL.UnknownError", "未知错误，请重试。");
             }
 
             if (message.Contains("An error occurred while sending", StringComparison.OrdinalIgnoreCase) ||
@@ -371,7 +372,7 @@ namespace NovelManagement.WPF.Views
                 message.Contains("socket", StringComparison.OrdinalIgnoreCase) ||
                 message.Contains("connection", StringComparison.OrdinalIgnoreCase))
             {
-                return "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。";
+                return T("POL.ConnectionError", "模型服务连接失败，请确认 RWKV 推理服务已启动（可在「AI模型配置」页查看状态），然后重试。");
             }
 
             return message;
@@ -407,13 +408,13 @@ namespace NovelManagement.WPF.Views
                 if (!string.IsNullOrEmpty(PolishedContentTextBox.Text))
                 {
                     Clipboard.SetText(PolishedContentTextBox.Text);
-                    MessageBox.Show("润色内容已复制到剪贴板", "提示", 
+                    MessageBox.Show(T("POL.Copied", "润色内容已复制到剪贴板"), T("Msg.Tip"), 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"复制失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("POL.CopyFailedFmt", "复制失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -427,7 +428,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrEmpty(PolishedContentTextBox.Text))
                 {
-                    MessageBox.Show("请先进行润色", "提示", 
+                    MessageBox.Show(T("POL.PolishFirst", "请先进行润色"), T("Msg.Tip"), 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -438,7 +439,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"显示差异失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("POL.DiffFailFmt", "显示差异失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -510,18 +511,18 @@ namespace NovelManagement.WPF.Views
             var selectedCount = _replacements.Count(r => r.IsSelected);
             if (selectedCount == 0)
             {
-                MessageBox.Show("请至少选择一个替换项", "提示",
+                MessageBox.Show(T("POL.SelectAtLeastOne", "请至少选择一个替换项"), T("Msg.Tip"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var result = MessageBox.Show($"确定要应用选中的 {selectedCount} 个替换项吗？", "确认",
+            var result = MessageBox.Show(TF("POL.ApplySelectedConfirmFmt", "确定要应用选中的 {0} 个替换项吗？", selectedCount), T("Dlg.Confirm"),
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (result == MessageBoxResult.Yes)
             {
                 GeneratePreviewText();
-                MessageBox.Show($"已应用 {selectedCount} 个替换项", "成功",
+                MessageBox.Show(TF("POL.AppliedSelectedFmt", "已应用 {0} 个替换项", selectedCount), T("Msg.Success"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -559,18 +560,18 @@ namespace NovelManagement.WPF.Views
                 var record = LoadPolishHistoryRecord(dialog.SelectedHistoryPath);
                 if (record == null)
                 {
-                    MessageBox.Show("历史记录内容无效。", "错误",
+                    MessageBox.Show(T("POL.HistoryInvalid", "历史记录内容无效。"), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 ApplyHistoryRecord(record);
-                MessageBox.Show($"已载入润色记录：{record.Title}", "加载成功",
+                MessageBox.Show(TF("POL.RecordLoadedFmt", "已载入润色记录：{0}", record.Title), T("POL.LoadSuccessTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"显示历史记录失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.HistoryShowFailFmt", "显示历史记录失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -586,7 +587,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"批量润色失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.BatchFailFmt", "批量润色失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -602,7 +603,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"刷新建议失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.RefreshSugFailFmt", "刷新建议失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -614,19 +615,19 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                var result = MessageBox.Show("确定要应用所有智能建议吗？", "确认",
+                var result = MessageBox.Show(T("POL.ApplyAllConfirm", "确定要应用所有智能建议吗？"), T("Dlg.Confirm"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
                 {
                     ApplyAllSmartSuggestions();
-                    MessageBox.Show("已应用所有智能建议", "成功",
+                    MessageBox.Show(T("POL.AppliedAll", "已应用所有智能建议"), T("Msg.Success"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"应用建议失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.ApplySugFailFmt", "应用建议失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -647,17 +648,17 @@ namespace NovelManagement.WPF.Views
             {
                 _isPolishing = true;
                 PolishButton.IsEnabled = false;
-                PolishButton.Content = "润色中...";
+                PolishButton.Content = T("POL.Polishing", "润色中...");
 
                 // 显示进度和状态
                 PolishProgressBar.Visibility = Visibility.Visible;
                 PolishStatusTextBlock.Visibility = Visibility.Visible;
-                PolishStatusTextBlock.Text = "正在准备润色参数...";
+                PolishStatusTextBlock.Text = T("POL.PreparingParams", "正在准备润色参数...");
                 PolishProgressBar.Value = 10;
 
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("POL.ServiceNotInitShort", "AI服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -674,32 +675,32 @@ namespace NovelManagement.WPF.Views
                 var parameters = new Dictionary<string, object>
                 {
                     ["OriginalContent"] = _originalContent,
-                    ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
-                    ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
-                    ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
+                    ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
+                    ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
+                    ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
                     ["SpecialRequirements"] = SpecialRequirementsTextBox.Text,
                     // 新增高级参数（Tag 存纯模型名供 agent 判定，Content 仅展示）
                     ["AIModel"] = GetSelectedAiModel(),
-                    ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
-                    ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
-                    ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
+                    ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
+                    ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
+                    ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
                     ["AutoCorrect"] = AutoCorrectCheckBox.IsChecked == true,
                     ["EnhanceDescription"] = EnhanceDescriptionCheckBox.IsChecked == true,
                     ["OptimizeDialogue"] = OptimizeDialogueCheckBox.IsChecked == true,
                     ["PreserveStyle"] = PreserveStyleCheckBox.IsChecked == true
                 };
 
-                PolishStatusTextBlock.Text = "正在调用AI润色服务...";
+                PolishStatusTextBlock.Text = T("POL.CallingService", "正在调用AI润色服务...");
                 PolishProgressBar.Value = 30;
 
                 // 调用AI服务进行润色
-                PolishStatusTextBlock.Text = "AI正在分析文本...";
+                PolishStatusTextBlock.Text = T("POL.Analyzing", "AI正在分析文本...");
                 PolishProgressBar.Value = 50;
 
                 var result = await _aiAssistantService.PolishTextAsync(parameters);
 
                 PolishProgressBar.Value = 80;
-                PolishStatusTextBlock.Text = "正在处理润色结果...";
+                PolishStatusTextBlock.Text = T("POL.ProcessingResult", "正在处理润色结果...");
 
                 if (result.IsSuccess && result.Data != null)
                 {
@@ -718,7 +719,7 @@ namespace NovelManagement.WPF.Views
                     {
                         PolishProgressBar.Visibility = Visibility.Collapsed;
                         PolishStatusTextBlock.Visibility = Visibility.Collapsed;
-                        MessageBox.Show("AI润色返回空内容，未生成可用结果。请调整要求或切换模型后重试。", "错误",
+                        MessageBox.Show(T("POL.EmptyResult", "AI润色返回空内容，未生成可用结果。请调整要求或切换模型后重试。"), T("Msg.Error"),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
@@ -731,28 +732,28 @@ namespace NovelManagement.WPF.Views
                     SavePolishHistoryRecord(BuildPolishHistoryRecord());
 
                     PolishProgressBar.Value = 100;
-                    PolishStatusTextBlock.Text = "文本润色完成！";
+                    PolishStatusTextBlock.Text = T("POL.DoneStatus", "文本润色完成！");
 
                     // 延迟隐藏进度条
                     await Task.Delay(1000);
                     PolishProgressBar.Visibility = Visibility.Collapsed;
                     PolishStatusTextBlock.Visibility = Visibility.Collapsed;
 
-                    MessageBox.Show("文本润色完成！", "成功",
+                    MessageBox.Show(T("POL.DoneStatus", "文本润色完成！"), T("Msg.Success"),
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     PolishProgressBar.Visibility = Visibility.Collapsed;
                     PolishStatusTextBlock.Visibility = Visibility.Collapsed;
-                    MessageBox.Show($"AI润色失败：{BuildFriendlyAiError(result.Message)}", "错误",
+                    MessageBox.Show(TF("POL.AIFailFmt", "AI润色失败：{0}", BuildFriendlyAiError(result.Message)), T("Msg.Error"),
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"润色文本失败：{ex.Message}", "错误", 
+                MessageBox.Show(TF("POL.PolishFailFmt", "润色文本失败：{0}", ex.Message), T("Msg.Error"), 
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -765,7 +766,7 @@ namespace NovelManagement.WPF.Views
                     Children =
                     {
                         new MaterialDesignThemes.Wpf.PackIcon { Kind = MaterialDesignThemes.Wpf.PackIconKind.AutoFix, Margin = new Thickness(0,0,8,0) },
-                        new TextBlock { Text = "开始润色" }
+                        new TextBlock { Text = T("POL.StartPolish") }
                     }
                 };
 
@@ -794,12 +795,12 @@ namespace NovelManagement.WPF.Views
                 PolishButton.IsEnabled = false;
                 PolishProgressBar.Visibility = Visibility.Visible;
                 PolishStatusTextBlock.Visibility = Visibility.Visible;
-                PolishStatusTextBlock.Text = "正在拆分长文本...";
+                PolishStatusTextBlock.Text = T("POL.Splitting", "正在拆分长文本...");
                 PolishProgressBar.Value = 5;
 
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("POL.ServiceNotInitShort", "AI服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -814,7 +815,7 @@ namespace NovelManagement.WPF.Views
                 for (var index = 0; index < chunks.Count; index++)
                 {
                     var chunk = chunks[index];
-                    PolishStatusTextBlock.Text = $"正在批量润色第 {index + 1}/{chunks.Count} 段...";
+                    PolishStatusTextBlock.Text = TF("POL.BatchProgressFmt", "正在批量润色第 {0}/{1} 段...", index + 1, chunks.Count);
                     PolishProgressBar.Value = 10 + (index * 70.0 / chunks.Count);
 
                     var parameters = BuildPolishParameters(chunk, index + 1, chunks.Count);
@@ -826,20 +827,20 @@ namespace NovelManagement.WPF.Views
                     if (string.IsNullOrWhiteSpace(polishedChunk))
                     {
                         throw new InvalidOperationException(
-                            $"第 {index + 1} 段润色失败：{result.Message ?? "AI 返回空内容"}");
+                            TF("POL.ChunkFailFmt", "第 {0} 段润色失败：{1}", index + 1, result.Message ?? "AI 返回空内容"));
                     }
 
                     polishedChunks.Add(polishedChunk.Trim());
                 }
 
-                PolishStatusTextBlock.Text = "正在合并批量润色结果...";
+                PolishStatusTextBlock.Text = T("POL.Merging", "正在合并批量润色结果...");
                 PolishProgressBar.Value = 85;
 
                 var mergedContent = string.Join(Environment.NewLine + Environment.NewLine, polishedChunks
                     .Where(chunk => !string.IsNullOrWhiteSpace(chunk)));
                 if (string.IsNullOrWhiteSpace(mergedContent))
                 {
-                    throw new InvalidOperationException("批量润色未返回可用结果。");
+                    throw new InvalidOperationException(T("POL.BatchEmpty", "批量润色未返回可用结果。"));
                 }
 
                 ApplyPolishedResult(mergedContent);
@@ -848,14 +849,14 @@ namespace NovelManagement.WPF.Views
                 SavePolishHistoryRecord(BuildPolishHistoryRecord());
 
                 PolishProgressBar.Value = 100;
-                PolishStatusTextBlock.Text = $"批量润色完成，共处理 {chunks.Count} 段。";
+                PolishStatusTextBlock.Text = TF("POL.BatchDoneFmt", "批量润色完成，共处理 {0} 段。", chunks.Count);
 
                 await Task.Delay(1000);
                 PolishProgressBar.Visibility = Visibility.Collapsed;
                 PolishStatusTextBlock.Visibility = Visibility.Collapsed;
 
                 MessageBox.Show(
-                    $"批量润色完成，共处理 {chunks.Count} 段。",
+                    TF("POL.BatchDoneFmt", "批量润色完成，共处理 {0} 段。", chunks.Count),
                     "成功",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -864,7 +865,7 @@ namespace NovelManagement.WPF.Views
             {
                 PolishProgressBar.Visibility = Visibility.Collapsed;
                 PolishStatusTextBlock.Visibility = Visibility.Collapsed;
-                MessageBox.Show($"批量润色失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("POL.BatchFailFmt", "批量润色失败：{0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -893,14 +894,14 @@ namespace NovelManagement.WPF.Views
             return new Dictionary<string, object>
             {
                 ["OriginalContent"] = content,
-                ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
-                ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
-                ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
+                ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
+                ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
+                ["PreserveElements"] = ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PreserveElementsComboBox.SelectedItem)?.Content?.ToString() ?? "保持原意",
                 ["SpecialRequirements"] = specialRequirements,
-                ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
-                ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
-                ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
-                ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
+                ["AIModel"] = ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)AIModelComboBox.SelectedItem)?.Content?.ToString() ?? "DeepSeek",
+                ["PolishFocus"] = ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishFocusComboBox.SelectedItem)?.Content?.ToString() ?? "风格统一",
+                ["EmotionalTone"] = ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)EmotionalToneComboBox.SelectedItem)?.Content?.ToString() ?? "保持原有",
+                ["TargetAudience"] = ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetAudienceComboBox.SelectedItem)?.Content?.ToString() ?? "通用读者",
                 ["AutoCorrect"] = AutoCorrectCheckBox.IsChecked == true,
                 ["EnhanceDescription"] = EnhanceDescriptionCheckBox.IsChecked == true,
                 ["OptimizeDialogue"] = OptimizeDialogueCheckBox.IsChecked == true,
@@ -977,7 +978,7 @@ namespace NovelManagement.WPF.Views
         {
             var content = OriginalContentTextBox.Text ?? "";
             var wordCount = content.Length;
-            OriginalWordCountLabel.Text = $"({wordCount:N0}字)";
+            OriginalWordCountLabel.Text = TF("POL.WordCountFmt", "({0:N0}字)", wordCount);
         }
 
         /// <summary>
@@ -987,7 +988,7 @@ namespace NovelManagement.WPF.Views
         {
             var content = PolishedContentTextBox.Text ?? "";
             var wordCount = content.Length;
-            PolishedWordCountLabel.Text = $"({wordCount:N0}字)";
+            PolishedWordCountLabel.Text = TF("POL.WordCountFmt", "({0:N0}字)", wordCount);
         }
 
         /// <summary>
@@ -1152,15 +1153,15 @@ namespace NovelManagement.WPF.Views
                 var changePercent = ((double)(polishedLength - originalLength) / originalLength * 100);
                 if (Math.Abs(changePercent) < 1)
                 {
-                    ImprovementLabel.Text = "微调";
+                    ImprovementLabel.Text = T("POL.Tweak");
                 }
                 else if (changePercent > 0)
                 {
-                    ImprovementLabel.Text = $"扩展 +{changePercent:F1}%";
+                    ImprovementLabel.Text = TF("POL.ExpandFmt", "扩展 +{0:F1}%", changePercent);
                 }
                 else
                 {
-                    ImprovementLabel.Text = $"精简 {changePercent:F1}%";
+                    ImprovementLabel.Text = TF("POL.ShrinkFmt", "精简 {0:F1}%", changePercent);
                 }
             }
             else
@@ -1198,9 +1199,9 @@ namespace NovelManagement.WPF.Views
                             ReplacementText = replacementText,
                             Position = position,
                             Length = originalText.Length,
-                            ReplacementType = "AI润色",
+                            ReplacementType = T("POL.TypeAiPolish"),
                             IsSelected = true,
-                            Description = $"将\"{originalText}\"优化为\"{replacementText}\"",
+                            Description = TF("POL.WordReplFmt", "将\"{0}\"优化为\"{1}\"", originalText, replacementText),
                             Context = GetContext(position, originalText.Length)
                         };
 
@@ -1213,7 +1214,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"解析XML替换失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.XmlParseFailFmt", "解析XML替换失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1266,7 +1267,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"处理替换列表失败：{ex.Message}", "错误",
+                MessageBox.Show(TF("POL.ReplListFailFmt", "处理替换列表失败：{0}", ex.Message), T("Msg.Error"),
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1332,7 +1333,7 @@ namespace NovelManagement.WPF.Views
 
                 var totalCount = _replacements.Count;
                 var selectedCount = _replacements.Count(r => r.IsSelected);
-                ReplacementStatsLabel.Text = $"共{totalCount}项替换建议，已选择{selectedCount}项";
+                ReplacementStatsLabel.Text = TF("POL.ReplSummaryFmt", "共{0}项替换建议，已选择{1}项", totalCount, selectedCount);
             }
             catch (Exception ex)
             {
@@ -1424,11 +1425,11 @@ namespace NovelManagement.WPF.Views
         {
             var suggestions = new[]
             {
-                new { Title = "词汇丰富度", Content = "建议增加更多形容词和副词来丰富表达", Priority = "高" },
-                new { Title = "句式变化", Content = "适当调整句子长短，增加语言节奏感", Priority = "中" },
-                new { Title = "情感表达", Content = "可以加强人物内心情感的描写", Priority = "中" },
-                new { Title = "场景描述", Content = "环境描写可以更加细腻生动", Priority = "低" },
-                new { Title = "对话优化", Content = "人物对话可以更符合角色性格特点", Priority = "高" }
+                new { Title = T("POL.SugVocabulary"), Content = T("POL.SugVocabularyContent"), Priority = T("POL.PriorityHigh") },
+                new { Title = T("POL.SugSentence"), Content = T("POL.SugSentenceContent"), Priority = T("POL.PriorityMedium") },
+                new { Title = T("POL.SugEmotion"), Content = T("POL.SugEmotionContent"), Priority = T("POL.PriorityMedium") },
+                new { Title = T("POL.SugScene"), Content = T("POL.SugSceneContent"), Priority = T("POL.PriorityLow") },
+                new { Title = T("POL.SugDialogue"), Content = T("POL.SugDialogueContent"), Priority = T("POL.PriorityHigh") }
             };
 
             foreach (var suggestion in suggestions)
@@ -1590,7 +1591,7 @@ namespace NovelManagement.WPF.Views
 
                 var scoreText = new TextBlock
                 {
-                    Text = $"{item.Score}分",
+                    Text = TF("POL.ScoreFmt", "{0}分", item.Score),
                     FontSize = 14,
                     FontWeight = FontWeights.Bold,
                     Foreground = item.Score >= 90 ? (Brush)FindResource("AppSuccessBrush") :
@@ -1625,7 +1626,7 @@ namespace NovelManagement.WPF.Views
         {
             if (string.IsNullOrWhiteSpace(PolishedContentTextBox.Text) && string.IsNullOrWhiteSpace(_polishedFullText))
             {
-                MessageBox.Show("当前没有可应用的润色内容。", "提示",
+                MessageBox.Show(T("POL.NothingToApply", "当前没有可应用的润色内容。"), T("Msg.Tip"),
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -1730,14 +1731,14 @@ namespace NovelManagement.WPF.Views
             return new PolishHistoryRecord
             {
                 Title = string.IsNullOrWhiteSpace(_originalContent)
-                    ? $"润色记录_{DateTime.Now:yyyyMMdd_HHmmss}"
+                    ? TF("POL.RecordFileNameFmt", "润色记录_{0:yyyyMMdd_HHmmss}", DateTime.Now)
                     : $"{_originalContent.Substring(0, Math.Min(20, _originalContent.Length)).Replace(Environment.NewLine, " ")}...",
                 OriginalContent = _originalContent,
                 PolishedContent = PolishedContentTextBox.Text ?? string.Empty,
                 AIModel = GetSelectedAiModel(),
-                TargetStyle = (TargetStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
-                PolishIntensity = (PolishIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
-                PreserveElements = (PreserveElementsComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                TargetStyle = (TargetStyleComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (TargetStyleComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                PolishIntensity = (PolishIntensityComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PolishIntensityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
+                PreserveElements = (PreserveElementsComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? (PreserveElementsComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty,
                 SpecialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty,
                 ReplacementCount = _replacements.Count,
                 SavedAt = DateTime.Now
@@ -1799,7 +1800,7 @@ namespace NovelManagement.WPF.Views
 
             foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
             {
-                if (string.Equals(item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(item.Tag?.ToString() ?? item.Content?.ToString(), content, StringComparison.OrdinalIgnoreCase))
                 {
                     comboBox.SelectedItem = item;
                     return;
@@ -1855,9 +1856,9 @@ namespace NovelManagement.WPF.Views
                                 ReplacementText = polishedLine,
                                 Position = position,
                                 Length = originalLine.Length,
-                                ReplacementType = "AI润色",
+                                ReplacementType = T("POL.TypeAiPolish"),
                                 IsSelected = true,
-                                Description = $"润色优化：{originalLine.Substring(0, Math.Min(20, originalLine.Length))}... → {polishedLine.Substring(0, Math.Min(20, polishedLine.Length))}...",
+                                Description = TF("POL.DiffDescFmt", "润色优化：{0}... → {1}...", originalLine.Substring(0, Math.Min(20, originalLine.Length)), polishedLine.Substring(0, Math.Min(20, polishedLine.Length))),
                                 Context = GetContext(position, originalLine.Length)
                             };
 
@@ -1875,10 +1876,10 @@ namespace NovelManagement.WPF.Views
                         ReplacementText = polishedText,
                         Position = 0,
                         Length = originalText.Length,
-                        ReplacementType = "整体润色",
+                        ReplacementType = T("POL.TypeFullPolish"),
                         IsSelected = true,
-                        Description = "AI对全文进行了润色优化",
-                        Context = "全文内容"
+                        Description = T("POL.FullPolishNote", "AI对全文进行了润色优化"),
+                        Context = T("POL.FullContent")
                     };
 
                     _replacements.Add(replacement);
@@ -1898,10 +1899,10 @@ namespace NovelManagement.WPF.Views
                         ReplacementText = polishedText,
                         Position = 0,
                         Length = originalText.Length,
-                        ReplacementType = "整体润色",
+                        ReplacementType = T("POL.TypeFullPolish"),
                         IsSelected = true,
-                        Description = "差异分析失败，已退化为全文替换项",
-                        Context = "全文内容"
+                        Description = T("POL.DiffFallback", "差异分析失败，已退化为全文替换项"),
+                        Context = T("POL.FullContent")
                     });
                 }
 
@@ -2035,7 +2036,7 @@ namespace NovelManagement.WPF.Views
         public PolishHistoryDialog(string historyDirectory)
         {
             _historyDirectory = historyDirectory;
-            Title = "润色历史记录";
+            Title = T("POL.HistoryTip", "润色历史记录");
             Width = 860;
             Height = 560;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -2061,7 +2062,7 @@ namespace NovelManagement.WPF.Views
 
             var header = new TextBlock
             {
-                Text = "请选择要查看或回填的润色记录：",
+                Text = T("POL.HistoryPrompt", "请选择要查看或回填的润色记录："),
                 Margin = new Thickness(0, 0, 0, 12)
             };
             Grid.SetColumnSpan(header, 3);
@@ -2087,11 +2088,11 @@ namespace NovelManagement.WPF.Views
             {
                 if (_historyListBox.SelectedItem is not PolishHistoryListItem item)
                 {
-                    MessageBox.Show("请先选择一条历史记录。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("POL.SelectHistoryFirst", "请先选择一条历史记录。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                if (MessageBox.Show($"确定删除记录“{item.Title}”吗？", "确认删除",
+                if (MessageBox.Show(TF("POL.DeleteRecordConfirmFmt", "确定删除记录“{0}”吗？", item.Title), T("POL.ConfirmDeleteTitle"),
                         MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     return;
@@ -2102,12 +2103,12 @@ namespace NovelManagement.WPF.Views
                 _previewTextBox.Clear();
             };
 
-            var loadButton = new Button { Content = "载入", Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
+            var loadButton = new Button { Content = T("POL.Load", "载入"), Width = 84, Margin = new Thickness(0, 0, 12, 0), IsDefault = true };
             loadButton.Click += (_, _) =>
             {
                 if (_historyListBox.SelectedItem is not PolishHistoryListItem item)
                 {
-                    MessageBox.Show("请先选择一条历史记录。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(T("POL.SelectHistoryFirst", "请先选择一条历史记录。"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -2155,7 +2156,7 @@ namespace NovelManagement.WPF.Views
                 var record = JsonSerializer.Deserialize<PolishHistoryRecord>(File.ReadAllText(item.FilePath));
                 if (record == null)
                 {
-                    _previewTextBox.Text = "记录内容无效。";
+                    _previewTextBox.Text = T("POL.RecordInvalid", "记录内容无效。");
                     return;
                 }
 
@@ -2171,7 +2172,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                _previewTextBox.Text = $"读取记录失败：{ex.Message}";
+                _previewTextBox.Text = TF("POL.RecordReadFailFmt", "读取记录失败：{0}", ex.Message);
             }
         }
     }

@@ -1,11 +1,11 @@
-<Window x:Class="NovelManagement.WPF.Views.AIContinueWriteDialog"
+<Window x:Class="NovelManagement.WPF.Views.AIContinueWriteDialog" Icon="pack://application:,,,/Assets/icon.ico"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="AI章节续写" Height="780" Width="900"
+        Title="{DynamicResource Loc.CW.Title}" Height="780" Width="900"
         WindowStartupLocation="CenterOwner"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -24,11 +24,11 @@
 
         <!-- 标题区域 -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="AI章节续写" 
+            <TextBlock Text="{DynamicResource Loc.CW.Title}" 
                      FontSize="24" 
                      FontWeight="Bold" 
                      Margin="0,0,0,8"/>
-            <TextBlock Text="AI将基于已有内容和章节设定，智能续写剩余章节内容" 
+            <TextBlock Text="{DynamicResource Loc.CW.Subtitle}" 
                      FontSize="14" 
                      Foreground="{DynamicResource MaterialDesignBodyLight}"/>
         </StackPanel>
@@ -58,12 +58,12 @@
                         </Grid.RowDefinitions>
 
                         <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Text="现有内容" 
+                            <TextBlock Text="{DynamicResource Loc.CW.ExistingContent}" 
                                      FontSize="16" 
                                      FontWeight="Medium" 
                                      DockPanel.Dock="Left"/>
                             <TextBlock x:Name="ExistingWordCountLabel"
-                                     Text="(0字)"
+                                     Text="{DynamicResource Loc.CW.ZeroWords}"
                                      FontSize="14"
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      DockPanel.Dock="Right"/>
@@ -84,32 +84,32 @@
                 <materialDesign:Card Grid.Row="2" Padding="16">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="续写设置"
+                        <TextBlock Text="{DynamicResource Loc.CW.ContSettings}"
                                  FontSize="16"
                                  FontWeight="Medium"
                                  Margin="0,0,0,16"/>
 
                         <!-- 续写长度 -->
                         <ComboBox x:Name="ContinueLengthComboBox"
-                                materialDesign:HintAssist.Hint="续写长度"
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.CW.HintLength}"
                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                 Margin="0,0,0,12">
-                            <ComboBoxItem Content="短续写 (500-800字)"/>
-                            <ComboBoxItem Content="中续写 (800-1500字)" IsSelected="True"/>
-                            <ComboBoxItem Content="长续写 (1500-2500字)"/>
-                            <ComboBoxItem Content="自定义长度"/>
+                            <ComboBoxItem Tag="短续写 (500-800字)" Content="{DynamicResource Loc.CW.LenShort}"/>
+                            <ComboBoxItem Tag="中续写 (800-1500字)" Content="{DynamicResource Loc.CW.LenMedium}" IsSelected="True"/>
+                            <ComboBoxItem Tag="长续写 (1500-2500字)" Content="{DynamicResource Loc.CW.LenLong}"/>
+                            <ComboBoxItem Tag="自定义长度" Content="{DynamicResource Loc.CW.LenCustom}"/>
                         </ComboBox>
 
                         <!-- 自定义字数 -->
                         <TextBox x:Name="CustomWordCountTextBox"
-                               materialDesign:HintAssist.Hint="自定义字数"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CW.HintCustomWords}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                Text="1200"
                                Margin="0,0,0,12"/>
 
                         <!-- 续写方向 -->
                         <TextBox x:Name="ContinueDirectionTextBox"
-                               materialDesign:HintAssist.Hint="续写方向提示（可选）"
+                               materialDesign:HintAssist.Hint="{DynamicResource Loc.CW.HintDirection}"
                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                TextWrapping="Wrap"
                                AcceptsReturn="True"
@@ -124,7 +124,7 @@
                               Click="Continue_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="RobotLove" Margin="0,0,8,0"/>
-                                <TextBlock Text="开始续写"/>
+                                <TextBlock Text="{DynamicResource Loc.CW.StartContinue}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -143,12 +143,12 @@
 
                     <!-- 结果标题 -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock Text="续写结果" 
+                        <TextBlock Text="{DynamicResource Loc.CW.Result}" 
                                  FontSize="16" 
                                  FontWeight="Medium" 
                                  DockPanel.Dock="Left"/>
                         <TextBlock x:Name="ContinuedWordCountLabel"
-                                 Text="(0字)"
+                                 Text="{DynamicResource Loc.CW.ZeroWords}"
                                  FontSize="14"
                                  Foreground="{DynamicResource MaterialDesignBodyLight}"
                                  DockPanel.Dock="Right"/>
@@ -162,7 +162,7 @@
                            AcceptsReturn="True"
                            VerticalScrollBarVisibility="Auto"
                            IsReadOnly="False"
-                           materialDesign:HintAssist.Hint="AI续写的内容将显示在这里..."
+                           materialDesign:HintAssist.Hint="{DynamicResource Loc.CW.HintContinuedPlaceholder}"
                            TextChanged="ContinuedContentTextBox_TextChanged"/>
 
                     <!-- 操作按钮 -->
@@ -175,7 +175,7 @@
                               Click="RegenerateContinue_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Refresh" Margin="0,0,4,0"/>
-                                <TextBlock Text="续写"/>
+                                <TextBlock Text="{DynamicResource Loc.CW.ContinueShort}"/>
                             </StackPanel>
                         </Button>
                         
@@ -184,7 +184,7 @@
                               Click="CopyToClipboard_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,4,0"/>
-                                <TextBlock Text="复制"/>
+                                <TextBlock Text="{DynamicResource Loc.Dlg.Copy}"/>
                             </StackPanel>
                         </Button>
 
@@ -193,7 +193,7 @@
                               Click="PreviewMerged_Click">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Eye" Margin="0,0,4,0"/>
-                                <TextBlock Text="预览合并"/>
+                                <TextBlock Text="{DynamicResource Loc.CW.PreviewMerged}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -209,7 +209,7 @@
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                   Margin="0,0,8,0"
                   Click="Cancel_Click">
-                <TextBlock Text="取消"/>
+                <TextBlock Text="{DynamicResource Loc.Dlg.Cancel}"/>
             </Button>
             
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
@@ -217,7 +217,7 @@
                   x:Name="ApplyButton">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Check" Margin="0,0,4,0"/>
-                    <TextBlock Text="应用续写"/>
+                    <TextBlock Text="{DynamicResource Loc.CW.ApplyContinuation}"/>
                 </StackPanel>
             </Button>
         </StackPanel>

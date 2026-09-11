@@ -17,7 +17,9 @@ using System.Text.Json;
 using NovelManagement.AI.Services;
 using NovelManagement.AI.Services.Ollama;
 using NovelManagement.AI.Services.Ollama.Models;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -49,7 +51,7 @@ namespace NovelManagement.WPF.Views
             
             // 获取服务
             var serviceProvider = App.ServiceProvider
-                ?? throw new InvalidOperationException("应用服务尚未初始化，暂时无法打开 AI 模型配置。");
+                ?? throw new InvalidOperationException(LocalizationManager.T("AICfg.ServiceNotInit", "应用服务尚未初始化，暂时无法打开 AI 模型配置。"));
             _logger = serviceProvider.GetRequiredService<ILogger<AIConfigurationView>>();
             _configuration = serviceProvider.GetRequiredService<IConfiguration>();
             _configurationService = serviceProvider.GetRequiredService<ConfigurationService>();
@@ -63,7 +65,7 @@ namespace NovelManagement.WPF.Views
 
             if (ModelsDataGrid == null)
             {
-                throw new InvalidOperationException("AI 模型配置界面初始化失败：模型列表控件未正确加载。");
+                throw new InvalidOperationException(LocalizationManager.T("AICfg.InitFailed", "AI 模型配置界面初始化失败：模型列表控件未正确加载。"));
             }
 
             ModelsDataGrid.ItemsSource = _models;
@@ -107,7 +109,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "加载AI配置界面失败");
-                UpdateStatus($"加载失败: {ex.Message}", true);
+                UpdateStatus(LocalizationManager.TF("AICfg.LoadFailedFmt", "加载失败: {0}", ex.Message), true);
 
                 #region debug-point E:ai-config-load-failed
                 await ReportDebugEventAsync(
@@ -157,10 +159,10 @@ namespace NovelManagement.WPF.Views
                 EnableArchiveWriteCheckBox.IsChecked = bool.Parse(agentRoleConfig["EnableArchiveWrite"] ?? "true");
                 MainAgentModelTextBox.Text = agentRoleConfig["MainAgentModel"] ?? "";
                 SubAgentModelTextBox.Text = agentRoleConfig["SubAgentModel"] ?? "";
-                MainAgentRoleDescriptionTextBox.Text = agentRoleConfig["MainAgentRoleDescription"]
-                    ?? "结合 SubAgent 的需求简报撰写正式文案，专注内容创作。";
-                SubAgentRoleDescriptionTextBox.Text = agentRoleConfig["SubAgentRoleDescription"]
-                    ?? "总结写作需求，整理 MainAgent 草稿，并将纯净内容写入项目档案库。";
+                MainAgentRoleDescriptionTextBox.Text = LocalizationManager.LocalizeStoredValue(agentRoleConfig["MainAgentRoleDescription"]
+                    ?? "结合 SubAgent 的需求简报撰写正式文案，专注内容创作。");
+                SubAgentRoleDescriptionTextBox.Text = LocalizationManager.LocalizeStoredValue(agentRoleConfig["SubAgentRoleDescription"]
+                    ?? "总结写作需求，整理 MainAgent 草稿，并将纯净内容写入项目档案库。");
                 SelectComboBoxItemByTag(MainAgentProviderComboBox, agentRoleConfig["MainAgentProvider"] ?? "DeepSeek");
                 SelectComboBoxItemByTag(SubAgentProviderComboBox, agentRoleConfig["SubAgentProvider"] ?? "LlamaCpp");
 
@@ -321,12 +323,12 @@ namespace NovelManagement.WPF.Views
                     }
                 }
 
-                UpdateStatus("配置加载完成");
+                UpdateStatus(LocalizationManager.T("AICfg.ConfigLoaded", "配置加载完成"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "加载配置失败");
-                UpdateStatus($"加载配置失败: {ex.Message}", true);
+                UpdateStatus(LocalizationManager.TF("AICfg.LoadConfigFailedFmt", "加载配置失败: {0}", ex.Message), true);
 
                 #region debug-point E:load-config-failed
                 await ReportDebugEventAsync(
@@ -356,7 +358,7 @@ namespace NovelManagement.WPF.Views
             catch
             {
                 RwkvStatusIcon.Foreground = Brushes.Red;
-                RwkvStatusText.Text = "离线";
+                RwkvStatusText.Text = LocalizationManager.T("AICfg.StatusOffline", "离线");
             }
 
             // 检查智谱AI状态
@@ -364,12 +366,12 @@ namespace NovelManagement.WPF.Views
             if (string.IsNullOrEmpty(zhipuAIApiKey))
             {
                 ZhipuAIStatusIcon.Foreground = Brushes.Gray;
-                ZhipuAIStatusText.Text = "未配置API密钥";
+                ZhipuAIStatusText.Text = LocalizationManager.T("AICfg.StatusNoApiKey", "未配置API密钥");
             }
             else
             {
                 ZhipuAIStatusIcon.Foreground = Brushes.Orange;
-                ZhipuAIStatusText.Text = "已配置，未测试";
+                ZhipuAIStatusText.Text = LocalizationManager.T("AICfg.StatusConfiguredNotTested", "已配置，未测试");
             }
 
             // 检查Ollama状态
@@ -379,21 +381,21 @@ namespace NovelManagement.WPF.Views
                 if (ollamaTest.IsSuccess)
                 {
                     OllamaStatusIcon.Foreground = Brushes.Green;
-                    OllamaStatusText.Text = "在线";
-                    
+                    OllamaStatusText.Text = LocalizationManager.T("AICfg.StatusOnline", "在线");
+
                     var version = await _ollamaService.GetVersionAsync();
-                    OllamaStatusText.Text = $"在线 (v{version})";
+                    OllamaStatusText.Text = LocalizationManager.TF("AICfg.StatusOnlineFmt", "在线 (v{0})", version);
                 }
                 else
                 {
                     OllamaStatusIcon.Foreground = Brushes.Red;
-                    OllamaStatusText.Text = "离线";
+                    OllamaStatusText.Text = LocalizationManager.T("AICfg.StatusOffline", "离线");
                 }
             }
             catch
             {
                 OllamaStatusIcon.Foreground = Brushes.Red;
-                OllamaStatusText.Text = "离线";
+                OllamaStatusText.Text = LocalizationManager.T("AICfg.StatusOffline", "离线");
             }
 
             // 检查 llama.cpp 状态
@@ -405,7 +407,7 @@ namespace NovelManagement.WPF.Views
             catch
             {
                 LlamaStatusIcon.Foreground = Brushes.Red;
-                LlamaStatusText.Text = "离线";
+                LlamaStatusText.Text = LocalizationManager.T("AICfg.StatusOffline", "离线");
             }
 
             // 检查DeepSeek状态
@@ -413,12 +415,12 @@ namespace NovelManagement.WPF.Views
             if (string.IsNullOrEmpty(apiKey))
             {
                 DeepSeekStatusIcon.Foreground = Brushes.Gray;
-                DeepSeekStatusText.Text = "未配置API密钥";
+                DeepSeekStatusText.Text = LocalizationManager.T("AICfg.StatusNoApiKey", "未配置API密钥");
             }
             else
             {
                 DeepSeekStatusIcon.Foreground = Brushes.Orange;
-                DeepSeekStatusText.Text = "已配置，未测试";
+                DeepSeekStatusText.Text = LocalizationManager.T("AICfg.StatusConfiguredNotTested", "已配置，未测试");
             }
 
             // 检查小米米模状态
@@ -426,17 +428,17 @@ namespace NovelManagement.WPF.Views
             if (string.IsNullOrEmpty(xiaoMiMiMoApiKey))
             {
                 XiaoMiMiMoStatusIcon.Foreground = Brushes.Gray;
-                XiaoMiMiMoStatusText.Text = "未配置API密钥";
+                XiaoMiMiMoStatusText.Text = LocalizationManager.T("AICfg.StatusNoApiKey", "未配置API密钥");
             }
             else
             {
                 XiaoMiMiMoStatusIcon.Foreground = Brushes.Orange;
-                XiaoMiMiMoStatusText.Text = "已配置，未测试";
+                XiaoMiMiMoStatusText.Text = LocalizationManager.T("AICfg.StatusConfiguredNotTested", "已配置，未测试");
             }
 
             // 检查MCP状态
             MCPStatusIcon.Foreground = Brushes.Red;
-            MCPStatusText.Text = "服务未接入";
+            MCPStatusText.Text = LocalizationManager.T("AICfg.StatusNotConnected", "服务未接入");
 
             #region debug-point B:provider-status
             await ReportDebugEventAsync(
@@ -491,12 +493,12 @@ namespace NovelManagement.WPF.Views
                     }
                 }
 
-                UpdateStatus($"已加载 {models.Count} 个Ollama模型");
+                UpdateStatus(LocalizationManager.TF("AICfg.OllamaModelsLoadedFmt", "已加载 {0} 个Ollama模型", models.Count));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "加载Ollama模型列表失败");
-                UpdateStatus($"加载模型列表失败: {ex.Message}", true);
+                UpdateStatus(LocalizationManager.TF("AICfg.LoadModelsFailedFmt", "加载模型列表失败: {0}", ex.Message), true);
 
                 #region debug-point B:ollama-model-load-failed
                 await ReportDebugEventAsync(
@@ -537,7 +539,7 @@ namespace NovelManagement.WPF.Views
                 if (_llamaModels.Count == 0)
                 {
                     LlamaMmprojPathTextBox.Text = "";
-                    UpdateStatus("未在 GGUF 目录中发现可用模型", true);
+                    UpdateStatus(LocalizationManager.T("AICfg.NoGgufModels", "未在 GGUF 目录中发现可用模型"), true);
                     return;
                 }
 
@@ -545,12 +547,12 @@ namespace NovelManagement.WPF.Views
                     ? _llamaModels[0].ModelPath
                     : configuredModelPath;
                 SelectLlamaModel(selectedPath);
-                UpdateStatus($"已扫描 {_llamaModels.Count} 个 GGUF 模型");
+                UpdateStatus(LocalizationManager.TF("AICfg.GgufModelsScannedFmt", "已扫描 {0} 个 GGUF 模型", _llamaModels.Count));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "扫描 llama.cpp 模型目录失败");
-                UpdateStatus($"扫描 GGUF 模型失败: {ex.Message}", true);
+                UpdateStatus(LocalizationManager.TF("AICfg.ScanGgufFailedFmt", "扫描 GGUF 模型失败: {0}", ex.Message), true);
             }
         }
 
@@ -605,7 +607,7 @@ namespace NovelManagement.WPF.Views
 
                 if (_rwkvModels.Count == 0)
                 {
-                    UpdateStatus("未在 rwkv_models 目录中发现 RWKV 模型", true);
+                    UpdateStatus(LocalizationManager.T("AICfg.NoRwkvModels", "未在 rwkv_models 目录中发现 RWKV 模型"), true);
                     return;
                 }
 
@@ -617,13 +619,13 @@ namespace NovelManagement.WPF.Views
                 var rawCheckpointCount = _rwkvModels.Count(path =>
                     string.Equals(Path.GetExtension(path), ".pth", StringComparison.OrdinalIgnoreCase));
                 UpdateStatus(rawCheckpointCount > 0
-                    ? $"已扫描 {_rwkvModels.Count} 个 RWKV 模型（包含 {rawCheckpointCount} 个 .pth 原始权重）"
-                    : $"已扫描 {_rwkvModels.Count} 个 RWKV 模型");
+                    ? LocalizationManager.TF("AICfg.RwkvModelsScannedWithPthFmt", "已扫描 {0} 个 RWKV 模型（包含 {1} 个 .pth 原始权重）", _rwkvModels.Count, rawCheckpointCount)
+                    : LocalizationManager.TF("AICfg.RwkvModelsScannedFmt", "已扫描 {0} 个 RWKV 模型", _rwkvModels.Count));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "扫描 RWKV 模型目录失败");
-                UpdateStatus($"扫描 RWKV 模型失败: {ex.Message}", true);
+                UpdateStatus(LocalizationManager.TF("AICfg.ScanRwkvFailedFmt", "扫描 RWKV 模型失败: {0}", ex.Message), true);
             }
         }
 
@@ -872,7 +874,7 @@ namespace NovelManagement.WPF.Views
         private async void RwkvRefreshStatusButton_Click(object sender, RoutedEventArgs e)
         {
             await CheckProvidersStatusAsync();
-            UpdateStatus("RWKV 状态已刷新");
+            UpdateStatus(LocalizationManager.T("AICfg.RwkvStatusRefreshed", "RWKV 状态已刷新"));
         }
 
         private async void RwkvStartRuntimeButton_Click(object sender, RoutedEventArgs e)
@@ -880,7 +882,7 @@ namespace NovelManagement.WPF.Views
             RwkvStartRuntimeButton.IsEnabled = false;
             try
             {
-                UpdateStatus("正在启动 RWKV 推理服务...");
+                UpdateStatus(LocalizationManager.T("AICfg.StartingRwkv", "正在启动 RWKV 推理服务..."));
                 var result = await _runtimeCoordinator.StartRwkvAsync(BuildRwkvRuntimeOptions());
                 UpdateStatus(result.Message, !result.Success);
                 await CheckProvidersStatusAsync();
@@ -896,7 +898,7 @@ namespace NovelManagement.WPF.Views
             RwkvStopRuntimeButton.IsEnabled = false;
             try
             {
-                UpdateStatus("正在停止 RWKV 推理服务...");
+                UpdateStatus(LocalizationManager.T("AICfg.StoppingRwkv", "正在停止 RWKV 推理服务..."));
                 var result = await _runtimeCoordinator.StopRwkvAsync(BuildRwkvRuntimeOptions());
                 UpdateStatus(result.Message, !result.Success);
                 await CheckProvidersStatusAsync();
@@ -948,7 +950,7 @@ namespace NovelManagement.WPF.Views
         private async void LlamaRefreshStatusButton_Click(object sender, RoutedEventArgs e)
         {
             await CheckProvidersStatusAsync();
-            UpdateStatus("llama.cpp 状态已刷新");
+            UpdateStatus(LocalizationManager.T("AICfg.LlamaStatusRefreshed", "llama.cpp 状态已刷新"));
         }
 
         private async void StartLlamaRuntimeButton_Click(object sender, RoutedEventArgs e)
@@ -956,7 +958,7 @@ namespace NovelManagement.WPF.Views
             StartLlamaRuntimeButton.IsEnabled = false;
             try
             {
-                UpdateStatus("正在启动 llama.cpp 推理服务...");
+                UpdateStatus(LocalizationManager.T("AICfg.StartingLlama", "正在启动 llama.cpp 推理服务..."));
                 var result = await _runtimeCoordinator.StartLlamaAsync(BuildLlamaRuntimeOptions());
                 UpdateStatus(result.Message, !result.Success);
                 await CheckProvidersStatusAsync();
@@ -972,7 +974,7 @@ namespace NovelManagement.WPF.Views
             StopLlamaRuntimeButton.IsEnabled = false;
             try
             {
-                UpdateStatus("正在停止 llama.cpp 推理服务...");
+                UpdateStatus(LocalizationManager.T("AICfg.StoppingLlama", "正在停止 llama.cpp 推理服务..."));
                 var result = await _runtimeCoordinator.StopLlamaAsync(BuildLlamaRuntimeOptions());
                 UpdateStatus(result.Message, !result.Success);
                 await CheckProvidersStatusAsync();
@@ -1015,7 +1017,7 @@ namespace NovelManagement.WPF.Views
         {
             if (DefaultProviderComboBox.SelectedItem is ComboBoxItem item)
             {
-                CurrentProviderTextBlock.Text = item.Tag?.ToString() ?? "未知";
+                CurrentProviderTextBlock.Text = item.Tag?.ToString() ?? LocalizationManager.T("AICfg.Unknown", "未知");
             }
         }
 
@@ -1051,7 +1053,7 @@ namespace NovelManagement.WPF.Views
             var modelName = ModelNameTextBox.Text.Trim();
             if (string.IsNullOrEmpty(modelName))
             {
-                MessageBox.Show("请输入模型名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(LocalizationManager.T("AICfg.EnterModelName", "请输入模型名称"), LocalizationManager.T("Msg.Tip", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1062,7 +1064,7 @@ namespace NovelManagement.WPF.Views
 
             try
             {
-                UpdateStatus($"正在下载模型: {modelName}");
+                UpdateStatus(TF("AICfg.DownloadingModelFmt", "正在下载模型: {0}", modelName));
                 
                 var success = await _ollamaService.PullModelAsync(modelName, progress =>
                 {
@@ -1083,19 +1085,19 @@ namespace NovelManagement.WPF.Views
 
                 if (success)
                 {
-                    UpdateStatus($"模型下载成功: {modelName}");
+                    UpdateStatus(TF("AICfg.ModelDownloadSuccessFmt", "模型下载成功: {0}", modelName));
                     await LoadOllamaModelsAsync();
                     ModelNameTextBox.Clear();
                 }
                 else
                 {
-                    UpdateStatus($"模型下载失败: {modelName}", true);
+                    UpdateStatus(TF("AICfg.ModelDownloadFailedFmt", "模型下载失败: {0}", modelName), true);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "下载模型失败: {ModelName}", modelName);
-                UpdateStatus($"下载模型失败: {ex.Message}", true);
+                UpdateStatus(TF("AICfg.DownloadModelFailedFmt", "下载模型失败: {0}", ex.Message), true);
             }
             finally
             {
@@ -1112,7 +1114,7 @@ namespace NovelManagement.WPF.Views
         {
             if (sender is Button button && button.Tag is string modelName)
             {
-                var result = MessageBox.Show($"确定要删除模型 '{modelName}' 吗？", "确认删除", 
+                var result = MessageBox.Show(TF("AICfg.DeleteModelConfirmFmt", "确定要删除模型 '{0}' 吗？", modelName), T("AICfg.ConfirmDeleteTitle", "确认删除"), 
                     MessageBoxButton.YesNo, MessageBoxImage.Question);
                 
                 if (result == MessageBoxResult.Yes)
@@ -1122,18 +1124,18 @@ namespace NovelManagement.WPF.Views
                         var success = await _ollamaService.DeleteModelAsync(modelName);
                         if (success)
                         {
-                            UpdateStatus($"模型删除成功: {modelName}");
+                            UpdateStatus(TF("AICfg.ModelDeleteSuccessFmt", "模型删除成功: {0}", modelName));
                             await LoadOllamaModelsAsync();
                         }
                         else
                         {
-                            UpdateStatus($"模型删除失败: {modelName}", true);
+                            UpdateStatus(TF("AICfg.ModelDeleteFailedFmt", "模型删除失败: {0}", modelName), true);
                         }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "删除模型失败: {ModelName}", modelName);
-                        UpdateStatus($"删除模型失败: {ex.Message}", true);
+                        UpdateStatus(TF("AICfg.DeleteModelFailedFmt", "删除模型失败: {0}", ex.Message), true);
                     }
                 }
             }
@@ -1147,9 +1149,9 @@ namespace NovelManagement.WPF.Views
             TestConnectionButton.IsEnabled = false;
             try
             {
-                UpdateStatus("正在测试连接...");
+                UpdateStatus(T("AICfg.TestingConnection", "正在测试连接..."));
                 await CheckProvidersStatusAsync();
-                UpdateStatus("连接测试完成");
+                UpdateStatus(T("AICfg.ConnectionTestDone", "连接测试完成"));
             }
             finally
             {
@@ -1165,7 +1167,7 @@ namespace NovelManagement.WPF.Views
             try
             {
                 SaveConfigButton.IsEnabled = false;
-                UpdateStatus("正在保存配置...");
+                UpdateStatus(T("AICfg.SavingConfig", "正在保存配置..."));
 
                 var configPath = GetUserConfigurationPath();
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
@@ -1365,14 +1367,14 @@ namespace NovelManagement.WPF.Views
                     _logger.LogWarning(reloadEx, "热重载提供者时出现警告");
                 }
 
-                UpdateStatus("配置保存成功，已立即生效");
-                MessageBox.Show($"配置已保存到用户配置文件：\n{configPath}\n\n配置已热重载，无需重启应用即可生效。", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateStatus(T("AICfg.ConfigSavedStatus", "配置保存成功，已立即生效"));
+                MessageBox.Show(TF("AICfg.ConfigSavedMsgFmt", "配置已保存到用户配置文件：\\n{0}\\n\\n配置已热重载，无需重启应用即可生效。", configPath), T("AICfg.SaveSuccessTitle", "保存成功"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "保存配置失败");
-                UpdateStatus($"保存配置失败: {ex.Message}", true);
-                MessageBox.Show($"保存配置失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                UpdateStatus(TF("AMC.SaveFailFmt", "保存配置失败: {0}", ex.Message), true);
+                MessageBox.Show(TF("AICfg.SaveConfigFailedFmt", "保存配置失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

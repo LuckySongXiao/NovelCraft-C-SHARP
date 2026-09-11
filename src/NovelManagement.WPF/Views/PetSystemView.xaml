@@ -28,7 +28,7 @@
                                            Width="32" 
                                            Height="32" 
                                            VerticalAlignment="Center"/>
-                    <TextBlock Text="宠物体系管理" 
+                    <TextBlock Text="{DynamicResource Loc.WS.Pet.Title}" 
                              Foreground="White" 
                              FontSize="24" 
                              FontWeight="Medium" 
@@ -41,28 +41,28 @@
                             Foreground="White" 
                             Margin="8,0"
                             Click="AddPet_Click"
-                            ToolTip="新建宠物">
+                            ToolTip="{DynamicResource Loc.WS.Pet.NewTooltip}">
                         <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}" 
                             Foreground="White" 
                             Margin="8,0"
                             Click="ImportPet_Click"
-                            ToolTip="导入宠物数据">
+                            ToolTip="{DynamicResource Loc.WS.Pet.ImportTooltip}">
                         <materialDesign:PackIcon Kind="Import" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="ExportPet_Click"
-                            ToolTip="导出宠物数据">
+                            ToolTip="{DynamicResource Loc.WS.Pet.ExportTooltip}">
                         <materialDesign:PackIcon Kind="Export" Width="24" Height="24"/>
                     </Button>
                     <Button Style="{StaticResource MaterialDesignIconForegroundButton}"
                             Foreground="White"
                             Margin="8,0"
                             Click="AIAssistant_Click"
-                            ToolTip="AI助手">
+                            ToolTip="{DynamicResource Loc.WS.Common.AIAssistant}">
                         <materialDesign:PackIcon Kind="Brain" Width="24" Height="24"/>
                     </Button>
                 </StackPanel>
@@ -89,7 +89,7 @@
                     <!-- 搜索栏 -->
                     <Border Grid.Row="0" Padding="16,16,16,8">
                         <TextBox x:Name="SearchTextBox"
-                                materialDesign:HintAssist.Hint="搜索宠物..."
+                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.SearchHint}"
                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                 materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -100,30 +100,30 @@
                     <Border Grid.Row="1" Padding="16,0,16,8">
                         <StackPanel>
                             <ComboBox x:Name="PetTypeFilterComboBox"
-                                     materialDesign:HintAssist.Hint="宠物类型"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.TypeHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="PetTypeFilter_SelectionChanged"
                                      Margin="0,0,0,8">
-                                <ComboBoxItem Content="全部类型"/>
-                                <ComboBoxItem Content="灵兽"/>
-                                <ComboBoxItem Content="妖兽"/>
-                                <ComboBoxItem Content="神兽"/>
-                                <ComboBoxItem Content="魔兽"/>
-                                <ComboBoxItem Content="仙兽"/>
-                                <ComboBoxItem Content="凶兽"/>
-                                <ComboBoxItem Content="异兽"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllTypes}"/>
+                                <ComboBoxItem Tag="灵兽" Content="{DynamicResource Loc.WS.Pet.Data.灵兽}"/>
+                                <ComboBoxItem Tag="妖兽" Content="{DynamicResource Loc.WS.Pet.Data.妖兽}"/>
+                                <ComboBoxItem Tag="神兽" Content="{DynamicResource Loc.WS.Pet.Data.神兽}"/>
+                                <ComboBoxItem Tag="魔兽" Content="{DynamicResource Loc.WS.Pet.Data.魔兽}"/>
+                                <ComboBoxItem Tag="仙兽" Content="{DynamicResource Loc.WS.Pet.Data.仙兽}"/>
+                                <ComboBoxItem Tag="凶兽" Content="{DynamicResource Loc.WS.Pet.Data.凶兽}"/>
+                                <ComboBoxItem Tag="异兽" Content="{DynamicResource Loc.WS.Pet.Data.异兽}"/>
                             </ComboBox>
                             <ComboBox x:Name="RarityFilterComboBox"
-                                     materialDesign:HintAssist.Hint="稀有度"
+                                     materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.RarityHint}"
                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                      SelectionChanged="RarityFilter_SelectionChanged">
-                                <ComboBoxItem Content="全部稀有度"/>
-                                <ComboBoxItem Content="普通"/>
-                                <ComboBoxItem Content="稀有"/>
-                                <ComboBoxItem Content="史诗"/>
-                                <ComboBoxItem Content="传说"/>
-                                <ComboBoxItem Content="神话"/>
-                                <ComboBoxItem Content="至尊"/>
+                                <ComboBoxItem Content="{DynamicResource Loc.WS.Common.AllRarities}"/>
+                                <ComboBoxItem Tag="普通" Content="{DynamicResource Loc.WS.Common.Data.普通}"/>
+                                <ComboBoxItem Tag="稀有" Content="{DynamicResource Loc.WS.Map.Data.稀有}"/>
+                                <ComboBoxItem Tag="史诗" Content="{DynamicResource Loc.WS.Pet.Data.史诗}"/>
+                                <ComboBoxItem Tag="传说" Content="{DynamicResource Loc.WS.Trea.Data.传说}"/>
+                                <ComboBoxItem Tag="神话" Content="{DynamicResource Loc.WS.Pet.Data.神话}"/>
+                                <ComboBoxItem Tag="至尊" Content="{DynamicResource Loc.WS.Pet.Data.至尊}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -192,14 +192,14 @@
                                             <StackPanel Grid.Row="2" 
                                                       Orientation="Horizontal" 
                                                       Margin="28,4,0,0">
-                                                <TextBlock Text="类型: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Trea.TypeLabelDup}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                                 <TextBlock Text="{Binding Type}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource PrimaryHueMidBrush}"
                                                          FontWeight="Medium"/>
-                                                <TextBlock Text=" | 等级: " 
+                                                <TextBlock Text="{DynamicResource Loc.WS.Pet.LevelLabel}" 
                                                          FontSize="11" 
                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                          Margin="8,0,0,0"/>
@@ -220,7 +220,7 @@
                           Background="{DynamicResource MaterialDesignDivider}" 
                           Padding="16,8">
                         <StackPanel>
-                            <TextBlock Text="宠物统计" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.Stats}" 
                                      FontWeight="Medium" 
                                      FontSize="12" 
                                      Margin="0,0,0,4"/>
@@ -231,21 +231,21 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="总数量: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Common.TotalLabel}"/>
                                         <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="灵兽: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.灵兽}"/>
                                         <Run Text="{Binding SpiritBeastCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="神兽: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Stat.神兽}"/>
                                         <Run Text="{Binding DivineBeastCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource MaterialDesignBodyLight}">
-                                        <Run Text="传说级: "/>
+                                        <Run Text="{DynamicResource Loc.WS.Pet.LegendaryLabel}"/>
                                         <Run Text="{Binding LegendaryCount, Mode=OneWay}" FontWeight="Medium"/>
                                     </TextBlock>
                                 </StackPanel>
@@ -269,12 +269,12 @@
                                                    Height="64" 
                                                    Foreground="{DynamicResource MaterialDesignBodyLight}"
                                                    HorizontalAlignment="Center"/>
-                            <TextBlock Text="选择一个宠物查看详情" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.NoSelection}" 
                                      FontSize="16" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
                                      Margin="0,16,0,0"/>
-                            <TextBlock Text="或点击上方的 + 按钮创建新的宠物" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.NoSelectionHint}" 
                                      FontSize="14" 
                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
                                      HorizontalAlignment="Center" 
@@ -284,7 +284,7 @@
                         <!-- 宠物详情编辑面板 -->
                         <StackPanel x:Name="EditPanel" Visibility="Collapsed">
                             <!-- 基本信息 -->
-                            <TextBlock Text="基本信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Common.BasicInfo}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -298,22 +298,22 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="PetNameTextBox"
-                                        materialDesign:HintAssist.Hint="宠物名称"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.NameHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="PetTypeComboBox"
-                                         materialDesign:HintAssist.Hint="宠物类型"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.TypeHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="灵兽"/>
-                                    <ComboBoxItem Content="妖兽"/>
-                                    <ComboBoxItem Content="神兽"/>
-                                    <ComboBoxItem Content="魔兽"/>
-                                    <ComboBoxItem Content="仙兽"/>
-                                    <ComboBoxItem Content="凶兽"/>
-                                    <ComboBoxItem Content="异兽"/>
+                                    <ComboBoxItem Tag="灵兽" Content="{DynamicResource Loc.WS.Pet.Data.灵兽}"/>
+                                    <ComboBoxItem Tag="妖兽" Content="{DynamicResource Loc.WS.Pet.Data.妖兽}"/>
+                                    <ComboBoxItem Tag="神兽" Content="{DynamicResource Loc.WS.Pet.Data.神兽}"/>
+                                    <ComboBoxItem Tag="魔兽" Content="{DynamicResource Loc.WS.Pet.Data.魔兽}"/>
+                                    <ComboBoxItem Tag="仙兽" Content="{DynamicResource Loc.WS.Pet.Data.仙兽}"/>
+                                    <ComboBoxItem Tag="凶兽" Content="{DynamicResource Loc.WS.Pet.Data.凶兽}"/>
+                                    <ComboBoxItem Tag="异兽" Content="{DynamicResource Loc.WS.Pet.Data.异兽}"/>
                                 </ComboBox>
                             </Grid>
 
@@ -326,20 +326,20 @@
 
                                 <ComboBox Grid.Column="0"
                                          x:Name="RarityComboBox"
-                                         materialDesign:HintAssist.Hint="稀有度"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.RarityHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="普通"/>
-                                    <ComboBoxItem Content="稀有"/>
-                                    <ComboBoxItem Content="史诗"/>
-                                    <ComboBoxItem Content="传说"/>
-                                    <ComboBoxItem Content="神话"/>
-                                    <ComboBoxItem Content="至尊"/>
+                                    <ComboBoxItem Tag="普通" Content="{DynamicResource Loc.WS.Common.Data.普通}"/>
+                                    <ComboBoxItem Tag="稀有" Content="{DynamicResource Loc.WS.Map.Data.稀有}"/>
+                                    <ComboBoxItem Tag="史诗" Content="{DynamicResource Loc.WS.Pet.Data.史诗}"/>
+                                    <ComboBoxItem Tag="传说" Content="{DynamicResource Loc.WS.Trea.Data.传说}"/>
+                                    <ComboBoxItem Tag="神话" Content="{DynamicResource Loc.WS.Pet.Data.神话}"/>
+                                    <ComboBoxItem Tag="至尊" Content="{DynamicResource Loc.WS.Pet.Data.至尊}"/>
                                 </ComboBox>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="LevelTextBox"
-                                        materialDesign:HintAssist.Hint="等级"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Common.LevelHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
                             </Grid>
@@ -353,25 +353,25 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="ElementTextBox"
-                                        materialDesign:HintAssist.Hint="元素属性"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.ElementHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                         Margin="0,0,0,16"/>
 
                                 <ComboBox Grid.Column="2"
                                          x:Name="GrowthStageComboBox"
-                                         materialDesign:HintAssist.Hint="成长阶段"
+                                         materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.StageHint}"
                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="幼体"/>
-                                    <ComboBoxItem Content="成长期"/>
-                                    <ComboBoxItem Content="成熟期"/>
-                                    <ComboBoxItem Content="完全体"/>
-                                    <ComboBoxItem Content="究极体"/>
+                                    <ComboBoxItem Tag="幼体" Content="{DynamicResource Loc.WS.Pet.Data.幼体}"/>
+                                    <ComboBoxItem Tag="成长期" Content="{DynamicResource Loc.WS.Pet.Data.成长期}"/>
+                                    <ComboBoxItem Tag="成熟期" Content="{DynamicResource Loc.WS.Pet.Data.成熟期}"/>
+                                    <ComboBoxItem Tag="完全体" Content="{DynamicResource Loc.WS.Pet.Data.完全体}"/>
+                                    <ComboBoxItem Tag="究极体" Content="{DynamicResource Loc.WS.Pet.Data.究极体}"/>
                                 </ComboBox>
                             </Grid>
 
                             <TextBox x:Name="PetDescriptionTextBox"
-                                    materialDesign:HintAssist.Hint="宠物描述"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.DescHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -380,7 +380,7 @@
                                     Margin="0,0,0,24"/>
 
                             <!-- 属性信息 -->
-                            <TextBlock Text="属性信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.AttrTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -396,17 +396,17 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="AttackTextBox"
-                                        materialDesign:HintAssist.Hint="攻击力"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.ATKHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="DefenseTextBox"
-                                        materialDesign:HintAssist.Hint="防御力"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.DEFHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="4"
                                         x:Name="HealthTextBox"
-                                        materialDesign:HintAssist.Hint="生命值"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.HPHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
@@ -421,22 +421,22 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="SpeedTextBox"
-                                        materialDesign:HintAssist.Hint="速度"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.SpeedHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="ManaTextBox"
-                                        materialDesign:HintAssist.Hint="法力值"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.MPHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="4"
                                         x:Name="LoyaltyTextBox"
-                                        materialDesign:HintAssist.Hint="忠诚度"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.LoyaltyHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
                             <!-- 技能系统 -->
-                            <TextBlock Text="技能系统" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.SkillsTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -454,13 +454,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" 
-                                                 Text="技能列表" 
+                                                 Text="{DynamicResource Loc.WS.Pet.SkillList}" 
                                                  FontWeight="Medium"/>
                                         
                                         <Button Grid.Column="1" 
                                               Style="{StaticResource MaterialDesignIconButton}"
                                               Click="AddSkill_Click"
-                                              ToolTip="添加技能">
+                                              ToolTip="{DynamicResource Loc.WS.Pet.AddSkillTooltip}">
                                             <materialDesign:PackIcon Kind="Plus"/>
                                         </Button>
                                     </Grid>
@@ -481,25 +481,25 @@
 
                                                         <TextBox Grid.Column="0" 
                                                                Text="{Binding Name}" 
-                                                               materialDesign:HintAssist.Hint="技能名称"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.SkillNameHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
                                                         
                                                         <ComboBox Grid.Column="1" 
                                                                 SelectedItem="{Binding Type}" 
-                                                                materialDesign:HintAssist.Hint="技能类型"
+                                                                materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.SkillTypeHint}"
                                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                                                 Margin="0,0,8,0">
-                                                            <ComboBoxItem Content="攻击"/>
-                                                            <ComboBoxItem Content="防御"/>
-                                                            <ComboBoxItem Content="治疗"/>
-                                                            <ComboBoxItem Content="辅助"/>
-                                                            <ComboBoxItem Content="特殊"/>
+                                                            <ComboBoxItem Tag="攻击" Content="{DynamicResource Loc.WS.Pet.Data.攻击}"/>
+                                                            <ComboBoxItem Tag="防御" Content="{DynamicResource Loc.WS.Pet.Data.防御}"/>
+                                                            <ComboBoxItem Tag="治疗" Content="{DynamicResource Loc.WS.Pet.Data.治疗}"/>
+                                                            <ComboBoxItem Tag="辅助" Content="{DynamicResource Loc.WS.Pet.Data.辅助}"/>
+                                                            <ComboBoxItem Tag="特殊" Content="{DynamicResource Loc.WS.Common.Data.特殊}"/>
                                                         </ComboBox>
                                                         
                                                         <TextBox Grid.Column="2" 
                                                                Text="{Binding Level}" 
-                                                               materialDesign:HintAssist.Hint="技能等级"
+                                                               materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.SkillLevelHint}"
                                                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                                Margin="0,0,8,0"/>
 
@@ -507,7 +507,7 @@
                                                               Style="{StaticResource MaterialDesignIconButton}"
                                                               Click="RemoveSkill_Click"
                                                               CommandParameter="{Binding}"
-                                                              ToolTip="删除技能">
+                                                              ToolTip="{DynamicResource Loc.WS.Pet.DeleteSkillTooltip}">
                                                             <materialDesign:PackIcon Kind="Delete" 
                                                                                    Foreground="{DynamicResource ValidationErrorBrush}"/>
                                                         </Button>
@@ -520,7 +520,7 @@
                             </Border>
 
                             <!-- 进化信息 -->
-                            <TextBlock Text="进化信息" 
+                            <TextBlock Text="{DynamicResource Loc.WS.Pet.EvolutionTitle}" 
                                      FontSize="18" 
                                      FontWeight="Medium" 
                                      Margin="0,0,0,16"/>
@@ -534,17 +534,17 @@
 
                                 <TextBox Grid.Column="0"
                                         x:Name="EvolutionFromTextBox"
-                                        materialDesign:HintAssist.Hint="进化前形态"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.PreEvoHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                                 <TextBox Grid.Column="2"
                                         x:Name="EvolutionToTextBox"
-                                        materialDesign:HintAssist.Hint="进化后形态"
+                                        materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.PostEvoHint}"
                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
                             <TextBox x:Name="EvolutionConditionTextBox"
-                                    materialDesign:HintAssist.Hint="进化条件"
+                                    materialDesign:HintAssist.Hint="{DynamicResource Loc.WS.Pet.EvoCondHint}"
                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                     AcceptsReturn="True"
                                     TextWrapping="Wrap"
@@ -556,11 +556,11 @@
                             <StackPanel Orientation="Horizontal" 
                                       HorizontalAlignment="Right" 
                                       Margin="0,16,0,0">
-                                <Button Content="保存" 
+                                <Button Content="{DynamicResource Loc.Dlg.Save}" 
                                       Style="{StaticResource MaterialDesignRaisedButton}"
                                       Click="SavePet_Click"
                                       Margin="0,0,8,0"/>
-                                <Button Content="取消" 
+                                <Button Content="{DynamicResource Loc.Dlg.Cancel}" 
                                       Style="{StaticResource MaterialDesignOutlinedButton}"
                                       Click="CancelEdit_Click"
                                       Margin="8,0,0,0"/>

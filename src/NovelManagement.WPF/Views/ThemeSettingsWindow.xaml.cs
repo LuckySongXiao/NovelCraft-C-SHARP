@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using NovelManagement.WPF.Localization;
 using NovelManagement.WPF.Services;
 
 namespace NovelManagement.WPF.Views
@@ -51,10 +52,10 @@ namespace NovelManagement.WPF.Views
         {
             var skin = SelectedSkin;
             var isCurrent = skin != null && skin.Id == ThemeManager.CurrentSkinId;
-            SkinTitleText.Text = skin?.Name ?? "请选择皮肤";
+            SkinTitleText.Text = skin?.Name ?? LocalizationManager.T("TS.SelectSkin", "请选择皮肤");
             SkinInfoText.Text = skin == null
                 ? string.Empty
-                : $"{skin.SkinKind} · {skin.ToneText}{(isCurrent ? " · 当前使用中" : string.Empty)}{(ThemeManager.IsFemaleModeActive ? " · 女频模式生效中" : string.Empty)}";
+                : $"{skin.SkinKind} · {skin.ToneText}{(isCurrent ? $" · {LocalizationManager.T("TS.CurrentlyActive", "当前使用中")}" : string.Empty)}{(ThemeManager.IsFemaleModeActive ? $" · {LocalizationManager.T("TS.FemaleModeActive", "女频模式生效中")}" : string.Empty)}";
 
             var entries = new List<ColorEntry>();
             if (skin != null)
@@ -65,14 +66,15 @@ namespace NovelManagement.WPF.Views
                     var hex = skin.Colors.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
                         ? value
                         : baseSkin.Colors.TryGetValue(key, out var fallback) ? fallback : "#808080";
-                    entries.Add(new ColorEntry { Key = key, Label = label, Hex = hex });
+                    entries.Add(new ColorEntry { Key = key, Label = ThemeSkinBrushKeys.LocalizeBrushLabel(key), Hex = hex });
                 }
             }
 
             ColorPreviewList.ItemsSource = entries;
             EditSkinButton.IsEnabled = skin != null && !skin.IsBuiltin;
             DeleteSkinButton.IsEnabled = skin != null && !skin.IsBuiltin;
-            ModeStateText.Text = $"当前皮肤：{(ThemeManager.IsFemaleModeActive ? "红粉花漾少女风（女频自动）" : SkinTitleText.Text)}";
+            ModeStateText.Text = LocalizationManager.TF("TS.CurrentSkinFmt", "当前皮肤：{0}",
+                ThemeManager.IsFemaleModeActive ? LocalizationManager.T("TS.FemaleSkinName", "红粉花漾少女风（女频自动）") : SkinTitleText.Text);
         }
 
         private void ApplySkin_Click(object sender, RoutedEventArgs e)
@@ -91,8 +93,8 @@ namespace NovelManagement.WPF.Views
         {
             ThemeManager.SetSelectedSkin(ThemeSkins.AutoSkinId);
             ReloadSkins();
-            MessageBox.Show(this, "已恢复跟随时间自动切换：19:00–07:00 使用黑夜主题，其余时间白昼主题。",
-                "跟随时间自动切换", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, LocalizationManager.T("TS.AutoTimeRestored", "已恢复跟随时间自动切换：19:00–07:00 使用黑夜主题，其余时间白昼主题。"),
+                LocalizationManager.T("TS.AutoByTime", "跟随时间自动切换"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void AddCustomSkin_Click(object sender, RoutedEventArgs e)
@@ -101,7 +103,7 @@ namespace NovelManagement.WPF.Views
                 ?? (ThemeManager.IsDarkTime() ? ThemeSkins.CreateDarkSkin() : ThemeSkins.CreateLightSkin());
             var skin = baseSkin.Clone();
             skin.Id = $"custom-{Guid.NewGuid():N}";
-            skin.Name = $"{baseSkin.Name}·自定义";
+            skin.Name = LocalizationManager.TF("TS.CustomSuffix", "{0}·自定义", baseSkin.Name);
             skin.IsBuiltin = false;
 
             _editingSkin = skin;
@@ -128,7 +130,7 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
-            if (MessageBox.Show(this, $"确定删除自定义皮肤「{skin.Name}」？", "删除确认",
+            if (MessageBox.Show(this, LocalizationManager.TF("TS.DeleteCustomConfirm", "确定删除自定义皮肤「{0}」？", skin.Name), LocalizationManager.T("Msg.DeleteConfirmTitle", "删除确认"),
                     MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             {
                 return;
@@ -178,7 +180,7 @@ namespace NovelManagement.WPF.Views
             var name = SkinNameTextBox.Text?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(name))
             {
-                MessageBox.Show(this, "请输入皮肤名称", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, LocalizationManager.T("TS.NameRequired", "请输入皮肤名称"), LocalizationManager.T("TS.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 SkinNameTextBox.Focus();
                 return;
             }
@@ -187,8 +189,8 @@ namespace NovelManagement.WPF.Views
             {
                 if (!TryParseHexColor(entry.Hex, out _))
                 {
-                    MessageBox.Show(this, $"「{entry.Label}」的颜色值无效：{entry.Hex}\n请使用 #RRGGBB 或 #AARRGGBB 格式。",
-                        "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, LocalizationManager.TF("TS.InvalidColor", "「{0}」的颜色值无效：{1}\n请使用 #RRGGBB 或 #AARRGGBB 格式。", entry.Label, entry.Hex),
+                        LocalizationManager.T("TS.ValidationFailed", "验证失败"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }

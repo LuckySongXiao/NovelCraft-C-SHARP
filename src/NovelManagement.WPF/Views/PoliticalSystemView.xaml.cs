@@ -17,6 +17,7 @@ using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.Core.Interfaces;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -72,7 +73,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("政治体系管理", out var projectId))
+                if (!EnsureCurrentProject(T("World.Political.Title", "政治体系管理"), out var projectId))
                 {
                     _allPoliticalSystems.Clear();
                     PoliticalSystems.Clear();
@@ -111,7 +112,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "加载政治体系数据失败");
-                MessageBox.Show($"加载政治体系数据失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"加载政治体系数据失败：{ex.Message}", T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -215,7 +216,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("新建政治体系", out var projectId))
+                if (!EnsureCurrentProject(T("WS.Pol.CreateTitle", "新建政治体系"), out var projectId))
                 {
                     return;
                 }
@@ -240,7 +241,7 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "创建政治体系失败");
-                MessageBox.Show($"创建政治体系失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("Pol.CreateFailed", "创建政治体系失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -248,7 +249,7 @@ namespace NovelManagement.WPF.Views
         {
             try
             {
-                if (!EnsureCurrentProject("导入政治体系", out var projectId))
+                if (!EnsureCurrentProject(T("WS.Pol.ImportTitle", "导入政治体系"), out var projectId))
                 {
                     return;
                 }
@@ -269,7 +270,7 @@ namespace NovelManagement.WPF.Views
                     ?? new List<PoliticalSystemImportModel>();
                 if (items.Count == 0)
                 {
-                    MessageBox.Show("未读取到可导入的政治体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("未读取到可导入的政治体系。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -292,12 +293,12 @@ namespace NovelManagement.WPF.Views
                 }
 
                 await LoadPoliticalSystemsAsync();
-                MessageBox.Show($"已完成导入，共处理 {items.Count} 个政治体系。", "导入完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(TF("Pol.ImportDone", "已完成导入，共处理 {0} 个政治体系。", items.Count), T("PM.ImportComplete", "导入完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "导入政治体系失败");
-                MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Cult.ImportFailed", "导入失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -307,7 +308,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (PoliticalSystems.Count == 0)
                 {
-                    MessageBox.Show("当前没有可导出的政治体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("当前没有可导出的政治体系。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -327,12 +328,12 @@ namespace NovelManagement.WPF.Views
                 var data = PoliticalSystems.Select(PoliticalSystemImportModel.FromViewModel).ToList();
                 Directory.CreateDirectory(Path.GetDirectoryName(dialog.FileName)!);
                 File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
-                MessageBox.Show($"已导出 {data.Count} 个政治体系到：{dialog.FileName}", "导出完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"已导出 {data.Count} 个政治体系到：{dialog.FileName}", T("PM.ExportComplete", "导出完成"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "导出政治体系失败");
-                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("DG.ExportFailedFmt", "导出失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -342,13 +343,13 @@ namespace NovelManagement.WPF.Views
             {
                 if (_aiAssistantService == null)
                 {
-                    MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(T("AAW.ServiceNotInitMsg", "AI助手服务未初始化。"), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 if (SelectedPolitical == null)
                 {
-                    MessageBox.Show("请先选择一个政治体系，再进行 AI 分析。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请先选择一个政治体系，再进行 AI 分析。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -361,7 +362,7 @@ namespace NovelManagement.WPF.Views
 
                 if (!result.IsSuccess || result.Data == null)
                 {
-                    MessageBox.Show(result.Message ?? "AI分析失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(result.Message ?? T("WS.Cult.AIAnalysisFailed", "AI分析失败。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -370,14 +371,15 @@ namespace NovelManagement.WPF.Views
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AI分析政治体系失败");
-                MessageBox.Show($"AI分析失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("WS.Cult.AIAnalysisError", "AI分析失败：{0}", ex.Message), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void ApplyFilters()
         {
             var searchText = SearchTextBox.Text?.Trim().ToLowerInvariant() ?? string.Empty;
-            var selectedType = (TypeFilterComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "全部类型";
+            var selectedType = (TypeFilterComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                                   ?? (TypeFilterComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "全部类型";
 
             var result = _allPoliticalSystems.Where(item =>
             {
@@ -578,7 +580,7 @@ namespace NovelManagement.WPF.Views
             var entity = await _politicalSystemService.GetPoliticalSystemByIdAsync(SelectedPolitical.PoliticalSystemId);
             if (entity == null)
             {
-                MessageBox.Show("未找到要编辑的政治体系。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("未找到要编辑的政治体系。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -600,7 +602,7 @@ namespace NovelManagement.WPF.Views
                 return;
             }
 
-            var result = MessageBox.Show($"确定要删除政治体系“{SelectedPolitical.Name}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show($"确定要删除政治体系“{SelectedPolitical.Name}”吗？", T("AICfg.ConfirmDeleteTitle", "确认删除"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes)
             {
                 return;
@@ -687,7 +689,7 @@ namespace NovelManagement.WPF.Views
             copyButton.Click += (_, _) =>
             {
                 Clipboard.SetText(content);
-                MessageBox.Show("结果已复制到剪贴板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("PLM.Copied", "结果已复制到剪贴板。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
             };
             var closeButton = new Button { Content = "关闭", Width = 88, IsDefault = true };
             closeButton.Click += (_, _) => window.Close();
@@ -1094,7 +1096,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (positionsList.SelectedItem is not PoliticalPositionViewModel selected)
                 {
-                    MessageBox.Show("请先选择一个职位。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请先选择一个职位。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1133,7 +1135,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
                 {
-                    MessageBox.Show("请输入政治体系名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请输入政治体系名称。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1157,7 +1159,7 @@ namespace NovelManagement.WPF.Views
         {
             if (_aiAssistantService == null)
             {
-                MessageBox.Show("AI助手服务未初始化。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("AAW.ServiceNotInitMsg", "AI助手服务未初始化。"), T("AC.ColError", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1173,7 +1175,7 @@ namespace NovelManagement.WPF.Views
 
             if (!result.IsSuccess || result.Data == null)
             {
-                MessageBox.Show(result.Message ?? "AI自动补全失败。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(result.Message ?? T("PLM.AIFillFailed", "AI自动补全失败。"), T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1203,7 +1205,7 @@ namespace NovelManagement.WPF.Views
                 _hierarchyTextBox.Text = "统治者,核心议会,地方官员";
             }
 
-            MessageBox.Show("已完成政治体系自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("已完成政治体系自动补全。", T("CED.AIAutoFill", "AI自动补全"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async Task<string> BuildAiPromptAsync()
@@ -1382,7 +1384,7 @@ namespace NovelManagement.WPF.Views
             {
                 if (string.IsNullOrWhiteSpace(_nameTextBox.Text))
                 {
-                    MessageBox.Show("请输入职位名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("请输入职位名称。", T("CC.SevInfo", "提示"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 

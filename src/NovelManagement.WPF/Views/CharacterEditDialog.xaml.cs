@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NovelManagement.Application.Interfaces;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Services;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Views
 {
@@ -55,7 +56,7 @@ namespace NovelManagement.WPF.Views
             _projectReadModelService = App.ServiceProvider?.GetService<ProjectReadModelService>();
             IsNewCharacter = true;
             Character = new Character();
-            Title = "新建角色";
+            Title = T("CED.NewTitle", "新建角色");
             InitializeForm();
             _initialSnapshot = CaptureSnapshot();
         }
@@ -104,7 +105,7 @@ namespace NovelManagement.WPF.Views
             // 保存原始势力和种族信息用于界面显示
             _originalFactionName = character.Faction?.Name ?? "";
             _originalRaceName = character.Race?.Name ?? "";
-            Title = $"编辑角色 - {character.Name}";
+            Title = TF("CED.EditTitleFmt", "编辑角色 - {0}", character.Name);
             InitializeForm();
             LoadCharacterData();
             _initialSnapshot = CaptureSnapshot();
@@ -164,7 +165,7 @@ namespace NovelManagement.WPF.Views
                 CultivationLevelComboBox.Items.Clear();
                 foreach (var level in levels)
                 {
-                    CultivationLevelComboBox.Items.Add(new ComboBoxItem { Content = level.Name });
+                    CultivationLevelComboBox.Items.Add(new ComboBoxItem { Tag = level.Name, Content = level.Name });
                 }
 
                 // 恢复选中：编辑模式匹配角色原修为；新建模式默认选最低阶
@@ -205,7 +206,7 @@ namespace NovelManagement.WPF.Views
                 SetComboBoxSelection(CultivationLevelComboBox, Character.CultivationLevel);
 
                 // 势力ComboBox支持自定义输入，使用原始势力名称
-                if (FactionComboBox.Items.Cast<ComboBoxItem>().Any(item => item.Content.ToString() == _originalFactionName))
+                if (FactionComboBox.Items.Cast<ComboBoxItem>().Any(item => (item.Tag?.ToString() ?? item.Content?.ToString()) == _originalFactionName))
                 {
                     SetComboBoxSelection(FactionComboBox, _originalFactionName);
                 }
@@ -216,7 +217,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载角色数据失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CED.LoadFailed", "加载角色数据失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -231,7 +232,8 @@ namespace NovelManagement.WPF.Views
 
             foreach (ComboBoxItem item in comboBox.Items)
             {
-                if (item.Content.ToString() == value)
+                var itemValue = item.Tag?.ToString() ?? item.Content?.ToString();
+                if (itemValue == value)
                 {
                     comboBox.SelectedItem = item;
                     break;
@@ -248,21 +250,21 @@ namespace NovelManagement.WPF.Views
             // 验证必填字段
             if (string.IsNullOrWhiteSpace(NameTextBox.Text))
             {
-                MessageBox.Show("请输入角色姓名", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("CED.NameRequired", "请输入角色姓名"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 NameTextBox.Focus();
                 return false;
             }
 
             if (TypeComboBox.SelectedItem == null)
             {
-                MessageBox.Show("请选择角色类型", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("CED.TypeRequired", "请选择角色类型"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 TypeComboBox.Focus();
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(GetComboBoxValue(FactionComboBox)))
             {
-                MessageBox.Show("请输入或选择所属势力", "验证失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(T("CED.FactionRequired", "请输入或选择所属势力"), T("Msg.ValidationFailed"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 FactionComboBox.Focus();
                 return false;
             }
@@ -279,7 +281,8 @@ namespace NovelManagement.WPF.Views
         {
             if (comboBox.SelectedItem is ComboBoxItem selectedItem)
             {
-                return selectedItem.Content.ToString();
+                // Tag 存数据值（中文字典值），Content 为本地化显示文本；存库必须用 Tag
+                return selectedItem.Tag?.ToString() ?? selectedItem.Content.ToString();
             }
             return comboBox.Text;
         }
@@ -295,7 +298,8 @@ namespace NovelManagement.WPF.Views
                 Character.Name = AiAutoFillFormatter.ExtractSingleLineValue(
                     NameTextBox.Text.Trim(),
                     "姓名", "名字", "角色名", "名称");
-                Character.Type = ((ComboBoxItem)TypeComboBox.SelectedItem)?.Content.ToString() ?? "";
+                Character.Type = ((ComboBoxItem)TypeComboBox.SelectedItem)?.Tag?.ToString()
+                               ?? ((ComboBoxItem)TypeComboBox.SelectedItem)?.Content?.ToString() ?? "";
 
                 // 处理势力信息 - 使用Tags字段传递势力名称
                 var factionName = GetComboBoxValue(FactionComboBox);
@@ -341,7 +345,7 @@ namespace NovelManagement.WPF.Views
                 // 确保必需字段不为空
                 if (string.IsNullOrEmpty(Character.Name))
                 {
-                    throw new ArgumentException("角色名称不能为空");
+                    throw new ArgumentException(T("CED.NameEmpty", "角色名称不能为空"));
                 }
 
                 if (string.IsNullOrEmpty(Character.Type))
@@ -366,7 +370,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"保存角色数据时发生错误: {ex.Message}", ex);
+                throw new InvalidOperationException(TF("CED.SaveErrorInner", "保存角色数据时发生错误: {0}", ex.Message), ex);
             }
         }
 
@@ -386,7 +390,7 @@ namespace NovelManagement.WPF.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存角色失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CED.SaveFailed", "保存角色失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -402,8 +406,8 @@ namespace NovelManagement.WPF.Views
         private void ResetContent_Click(object sender, RoutedEventArgs e)
         {
             var confirm = MessageBox.Show(
-                "是否将当前内容恢复为打开窗口时的初始状态？",
-                "重置内容",
+                T("CED.ResetConfirm", "是否将当前内容恢复为打开窗口时的初始状态？"),
+                T("CED.ResetTitle", "重置内容"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -443,7 +447,7 @@ namespace NovelManagement.WPF.Views
                     "AutoFillWithAI_Click",
                     "角色自动补全时AI助手服务未初始化");
                 #endregion
-                MessageBox.Show("AI助手服务未初始化", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(T("CM.AIServiceNotInit", "AI助手服务未初始化"), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -495,7 +499,7 @@ namespace NovelManagement.WPF.Views
                             ["message"] = result.Message
                         });
                     #endregion
-                    MessageBox.Show(result.Message ?? "AI自动补全失败", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(result.Message ?? T("CED.AIFillFailed", "AI自动补全失败"), T("Msg.Tip"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -512,7 +516,7 @@ namespace NovelManagement.WPF.Views
                 #endregion
 
                 ApplyAiGeneratedContent(result.Data.ToString() ?? string.Empty);
-                MessageBox.Show("已完成角色信息自动补全。", "AI自动补全", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(T("CED.AIFillDone", "已完成角色信息自动补全。"), T("CED.AIFillTitle", "AI自动补全"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -527,7 +531,7 @@ namespace NovelManagement.WPF.Views
                         ["stack"] = ex.ToString()
                     });
                 #endregion
-                MessageBox.Show($"AI自动补全失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(TF("CED.AIFillFailedEx", "AI自动补全失败: {0}", ex.Message), T("Msg.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 using Microsoft.Extensions.Logging;
 using NovelManagement.Application.Interfaces;
 using NovelManagement.Application.Services;
@@ -98,7 +99,7 @@ namespace NovelManagement.WPF.Services
         {
             var statisticsWindow = new Window
             {
-                Title = $"项目统计分析 - {summary.ProjectName}",
+                Title = TF("STAT.TitleFmt", "项目统计分析 - {0}", summary.ProjectName),
                 Width = 1200,
                 Height = 800,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen
@@ -111,7 +112,7 @@ namespace NovelManagement.WPF.Services
 
             statisticsContent.Children.Add(new TextBlock
             {
-                Text = "项目统计分析",
+                Text = T("STAT.Header", "项目统计分析"),
                 FontSize = 24,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 20)
@@ -135,27 +136,28 @@ namespace NovelManagement.WPF.Services
         public string BuildReportText(ProjectStatisticsSummary summary)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("项目统计信息");
+            var wordsFmt = T("STAT.WordsFmt", "{0} 字");
+            builder.AppendLine(T("STAT.Section", "项目统计信息"));
             builder.AppendLine();
-            builder.AppendLine($"• 项目名称：{summary.ProjectName}");
-            builder.AppendLine($"• 项目类型：{summary.ProjectType}");
-            builder.AppendLine($"• 项目状态：{summary.ProjectStatus}");
-            builder.AppendLine($"• 最后更新：{summary.LastUpdatedAt:yyyy-MM-dd HH:mm}");
-            builder.AppendLine($"• 卷数：{summary.VolumeCount}");
-            builder.AppendLine($"• 章节数：{summary.ChapterCount}");
-            builder.AppendLine($"• 已完成章节：{summary.CompletedChapterCount}");
-            builder.AppendLine($"• 草稿章节：{summary.DraftChapterCount}");
-            builder.AppendLine($"• 角色数：{summary.CharacterCount}");
-            builder.AppendLine($"• 势力数：{summary.FactionCount}");
-            builder.AppendLine($"• 剧情数：{summary.PlotCount}");
-            builder.AppendLine($"• 设定数：{summary.WorldSettingCount}");
-            builder.AppendLine($"• 章节总字数：{summary.TotalWordCount:N0} 字");
-            builder.AppendLine($"• 平均章节字数：{summary.AverageChapterWordCount:N0} 字");
-            builder.AppendLine($"• 平均卷字数：{summary.AverageVolumeWordCount:N0} 字");
+            builder.AppendLine("• " + T("STAT.Name", "项目名称") + "：" + summary.ProjectName);
+            builder.AppendLine("• " + T("STAT.Type", "项目类型") + "：" + LocalizeStoredValue(summary.ProjectType));
+            builder.AppendLine("• " + T("STAT.Status", "项目状态") + "：" + LocalizeStoredValue(summary.ProjectStatus));
+            builder.AppendLine("• " + T("STAT.LastUpdate", "最后更新") + "：" + summary.LastUpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+            builder.AppendLine("• " + T("STAT.Volumes", "卷数") + "：" + summary.VolumeCount);
+            builder.AppendLine("• " + T("STAT.Chapters", "章节数") + "：" + summary.ChapterCount);
+            builder.AppendLine("• " + T("STAT.CompletedChapters", "已完成章节") + "：" + summary.CompletedChapterCount);
+            builder.AppendLine("• " + T("STAT.DraftChapters", "草稿章节") + "：" + summary.DraftChapterCount);
+            builder.AppendLine("• " + T("STAT.Characters", "角色数") + "：" + summary.CharacterCount);
+            builder.AppendLine("• " + T("STAT.Factions", "势力数") + "：" + summary.FactionCount);
+            builder.AppendLine("• " + T("STAT.Plots", "剧情数") + "：" + summary.PlotCount);
+            builder.AppendLine("• " + T("STAT.Settings", "设定数") + "：" + summary.WorldSettingCount);
+            builder.AppendLine("• " + T("STAT.TotalWords", "章节总字数") + "：" + string.Format(wordsFmt, summary.TotalWordCount.ToString("N0")));
+            builder.AppendLine("• " + T("STAT.AvgChapterWords", "平均章节字数") + "：" + string.Format(wordsFmt, summary.AverageChapterWordCount.ToString("N0")));
+            builder.AppendLine("• " + T("STAT.AvgVolumeWords", "平均卷字数") + "：" + string.Format(wordsFmt, summary.AverageVolumeWordCount.ToString("N0")));
             builder.AppendLine();
-            builder.AppendLine("说明：");
-            builder.AppendLine("• 当前统计入口已统一接入项目统计聚合服务");
-            builder.AppendLine("• 后续可继续扩展创作趋势、AI 使用、结构质量等更细分报表");
+            builder.AppendLine(T("STAT.Notes", "说明："));
+            builder.AppendLine("• " + T("STAT.Note1", "当前统计入口已统一接入项目统计聚合服务"));
+            builder.AppendLine("• " + T("STAT.Note2", "后续可继续扩展创作趋势、AI 使用、结构质量等更细分报表"));
             return builder.ToString();
         }
     }
