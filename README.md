@@ -470,18 +470,19 @@ src\NovelManagement.WPF\bin\Debug\net8.0-windows\NovelManagement.WPF.exe
 
 A fully featured book-writing and management system built on the C# WPF stack. It supports multi-agent AI collaborative writing, complete content management, and worldbuilding/setting management. The system is highly modular, extensible, and maintainable. Launch password: RWKV7_20260908
 
-### Screenshots
+### Screenshots (English UI)
 
 | | |
 |---|---|
-| ![Dashboard](docs/images/01-dashboard.png) | ![Project Overview](docs/images/03-project-overview.png) |
-| *Dashboard 仪表盘* | *Project Overview 项目概览* |
-| ![Character Management](docs/images/07-character-management.png) | ![Plot Management](docs/images/06-plot-management.png) |
-| *Character Management 角色管理* | *Plot Management 剧情管理* |
-| ![AI Copilot](docs/images/13-ai-collaboration.png) | ![Publishing & Maintenance](docs/images/18-publish-management.png) |
-| *AI Copilot AI 创作助手* | *Publishing & Maintenance 发布与运维管理* |
+| ![Dashboard](docs/images_en/01-dashboard.png) | ![Project Overview](docs/images_en/03-project-overview.png) |
+| *Dashboard* | *Project Overview* |
+| ![Character Management](docs/images_en/07-character-management.png) | ![Plot Management](docs/images_en/06-plot-management.png) |
+| *Character Management* | *Plot Management* |
+| ![AI Copilot](docs/images_en/13-ai-collaboration.png) | ![Publishing & Maintenance](docs/images_en/18-publish-management.png) |
+| *AI Copilot* | *Publishing & Maintenance* |
 
-> More page screenshots (19 feature pages, bilingual guide): [项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md).
+> Full English feature guide with 19 page screenshots: [docs/User_Guide_EN.md](docs/User_Guide_EN.md).
+> Bilingual guide (Chinese-English): [项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md).
 
 ### System Architecture
 
@@ -640,36 +641,6 @@ A fully featured book-writing and management system built on the C# WPF stack. I
 ├── 项目交接.md                            # Development handover log (internal)
 └── NovelManagementSystem.sln              # Solution file
 ```
-
-### Requirements
-
-- **OS**: Windows 10 or later
-- **IDE**: Visual Studio 2022 or Visual Studio Code
-- **.NET**: .NET 8.0 SDK or later
-- **Database**: SQLite (no extra installation)
-- **AI inference (optional)**: local llama-server (bundled in `llama_cpp\`) or any OpenAI-compatible completions endpoint
-
-### Build & Run
-
-```bash
-# 1. Clone
-git clone [repository-url]
-cd 06_NovelCraft-C-SHARP
-
-# 2. Restore
-dotnet restore
-
-# 3. Build
-dotnet build
-
-# 4. Run
-dotnet run --project src/NovelManagement.WPF
-
-# 5. Test
-dotnet test
-```
-
-> **Packaged build users**: no compilation needed — run `publish\NovelManagement_v1.0.0\NovelManagement.WPF.exe` and enter the launch password (provided via delivery notice).
 
 ### Key Highlights
 
@@ -839,7 +810,13 @@ Summarizer volume summary → Director next-volume planning → Summarizer prefa
 > 📦 **V1.0.0 packaged build**: single-file EXE (self-contained .NET 8 runtime, no dependencies) at `publish\NovelManagement_v1.0.0\NovelManagement.WPF.exe` (https://github.com/LuckySongXiao/NovelCraft-C-SHARP/releases). A **launch password** is required at startup (delivered separately; verified via SHA-256 hash, never stored in plain text).
 > 📖 **Release notes**: [docs/发布说明_v1.0.0.md](docs/发布说明_v1.0.0.md) (Chinese)
 > 📖 **User manual**: [docs/使用手册_v1.0.0.md](docs/使用手册_v1.0.0.md) (Chinese)
+> 📖 **English feature guide**: [docs/User_Guide_EN.md](docs/User_Guide_EN.md) (19 pages, English UI screenshots, incl. language switching & remote RWKV guide)
 > 📖 **Bilingual feature guide**: [docs/项目功能说明书_双语_User_Guide.md](docs/项目功能说明书_双语_User_Guide.md) (19 pages, Chinese-English, with screenshots)
+
+#### 🌐 Bilingual UI (new in v1.1.0)
+- Full Chinese/English interface; follows the Windows display language by default
+- **Manual language switch**: one click on the title-bar toggle (`EN` / `中`) — applies immediately and persists to `appsettings.user.json` (`Localization:Language`)
+- Verified end-to-end via UIA: title bar, navigation, dialogs and persistence across restart (zh-CN ↔ en-US)
 
 | Module | Status | Progress | Notes |
 |--------|--------|----------|-------|
@@ -874,8 +851,8 @@ Summarizer volume summary → Director next-volume planning → Summarizer prefa
 #### 🚀 Quick start
 ```bash
 # 1. Clone
-git clone [repository-url]
-cd 06_NovelCraft-C-SHARP
+git clone https://github.com/LuckySongXiao/NovelCraft-C-SHARP.git
+cd NovelCraft-C-SHARP
 
 # 2. Restore
 dotnet restore
@@ -890,8 +867,8 @@ src\NovelManagement.WPF\bin\Debug\net8.0-windows\NovelManagement.WPF.exe
 > **Packaged build users**: no compilation needed — run `publish\NovelManagement_v1.0.0\NovelManagement.WPF.exe` and enter the launch password.
 
 #### 📋 More
-- See [docs/](docs/) for release notes, the Chinese user manual, and the bilingual feature guide.
+- See [docs/](docs/) for release notes, the Chinese user manual, the English feature guide ([User_Guide_EN.md](docs/User_Guide_EN.md)), and the bilingual feature guide.
 
-**Project status**: 🎉 **100% complete, production ready!**
+**Project status**: 🎉 **99.9% complete, production ready!**
 
 *This document is continuously updated as the project evolves.*
