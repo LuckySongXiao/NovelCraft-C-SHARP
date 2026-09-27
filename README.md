@@ -215,7 +215,7 @@
 
 #### 1. 克隆项目
 ```bash
-git clone [项目地址]
+git clone https://github.com/LuckySongXiao/NovelCraft-C-SHARP.git
 cd 06_NovelCraft-C-SHARP
 ```
 
