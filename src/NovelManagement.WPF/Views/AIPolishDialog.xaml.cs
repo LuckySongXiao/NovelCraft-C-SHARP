@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,6 +32,12 @@ namespace NovelManagement.WPF.Views
         private ObservableCollection<PolishReplacement> _replacements;
         private string _polishedFullText = string.Empty;
         private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+
+        /// <summary>
+        /// 项目级润色上下文（书名/类型/世界观摘要等，经 ProjectReadModelService 的 PromptSummary 约束链构建）。
+        /// 润色入口原先仅依赖对话框本地参数，是交接文档警示的「裸 prompt 入口」，此字段补齐项目上下文。
+        /// </summary>
+        private string? _polishProjectContext;
 
         #endregion
 
@@ -671,9 +678,13 @@ namespace NovelManagement.WPF.Views
                     return;
                 }
 
+                // 注入项目级上下文（失败不阻断，按无上下文润色）
+                await EnsurePolishProjectContextAsync();
+
                 // 构建润色参数
                 var parameters = new Dictionary<string, object>
                 {
+                    ["ProjectContext"] = _polishProjectContext ?? string.Empty,
                     ["OriginalContent"] = _originalContent,
                     ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
                     ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",
@@ -810,24 +821,85 @@ namespace NovelManagement.WPF.Views
                     chunks.Add(_originalContent);
                 }
 
-                var polishedChunks = new List<string>(chunks.Count);
+                // 注入项目级上下文（失败不阻断，按无上下文润色）
+                await EnsurePolishProjectContextAsync();
 
+                // 并行批量润色：分段互相独立（提示词已含前后文风格约束），按索引回收结果保持原文顺序。
+                // 并行度取配置 AI:PolishBatchConcurrency（默认 4；远程多卡端点可调高，本地小服务可设 1 退化为串行）。
+                // 参数集须在 UI 线程预构建（BuildPolishParameters 读取 ComboBox），任务内不触碰 UI 控件。
+                var concurrencyRaw = App.ServiceProvider?
+                    .GetService<Microsoft.Extensions.Configuration.IConfiguration>()?
+                    .GetSection("AI:PolishBatchConcurrency")?.Value;
+                var concurrency = int.TryParse(concurrencyRaw, out var parsed) && parsed > 0
+                    ? Math.Min(parsed, chunks.Count)
+                    : 4;
+                if (concurrency <= 1)
+                {
+                    concurrency = 1;
+                }
+
+                var parameterSets = chunks
+                    .Select((chunk, index) => BuildPolishParameters(chunk, index + 1, chunks.Count))
+                    .ToList();
+                var polishedResults = new string?[chunks.Count];
+                var failureMessages = new string?[chunks.Count];
+                var completedCount = 0;
+
+                async Task PolishChunkAsync(int index)
+                {
+                    var result = await _aiAssistantService.PolishTextAsync(parameterSets[index]);
+                    if (result.IsSuccess && result.Data != null)
+                    {
+                        polishedResults[index] = ExtractPolishedTextFromResult(result.Data);
+                    }
+                    else
+                    {
+                        polishedResults[index] = string.Empty;
+                        failureMessages[index] = result.Message ?? "AI 返回空内容";
+                    }
+
+                    var done = System.Threading.Interlocked.Increment(ref completedCount);
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        PolishStatusTextBlock.Text = TF("POL.BatchProgressFmt", "正在批量润色第 {0}/{1} 段...", done, chunks.Count);
+                        PolishProgressBar.Value = 10 + (done * 70.0 / chunks.Count);
+                    });
+                }
+
+                if (concurrency == 1)
+                {
+                    for (var i = 0; i < chunks.Count; i++)
+                    {
+                        await PolishChunkAsync(i);
+                    }
+                }
+                else
+                {
+                    using var throttle = new SemaphoreSlim(concurrency, concurrency);
+                    var tasks = Enumerable.Range(0, chunks.Count).Select(index => Task.Run(async () =>
+                    {
+                        await throttle.WaitAsync();
+                        try
+                        {
+                            await PolishChunkAsync(index);
+                        }
+                        finally
+                        {
+                            throttle.Release();
+                        }
+                    })).ToArray();
+                    await Task.WhenAll(tasks);
+                }
+
+                // 按原文顺序检查失败段（保持与串行版一致的报错口径）
+                var polishedChunks = new List<string>(chunks.Count);
                 for (var index = 0; index < chunks.Count; index++)
                 {
-                    var chunk = chunks[index];
-                    PolishStatusTextBlock.Text = TF("POL.BatchProgressFmt", "正在批量润色第 {0}/{1} 段...", index + 1, chunks.Count);
-                    PolishProgressBar.Value = 10 + (index * 70.0 / chunks.Count);
-
-                    var parameters = BuildPolishParameters(chunk, index + 1, chunks.Count);
-                    var result = await _aiAssistantService.PolishTextAsync(parameters);
-                    var polishedChunk = result.IsSuccess && result.Data != null
-                        ? ExtractPolishedTextFromResult(result.Data)
-                        : string.Empty;
-
+                    var polishedChunk = polishedResults[index];
                     if (string.IsNullOrWhiteSpace(polishedChunk))
                     {
                         throw new InvalidOperationException(
-                            TF("POL.ChunkFailFmt", "第 {0} 段润色失败：{1}", index + 1, result.Message ?? "AI 返回空内容"));
+                            TF("POL.ChunkFailFmt", "第 {0} 段润色失败：{1}", index + 1, failureMessages[index] ?? "AI 返回空内容"));
                     }
 
                     polishedChunks.Add(polishedChunk.Trim());
@@ -880,6 +952,41 @@ namespace NovelManagement.WPF.Views
             }
         }
 
+        /// <summary>
+        /// 构建项目级润色上下文并缓存到 <see cref="_polishProjectContext"/>（失败不阻断）。
+        /// 对齐其它 AI 入口的 PromptSummary 约束链：润色需感知书名/类型/世界观，
+        /// 且不得引入与项目设定冲突的新内容。
+        /// </summary>
+        private async Task EnsurePolishProjectContextAsync()
+        {
+            if (_polishProjectContext != null)
+            {
+                return;
+            }
+
+            try
+            {
+                var projectId = App.ServiceProvider?.GetService<ProjectContextService>()?.CurrentProjectId ?? Guid.Empty;
+                var readModel = App.ServiceProvider?.GetService<ProjectReadModelService>();
+                if (readModel == null || projectId == Guid.Empty)
+                {
+                    _polishProjectContext = string.Empty;
+                    return;
+                }
+
+                var context = await readModel.BuildSubsystemPromptContextAsync(
+                    projectId,
+                    "正文润色",
+                    "润色必须保持原文情节与人物设定不变，不得引入与项目世界观冲突的新设定。");
+                _polishProjectContext = context ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"获取润色项目上下文失败（按无上下文润色）: {ex.Message}");
+                _polishProjectContext = string.Empty;
+            }
+        }
+
         private Dictionary<string, object> BuildPolishParameters(string content, int chunkIndex = 1, int totalChunks = 1)
         {
             var specialRequirements = SpecialRequirementsTextBox.Text?.Trim() ?? string.Empty;
@@ -893,6 +1000,7 @@ namespace NovelManagement.WPF.Views
 
             return new Dictionary<string, object>
             {
+                ["ProjectContext"] = _polishProjectContext ?? string.Empty,
                 ["OriginalContent"] = content,
                 ["TargetStyle"] = ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)TargetStyleComboBox.SelectedItem)?.Content?.ToString() ?? "古典雅致",
                 ["PolishIntensity"] = ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Tag?.ToString() ?? ((ComboBoxItem)PolishIntensityComboBox.SelectedItem)?.Content?.ToString() ?? "中度润色",

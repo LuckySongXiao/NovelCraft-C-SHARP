@@ -43,6 +43,17 @@ namespace NovelManagement.AI.Services.RWKV.Models
         public string Password { get; set; } = string.Empty;
 
         /// <summary>
+        /// Cloudflare Access 客户端 ID（访问经 CF Access 保护的远程 RWKV 端点时使用，
+        /// 如 api-7b.rwkvos.com；请求将以 CF-Access-Client-Id 头发送，留空则不发送）
+        /// </summary>
+        public string AccessClientId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Cloudflare Access 客户端密钥（请求将以 CF-Access-Client-Secret 头发送，留空则不发送）
+        /// </summary>
+        public string AccessClientSecret { get; set; } = string.Empty;
+
+        /// <summary>
         /// 单次续写最大 token 数
         /// </summary>
         public int MaxTokensPerCompletion { get; set; } = 200;
@@ -114,9 +125,11 @@ namespace NovelManagement.AI.Services.RWKV.Models
         public string WritingContextTier { get; set; } = "Auto";
 
         /// <summary>
-        /// 最大并发请求数
+        /// 最大并发请求数（客户端信号量，防打爆推理服务）。
+        /// 纯 CUDA 后端单卡 4090 实测可支撑 900+ 并发解码（多卡线性扩展），
+        /// 本地单卡部署建议 16-64，远程多卡集群可放宽到 256+。
         /// </summary>
-        public int MaxConcurrentRequests { get; set; } = 20;
+        public int MaxConcurrentRequests { get; set; } = 64;
 
         /// <summary>
         /// 是否自动启动推理服务
@@ -171,8 +184,8 @@ namespace NovelManagement.AI.Services.RWKV.Models
                 errors.Add("温度参数必须在 0-3 之间");
             if (ContextSize < 1024 || ContextSize > 1048576)
                 errors.Add("RWKV 上下文大小必须在 1024-1048576 之间");
-            if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 20)
-                errors.Add("RWKV 最大并发请求数必须在 1-20 之间");
+            if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 512)
+                errors.Add("RWKV 最大并发请求数必须在 1-512 之间");
             if (PrefillChunkSize < 1 || PrefillChunkSize > 4096)
                 errors.Add("RWKV 预填充分块大小必须在 1-4096 之间");
             return errors;

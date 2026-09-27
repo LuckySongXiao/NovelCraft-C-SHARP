@@ -31,6 +31,24 @@ public static class RwkvThinkingStripper
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>
+    /// 聊天模板 token 泄漏（chat 模板模型如 rwkv-g1k-7b 偶发输出原始模板标记）：
+    /// 覆盖 &lt;|im_start|&gt;（含紧随的 role 名）、&lt;|im_end|&gt;、&lt;|endoftext|&gt;。
+    /// 真机冒烟实测：/state/chat/completions 端点两轮会话时偶发泄漏此类标记。
+    /// </summary>
+    private static readonly Regex ChatTemplateTokenRegex = new(
+        @"<\|\s*im_start\s*\|>\s*(system|user|assistant|tool)?|<\|\s*im_end\s*\|>|<\|\s*endoftext\s*\|>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// 模板续写形态：&lt;|im_end|&gt; 后紧跟 &lt;|im_start|&gt;（模型已在续写对话模板
+    /// 而非正文，后续内容属于其他回合的模板文本）。命中时截断到首个 &lt;|im_end|&gt; 之前。
+    /// 若 im_end 后跟的是普通文本则不截断（保守保留，避免误伤正文）。
+    /// </summary>
+    private static readonly Regex TemplateContinuationRegex = new(
+        @"<\|\s*im_end\s*\|>\s*<\|\s*im_start\s*\|>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
     /// 剥离 RWKV 输出中的思维链前缀，返回纯正文。
     /// </summary>
     public static string Strip(string? completion)
@@ -41,6 +59,17 @@ public static class RwkvThinkingStripper
         }
 
         var text = completion;
+
+        // 0) 聊天模板 token 泄漏清理（在思维链剥离之前执行，避免模板标记干扰段落识别）
+        // 0a) 模板续写截断：im_end 紧跟 im_start 时，其后内容属于其他回合的模板文本，全部丢弃
+        var templateContinuation = TemplateContinuationRegex.Match(text);
+        if (templateContinuation.Success)
+        {
+            text = text[..templateContinuation.Index];
+        }
+
+        // 0b) 孤立模板标记剥除
+        text = ChatTemplateTokenRegex.Replace(text, string.Empty);
 
         // 1) 显式思维链闭合块：取最后一个 </think> 之后的正文（fake-think 提示下模型会自行闭合）
         var lastClose = text.LastIndexOf("</think>", StringComparison.OrdinalIgnoreCase);

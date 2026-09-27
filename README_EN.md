@@ -2,7 +2,7 @@
 
 ### Overview
 
-A fully featured book-writing and management system built on the C# WPF stack. It supports multi-agent AI collaborative writing, complete content management, and worldbuilding/setting management. The system is highly modular, extensible, and maintainable. Launch password: RWKV7_20260908
+A fully featured book-writing and management system built on the C# WPF stack. It supports multi-agent AI collaborative writing, complete content management, and worldbuilding/setting management. The system is highly modular, extensible, and maintainable. A launch password (delivered with the release notice) is required at startup
 
 ### Screenshots (English UI)
 
@@ -164,7 +164,7 @@ A fully featured book-writing and management system built on the C# WPF stack. I
 │   │   ├── Converters/                    # Value converters
 │   │   └── Styles/                        # Styles (multi-theme/skins)
 │   │
-│   └── NovelManagement.Tests/             # Unit tests (120/120 passing)
+│   └── NovelManagement.Tests/             # Unit tests (162 cases, run by CI)
 │
 ├── rwkv_models/                           # RWKV model files (.gguf, not committed)
 ├── llama_cpp/                             # llama-server local inference runtime
@@ -360,7 +360,7 @@ Summarizer volume summary → Director next-volume planning → Summarizer prefa
 | AI Agent system | ✅ | 100% (7/7) | Full AI system |
 | AI Copilot | ✅ | 100% | Conversational 5-stage pipeline (outline → plotline → volumes → drafts → chapters) |
 | Import / Export | ✅ | 100% (7/7) | Multi-format support |
-| Tests | ✅ | 120/120 | All unit tests passing |
+| Tests | ✅ | 162 | Unit tests (auto-run by Windows CI) |
 
 #### 🔧 Latest updates (2026-09-07/08)
 - ✅ **V1.0.0 packaged release**: self-contained single-file EXE (~85MB compressed), ready to run
@@ -369,15 +369,16 @@ Summarizer volume summary → Director next-volume planning → Summarizer prefa
 - ✅ **AI Copilot**: conversational 5-stage writing pipeline with confirmation cards (accept/edit/regenerate) and restartable state
 - ✅ **Chapter association**: link existing book chapters to the copilot for direct rewrite/continuation/Q&A, isolated from the pipeline state
 - ✅ **Continue/polish fixes**: dynamic model dropdown loading; two-stage RWKV online detection (3s status + 6s inference) eliminating false-online misjudgment; selection-scoped polishing
-- ✅ **120 unit tests passing**: Copilot intent/pipeline/session suites; caught a real chapter-draft numbering bug
+- ✅ **162 unit test cases**: Copilot intent/pipeline/session suites (caught a real chapter-draft numbering bug), plus 23 new tests for slice stitching / force-directed layout / template-leak stripping
 - ✅ **Sidebar state persistence**: expand states restored precisely across restarts (`sidebar_state.json`)
 - ✅ **Custom cultivation system**: AI-designed cultivation hierarchy applied across character editing / prerequisite / batch generation
 
 #### 📈 Statistics
 - **Code files**: 300+
-- **Lines of code**: 40,000+
+- **Lines of code**: 145,000+ (C#, incl. ~22k lines of EF Core migrations)
 - **Build**: ✅ success (0 errors, 0 warnings)
-- **Unit tests**: ✅ 120/120 passing
+- **Unit tests**: ✅ 162 cases
+- **CI**: ✅ GitHub Actions dual-platform (Windows build + full tests / Ubuntu cross-compile guard)
 - **UIA regression**: ✅ five major feature pages verified end-to-end
 - **Startup**: ✅ normal
 - **Database**: ✅ connected and operational

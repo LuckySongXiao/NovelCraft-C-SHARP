@@ -91,7 +91,10 @@ namespace NovelManagement.WPF.Localization
                             var value = c < row.Count ? row[c] : string.Empty;
                             if (!string.IsNullOrWhiteSpace(value))
                             {
-                                values[lang] = value;
+                                // CSV 值中的 \n 字面量反转为真实换行：界面文案大量使用
+                                // 多行提示（67 个键），CSV 是单行记录无法直接内嵌换行，
+                                // 约定以 \n 书写；此前未反转义导致运行时显示字面量 "\n"
+                                values[lang] = value.Replace("\\n", "\n");
                             }
                         }
 

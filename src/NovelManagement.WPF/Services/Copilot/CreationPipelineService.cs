@@ -682,12 +682,12 @@ public class CreationPipelineService
             var slices = 1;
             var duplicateRetries = 0;
             var sessionRollovers = 0;
-            while (TotalChars(parts) < ChapterMinChars && slices < MaxSlicesPerChapter && sessionRollovers < 4)
+            while (ChapterSliceStitcher.TotalChars(parts) < ChapterMinChars && slices < MaxSlicesPerChapter && sessionRollovers < 4)
             {
                 var slice = await GenerateSliceAsync(session, duplicateRetries > 0 ? antiRepeatPrompt : continuationPrompt);
 
                 // 防复读：与上一片重复时先换提示词重试一次；仍复读则滚动新会话携带已写尾部继续
-                if (IsDuplicateSlice(parts[^1], slice))
+                if (ChapterSliceStitcher.IsDuplicateSlice(parts[^1], slice))
                 {
                     if (duplicateRetries == 0)
                     {
@@ -701,7 +701,7 @@ public class CreationPipelineService
                     var rolledSession = $"{session}-r{sessionRollovers}";
                     var rolled = await GenerateSliceAsync(rolledSession, BuildRollOverPrompt(chapterOrder, chapterTitle, brief, parts));
                     session = rolledSession;
-                    if (IsDuplicateSlice(parts[^1], rolled))
+                    if (ChapterSliceStitcher.IsDuplicateSlice(parts[^1], rolled))
                     {
                         _logger.LogWarning("创作助手第 {Volume} 卷第 {Chapter} 章滚动会话后仍复读，提前结束拼接", volumeOrder, chapterOrder);
                         break;
@@ -717,7 +717,7 @@ public class CreationPipelineService
                 slices++;
             }
 
-            fullContent = Stitch(parts);
+            fullContent = ChapterSliceStitcher.Stitch(parts);
             if (fullContent.Length >= ChapterMinChars)
             {
                 break;
@@ -763,7 +763,7 @@ public class CreationPipelineService
     /// </summary>
     private string BuildRollOverPrompt(int chapterOrder, string chapterTitle, string brief, List<string> parts)
     {
-        var writtenTail = TailOf(Stitch(parts), 2000);
+        var writtenTail = ChapterSliceStitcher.Tail(ChapterSliceStitcher.Stitch(parts), 2000);
         var sb = new StringBuilder();
         sb.Append("User: 你是顶级爆款中文网文写手，正在创作《").Append(_state.ProjectName).Append("》第").Append(chapterOrder).Append("章。\n");
         sb.Append("【本章梗概】").Append(Truncate(brief, 200)).Append('\n');
@@ -785,7 +785,7 @@ public class CreationPipelineService
             var prev = chapters.LastOrDefault(c => c.Order < chapterOrder);
             if (prev != null)
             {
-                return TailOf(prev.Content, 260);
+                return ChapterSliceStitcher.Tail(prev.Content, 260);
             }
 
             // 卷首章：取上一卷最后一章结尾（跨卷衔接）
@@ -798,7 +798,7 @@ public class CreationPipelineService
                 var last = prevChapters.OrderByDescending(c => c.Order).FirstOrDefault();
                 if (last != null)
                 {
-                    return TailOf(last.Content, 260);
+                    return ChapterSliceStitcher.Tail(last.Content, 260);
                 }
             }
         }
@@ -889,7 +889,7 @@ public class CreationPipelineService
                 "User: 你是顶级中文网文编辑，正在按作者要求处理《" + referral.ProjectName + "》第" + referral.VolumeOrder +
                 "卷第" + referral.ChapterOrder + "章《" + chapterTitle + "》。\n" +
                 "【处理要求】" + Truncate(instruction, 300) + "\n" +
-                "【已处理正文结尾】\n" + (parts.Count > 0 ? TailOf(parts[^1], 500) : "（本段为开头）") + "\n" +
+                "【已处理正文结尾】\n" + (parts.Count > 0 ? ChapterSliceStitcher.Tail(parts[^1], 500) : "（本段为开头）") + "\n" +
                 "【原文片段 " + (i + 1) + "/" + segments.Count + "】\n" + segments[i] + "\n" +
                 "【要求】输出上述片段处理后的正文（长度与片段相近，可略有增减）：直接输出正文，" +
                 (i > 0 ? "与上文已处理内容衔接连贯；" : string.Empty) +
@@ -899,7 +899,7 @@ public class CreationPipelineService
             var text = await GenerateTextAsync(prompt, RewriteSliceTokens);
 
             // 防复读：输出与原文片段几乎相同 → 换更强提示词重试一次
-            if (IsDuplicateSlice(segments[i], text))
+            if (ChapterSliceStitcher.IsDuplicateSlice(segments[i], text))
             {
                 _logger.LogWarning("关联章节《{Title}》片段 {Index} 改写输出与原文重复，换提示词重试", chapterTitle, i + 1);
                 var retryPrompt =
@@ -914,7 +914,7 @@ public class CreationPipelineService
             parts.Add(text);
         }
 
-        return Stitch(parts);
+        return ChapterSliceStitcher.Stitch(parts);
     }
 
     /// <summary>
@@ -934,11 +934,11 @@ public class CreationPipelineService
         var session = $"copilot-ref-{referral.ChapterId:N}-{Guid.NewGuid():N}";
         var parts = new List<string> { await GenerateSliceAsync(session, firstPrompt) };
         var slices = 1;
-        while (TotalChars(parts) < ChapterMinChars && slices < MaxSlicesPerChapter)
+        while (ChapterSliceStitcher.TotalChars(parts) < ChapterMinChars && slices < MaxSlicesPerChapter)
         {
             var slice = await GenerateSliceAsync(session,
                 "\n\nUser: （继续输出本章正文后续内容：直接从上文停笔处续写，不要重复已有文字，不要总结，不要小标题，保持叙事连贯，约1000字。）\n\nAssistant: <think></think\n");
-            if (IsDuplicateSlice(parts[^1], slice))
+            if (ChapterSliceStitcher.IsDuplicateSlice(parts[^1], slice))
             {
                 _logger.LogWarning("关联章节《{Title}》成文切片复读，提前结束拼接", chapterTitle);
                 break;
@@ -948,7 +948,7 @@ public class CreationPipelineService
             slices++;
         }
 
-        return Stitch(parts);
+        return ChapterSliceStitcher.Stitch(parts);
     }
 
     #endregion
@@ -1063,63 +1063,6 @@ public class CreationPipelineService
         }
 
         return false;
-    }
-
-    private static string Stitch(List<string> parts)
-    {
-        var sb = new StringBuilder();
-        foreach (var part in parts)
-        {
-            if (string.IsNullOrWhiteSpace(part))
-            {
-                continue;
-            }
-
-            if (sb.Length > 0)
-            {
-                sb.Append('\n');
-            }
-
-            sb.Append(part.Trim());
-        }
-
-        return sb.ToString();
-    }
-
-    private static int TotalChars(List<string> parts) => parts.Sum(p => p.Length);
-
-    /// <summary>
-    /// 防复读检测：下一片头部 60 字符与上一片尾部相同时视为复读。
-    /// </summary>
-    private static bool IsDuplicateSlice(string previous, string next)
-    {
-        if (string.IsNullOrWhiteSpace(previous) || string.IsNullOrWhiteSpace(next))
-        {
-            return false;
-        }
-
-        var a = previous.Trim();
-        var b = next.Trim();
-        if (a == b)
-        {
-            return true;
-        }
-
-        var head = b.Length >= 60 ? b[..60] : b;
-        return a.EndsWith(head, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// 取文本尾部（滚动会话/跨章衔接用）。
-    /// </summary>
-    private static string TailOf(string? text, int maxChars)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            return "（缺失）";
-        }
-
-        return text.Length <= maxChars ? text : "……" + text[^maxChars..];
     }
 
     private static string? Truncate(string? text, int maxChars) =>

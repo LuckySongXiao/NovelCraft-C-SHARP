@@ -828,14 +828,19 @@ public partial class App : System.Windows.Application
             });
 
             // 注册AI Agent（直接注册实现类）
-            services.AddScoped<DirectorAgent>();
-            services.AddScoped<WriterAgent>();
-            services.AddScoped<EditorAgent>();
-            services.AddScoped<CriticAgent>();
-            services.AddScoped<ResearcherAgent>();
-            services.AddScoped<SummarizerAgent>();
-            services.AddScoped<ReaderAgent>();
-            services.AddScoped<SettingManagerAgent>();
+            // Transient（而非 Scoped）：AgentFactory 为 Singleton、从根容器解析 Agent，
+            // Scoped 注册在无作用域校验下会退化为"根级单例"——所有调用共享同一 Agent 实例，
+            // 导致内部状态（CurrentThinkingChain/降级标记等）并发污染，且 ThinkingChainUpdated
+            // 事件订阅随调用次数累积（泄漏）。Transient 保证每次 CreateAgent 均为新实例，
+            // 并行调用安全，订阅随实例回收。
+            services.AddTransient<DirectorAgent>();
+            services.AddTransient<WriterAgent>();
+            services.AddTransient<EditorAgent>();
+            services.AddTransient<CriticAgent>();
+            services.AddTransient<ResearcherAgent>();
+            services.AddTransient<SummarizerAgent>();
+            services.AddTransient<ReaderAgent>();
+            services.AddTransient<SettingManagerAgent>();
 
             // 注册Agent工厂
             services.AddSingleton<NovelManagement.AI.Extensions.IAgentFactory, NovelManagement.AI.Extensions.AgentFactory>();

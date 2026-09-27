@@ -18,6 +18,7 @@ using NovelManagement.Application.Interfaces;
 using NovelManagement.Application.Services;
 using NovelManagement.Core.Entities;
 using NovelManagement.WPF.Models;
+using static NovelManagement.WPF.Localization.LocalizationManager;
 
 namespace NovelManagement.WPF.Services;
 
@@ -37,7 +38,7 @@ public class FullNovelBatchStartResult
 public class FullNovelBatchStatus
 {
     public bool IsRunning { get; set; }
-    public string Phase { get; set; } = "未开始";
+    public string Phase { get; set; } = T("BG.PhaseNotStarted", "未开始");
     public string BookTitle { get; set; } = string.Empty;
     public Guid? ProjectId { get; set; }
     public int VolumeCount { get; set; }
@@ -181,7 +182,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 return Task.FromResult(new FullNovelBatchStartResult
                 {
                     Success = false,
-                    Message = "批量生成任务已在运行中。"
+                    Message = T("BG.AlreadyRunning", "批量生成任务已在运行中。")
                 });
             }
 
@@ -196,7 +197,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             return Task.FromResult(new FullNovelBatchStartResult
             {
                 Success = true,
-                Message = "批量生成任务已启动（后台运行，可用「生成进度」按钮随时查看）。"
+                Message = T("BG.Started", "批量生成任务已启动（后台运行，可用「生成进度」按钮随时查看）。")
             });
         }
     }
@@ -229,7 +230,11 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 _policy.UseSlicing ? "切片生成" : "整章直出",
                 _sliceBudget, _policy.MaxSlicesPerChapter,
                 _policy.MaxCastCount, _policy.MaxSettingCount, _policy.MaxFactionCount);
-            UpdateStatusMessage($"写作档位 {_policy.TierName}：{(_policy.UseSlicing ? $"切片生成（每片约{_sliceBudget} tokens，最多{_policy.MaxSlicesPerChapter}片）" : "整章直出")}；辅助信息配额 角色{_policy.MaxCastCount}/设定{_policy.MaxSettingCount}/势力{_policy.MaxFactionCount}");
+            UpdateStatusMessage(TF("BG.TierInfo", "写作档位 {0}：{1}；辅助信息配额 角色{2}/设定{3}/势力{4}", _policy.TierName,
+                _policy.UseSlicing
+                    ? TF("BG.TierSlicing", "切片生成（每片约{0} tokens，最多{1}片）", _sliceBudget, _policy.MaxSlicesPerChapter)
+                    : T("BG.TierWhole", "整章直出"),
+                _policy.MaxCastCount, _policy.MaxSettingCount, _policy.MaxFactionCount));
 
             if (_options.UnlimitedMode)
             {
@@ -250,7 +255,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             // 主线大纲缺失则补齐
             if (string.IsNullOrWhiteSpace(state.MasterOutline))
             {
-                SetPhase($"生成全书主线大纲（《{state.Title}》）");
+                SetPhase(TF("BG.PhaseMasterOutline", "生成全书主线大纲（《{0}》）", state.Title));
                 state.MasterOutline = await GenerateTextAsync(BuildMasterOutlinePrompt(state), OutlineMaxTokens, ct);
                 await SaveStateAsync(state, ct);
             }
@@ -296,7 +301,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 // 卷大纲 + N 章梗概
                 if (vol.Briefs.Count < briefCount)
                 {
-                    SetPhase($"生成第 {vol.Index}/{(state.VolumeCount > 0 ? state.VolumeCount.ToString() : "∞")} 卷大纲与 {briefCount} 章梗概");
+                    SetPhase(TF("BG.PhaseVolumeOutline", "生成第 {0}/{1} 卷大纲与 {2} 章梗概", vol.Index, state.VolumeCount > 0 ? state.VolumeCount.ToString() : "∞", briefCount));
                     vol.Briefs = await GenerateVolumeBriefsAsync(state, vol, briefCount, ct);
                     await SaveStateAsync(state, ct);
                 }
@@ -304,7 +309,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 // 卷实体
                 if (vol.VolumeId == Guid.Empty)
                 {
-                    SetPhase($"创建第 {vol.Index} 卷");
+                    SetPhase(TF("BG.PhaseCreateVolume", "创建第 {0} 卷", vol.Index));
                     var volume = await _volumeService.CreateVolumeAsync(new Volume
                     {
                         Title = $"第{vol.Index}卷",
@@ -323,7 +328,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 {
                     ct.ThrowIfCancellationRequested();
                     _status.CurrentChapter = i;
-                    SetPhase($"第 {vol.Index} 卷 第 {i}/{volumeChapterCap} 章创作中");
+                    SetPhase(TF("BG.PhaseChapter", "第 {0} 卷 第 {1}/{2} 章创作中", vol.Index, i, volumeChapterCap));
 
                     try
                     {
@@ -343,7 +348,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                         serviceRetries++;
                         _logger.LogWarning(chapterEx, "推理服务暂不可用（第 {Volume} 卷第 {Chapter} 章），第 {Retry}/20 次等待重试",
                             vol.Index, i, serviceRetries);
-                        UpdateStatusMessage($"推理服务暂不可用，30 秒后重试第 {vol.Index} 卷第 {i} 章（{serviceRetries}/20）");
+                        UpdateStatusMessage(TF("BG.RetryServiceDown", "推理服务暂不可用，30 秒后重试第 {0} 卷第 {1} 章（{2}/20）", vol.Index, i, serviceRetries));
                         await Task.Delay(TimeSpan.FromSeconds(30), ct);
                         i--; // 重试本章
                     }
@@ -352,7 +357,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                         _status.FailedChapters++;
                         vol.NextChapter = i + 1; // 跳过失败章节，保证任务继续
                         _logger.LogError(chapterEx, "第 {Volume} 卷第 {Chapter} 章生成失败", vol.Index, i);
-                        UpdateStatusMessage($"第 {vol.Index} 卷第 {i} 章失败：{chapterEx.Message}，已跳过");
+                        UpdateStatusMessage(TF("BG.ChapterSkipped", "第 {0} 卷第 {1} 章失败：{2}，已跳过", vol.Index, i, chapterEx.Message));
                     }
 
                     await SaveStateAsync(state, ct);
@@ -383,27 +388,27 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             if (stopForCap)
             {
                 // 试写模式：达到上限即停止，不标记 Finished，保留状态便于后续继续
-                SetPhase("试写完成");
-                UpdateStatusMessage($"试写完成：已生成 {_status.CompletedChapters} 章（失败 {_status.FailedChapters}）。可检查各管理模块的联动更新。");
+                SetPhase(T("BG.PhaseTrialDone", "试写完成"));
+                UpdateStatusMessage(TF("BG.TrialDone", "试写完成：已生成 {0} 章（失败 {1}）。可检查各管理模块的联动更新。", _status.CompletedChapters, _status.FailedChapters));
                 _logger.LogInformation("批量试写在达到上限后停止：《{Title}》", state.Title);
                 return;
             }
 
             // 全书评分报告
-            SetPhase("生成全书评分报告");
+            SetPhase(T("BG.PhaseScoreReport", "生成全书评分报告"));
             await WriteScoreReportAsync(state, ct);
 
             state.Finished = true;
             await SaveStateAsync(state, ct);
 
-            SetPhase("已完成");
-            UpdateStatusMessage($"全书《{state.Title}》生成完毕：{_status.CompletedChapters} 章成功，{_status.FailedChapters} 章失败。");
+            SetPhase(T("BG.PhaseDone", "已完成"));
+            UpdateStatusMessage(TF("BG.AllDone", "全书《{0}》生成完毕：{1} 章成功，{2} 章失败。", state.Title, _status.CompletedChapters, _status.FailedChapters));
             _logger.LogInformation("整本长篇批量生成完成：《{Title}》", state.Title);
         }
         catch (OperationCanceledException)
         {
-            SetPhase("已取消");
-            UpdateStatusMessage("批量生成已取消（进度已保存，可再次点击继续）。");
+            SetPhase(T("BG.PhaseCancelled", "已取消"));
+            UpdateStatusMessage(T("BG.Cancelled", "批量生成已取消（进度已保存，可再次点击继续）。"));
             _logger.LogInformation("整本长篇批量生成已取消");
         }
         catch (Exception ex)
@@ -471,7 +476,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                     {
                         _logger.LogInformation("恢复批量生成状态：项目 {ProjectId}，进度 第{Volume}卷第{Chapter}章",
                             state.ProjectId, state.Volumes.FirstOrDefault()?.Index ?? 0, state.Volumes.FirstOrDefault()?.NextChapter ?? 0);
-                        UpdateStatusMessage($"检测到未完成任务，继续生成《{state.Title}》");
+                        UpdateStatusMessage(TF("BG.ResumeDetected", "检测到未完成任务，继续生成《{0}》", state.Title));
                         return state;
                     }
                 }
@@ -483,10 +488,10 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
         }
 
         // 新书：概念 → 项目
-        SetPhase("构思新书概念");
+        SetPhase(T("BG.PhaseConcept", "构思新书概念"));
         var concept = await GenerateConceptAsync(ct);
 
-        SetPhase($"创建项目《{concept.Title}》");
+        SetPhase(TF("BG.PhaseCreateProject", "创建项目《{0}》", concept.Title));
         var projectName = await EnsureUniqueProjectNameAsync(concept.Title);
         var catalogItem = await _projectCatalogService.CreateProjectAsync(new Views.NewProjectDialog.NewProjectModel
         {
@@ -568,7 +573,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
 
     private async Task EnsureRwkvOnlineAsync(CancellationToken ct)
     {
-        SetPhase("检查推理服务");
+        SetPhase(T("BG.PhaseCheckService", "检查推理服务"));
         if (await _rwkvService.TestConnectionAsync())
         {
             return;
@@ -577,8 +582,8 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
         var isLlama = string.Equals(
             _configuration.GetSection("AI:Providers:RWKV")["RuntimeFlavor"], "llamacpp", StringComparison.OrdinalIgnoreCase);
         UpdateStatusMessage(isLlama
-            ? "llama.cpp 未在线，自动拉起 llama-server……"
-            : "RWKV 未在线，尝试经 rwkv_launcher 自动拉起……");
+            ? T("BG.LlamaStarting", "llama.cpp 未在线，自动拉起 llama-server……")
+            : T("BG.RwkvStarting", "RWKV 未在线，尝试经 rwkv_launcher 自动拉起……"));
 
         var result = isLlama
             ? await _runtimeCoordinator.StartLlamaAsync(BuildLlamaLaunchOptions())
@@ -926,12 +931,12 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             var slices = 1;
             var duplicateRetries = 0;
             var sessionRollovers = 0;
-            while (TotalChars(parts) < _chapterMinChars && slices < _policy.MaxSlicesPerChapter && sessionRollovers < 4)
+            while (ChapterSliceStitcher.TotalChars(parts) < _chapterMinChars && slices < _policy.MaxSlicesPerChapter && sessionRollovers < 4)
             {
                 ct.ThrowIfCancellationRequested();
                 var slice = await GenerateSliceAsync(session, duplicateRetries > 0 ? antiRepeatPrompt : continuationPrompt, ct);
                 // 防复读：与上一片重复时先换提示词重试一次；仍复读则滚动新会话携带已写尾部继续
-                if (IsDuplicateSlice(parts[^1], slice))
+                if (ChapterSliceStitcher.IsDuplicateSlice(parts[^1], slice))
                 {
                     if (duplicateRetries == 0)
                     {
@@ -951,7 +956,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                     var rolledSession = $"{session}-r{sessionRollovers}";
                     var rolled = await GenerateSliceAsync(rolledSession, BuildRollOverPrompt(state, vol, chapterIndex, brief, parts, isGolden), ct);
                     session = rolledSession;
-                    if (IsDuplicateSlice(parts[^1], rolled))
+                    if (ChapterSliceStitcher.IsDuplicateSlice(parts[^1], rolled))
                     {
                         _logger.LogWarning("第 {Volume} 卷第 {Chapter} 章滚动会话后仍复读，提前结束拼接", vol.Index, chapterIndex);
                         break;
@@ -959,17 +964,17 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
 
                     parts.Add(rolled);
                     slices++;
-                    UpdateStatusMessage($"第 {vol.Index} 卷第 {chapterIndex} 章：已滚动会话 {sessionRollovers} 次，拼接 {slices} 片 {TotalChars(parts)} 字");
+                    UpdateStatusMessage(TF("BG.SliceRollover", "第 {0} 卷第 {1} 章：已滚动会话 {2} 次，拼接 {3} 片 {4} 字", vol.Index, chapterIndex, sessionRollovers, slices, ChapterSliceStitcher.TotalChars(parts)));
                     continue;
                 }
 
                 duplicateRetries = 0;
                 parts.Add(slice);
                 slices++;
-                UpdateStatusMessage($"第 {vol.Index} 卷第 {chapterIndex} 章：已拼接 {slices} 片，{TotalChars(parts)} 字");
+                UpdateStatusMessage(TF("BG.SliceProgress", "第 {0} 卷第 {1} 章：已拼接 {2} 片，{3} 字", vol.Index, chapterIndex, slices, ChapterSliceStitcher.TotalChars(parts)));
             }
 
-            fullContent = Stitch(parts);
+            fullContent = ChapterSliceStitcher.Stitch(parts);
             if (fullContent.Length >= _chapterMinChars)
             {
                 break;
@@ -979,17 +984,19 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             {
                 _logger.LogWarning("第 {Volume} 卷第 {Chapter} 章仅 {Length} 字（第 {Attempt} 次尝试），换新会话整章重试",
                     vol.Index, chapterIndex, fullContent.Length, attempt);
-                UpdateStatusMessage($"第 {vol.Index} 卷第 {chapterIndex} 章仅 {fullContent.Length} 字，整章重试");
+                UpdateStatusMessage(TF("BG.ChapterTooShort", "第 {0} 卷第 {1} 章仅 {2} 字，整章重试", vol.Index, chapterIndex, fullContent.Length));
             }
         }
 
         var ok = fullContent.Length >= _chapterMinChars;
 
-        // 评分
-        var (score, comment) = await ScoreChapterAsync(fullContent, ct);
+        // 评分与章节标题并行生成：两者均只读（梗概/正文），互不依赖，且内部各自兜底不抛异常
+        var scoreTask = ScoreChapterAsync(fullContent, ct);
+        var titleTask = GenerateChapterTitleAsync(state, vol, chapterIndex, brief, fullContent, ct);
+        await Task.WhenAll(scoreTask, titleTask);
 
-        // 依据章节梗概/正文生成符合本章主题的章节名（失败回退「第N章」）
-        var chapterTitle = await GenerateChapterTitleAsync(state, vol, chapterIndex, brief, fullContent, ct);
+        var (score, comment) = scoreTask.Result;
+        var chapterTitle = titleTask.Result;
 
         var chapter = await _chapterService.CreateChapterAsync(new Chapter
         {
@@ -1024,7 +1031,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
         // 章节联动更新：角色出场/历史、势力、剧情进度、世界设定、人物/势力关系、时间线
         await SyncChapterModulesAsync(chapter, ct);
 
-        UpdateStatusMessage($"第 {vol.Index} 卷第 {chapterIndex} 章完成：{fullContent.Length} 字，评分 {score.Total:F1}（{comment}）");
+        UpdateStatusMessage(TF("BG.ChapterDone", "第 {0} 卷第 {1} 章完成：{2} 字，评分 {3:F1}（{4}）", vol.Index, chapterIndex, fullContent.Length, score.Total, comment));
         return score.Total;
     }
 
@@ -1055,7 +1062,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 s?.UpdatedFactionRelationshipCount ?? 0,
                 result.UpdatedTimelineEventCount);
             UpdateStatusMessage(
-                $"联动更新：角色 {s?.UpdatedCharacterCount ?? 0}、势力 {s?.UpdatedFactionCount ?? 0}、剧情 {s?.UpdatedPlotCount ?? 0}、设定 {s?.UpdatedWorldSettingCount ?? 0}、人物关系 {s?.UpdatedCharacterRelationshipCount ?? 0}、时间线 {result.UpdatedTimelineEventCount}");
+                TF("BG.SyncUpdate", "联动更新：角色 {0}、势力 {1}、剧情 {2}、设定 {3}、人物关系 {4}、时间线 {5}", s?.UpdatedCharacterCount ?? 0, s?.UpdatedFactionCount ?? 0, s?.UpdatedPlotCount ?? 0, s?.UpdatedWorldSettingCount ?? 0, s?.UpdatedCharacterRelationshipCount ?? 0, result.UpdatedTimelineEventCount));
         }
         catch (Exception ex)
         {
@@ -1093,19 +1100,49 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 _logger.LogWarning(ex, "批量任务修炼体系生成失败（不阻断章节生成）");
             }
 
-            // 角色
-            var characters = characterService != null
-                ? (await characterService.GetCharactersByProjectIdAsync(state.ProjectId, ct)).ToList()
-                : new List<Character>();
-            if (characters.Count == 0 && characterService != null)
+            // ===== 三路前置数据并行生成 =====
+            // 角色 / 世界设定 / 势力均仅依赖主线大纲（相互独立），三路 RWKV 调用并行发起；
+            // 并发由 RwkvLightningService 信号量（MaxConcurrentRequests，默认 64）统一限流。
+            // 落库保持串行（同一 scoped DbContext 非线程安全）。
+            var characters = new List<Character>();
+            var settingsCount = 0;
+            if (characterService != null)
             {
-                SetPhase("依据主线大纲生成主要角色");
-                var generated = await GenerateCastAsync(state, ct);
-                foreach (var character in generated)
+                characters = (await characterService.GetCharactersByProjectIdAsync(state.ProjectId, ct)).ToList();
+            }
+
+            if (worldSettingService != null)
+            {
+                settingsCount = (await worldSettingService.GetAllAsync(state.ProjectId, ct)).Count();
+            }
+
+            var hasFactions = factionService != null
+                && (await factionService.GetFactionsByProjectIdAsync(state.ProjectId, ct)).Any();
+
+            var needCast = characters.Count == 0 && characterService != null;
+            var needSettings = settingsCount == 0 && worldSettingService != null;
+            var needFactions = factionService != null && !hasFactions;
+
+            if (needCast || needSettings || needFactions)
+            {
+                SetPhase(T("BG.PhasePrereqParallel", "并行生成主要角色 / 世界设定 / 势力组织"));
+                var castTask = needCast
+                    ? GenerateCastAsync(state, ct)
+                    : Task.FromResult(new List<Character>());
+                var settingsTask = needSettings
+                    ? GenerateWorldSettingsAsync(state, ct)
+                    : Task.FromResult(new List<CreateWorldSettingDto>());
+                var factionsTask = needFactions
+                    ? GenerateFactionsAsync(state, ct)
+                    : Task.FromResult(new List<Faction>());
+                await Task.WhenAll(castTask, settingsTask, factionsTask);
+
+                // 落库串行
+                foreach (var character in castTask.Result)
                 {
                     try
                     {
-                        await characterService.CreateCharacterAsync(character, ct);
+                        await characterService!.CreateCharacterAsync(character, ct);
                     }
                     catch (Exception ex)
                     {
@@ -1113,11 +1150,39 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                     }
                 }
 
-                characters = (await characterService.GetCharactersByProjectIdAsync(state.ProjectId, ct)).ToList();
-                UpdateStatusMessage($"已生成主要角色 {characters.Count} 名：{string.Join("、", characters.Select(c => c.Name))}");
+                foreach (var dto in settingsTask.Result)
+                {
+                    try
+                    {
+                        await worldSettingService!.CreateAsync(dto, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "世界设定 {Name} 落库失败", dto.Name);
+                    }
+                }
+
+                foreach (var faction in factionsTask.Result)
+                {
+                    try
+                    {
+                        await factionService!.CreateFactionAsync(faction, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "势力 {Name} 落库失败", faction.Name);
+                    }
+                }
+
+                // 重查刷新（含生成前存量）
+                if (characterService != null)
+                {
+                    characters = (await characterService.GetCharactersByProjectIdAsync(state.ProjectId, ct)).ToList();
+                    UpdateStatusMessage(TF("BG.CastDone", "已生成主要角色 {0} 名：{1}", characters.Count, string.Join("、", characters.Select(c => c.Name))));
+                }
             }
 
-            // 外貌主动补全：存量角色缺失外貌特征时批量补全（不阻断）
+            // 外貌主动补全：存量角色缺失外貌特征时批量补全（不阻断；依赖角色已落库，保持串行）
             if (characterService != null)
             {
                 await BackfillCharacterAppearanceAsync(characterService, characters, state, ct);
@@ -1129,56 +1194,19 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 .Distinct()
                 .ToList();
 
-            // 世界设定
             if (worldSettingService != null)
             {
-                var settings = (await worldSettingService.GetAllAsync(state.ProjectId, ct)).ToList();
-                if (settings.Count == 0)
+                var currentSettings = (await worldSettingService.GetAllAsync(state.ProjectId, ct)).ToList();
+                if (needSettings)
                 {
-                    SetPhase("依据主线大纲生成世界设定");
-                    var generatedSettings = await GenerateWorldSettingsAsync(state, ct);
-                    foreach (var dto in generatedSettings)
-                    {
-                        try
-                        {
-                            await worldSettingService.CreateAsync(dto, ct);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "世界设定 {Name} 落库失败", dto.Name);
-                        }
-                    }
-
-                    UpdateStatusMessage($"已生成世界设定 {generatedSettings.Count} 条");
+                    UpdateStatusMessage(TF("BG.SettingsDone", "已生成世界设定 {0} 条", currentSettings.Count));
                 }
 
-                settings = (await worldSettingService.GetAllAsync(state.ProjectId, ct)).ToList();
-                state.SettingNames = settings
+                state.SettingNames = currentSettings
                     .Select(s => s.Name)
                     .Where(n => !string.IsNullOrWhiteSpace(n))
                     .Distinct()
                     .ToList();
-            }
-
-            // 势力
-            if (factionService != null)
-            {
-                var factions = (await factionService.GetFactionsByProjectIdAsync(state.ProjectId, ct)).ToList();
-                if (factions.Count == 0)
-                {
-                    SetPhase("依据主线大纲生成势力组织");
-                    foreach (var faction in await GenerateFactionsAsync(state, ct))
-                    {
-                        try
-                        {
-                            await factionService.CreateFactionAsync(faction, ct);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "势力 {Name} 落库失败", faction.Name);
-                        }
-                    }
-                }
             }
 
             await SaveStateAsync(state, ct);
@@ -1222,6 +1250,13 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             foreach (var fields in ParseLabeledRecords(text, new[] { "名字", "类型", "性别", "人设", "外貌", "背景" }))
             {
                 // fields: 名字/类型/性别/人设/外貌/背景
+                // 达到要求人数即截断：小模型常无视数量指令多输出（实测要求 5 名出 8 名），
+                // 超量角色会稀释重要性配额并挤占后续模块的上下文配额
+                if (result.Count >= castCount)
+                {
+                    break;
+                }
+
                 if (!seen.Add(fields[0]))
                 {
                     continue;
@@ -1232,7 +1267,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                     Id = Guid.NewGuid(),
                     ProjectId = state.ProjectId,
                     Name = fields[0],
-                    Type = fields[1],
+                    Type = CleanCharacterType(fields[1]),
                     Gender = fields[2].Contains("女") ? "女" : "男",
                     Personality = fields[3],
                     Appearance = NormalizeGeneratedField(fields[4]),
@@ -1280,6 +1315,25 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
     /// <summary>
     /// 归一模型输出字段：占位符（未提供）视为空，交由补全逻辑处理。
     /// </summary>
+    /// <summary>
+    /// 清洗角色类型字段：剥离模型把提示词里的枚举说明抄进值产生的残渣
+    /// （交接实测案例："主角/师父 之二"——提示词为「类型：主角/师父/对手… 之一」）。
+    /// 仅保留首个候选词，去掉「之一/之二/N 个之一」等尾缀与多余分隔。
+    /// </summary>
+    private static string CleanCharacterType(string? value)
+    {
+        var cleaned = NormalizeGeneratedField(value);
+        if (string.IsNullOrEmpty(cleaned))
+        {
+            return "配角";
+        }
+
+        // 取首个分隔段（"主角/师父" → "主角"），并剥离「（之一）」「N个之一」等枚举说明残渣
+        var firstSegment = cleaned.Split('/', '、', '｜', '|')[0].Trim();
+        firstSegment = Regex.Replace(firstSegment, @"[（(]?\s*(?:之[一二三四五六七八九十]|\d+\s*个?之?一)\s*[)）]?$", string.Empty).Trim();
+        return string.IsNullOrEmpty(firstSegment) ? "配角" : firstSegment;
+    }
+
     private static string NormalizeGeneratedField(string? value)
     {
         var trimmed = value?.Trim();
@@ -1360,7 +1414,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             if (updated > 0)
             {
                 _logger.LogInformation("已为 {Count} 名角色补全外貌特征", updated);
-                UpdateStatusMessage($"已为 {updated} 名角色补全外貌特征");
+                UpdateStatusMessage(TF("BG.AppearanceDone", "已为 {0} 名角色补全外貌特征", updated));
             }
         }
         catch (Exception ex)
@@ -1399,6 +1453,12 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             foreach (var fields in ParseLabeledRecords(text, new[] { "设定名", "分类", "内容" }))
             {
                 // fields: 设定名/分类/内容
+                // 达到要求条数即截断（交接实测：要求 3 条时模型偶发输出 7 条，解析器不截断会全部入库）
+                if (result.Count >= settingCount)
+                {
+                    break;
+                }
+
                 if (!seen.Add(fields[0]))
                 {
                     continue;
@@ -1455,6 +1515,12 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             foreach (var fields in ParseLabeledRecords(text, new[] { "势力名", "描述" }))
             {
                 // fields: 势力名/描述
+                // 达到要求数量即截断（对齐角色/设定的截断口径）
+                if (result.Count >= factionCount)
+                {
+                    break;
+                }
+
                 if (!seen.Add(fields[0]))
                 {
                     continue;
@@ -1589,7 +1655,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
             {
                 var chapters = await _chapterService.GetChapterListAsync(vol.VolumeId, ct);
                 var prev = chapters.OrderByDescending(c => c.Order).FirstOrDefault();
-                return Tail(prev?.Content, 260);
+                return ChapterSliceStitcher.Tail(prev?.Content, 260);
             }
 
             if (vol.Index > 1)
@@ -1599,7 +1665,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
                 {
                     var chapters = await _chapterService.GetChapterListAsync(prevVol.VolumeId, ct);
                     var prev = chapters.OrderByDescending(c => c.Order).FirstOrDefault();
-                    return Tail(prev?.Content, 260);
+                    return ChapterSliceStitcher.Tail(prev?.Content, 260);
                 }
             }
         }
@@ -1650,7 +1716,7 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
     private string BuildRollOverPrompt(
         BatchState state, BatchVolumeState vol, int chapterIndex, string brief, List<string> parts, bool isGolden)
     {
-        var writtenTail = Tail(Stitch(parts), 2000);
+        var writtenTail = ChapterSliceStitcher.Tail(ChapterSliceStitcher.Stitch(parts), 2000);
         var sb = new StringBuilder();
         sb.Append("User: 你是顶级爆款中文网文写手，正在创作《").Append(state.Title).Append("》（").Append(state.Genre).Append("）第").Append(chapterIndex).Append("章。\n");
         sb.Append("【本章梗概】").Append(brief).Append('\n');
@@ -1891,60 +1957,8 @@ public class FullNovelBatchGenerationService : IFullNovelBatchGenerationService
         return false;
     }
 
-    private static string Stitch(List<string> parts)
-    {
-        var sb = new StringBuilder();
-        foreach (var part in parts)
-        {
-            if (string.IsNullOrWhiteSpace(part))
-            {
-                continue;
-            }
-
-            if (sb.Length > 0)
-            {
-                sb.Append('\n');
-            }
-
-            sb.Append(part.Trim());
-        }
-
-        return sb.ToString();
-    }
-
-    private static int TotalChars(List<string> parts) => parts.Sum(p => p.Length);
-
-    private static bool IsDuplicateSlice(string previous, string next)
-    {
-        if (string.IsNullOrWhiteSpace(previous) || string.IsNullOrWhiteSpace(next))
-        {
-            return false;
-        }
-
-        var a = previous.Trim();
-        var b = next.Trim();
-        if (a == b)
-        {
-            return true;
-        }
-
-        // 取前 60 字符对比，若上一片尾部与下一片头部相同则视为复读
-        var head = b.Length >= 60 ? b[..60] : b;
-        return a.EndsWith(head, StringComparison.Ordinal);
-    }
-
     private static string Truncate(string? text, int maxChars) =>
         string.IsNullOrEmpty(text) ? string.Empty : text.Length <= maxChars ? text : text[..maxChars] + "……";
-
-    private static string Tail(string? text, int maxChars)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            return "（缺失）";
-        }
-
-        return text.Length <= maxChars ? text : "……" + text[^maxChars..];
-    }
 
     private static JsonElement? ExtractJson(string text)
     {

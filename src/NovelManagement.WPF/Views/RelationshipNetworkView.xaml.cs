@@ -1910,21 +1910,40 @@ namespace NovelManagement.WPF.Views
         #region 布局算法
 
         /// <summary>
-        /// 应用力导向布局
+        /// 应用力导向布局（Fruchterman–Reingold，确定性算法，见 Application 层 ForceDirectedGraphLayout）
         /// </summary>
         private void ApplyForceDirectedLayout()
         {
-            // 简单的力导向布局算法
-            var random = new Random();
-            var centerX = NetworkCanvas.Width / 2;
-            var centerY = NetworkCanvas.Height / 2;
-            var radius = Math.Min(centerX, centerY) * 0.8;
-
-            for (int i = 0; i < _allCharacters.Count; i++)
+            var characters = _filteredCharacters.Count > 0 ? _filteredCharacters : _allCharacters;
+            if (characters.Count == 0)
             {
-                var angle = 2 * Math.PI * i / _allCharacters.Count;
-                _allCharacters[i].X = centerX + radius * Math.Cos(angle);
-                _allCharacters[i].Y = centerY + radius * Math.Sin(angle);
+                return;
+            }
+
+            // 以数据库 ID 为节点、当前关系为边（全量关系；无关节点的边由算法忽略）
+            var nodeIds = characters.Select(c => c.CharacterId.ToString()).ToList();
+            var edges = _allRelationships
+                .Where(r => r.SourceCharacterGuid != Guid.Empty && r.TargetCharacterGuid != Guid.Empty)
+                .Select(r => (r.SourceCharacterGuid.ToString(), r.TargetCharacterGuid.ToString()))
+                .ToList();
+
+            // 画布尺寸：ActualWidth 优先（渲染后的真实尺寸）；未渲染完成时 Width 可能是
+            // NaN（WPF 未显式设置时），NaN > 0 为 false，再退回固定兜底值
+            var width = NetworkCanvas.ActualWidth > 0
+                ? NetworkCanvas.ActualWidth
+                : (NetworkCanvas.Width > 0 ? NetworkCanvas.Width : 1200);
+            var height = NetworkCanvas.ActualHeight > 0
+                ? NetworkCanvas.ActualHeight
+                : (NetworkCanvas.Height > 0 ? NetworkCanvas.Height : 800);
+            var layout = ForceDirectedGraphLayout.Compute(nodeIds, edges, width, height);
+
+            foreach (var character in characters)
+            {
+                if (layout.Positions.TryGetValue(character.CharacterId.ToString(), out var pos))
+                {
+                    character.X = pos.X;
+                    character.Y = pos.Y;
+                }
             }
         }
 

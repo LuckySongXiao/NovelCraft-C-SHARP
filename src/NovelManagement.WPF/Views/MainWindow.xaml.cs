@@ -63,6 +63,11 @@ public partial class MainWindow : Window
         {
             _projectContextService.ProjectChanged += OnProjectChanged;
         }
+        if (_projectCatalogService != null)
+        {
+            // 项目目录变化（删除/恢复/清空回收站）后即时刷新侧栏，避免已删除项目残留
+            _projectCatalogService.ProjectListChanged += OnProjectListChanged;
+        }
 
         // 动态项目导航列表
         ProjectMenuItemsControl.ItemsSource = _projectMenuItems;
@@ -1223,7 +1228,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 从数据库加载项目列表到左侧导航（新建书籍会自动出现）。
     /// </summary>
-    private async Task LoadProjectMenuAsync()
+    private async Task LoadProjectMenuAsync(bool purgeStaleSidebarState = false)
     {
         try
         {
@@ -1236,6 +1241,12 @@ public partial class MainWindow : Window
             await Dispatcher.InvokeAsync(() =>
             {
                 var state = LoadSidebarState();
+                if (purgeStaleSidebarState)
+                {
+                    // 仅永久删除/清空回收站后清理；软删除项目保留状态以便恢复
+                    PruneSidebarStateForMissingProjects(state, projects.Select(p => p.ProjectId.ToString()).ToHashSet());
+                }
+
                 _projectMenuItems.Clear();
                 foreach (var project in projects)
                 {
@@ -1266,10 +1277,50 @@ public partial class MainWindow : Window
     /// <summary>
     /// 供外部（项目管理页、一键生成）在项目增删后刷新左侧导航与最近活动。
     /// </summary>
-    public async Task RefreshProjectMenuAsync()
+    public async Task RefreshProjectMenuAsync(bool purgeStaleSidebarState = false)
     {
-        await LoadProjectMenuAsync();
+        await LoadProjectMenuAsync(purgeStaleSidebarState);
         await LoadRecentActivitiesAsync();
+    }
+
+    /// <summary>
+    /// 项目目录变化（删除/恢复/清空回收站）回调：刷新侧栏项目列表与最近活动。
+    /// purgeStaleState 为 true（永久删除/清空回收站）时顺带清理持久化状态中的残留键。
+    /// </summary>
+    private async void OnProjectListChanged(bool purgeStaleState)
+    {
+        try
+        {
+            await RefreshProjectMenuAsync(purgeStaleState);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"项目目录变化后刷新侧栏失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 清理侧栏状态文件中已不存在项目的残留键（ExpandedProjects / ProjectSubGroups），
+    /// 防止 sidebar_state.json 随项目增删无限膨胀并在重启后残留幽灵展开状态。
+    /// </summary>
+    private void PruneSidebarStateForMissingProjects(SidebarState state, HashSet<string> activeProjectIds)
+    {
+        var staleExpanded = state.ExpandedProjects.Where(id => !activeProjectIds.Contains(id)).ToList();
+        foreach (var id in staleExpanded)
+        {
+            state.ExpandedProjects.Remove(id);
+        }
+
+        var staleSubs = state.ProjectSubGroups.Keys.Where(id => !activeProjectIds.Contains(id)).ToList();
+        foreach (var id in staleSubs)
+        {
+            state.ProjectSubGroups.Remove(id);
+        }
+
+        if (staleExpanded.Count > 0 || staleSubs.Count > 0)
+        {
+            SaveSidebarState();
+        }
     }
 
     /// <summary>
@@ -1418,6 +1469,20 @@ public partial class MainWindow : Window
         if (generationService == null)
         {
             MessageBox.Show(LocalizationManager.T("MW.OneClickServiceMissing", "一键生成服务未注册"), LocalizationManager.T("Msg.Error", "错误"), MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // 启动前确认：一键生成会直接创建一本新书（构思→大纲→角色/设定→第一章），
+        // 误触会立即在项目列表中产生垃圾项目，因此与批量生成对齐增加确认弹窗
+        var confirm = MessageBox.Show(
+            LocalizationManager.T("MW.OneClickConfirm", "一键生成将基于当前项目设定创建一本新书（自动完成构思、大纲、主要角色、世界设定、势力组织与第一章），整个过程调用 RWKV 推理服务，耗时较长。\n\n任务在后台运行，期间可正常使用软件其他功能。\n\n确定开始？"),
+            LocalizationManager.T("MW.OneClickConfirmTitle", "确认一键生成"),
+            MessageBoxButton.OKCancel,
+            MessageBoxImage.Question,
+            MessageBoxResult.Cancel);
+
+        if (confirm != MessageBoxResult.OK)
+        {
             return;
         }
 

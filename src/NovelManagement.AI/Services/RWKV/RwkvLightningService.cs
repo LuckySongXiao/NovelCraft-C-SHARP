@@ -23,6 +23,12 @@ namespace NovelManagement.AI.Services.RWKV
         /// </summary>
         private const int RwkvMaxTokensCeiling = 8192;
 
+        /// <summary>Cloudflare Access 服务令牌请求头：客户端 ID。</summary>
+        private const string CfAccessClientIdHeader = "CF-Access-Client-Id";
+
+        /// <summary>Cloudflare Access 服务令牌请求头：客户端密钥。</summary>
+        private const string CfAccessClientSecretHeader = "CF-Access-Client-Secret";
+
         private enum RwkvApiFlavor
         {
             Unknown = 0,
@@ -37,7 +43,7 @@ namespace NovelManagement.AI.Services.RWKV
         private bool _isAvailable;
         private bool _disposed;
         private Process? _serverProcess;
-        private SemaphoreSlim _requestSemaphore = new(20, 20);
+        private SemaphoreSlim _requestSemaphore = new(64, 64);
         private RwkvApiFlavor _apiFlavor = RwkvApiFlavor.Unknown;
 
         // ====== LlamaCpp flavor：进程内 state 会话仿真（llama.cpp 无 state 会话 API）======
@@ -72,7 +78,11 @@ namespace NovelManagement.AI.Services.RWKV
                 _configuration = configuration;
                 _apiFlavor = ResolveConfiguredApiFlavor(configuration);
                 _httpClient.Timeout = TimeSpan.FromSeconds(configuration.TimeoutSeconds);
-                _requestSemaphore.Dispose();
+                ApplyCloudflareAccessHeaders(configuration);
+
+                // 注意：不 Dispose 旧信号量——若有 in-flight 请求仍在 await 旧实例，
+                // Dispose 会让等待方抛 ObjectDisposedException；直接替换引用让 GC 回收，
+                // 旧实例上的等待者会正常完成或超时，新请求走新信号量。
                 _requestSemaphore = new SemaphoreSlim(configuration.MaxConcurrentRequests, configuration.MaxConcurrentRequests);
 
                 // 如果配置了自动启动，尝试启动 Python 推理服务
@@ -117,6 +127,27 @@ namespace NovelManagement.AI.Services.RWKV
             {
                 _isAvailable = false;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 将 Cloudflare Access 凭据应用到 HTTP 客户端默认请求头（用于访问经 CF Access
+        /// 保护的远程 RWKV 端点，如 api-7b.rwkvos.com）。留空配置时不发送；
+        /// 重新初始化时先移除旧头，避免叠加或残留。
+        /// </summary>
+        private void ApplyCloudflareAccessHeaders(RwkvConfiguration configuration)
+        {
+            _httpClient.DefaultRequestHeaders.Remove(CfAccessClientIdHeader);
+            _httpClient.DefaultRequestHeaders.Remove(CfAccessClientSecretHeader);
+
+            if (!string.IsNullOrWhiteSpace(configuration.AccessClientId))
+            {
+                _httpClient.DefaultRequestHeaders.Add(CfAccessClientIdHeader, configuration.AccessClientId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(configuration.AccessClientSecret))
+            {
+                _httpClient.DefaultRequestHeaders.Add(CfAccessClientSecretHeader, configuration.AccessClientSecret);
             }
         }
 
@@ -1549,7 +1580,9 @@ namespace NovelManagement.AI.Services.RWKV
                     }
                     _serverProcess.Dispose();
                 }
-                _requestSemaphore.Dispose();
+
+                // 信号量不显式 Dispose：销毁时仍可能有 in-flight 请求在等待，
+                // Dispose 会使其抛 ObjectDisposedException；交由 GC 终结回收。
                 _disposed = true;
             }
         }

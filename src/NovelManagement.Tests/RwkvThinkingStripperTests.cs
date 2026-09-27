@@ -75,4 +75,31 @@ public class RwkvThinkingStripperTests
         var raw = "We need to write something. Let's craft.";
         Assert.Equal(raw, RwkvThinkingStripper.Strip(raw));
     }
+
+    [Fact]
+    public void Strip_ChatTemplateTokens_AreRemoved()
+    {
+        // 真机冒烟实测：rwkv-g1k-7b（chat 模板模型）state 端点偶发泄漏原始模板标记
+        var raw = "<|im_start|>assistant\n正文第一段。";
+        Assert.Equal("正文第一段。", RwkvThinkingStripper.Strip(raw));
+
+        var raw2 = "前文<|endoftext|>后文";
+        Assert.Equal("前文后文", RwkvThinkingStripper.Strip(raw2));
+    }
+
+    [Fact]
+    public void Strip_TemplateContinuation_TruncatesAfterImEnd()
+    {
+        // im_end 紧跟 im_start：模型在续写对话模板，其后内容属于其他回合，全部丢弃
+        var raw = "正文A。\n<|im_end|>\n<|im_start|>user （扮演玩家角色）\n夜色渐深。";
+        Assert.Equal("正文A。", RwkvThinkingStripper.Strip(raw));
+    }
+
+    [Fact]
+    public void Strip_ImEndFollowedByProse_IsPreserved()
+    {
+        // im_end 后是普通文本（非模板续写）：保守保留，避免误伤正文
+        var raw = "前文<|im_end|>\n正文继续。";
+        Assert.Equal("前文\n正文继续。", RwkvThinkingStripper.Strip(raw));
+    }
 }

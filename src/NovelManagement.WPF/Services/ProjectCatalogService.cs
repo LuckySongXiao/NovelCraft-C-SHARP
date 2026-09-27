@@ -24,6 +24,15 @@ public class ProjectCatalogService
     private readonly IConfiguration _configuration;
     private readonly ILogger<ProjectCatalogService> _logger;
 
+    /// <summary>
+    /// 项目目录发生变化后触发。参数为 true 表示发生永久性删除（永久删除/清空回收站），
+    /// 订阅方可据此清理侧栏持久化状态；软删除/恢复传 false——项目仍可从回收站恢复，
+    /// 不得清除其侧栏展开状态（否则恢复后展开状态丢失）。
+    /// </summary>
+    public event Action<bool>? ProjectListChanged;
+
+    private void RaiseProjectListChanged(bool purgeStaleState = false) => ProjectListChanged?.Invoke(purgeStaleState);
+
     public ProjectCatalogService(
         IServiceScopeFactory serviceScopeFactory,
         IConfiguration configuration,
@@ -147,6 +156,7 @@ public class ProjectCatalogService
         using var scope = _serviceScopeFactory.CreateScope();
         var projectService = scope.ServiceProvider.GetRequiredService<ProjectService>();
         await projectService.DeleteProjectAsync(projectId);
+        RaiseProjectListChanged(purgeStaleState: false);
     }
 
     public async Task RestoreAsync(Guid projectId)
@@ -168,6 +178,7 @@ public class ProjectCatalogService
         project.UpdatedAt = DateTime.UtcNow;
         dbContext.Update(project);
         await dbContext.SaveChangesAsync();
+        RaiseProjectListChanged(purgeStaleState: false);
     }
 
     public async Task PermanentlyDeleteAsync(Guid projectId)
@@ -198,6 +209,8 @@ public class ProjectCatalogService
                 _logger.LogWarning(ex, "删除项目目录失败: {ProjectPath}", projectPath);
             }
         }
+
+        RaiseProjectListChanged(purgeStaleState: true);
     }
 
     public async Task<int> EmptyRecycleBinAsync()
@@ -217,6 +230,7 @@ public class ProjectCatalogService
 
         dbContext.RemoveRange(deletedProjects);
         await dbContext.SaveChangesAsync();
+        RaiseProjectListChanged(purgeStaleState: true);
         return count;
     }
 

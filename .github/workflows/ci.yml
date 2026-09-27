@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  # Windows：主验证 Job —— 全解决方案构建 + 全量单元测试
+  # （测试引用 WPF 项目，需要 Windows Desktop 运行时，只能在 windows runner 上执行）
+  windows-build-test:
+    name: Build & Test (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore NovelManagementSystem.sln
+
+      - name: Build (Release)
+        run: dotnet build NovelManagementSystem.sln -c Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test src/NovelManagement.Tests/NovelManagement.Tests.csproj -c Release --no-restore --nologo --logger "trx;LogFileName=test-results.trx"
+        # 主 exe 若被并行进程锁定，使用独立输出目录（对齐仓库既有实践）：
+        #   dotnet test src/NovelManagement.Tests/NovelManagement.Tests.csproj -o bin\testverify
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+          if-no-files-found: ignore
+
+  # Ubuntu：跨平台编译守门 Job —— 确保解决方案在非 Windows 平台仍可
+  # 通过 EnableWindowsTargeting 完整编译（Linux 本地开发/验证路径）
+  ubuntu-cross-compile:
+    name: Cross-compile check (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore (EnableWindowsTargeting)
+        run: dotnet restore NovelManagementSystem.sln -p:EnableWindowsTargeting=true
+
+      - name: Build (Debug, EnableWindowsTargeting)
+        run: dotnet build NovelManagementSystem.sln -c Debug -p:EnableWindowsTargeting=true --no-restore

@@ -64,7 +64,7 @@ NovelCraft (书籍管理系统) is an intelligent book-writing and management pl
 ## 2. Quick Start
 
 1. **Launch**: double-click `NovelManagement.WPF.exe`.
-2. **Unlock**: the launch-verification window asks for the launch password (provided with the delivery). The factory default is `RWKV7_20260908`.
+2. **Unlock**: the launch-verification window asks for the launch password (provided with the delivery).
 3. **Create**: click "＋ New Project" on the Dashboard, fill in the title and genre, then click "Create Project".
 4. **Open**: the new project appears in the sidebar under *Project Management*; expand it to reveal the full function tree.
 5. **AI (optional)**: on the *AI Model Configuration* page, ensure the RWKV inference service shows *Online*. Pure manual writing works without it.
@@ -309,7 +309,7 @@ No. Tasks are persisted per chapter slice and auto-resume on relaunch; see "Gene
 Everything lives under `%LocalAppData%\NovelManagement` (data/config/logs/backups). Use "Publishing & Maintenance → Backup Now"; restore sits in the same dialog.
 
 **Q6: I forgot the launch password.**
-Delete the `Security` node in `%LocalAppData%\NovelManagement\config\appsettings.user.json` to restore the factory default password (`RWKV7_20260908`), then set a new one from Publishing & Maintenance.
+Delete the `Security` node in `%LocalAppData%\NovelManagement\config\appsettings.user.json` to restore the factory default password (delivered with your distribution notice), then set a new one from Publishing & Maintenance.
 
 **Q7: The UI language did not switch everywhere.**
 DynamicResource-bound elements refresh immediately; dialogs that were already open keep their old language until reopened. A restart applies the new language to everything.
